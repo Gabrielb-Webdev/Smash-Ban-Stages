@@ -36,3 +36,7 @@ body {
 .overflow-hidden {
   overflow: auto;
 }
+
+.overflow-y-scroll {
+  overflow-y: visible;
+}
