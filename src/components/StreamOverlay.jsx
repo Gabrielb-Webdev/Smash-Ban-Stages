@@ -171,12 +171,12 @@ export default function StreamOverlay({ sessionId }) {
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA ÉPICA */}
+        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA GIRANDO */}
         {session.player1.character && session.player2.character && (
           <>
-            {/* Personaje Jugador 1 - Izquierda con efecto explosivo */}
+            {/* Personaje Jugador 1 - Izquierda girando múltiples vueltas */}
             <motion.div
-              initial={{ x: -400, opacity: 0, scale: 0, rotate: -180 }}
+              initial={{ x: -400, opacity: 0, scale: 0, rotate: -720 }}
               animate={{ 
                 x: 0, 
                 opacity: 1, 
@@ -184,11 +184,11 @@ export default function StreamOverlay({ sessionId }) {
                 rotate: 0,
               }}
               transition={{ 
-                duration: 0.6,
+                duration: 0.8,
                 type: 'spring',
-                stiffness: 300,
-                damping: 20,
-                bounce: 0.6
+                stiffness: 200,
+                damping: 15,
+                bounce: 0.5
               }}
               className="flex items-center"
             >
@@ -201,14 +201,14 @@ export default function StreamOverlay({ sessionId }) {
               <motion.div 
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
                 className="h-32 w-1 bg-black ml-4"
               ></motion.div>
             </motion.div>
 
-            {/* Personaje Jugador 2 - Derecha con efecto explosivo */}
+            {/* Personaje Jugador 2 - Derecha girando múltiples vueltas */}
             <motion.div
-              initial={{ x: 400, opacity: 0, scale: 0, rotate: 180 }}
+              initial={{ x: 400, opacity: 0, scale: 0, rotate: 720 }}
               animate={{ 
                 x: 0, 
                 opacity: 1, 
@@ -216,18 +216,18 @@ export default function StreamOverlay({ sessionId }) {
                 rotate: 0,
               }}
               transition={{ 
-                duration: 0.6,
+                duration: 0.8,
                 type: 'spring',
-                stiffness: 300,
-                damping: 20,
-                bounce: 0.6
+                stiffness: 200,
+                damping: 15,
+                bounce: 0.5
               }}
               className="flex items-center"
             >
               <motion.div 
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
                 className="h-32 w-1 bg-black mr-4"
               ></motion.div>
               <img 
