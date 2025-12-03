@@ -267,60 +267,65 @@ export default function StreamOverlay({ sessionId }) {
         )}
       </AnimatePresence>
 
-      {/* Barra inferior con personajes y stages */}
+      {/* Barra horizontal en el centro/bottom con personajes y stages */}
       {session.phase === 'CHARACTER_SELECT' && session.player1.character && session.player2.character && (
-        <div className="fixed bottom-0 left-0 right-0 h-48 bg-gradient-to-r from-pink-500 via-pink-400 to-pink-500 flex items-center justify-between px-8" style={{boxShadow: '0 -10px 30px rgba(0,0,0,0.5)'}}>
-          {/* Personaje Jugador 1 - Izquierda */}
-          <motion.div
-            initial={{ x: -200, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.6, type: 'spring' }}
-            className="flex items-center"
-          >
-            <img 
-              src={getCharacterData(session.player1.character)?.image} 
-              alt={getCharacterData(session.player1.character)?.name}
-              className="w-32 h-32 rounded-full border-8 border-white shadow-2xl"
-            />
-          </motion.div>
+        <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-r from-pink-500 via-pink-400 to-pink-500 flex items-center justify-center" style={{boxShadow: '0 -4px 20px rgba(0,0,0,0.3)'}}>
+          <div className="flex items-center gap-8">
+            {/* Personaje Jugador 1 - Izquierda */}
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, type: 'spring' }}
+            >
+              <img 
+                src={getCharacterData(session.player1.character)?.image} 
+                alt={getCharacterData(session.player1.character)?.name}
+                className="w-28 h-28 rounded-full border-6 border-white shadow-2xl"
+              />
+            </motion.div>
 
-          {/* Stages en el centro */}
-          <div className="flex gap-4 items-center">
-            {STAGES_GAME1.map((stage, index) => (
-              <motion.div
-                key={stage.id}
-                initial={{ scale: 0, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.4, 
-                  delay: index * 0.15,
-                  type: 'spring',
-                  stiffness: 200
-                }}
-                className="relative"
-              >
-                <img 
-                  src={stage.image}
-                  alt={stage.name}
-                  className="w-24 h-16 object-cover rounded-lg border-4 border-white shadow-xl"
-                />
-              </motion.div>
-            ))}
+            {/* Separador */}
+            <div className="w-1 h-24 bg-white/30"></div>
+
+            {/* Stages en el centro */}
+            <div className="flex gap-3 items-center">
+              {STAGES_GAME1.map((stage, index) => (
+                <motion.div
+                  key={stage.id}
+                  initial={{ scale: 0, y: 30 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.4, 
+                    delay: index * 0.15,
+                    type: 'spring',
+                    stiffness: 200
+                  }}
+                >
+                  <img 
+                    src={stage.image}
+                    alt={stage.name}
+                    className="w-20 h-14 object-cover rounded-lg border-3 border-white shadow-lg"
+                  />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Separador */}
+            <div className="w-1 h-24 bg-white/30"></div>
+
+            {/* Personaje Jugador 2 - Derecha */}
+            <motion.div
+              initial={{ x: 200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, type: 'spring' }}
+            >
+              <img 
+                src={getCharacterData(session.player2.character)?.image} 
+                alt={getCharacterData(session.player2.character)?.name}
+                className="w-28 h-28 rounded-full border-6 border-white shadow-2xl"
+              />
+            </motion.div>
           </div>
-
-          {/* Personaje Jugador 2 - Derecha */}
-          <motion.div
-            initial={{ x: 200, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.6, type: 'spring' }}
-            className="flex items-center"
-          >
-            <img 
-              src={getCharacterData(session.player2.character)?.image} 
-              alt={getCharacterData(session.player2.character)?.name}
-              className="w-32 h-32 rounded-full border-8 border-white shadow-2xl"
-            />
-          </motion.div>
         </div>
       )}
 
