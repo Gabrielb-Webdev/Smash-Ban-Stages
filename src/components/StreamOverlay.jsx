@@ -171,40 +171,41 @@ export default function StreamOverlay({ sessionId }) {
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Personaje Jugador 1 - Izquierda */}
-        {session.player1.character && (
-          <motion.div
-            initial={{ x: -200, opacity: 0, scale: 0.5 }}
-            animate={{ x: 0, opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, type: 'spring', stiffness: 120, damping: 15 }}
-            className="flex items-center"
-          >
-            <div className="h-32 w-1 bg-black mr-4"></div>
-            <img 
-              src={getCharacterData(session.player1.character)?.image} 
-              alt={getCharacterData(session.player1.character)?.name}
-              className="w-28 h-28 rounded-full border-4 border-black shadow-2xl"
-              style={{ objectFit: 'cover' }}
-            />
-          </motion.div>
-        )}
+        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado */}
+        {session.player1.character && session.player2.character && (
+          <>
+            {/* Personaje Jugador 1 - Izquierda (icono a la izquierda, línea a la derecha) */}
+            <motion.div
+              initial={{ x: -200, opacity: 0, scale: 0.5 }}
+              animate={{ x: 0, opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, type: 'spring', stiffness: 120, damping: 15 }}
+              className="flex items-center"
+            >
+              <img 
+                src={getCharacterData(session.player1.character)?.image} 
+                alt={getCharacterData(session.player1.character)?.name}
+                className="w-28 h-28 rounded-full border-4 border-black shadow-2xl"
+                style={{ objectFit: 'cover' }}
+              />
+              <div className="h-32 w-1 bg-black ml-4"></div>
+            </motion.div>
 
-        {/* Personaje Jugador 2 - Derecha */}
-        {session.player2.character && (
-          <motion.div
-            initial={{ x: 200, opacity: 0, scale: 0.5 }}
-            animate={{ x: 0, opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, type: 'spring', stiffness: 120, damping: 15 }}
-            className="flex items-center"
-          >
-            <img 
-              src={getCharacterData(session.player2.character)?.image} 
-              alt={getCharacterData(session.player2.character)?.name}
-              className="w-28 h-28 rounded-full border-4 border-black shadow-2xl"
-              style={{ objectFit: 'cover' }}
-            />
-            <div className="h-32 w-1 bg-black ml-4"></div>
-          </motion.div>
+            {/* Personaje Jugador 2 - Derecha (línea a la izquierda, icono a la derecha) */}
+            <motion.div
+              initial={{ x: 200, opacity: 0, scale: 0.5 }}
+              animate={{ x: 0, opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, type: 'spring', stiffness: 120, damping: 15 }}
+              className="flex items-center"
+            >
+              <div className="h-32 w-1 bg-black mr-4"></div>
+              <img 
+                src={getCharacterData(session.player2.character)?.image} 
+                alt={getCharacterData(session.player2.character)?.name}
+                className="w-28 h-28 rounded-full border-4 border-black shadow-2xl"
+                style={{ objectFit: 'cover' }}
+              />
+            </motion.div>
+          </>
         )}
       </footer>
 
