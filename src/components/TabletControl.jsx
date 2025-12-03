@@ -638,7 +638,7 @@ export default function TabletControl({ sessionId }) {
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-gradient-to-br from-smash-purple to-smash-blue rounded-lg hover:scale-110 hover:shadow-lg transition-all p-1 flex flex-col items-center justify-center overflow-hidden group active:scale-95"
+                  className="aspect-square bg-transparent hover:scale-110 hover:brightness-110 transition-all p-0 flex flex-col items-center justify-center overflow-hidden group active:scale-95"
                   title={character.name}
                 >
                   <div className="w-full h-full flex items-center justify-center">
