@@ -105,7 +105,11 @@ export default function TabletControl({ sessionId }) {
 
   const getAvailableStages = () => {
     const stageList = session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS;
-    return stageList.filter(stage => session.availableStages.includes(stage.id));
+    const filtered = stageList.filter(stage => session.availableStages.includes(stage.id));
+    console.log('📊 Game:', session.currentGame, '| Total stages en constants:', stageList.length, '| Disponibles en session:', session.availableStages.length, '| Filtrados:', filtered.length);
+    console.log('Stages disponibles:', session.availableStages);
+    console.log('Stages filtrados:', filtered.map(s => s.name));
+    return filtered;
   };
 
   const filteredCharacters = CHARACTERS.filter(char =>

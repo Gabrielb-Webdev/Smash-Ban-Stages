@@ -298,21 +298,16 @@ export const useSession = (sessionId) => {
       updates.phase = 'FINISHED';
     } else {
       updates.currentGame = session.currentGame + 1;
-      updates.phase = 'STAGE_BAN';
+      updates.phase = 'RPS'; // Cambiar a RPS para el siguiente game
       updates.selectedStage = null;
       updates.bannedStages = [];
       updates.player1 = { ...session.player1, character: null };
       updates.player2 = { ...session.player2, character: null };
+      updates.rpsWinner = null;
+      updates.currentTurn = null;
       
-      updates.availableStages = [
-        'battlefield', 'small-battlefield', 'pokemon-stadium-2',
-        'smashville', 'town-and-city', 'hollow-bastion',
-        'final-destination', 'kalos'
-      ].filter(stage => !newWonStages.includes(stage));
-      
-      updates.currentTurn = winner;
-      updates.totalBansNeeded = 3;
-      updates.bansRemaining = 3;
+      // No configurar availableStages aquí, se hará en selectRPSWinner
+      // updates.availableStages = [];
     }
 
     return updateSession(updates);
