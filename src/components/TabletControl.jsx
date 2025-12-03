@@ -109,7 +109,10 @@ export default function TabletControl({ sessionId }) {
                 Turno de: {session[session.currentTurn]?.name}
               </p>
               <p className="text-white/70 mt-2">
-                Baneos restantes: {session.bansRemaining}
+                {session.currentGame === 1 
+                  ? `Banea ${session.bansRemaining} stage${session.bansRemaining > 1 ? 's' : ''}`
+                  : `Baneos restantes: ${session.bansRemaining}`
+                }
               </p>
             </div>
 

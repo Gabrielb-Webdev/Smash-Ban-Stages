@@ -51,12 +51,12 @@ export const useSession = (sessionId) => {
     }
   }, [sessionId]);
 
-  // Polling cada 2 segundos para sincronización
+  // Polling cada 3 segundos para sincronización (reducido para evitar spam de 404)
   useEffect(() => {
     if (!sessionId) return;
 
     fetchSession();
-    const interval = setInterval(fetchSession, 2000);
+    const interval = setInterval(fetchSession, 3000);
 
     return () => clearInterval(interval);
   }, [sessionId, fetchSession]);
@@ -144,7 +144,7 @@ export const useSession = (sessionId) => {
 
     if (session.currentGame === 1) {
       updates.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
-      updates.totalBansNeeded = 4;
+      updates.totalBansNeeded = 3; // Solo 3 baneos: 1 del ganador + 2 del perdedor
       updates.bansRemaining = 1;
     } else {
       updates.availableStages = [
@@ -186,19 +186,21 @@ export const useSession = (sessionId) => {
       }]
     };
 
-    // Lógica de turnos para Game 1
+    // Lógica de turnos para Game 1 (Sistema 1-2-1 pero termina en selección)
     if (session.currentGame === 1) {
       if (newBannedStages.length === 1) {
+        // Después del primer baneo del ganador RPS, el perdedor banea 2
         updates.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
         updates.bansRemaining = 2;
       } else if (newBannedStages.length === 3) {
-        updates.currentTurn = session.rpsWinner;
-        updates.bansRemaining = 1;
-      } else if (newBannedStages.length === 4) {
+        // Después de 3 baneos (1+2), el perdedor RPS selecciona directamente
+        // Ya no hay más baneos, van directo a seleccionar de los 2 restantes
         updates.phase = 'STAGE_SELECT';
         updates.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
+        updates.bansRemaining = 0;
       }
     } else {
+      // Para Game 2+: 3 baneos del ganador, luego selección del perdedor
       if (newBansRemaining === 0) {
         updates.phase = 'STAGE_SELECT';
         updates.currentTurn = session.lastGameWinner === 'player1' ? 'player2' : 'player1';
