@@ -252,21 +252,21 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="flex justify-center gap-2">
-                  <div className="w-1/3"></div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div></div>
                   {getAvailableStages().slice(3, 5).map((stage) => {
                     const isBanned = session.bannedStages.includes(stage.id);
                     return (
-                      <div key={stage.id} className="w-1/3">
-                        <button
-                          onClick={() => !isBanned && handleBanStage(stage.id)}
-                          disabled={isBanned}
-                          className={`relative overflow-hidden rounded-xl transition-all border-2 w-full ${
-                            isBanned
-                              ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                              : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
-                          }`}
-                        >
+                      <button
+                        key={stage.id}
+                        onClick={() => !isBanned && handleBanStage(stage.id)}
+                        disabled={isBanned}
+                        className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                          isBanned
+                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                        }`}
+                      >
                           <div className="aspect-video relative">
                             <img 
                               src={stage.image} 
@@ -290,10 +290,9 @@ export default function TabletControl({ sessionId }) {
                             </div>
                           )}
                         </button>
-                      </div>
                     );
                   })}
-                  <div className="w-1/3"></div>
+                  <div></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
@@ -341,21 +340,21 @@ export default function TabletControl({ sessionId }) {
                     })}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="flex justify-center gap-2">
-                    <div className="w-1/3"></div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div></div>
                     {getAvailableStages().slice(6, 8).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
-                        <div key={stage.id} className="w-1/3">
-                          <button
-                            onClick={() => !isBanned && handleBanStage(stage.id)}
-                            disabled={isBanned}
-                            className={`relative overflow-hidden rounded-xl transition-all border-2 w-full ${
-                              isBanned
-                                ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                                : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
-                            }`}
-                          >
+                        <button
+                          key={stage.id}
+                          onClick={() => !isBanned && handleBanStage(stage.id)}
+                          disabled={isBanned}
+                          className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                            isBanned
+                              ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                              : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                          }`}
+                        >
                             <div className="aspect-video relative">
                               <img 
                                 src={stage.image} 
@@ -377,12 +376,12 @@ export default function TabletControl({ sessionId }) {
                               <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                                 <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
                               </div>
-                            )}
+                            </button>
                           </button>
-                        </div>
+                        </button>
                       );
                     })}
-                    <div className="w-1/3"></div>
+                    <div></div>
                   </div>
                 </>
               )}
@@ -432,14 +431,14 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="flex justify-center gap-2">
-                  <div className="w-1/3"></div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div></div>
                   {getAvailableStages().slice(3, 5).map((stage) => (
-                    <div key={stage.id} className="w-1/3">
-                      <button
-                        onClick={() => handleSelectStage(stage.id)}
-                        className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95 w-full"
-                      >
+                    <button
+                      key={stage.id}
+                      onClick={() => handleSelectStage(stage.id)}
+                      className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                    >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
@@ -459,9 +458,8 @@ export default function TabletControl({ sessionId }) {
                           <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                         </div>
                       </button>
-                    </div>
                   ))}
-                  <div className="w-1/3"></div>
+                  <div></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
@@ -497,14 +495,14 @@ export default function TabletControl({ sessionId }) {
                     ))}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="flex justify-center gap-2">
-                    <div className="w-1/3"></div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div></div>
                     {getAvailableStages().slice(6, 8).map((stage) => (
-                      <div key={stage.id} className="w-1/3">
-                        <button
-                          onClick={() => handleSelectStage(stage.id)}
-                          className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95 w-full"
-                        >
+                      <button
+                        key={stage.id}
+                        onClick={() => handleSelectStage(stage.id)}
+                        className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                      >
                           <div className="aspect-video relative">
                             <img 
                               src={stage.image} 
@@ -524,9 +522,8 @@ export default function TabletControl({ sessionId }) {
                             <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                           </div>
                         </button>
-                      </div>
                     ))}
-                    <div className="w-1/3"></div>
+                    <div></div>
                   </div>
                 </>
               )}
