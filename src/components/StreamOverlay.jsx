@@ -268,357 +268,91 @@ export default function StreamOverlay({ sessionId }) {
       </AnimatePresence>
 
       <div className="max-w-7xl mx-auto">
-        {/* Header con información de la serie - Mejorado */}
+        {/* Header con información de la serie */}
         <motion.div
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="relative bg-gradient-to-r from-smash-red via-smash-purple to-smash-blue rounded-2xl p-8 mb-8 shadow-2xl overflow-hidden"
+          className="bg-gradient-to-r from-smash-red via-smash-purple to-smash-blue rounded-2xl p-6 mb-8 shadow-2xl"
         >
-          {/* Efectos de fondo animados */}
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-              opacity: [0.1, 0.2, 0.1]
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white to-transparent"
-          />
-          
-          <div className="relative flex justify-between items-center">
-            {/* Jugador 1 */}
-            <motion.div
-              animate={{ 
-                x: [0, -5, 0],
-              }}
-              transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-              className="flex-1 text-center"
-            >
-              <motion.div
+          <div className="flex justify-between items-center">
+            <div className="flex-1 text-center">
+              <motion.p
                 key={session.player1.score}
                 initial={{ scale: 1 }}
-                animate={{ 
-                  scale: [1, 1.3, 1],
-                  textShadow: [
-                    "0 0 10px rgba(255,255,255,0.5)",
-                    "0 0 20px rgba(255,255,255,0.8)",
-                    "0 0 10px rgba(255,255,255,0.5)"
-                  ]
-                }}
+                animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 0.5 }}
-                className="relative"
+                className="text-white text-5xl font-bold"
               >
-                <p className="text-white text-7xl font-black drop-shadow-2xl">
-                  {session.player1.score}
-                </p>
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute inset-0 bg-smash-yellow rounded-full blur-2xl -z-10"
-                />
-              </motion.div>
-              <motion.p
-                animate={{ y: [0, -3, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-white/90 text-3xl font-bold mt-3 drop-shadow-lg"
-              >
+                {session.player1.score}
+              </motion.p>
+              <p className="text-white/90 text-2xl font-semibold mt-2">
                 {session.player1.name}
-              </motion.p>
+              </p>
               {session.player1.character && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block"
-                >
-                  <p className="text-smash-yellow text-xl font-semibold">
-                    {getCharacterData(session.player1.character)?.name}
-                  </p>
-                </motion.div>
+                <p className="text-smash-yellow text-lg mt-1">
+                  {getCharacterData(session.player1.character)?.name}
+                </p>
               )}
-            </motion.div>
+            </div>
 
-            {/* VS en el centro - Más dinámico */}
-            <motion.div
-              animate={{ 
-                scale: [1, 1.15, 1],
-                rotate: [0, 5, -5, 0]
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="px-12 text-center relative"
-            >
-              <motion.div
-                animate={{ 
-                  boxShadow: [
-                    "0 0 20px rgba(243, 156, 18, 0.5)",
-                    "0 0 40px rgba(243, 156, 18, 0.9)",
-                    "0 0 20px rgba(243, 156, 18, 0.5)"
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-br from-smash-yellow to-amber-600 rounded-full p-6 shadow-2xl"
-              >
-                <p className="text-white text-7xl font-black drop-shadow-2xl">VS</p>
-              </motion.div>
-              <motion.p
-                animate={{ opacity: [1, 0.6, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-white/90 text-2xl mt-3 font-bold"
-              >
+            <div className="px-8 text-center">
+              <p className="text-white text-6xl font-bold">VS</p>
+              <p className="text-white/70 text-xl mt-2">
                 Game {session.currentGame}
-              </motion.p>
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="mt-1"
-              >
-                <span className="text-smash-yellow text-2xl font-black drop-shadow-lg">
-                  {session.format}
-                </span>
-              </motion.div>
-            </motion.div>
+              </p>
+              <p className="text-smash-yellow text-lg font-semibold">
+                {session.format}
+              </p>
+            </div>
 
-            {/* Jugador 2 */}
-            <motion.div
-              animate={{ 
-                x: [0, 5, 0],
-              }}
-              transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-              className="flex-1 text-center"
-            >
-              <motion.div
+            <div className="flex-1 text-center">
+              <motion.p
                 key={session.player2.score}
                 initial={{ scale: 1 }}
-                animate={{ 
-                  scale: [1, 1.3, 1],
-                  textShadow: [
-                    "0 0 10px rgba(255,255,255,0.5)",
-                    "0 0 20px rgba(255,255,255,0.8)",
-                    "0 0 10px rgba(255,255,255,0.5)"
-                  ]
-                }}
+                animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 0.5 }}
-                className="relative"
+                className="text-white text-5xl font-bold"
               >
-                <p className="text-white text-7xl font-black drop-shadow-2xl">
-                  {session.player2.score}
-                </p>
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute inset-0 bg-smash-blue rounded-full blur-2xl -z-10"
-                />
-              </motion.div>
-              <motion.p
-                animate={{ y: [0, -3, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-white/90 text-3xl font-bold mt-3 drop-shadow-lg"
-              >
-                {session.player2.name}
+                {session.player2.score}
               </motion.p>
+              <p className="text-white/90 text-2xl font-semibold mt-2">
+                {session.player2.name}
+              </p>
               {session.player2.character && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block"
-                >
-                  <p className="text-smash-yellow text-xl font-semibold">
-                    {getCharacterData(session.player2.character)?.name}
-                  </p>
-                </motion.div>
+                <p className="text-smash-yellow text-lg mt-1">
+                  {getCharacterData(session.player2.character)?.name}
+                </p>
               )}
-            </motion.div>
+            </div>
           </div>
-
-          {/* Partículas decorativas */}
-          <motion.div
-            animate={{ 
-              x: [-20, 20, -20],
-              y: [-10, 10, -10],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 4, repeat: Infinity }}
-            className="absolute top-4 left-4 text-4xl"
-          >
-            ⭐
-          </motion.div>
-          <motion.div
-            animate={{ 
-              x: [20, -20, 20],
-              y: [10, -10, 10],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 5, repeat: Infinity }}
-            className="absolute top-4 right-4 text-4xl"
-          >
-            ✨
-          </motion.div>
-          <motion.div
-            animate={{ 
-              x: [-15, 15, -15],
-              y: [15, -15, 15],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 3.5, repeat: Infinity }}
-            className="absolute bottom-4 left-1/4 text-4xl"
-          >
-            💫
-          </motion.div>
-          <motion.div
-            animate={{ 
-              x: [15, -15, 15],
-              y: [-15, 15, -15],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 4.5, repeat: Infinity }}
-            className="absolute bottom-4 right-1/4 text-4xl"
-          >
-            🌟
-          </motion.div>
         </motion.div>
 
-        {/* Indicador de fase actual - Mejorado */}
+        {/* Indicador de fase actual */}
         <motion.div
           key={session.phase}
-          initial={{ scale: 0.8, opacity: 0, y: -20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="text-center mb-8"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-center mb-6"
         >
-          <motion.div
-            animate={{ 
-              boxShadow: [
-                "0 0 20px rgba(139, 92, 246, 0.4)",
-                "0 0 40px rgba(139, 92, 246, 0.7)",
-                "0 0 20px rgba(139, 92, 246, 0.4)"
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="inline-block bg-gradient-to-r from-smash-purple to-purple-600 backdrop-blur-md rounded-2xl px-10 py-4 border-2 border-purple-400 relative overflow-hidden"
-          >
-            {/* Efecto de brillo animado */}
-            <motion.div
-              animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 3, repeat: Infinity, repeatDelay: 1 }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-              style={{ width: "50%" }}
-            />
-            
-            <motion.p
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-white text-3xl font-black drop-shadow-lg relative z-10"
-            >
-              {session.phase === 'RPS' && (
-                <span>
-                  <motion.span
-                    animate={{ rotate: [0, 20, 0] }}
-                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                    className="inline-block"
-                  >
-                    ✊
-                  </motion.span>
-                  <motion.span
-                    animate={{ rotate: [0, -20, 0] }}
-                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2, delay: 0.2 }}
-                    className="inline-block mx-2"
-                  >
-                    ✋
-                  </motion.span>
-                  <motion.span
-                    animate={{ rotate: [0, 20, 0] }}
-                    transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2, delay: 0.4 }}
-                    className="inline-block"
-                  >
-                    ✌️
-                  </motion.span>
-                  {' '}Piedra, Papel o Tijera
-                </span>
-              )}
-              {session.phase === 'STAGE_BAN' && (
-                <span>
-                  <motion.span
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="inline-block mr-2"
-                  >
-                    ❌
-                  </motion.span>
-                  Baneo de Stages
-                </span>
-              )}
-              {session.phase === 'STAGE_SELECT' && (
-                <span>
-                  <motion.span
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="inline-block mr-2"
-                  >
-                    🎯
-                  </motion.span>
-                  Selección de Stage
-                </span>
-              )}
-              {session.phase === 'CHARACTER_SELECT' && (
-                <span>
-                  <motion.span
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="inline-block mr-2"
-                  >
-                    👤
-                  </motion.span>
-                  Selección de Personajes
-                </span>
-              )}
-              {session.phase === 'PLAYING' && (
-                <span>
-                  <motion.span
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ duration: 0.8, repeat: Infinity }}
-                    className="inline-block mr-2"
-                  >
-                    ⚔️
-                  </motion.span>
-                  ¡En Combate!
-                  <motion.span
-                    animate={{ rotate: [0, -15, 15, 0] }}
-                    transition={{ duration: 0.8, repeat: Infinity }}
-                    className="inline-block ml-2"
-                  >
-                    ⚔️
-                  </motion.span>
-                </span>
-              )}
-              {session.phase === 'FINISHED' && (
-                <span>
-                  <motion.span
-                    animate={{ scale: [1, 1.3, 1], rotate: [0, 20, -20, 0] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="inline-block mr-2"
-                  >
-                    🏆
-                  </motion.span>
-                  Serie Finalizada
-                </span>
-              )}
-            </motion.p>
+          <div className="inline-block bg-white/10 backdrop-blur-md rounded-full px-8 py-3 border border-white/30">
+            <p className="text-white text-2xl font-bold">
+              {session.phase === 'RPS' && '✊✋✌️ Piedra, Papel o Tijera'}
+              {session.phase === 'STAGE_BAN' && '❌ Baneo de Stages'}
+              {session.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
+              {session.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
+              {session.phase === 'PLAYING' && '⚔️ ¡En Combate!'}
+              {session.phase === 'FINISHED' && '🏆 Serie Finalizada'}
+            </p>
             {session.currentTurn && session.phase !== 'FINISHED' && (
               <motion.p
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className="text-smash-yellow text-xl font-black mt-2 drop-shadow-lg relative z-10"
+                className="text-smash-yellow text-lg font-semibold mt-1"
               >
-                <motion.span
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="inline-block"
-                >
-                  ▶
-                </motion.span>
-                {' '}Turno: {session[session.currentTurn]?.name}
+                Turno: {session[session.currentTurn]?.name}
               </motion.p>
             )}
-          </motion.div>
+          </div>
         </motion.div>
 
         {/* Grid de Stages */}

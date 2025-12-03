@@ -33,7 +33,12 @@ const io = new Server(httpServer, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  upgradeTimeout: 30000,
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
 });
 
 // Almacenamiento en memoria de las sesiones activas
