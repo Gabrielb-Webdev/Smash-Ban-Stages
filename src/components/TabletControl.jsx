@@ -633,19 +633,19 @@ export default function TabletControl({ sessionId }) {
               />
             </div>
 
-            <div className="grid grid-cols-8 gap-3 flex-1 overflow-y-auto pr-2">
+            <div className="grid grid-cols-6 gap-6 flex-1 overflow-y-auto pr-2">
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-transparent hover:scale-110 hover:brightness-110 transition-all p-0 flex flex-col items-center justify-center overflow-hidden group active:scale-95"
+                  className="aspect-square bg-white/5 hover:bg-white/20 rounded-xl hover:scale-110 hover:brightness-110 transition-all p-3 flex flex-col items-center justify-center overflow-hidden group active:scale-95 border-2 border-white/20 hover:border-smash-yellow shadow-lg hover:shadow-2xl"
                   title={character.name}
                 >
                   <div className="w-full h-full flex items-center justify-center">
                     <img 
                       src={character.image} 
                       alt={character.name}
-                      className="w-full h-full object-contain group-hover:scale-110 transition-transform"
+                      className="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-lg"
                       onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                     />
                   </div>
