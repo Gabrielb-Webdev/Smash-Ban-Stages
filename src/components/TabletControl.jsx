@@ -275,6 +275,9 @@ export default function TabletControl({ sessionId }) {
                 </p>
                 <p className="text-smash-yellow text-lg">
                   {session.player2.character || 'N/A'}
+                </p>
+              </div>
+            </div>
             <div className="space-y-5 mt-8">
               <button
                 onClick={() => setGameWinner('player1')}
@@ -293,10 +296,6 @@ export default function TabletControl({ sessionId }) {
                   <span className="text-4xl">🏆</span>
                   <span>{session.player2.name} Ganó</span>
                 </div>
-              </button>
-            </div>assName="w-full py-4 bg-gradient-to-r from-smash-blue to-blue-600 text-white font-bold text-lg rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
-              >
-                🏆 {session.player2.name} Ganó
               </button>
             </div>
           </div>
