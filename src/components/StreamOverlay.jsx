@@ -262,7 +262,7 @@ export default function StreamOverlay({ sessionId }) {
         )}
       </AnimatePresence>
 
-      {/* Franja horizontal rosa en el centro de la pantalla */}
+      {/* Franja horizontal con fondo paperbg.jpg en el centro de la pantalla */}
       {session.phase === 'CHARACTER_SELECT' && session.player1.character && session.player2.character && (
         <div 
           className="fixed left-0 right-0 flex items-center justify-center"
@@ -272,18 +272,28 @@ export default function StreamOverlay({ sessionId }) {
             height: '140px',
           }}
         >
-          {/* Barra rosa con gradiente */}
+          {/* Barra con imagen de fondo paperbg.jpg y overlay rosa */}
           <motion.div 
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full h-full flex items-center justify-center"
+            className="w-full h-full flex items-center justify-center relative"
             style={{
-              background: 'linear-gradient(90deg, #FF4D8D 0%, #FF6B9D 25%, #FF8CAD 50%, #FF6B9D 75%, #FF4D8D 100%)',
-              boxShadow: '0 8px 32px rgba(255, 77, 141, 0.4), 0 -8px 32px rgba(255, 77, 141, 0.4)',
+              backgroundImage: 'url(/images/paperbg.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 -8px 32px rgba(0, 0, 0, 0.3)',
             }}
           >
-            <div className="flex items-center gap-6">
+            {/* Overlay rosa semi-transparente */}
+            <div 
+              className="absolute inset-0" 
+              style={{
+                background: 'linear-gradient(90deg, rgba(255, 77, 141, 0.85) 0%, rgba(255, 107, 157, 0.85) 25%, rgba(255, 140, 173, 0.85) 50%, rgba(255, 107, 157, 0.85) 75%, rgba(255, 77, 141, 0.85) 100%)',
+              }}
+            ></div>
+            {/* Contenido sobre el overlay - con z-index para estar sobre el overlay rosa */}
+            <div className="flex items-center gap-6 relative z-10">
               {/* Personaje Jugador 1 - Izquierda */}
               <motion.div
                 initial={{ x: -150, opacity: 0, scale: 0.5 }}
