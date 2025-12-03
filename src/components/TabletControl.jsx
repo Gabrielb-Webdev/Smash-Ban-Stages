@@ -157,7 +157,7 @@ export default function TabletControl({ sessionId }) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {getAvailableStages().map((stage) => {
                 const isBanned = session.bannedStages.includes(stage.id);
                 return (
@@ -165,23 +165,38 @@ export default function TabletControl({ sessionId }) {
                     key={stage.id}
                     onClick={() => !isBanned && handleBanStage(stage.id)}
                     disabled={isBanned}
-                    className={`relative overflow-hidden rounded-xl transition-all ${
+                    className={`relative overflow-hidden rounded-2xl transition-all border-4 ${
                       isBanned
-                        ? 'opacity-30 cursor-not-allowed'
-                        : 'hover:scale-105 hover:shadow-2xl cursor-pointer'
+                        ? 'opacity-40 cursor-not-allowed border-red-500/50'
+                        : 'hover:scale-105 hover:shadow-2xl cursor-pointer border-white/20 hover:border-red-500'
                     }`}
                   >
-                    <div className="h-32 bg-gradient-to-r from-smash-purple to-smash-blue flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-white font-bold text-2xl">{stage.name}</p>
-                        <p className="text-white/70 text-sm mt-1">
-                          {isBanned ? '✖️ BANEADO' : 'Toca para banear'}
+                    <div className="aspect-video relative">
+                      <img 
+                        src={stage.image} 
+                        alt={stage.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { 
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                        <span className="text-white text-xl">🎮</span>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3">
+                        <p className="text-white font-bold text-lg text-center drop-shadow-lg">{stage.name}</p>
+                        <p className="text-white/90 text-xs text-center mt-1 font-semibold">
+                          {isBanned ? '✖️ BANEADO' : '❌ Toca para banear'}
                         </p>
                       </div>
                     </div>
                     {isBanned && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                        <span className="text-red-500 text-6xl font-bold">✖</span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                        <div className="text-center">
+                          <span className="text-red-500 text-7xl font-bold drop-shadow-2xl">✖</span>
+                          <p className="text-white font-bold text-xl mt-2 drop-shadow-lg">BANEADO</p>
+                        </div>
                       </div>
                     )}
                   </button>
@@ -203,20 +218,33 @@ export default function TabletControl({ sessionId }) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {getAvailableStages().map((stage) => (
                 <button
                   key={stage.id}
                   onClick={() => handleSelectStage(stage.id)}
-                  className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-2xl transition-all"
+                  className="relative overflow-hidden rounded-2xl hover:scale-105 hover:shadow-2xl transition-all border-4 border-white/20 hover:border-green-500 group"
                 >
-                  <div className="h-32 bg-gradient-to-r from-green-600 to-emerald-500 flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-white font-bold text-2xl">{stage.name}</p>
-                      <p className="text-white/70 text-sm mt-1">
-                        Toca para seleccionar
+                  <div className="aspect-video relative">
+                    <img 
+                      src={stage.image} 
+                      alt={stage.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => { 
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                      <span className="text-white text-xl">🎮</span>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3">
+                      <p className="text-white font-bold text-lg text-center drop-shadow-lg">{stage.name}</p>
+                      <p className="text-green-400 text-xs text-center mt-1 font-semibold">
+                        ✓ Toca para seleccionar
                       </p>
                     </div>
+                    <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                   </div>
                 </button>
               ))}
