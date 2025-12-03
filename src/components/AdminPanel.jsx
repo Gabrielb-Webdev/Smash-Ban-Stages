@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSession } from '../hooks/useSession';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
@@ -191,35 +192,81 @@ export default function AdminPanel() {
                 📱 Links de Control
               </h3>
               
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={getControlLink('tablet')}
-                    readOnly
-                    className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(getControlLink('tablet'))}
-                    className="px-6 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80"
-                  >
-                    Copiar Tablet
-                  </button>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tablet con QR */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-white font-semibold text-lg">🎮 Tablet</span>
+                  </div>
+                  
+                  {/* QR Code */}
+                  <div className="bg-white p-4 rounded-lg flex justify-center">
+                    <QRCodeSVG
+                      value={getControlLink('tablet')}
+                      size={180}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  
+                  {/* Link y botón */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={getControlLink('tablet')}
+                      readOnly
+                      className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(getControlLink('tablet'))}
+                      className="px-6 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
+                    >
+                      Copiar
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={getControlLink('stream')}
-                    readOnly
-                    className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(getControlLink('stream'))}
-                    className="px-6 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80"
+                {/* Stream con ícono de apertura */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-white font-semibold text-lg">📺 Stream</span>
+                  </div>
+                  
+                  {/* Botón grande de apertura */}
+                  <a
+                    href={getControlLink('stream')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-gradient-to-br from-smash-purple to-purple-800 rounded-lg p-8 text-center hover:scale-105 transition-all shadow-lg group"
                   >
-                    Copiar Stream
-                  </button>
+                    <div className="text-6xl mb-3 group-hover:scale-110 transition-transform">
+                      🎥
+                    </div>
+                    <p className="text-white font-bold text-xl mb-1">Abrir Stream</p>
+                    <p className="text-white/70 text-sm">Click para abrir en nueva pestaña</p>
+                    <div className="mt-3 flex items-center justify-center gap-2 text-white/50">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      <span className="text-xs">Nueva pestaña</span>
+                    </div>
+                  </a>
+                  
+                  {/* Link y botón */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={getControlLink('stream')}
+                      readOnly
+                      className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(getControlLink('stream'))}
+                      className="px-6 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80 transition-all"
+                    >
+                      Copiar
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
