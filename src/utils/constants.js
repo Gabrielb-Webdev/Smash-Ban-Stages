@@ -1,10 +1,11 @@
 // Constants para el sistema de baneos
+// Orden específico para Game 1: Small Battlefield, Town and City, Pokemon Stadium 2, Hollow Bastion, Battlefield
 export const STAGES_GAME1 = [
-  { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
   { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield .png' },
-  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
-  { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
   { id: 'town-and-city', name: 'Town and City', image: '/images/stages/Town and City.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'hollow-bastion', name: 'Hollow Bastion', image: '/images/stages/Hollow Bastion.png' },
+  { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
 ];
 
 export const STAGES_GAME2_PLUS = [

@@ -158,168 +158,12 @@ export default function StreamOverlay({ sessionId }) {
   const winnerIsPlayer1 = rpsWinner === 'player1';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-smash-darker to-black p-8">
-      {/* Animación de RPS cuando se define el ganador */}
-      <AnimatePresence>
-        {showRpsAnimation && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg"
-          >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-              className="text-center"
-            >
-              {/* Título de ganador */}
-              <motion.div
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="mb-8"
-              >
-                <h2 className="text-white text-5xl font-bold mb-2">¡{session[rpsWinner]?.name} GANA!</h2>
-                <p className="text-smash-yellow text-2xl">Piedra, Papel o Tijera</p>
-              </motion.div>
-
-              {/* Animación de manos */}
-              <div className="flex items-center justify-center gap-12 mb-8">
-                {/* Jugador 1 */}
-                <motion.div
-                  initial={{ x: -200, opacity: 0 }}
-                  animate={{ 
-                    x: 0, 
-                    opacity: 1,
-                    rotate: winnerIsPlayer1 ? [0, -10, 0] : 0
-                  }}
-                  transition={{ delay: 0.5, duration: 0.5 }}
-                  className={`text-center ${winnerIsPlayer1 ? 'scale-125' : ''}`}
-                >
-                  <div className={`w-40 h-40 ${winnerIsPlayer1 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-red-700'} rounded-full flex items-center justify-center mb-4 shadow-2xl border-4 ${winnerIsPlayer1 ? 'border-green-300' : 'border-red-300'}`}>
-                    <motion.span
-                      animate={{ 
-                        scale: winnerIsPlayer1 ? [1, 1.2, 1] : 1,
-                        rotate: [0, 5, -5, 0]
-                      }}
-                      transition={{ 
-                        duration: 0.5, 
-                        repeat: Infinity, 
-                        repeatDelay: 0.5 
-                      }}
-                      className="text-8xl"
-                    >
-                      {winnerIsPlayer1 ? rpsOutcome.winner : rpsOutcome.loser}
-                    </motion.span>
-                  </div>
-                  <p className="text-white text-2xl font-bold">{session.player1.name}</p>
-                  {winnerIsPlayer1 && (
-                    <motion.p
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 1 }}
-                      className="text-green-400 text-xl font-bold mt-2"
-                    >
-                      ✓ GANADOR
-                    </motion.p>
-                  )}
-                </motion.div>
-
-                {/* VS en el medio */}
-                <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.7, type: 'spring' }}
-                  className="text-white text-6xl font-bold px-8"
-                >
-                  VS
-                </motion.div>
-
-                {/* Jugador 2 */}
-                <motion.div
-                  initial={{ x: 200, opacity: 0 }}
-                  animate={{ 
-                    x: 0, 
-                    opacity: 1,
-                    rotate: !winnerIsPlayer1 ? [0, 10, 0] : 0
-                  }}
-                  transition={{ delay: 0.5, duration: 0.5 }}
-                  className={`text-center ${!winnerIsPlayer1 ? 'scale-125' : ''}`}
-                >
-                  <div className={`w-40 h-40 ${!winnerIsPlayer1 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-red-700'} rounded-full flex items-center justify-center mb-4 shadow-2xl border-4 ${!winnerIsPlayer1 ? 'border-green-300' : 'border-red-300'}`}>
-                    <motion.span
-                      animate={{ 
-                        scale: !winnerIsPlayer1 ? [1, 1.2, 1] : 1,
-                        rotate: [0, -5, 5, 0]
-                      }}
-                      transition={{ 
-                        duration: 0.5, 
-                        repeat: Infinity, 
-                        repeatDelay: 0.5 
-                      }}
-                      className="text-8xl"
-                    >
-                      {!winnerIsPlayer1 ? rpsOutcome.winner : rpsOutcome.loser}
-                    </motion.span>
-                  </div>
-                  <p className="text-white text-2xl font-bold">{session.player2.name}</p>
-                  {!winnerIsPlayer1 && (
-                    <motion.p
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 1 }}
-                      className="text-green-400 text-xl font-bold mt-2"
-                    >
-                      ✓ GANADOR
-                    </motion.p>
-                  )}
-                </motion.div>
-              </div>
-
-              {/* Confetti/Sparkles effect */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
-                className="text-6xl"
-              >
-                <motion.span
-                  animate={{ 
-                    y: [-10, 10, -10],
-                    opacity: [1, 0.7, 1]
-                  }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  ✨
-                </motion.span>
-                <motion.span
-                  animate={{ 
-                    y: [10, -10, 10],
-                    opacity: [0.7, 1, 0.7]
-                  }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="mx-4"
-                >
-                  🎉
-                </motion.span>
-                <motion.span
-                  animate={{ 
-                    y: [-10, 10, -10],
-                    opacity: [1, 0.7, 1]
-                  }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  ✨
-                </motion.span>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    <div className="min-h-screen relative" style={{
+      backgroundImage: 'url(/images/paperbg.jpg)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }}>
       {/* Animación de Stage Baneado */}
       <AnimatePresence>
         {showBanAnimation && bannedStage && (
@@ -423,7 +267,64 @@ export default function StreamOverlay({ sessionId }) {
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto">
+      {/* Barra inferior con personajes y stages */}
+      {session.phase === 'CHARACTER_SELECT' && session.player1.character && session.player2.character && (
+        <div className="fixed bottom-0 left-0 right-0 h-48 bg-gradient-to-r from-pink-500 via-pink-400 to-pink-500 flex items-center justify-between px-8" style={{boxShadow: '0 -10px 30px rgba(0,0,0,0.5)'}}>
+          {/* Personaje Jugador 1 - Izquierda */}
+          <motion.div
+            initial={{ x: -200, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.6, type: 'spring' }}
+            className="flex items-center"
+          >
+            <img 
+              src={getCharacterData(session.player1.character)?.image} 
+              alt={getCharacterData(session.player1.character)?.name}
+              className="w-32 h-32 rounded-full border-8 border-white shadow-2xl"
+            />
+          </motion.div>
+
+          {/* Stages en el centro */}
+          <div className="flex gap-4 items-center">
+            {STAGES_GAME1.map((stage, index) => (
+              <motion.div
+                key={stage.id}
+                initial={{ scale: 0, y: 50 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.4, 
+                  delay: index * 0.15,
+                  type: 'spring',
+                  stiffness: 200
+                }}
+                className="relative"
+              >
+                <img 
+                  src={stage.image}
+                  alt={stage.name}
+                  className="w-24 h-16 object-cover rounded-lg border-4 border-white shadow-xl"
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Personaje Jugador 2 - Derecha */}
+          <motion.div
+            initial={{ x: 200, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.6, type: 'spring' }}
+            className="flex items-center"
+          >
+            <img 
+              src={getCharacterData(session.player2.character)?.image} 
+              alt={getCharacterData(session.player2.character)?.name}
+              className="w-32 h-32 rounded-full border-8 border-white shadow-2xl"
+            />
+          </motion.div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto hidden">
         {/* Header con información de la serie */}
         <motion.div
           initial={{ y: -50, opacity: 0 }}

@@ -273,8 +273,8 @@ io.on('connection', (socket) => {
             
             // Configurar stages disponibles según el game
             if (updatedSession.currentGame === 1) {
-              // Game 1: 5 stages
-              updatedSession.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
+              // Game 1: 5 stages en orden específico
+              updatedSession.availableStages = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
               // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
               updatedSession.totalBansNeeded = 3;
               updatedSession.bansRemaining = 1; // Ganador RPS banea 1 primero
