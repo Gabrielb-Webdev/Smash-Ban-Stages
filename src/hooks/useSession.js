@@ -298,7 +298,6 @@ export const useSession = (sessionId) => {
       updates.phase = 'FINISHED';
     } else {
       updates.currentGame = session.currentGame + 1;
-      updates.phase = 'RPS'; // Cambiar a RPS para el siguiente game
       updates.selectedStage = null;
       updates.bannedStages = [];
       
@@ -313,11 +312,21 @@ export const useSession = (sessionId) => {
         character: null 
       };
       
+      // Game 2+: Pasar directo a STAGE_BAN sin RPS
+      // El ganador del game anterior banea 3 stages
+      updates.phase = 'STAGE_BAN';
+      updates.currentTurn = winner; // Ganador banea primero
       updates.rpsWinner = null;
-      updates.currentTurn = null;
       
-      // No configurar availableStages aquí, se hará en selectRPSWinner
-      // updates.availableStages = [];
+      // Configurar los 8 stages disponibles, filtrando los que ya ganó el ganador
+      updates.availableStages = [
+        'battlefield', 'small-battlefield', 'pokemon-stadium-2',
+        'smashville', 'town-and-city', 'hollow-bastion',
+        'final-destination', 'kalos'
+      ].filter(stage => !newWonStages.includes(stage));
+      
+      updates.totalBansNeeded = 3;
+      updates.bansRemaining = 3;
     }
 
     return updateSession(updates);
