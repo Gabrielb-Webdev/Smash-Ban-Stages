@@ -171,38 +171,88 @@ export default function StreamOverlay({ sessionId }) {
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado */}
+        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - EFECTO ÉPICO */}
         {session.player1.character && session.player2.character && (
           <>
-            {/* Personaje Jugador 1 - Izquierda (icono a la izquierda, línea a la derecha) */}
+            {/* Personaje Jugador 1 - Izquierda con efecto explosivo */}
             <motion.div
-              initial={{ x: -200, opacity: 0, scale: 0.5 }}
-              animate={{ x: 0, opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, type: 'spring', stiffness: 120, damping: 15 }}
+              initial={{ x: -400, opacity: 0, scale: 0, rotate: -180 }}
+              animate={{ 
+                x: 0, 
+                opacity: 1, 
+                scale: 1, 
+                rotate: 0,
+              }}
+              transition={{ 
+                duration: 0.6,
+                type: 'spring',
+                stiffness: 300,
+                damping: 20,
+                bounce: 0.6
+              }}
               className="flex items-center"
             >
-              <img 
+              <motion.img 
                 src={getCharacterData(session.player1.character)?.image} 
                 alt={getCharacterData(session.player1.character)?.name}
-                className="w-28 h-28 rounded-full border-4 border-black shadow-2xl"
+                className="w-32 h-32 rounded-full border-4 border-black shadow-2xl"
                 style={{ objectFit: 'cover' }}
+                animate={{ 
+                  scale: [1, 1.15, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatDelay: 1
+                }}
               />
-              <div className="h-32 w-1 bg-black ml-4"></div>
+              <motion.div 
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="h-32 w-1 bg-black ml-4"
+              ></motion.div>
             </motion.div>
 
-            {/* Personaje Jugador 2 - Derecha (línea a la izquierda, icono a la derecha) */}
+            {/* Personaje Jugador 2 - Derecha con efecto explosivo */}
             <motion.div
-              initial={{ x: 200, opacity: 0, scale: 0.5 }}
-              animate={{ x: 0, opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, type: 'spring', stiffness: 120, damping: 15 }}
+              initial={{ x: 400, opacity: 0, scale: 0, rotate: 180 }}
+              animate={{ 
+                x: 0, 
+                opacity: 1, 
+                scale: 1, 
+                rotate: 0,
+              }}
+              transition={{ 
+                duration: 0.6,
+                type: 'spring',
+                stiffness: 300,
+                damping: 20,
+                bounce: 0.6
+              }}
               className="flex items-center"
             >
-              <div className="h-32 w-1 bg-black mr-4"></div>
-              <img 
+              <motion.div 
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="h-32 w-1 bg-black mr-4"
+              ></motion.div>
+              <motion.img 
                 src={getCharacterData(session.player2.character)?.image} 
                 alt={getCharacterData(session.player2.character)?.name}
-                className="w-28 h-28 rounded-full border-4 border-black shadow-2xl"
+                className="w-32 h-32 rounded-full border-4 border-black shadow-2xl"
                 style={{ objectFit: 'cover' }}
+                animate={{ 
+                  scale: [1, 1.15, 1],
+                  rotate: [0, -5, 5, 0]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatDelay: 1
+                }}
               />
             </motion.div>
           </>
