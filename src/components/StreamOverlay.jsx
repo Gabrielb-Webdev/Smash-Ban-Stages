@@ -262,77 +262,101 @@ export default function StreamOverlay({ sessionId }) {
         )}
       </AnimatePresence>
 
-      {/* Franja horizontal en el centro con fondo paperbg y contenido rosa */}
+      {/* Franja horizontal rosa en el centro de la pantalla */}
       {session.phase === 'CHARACTER_SELECT' && session.player1.character && session.player2.character && (
         <div 
-          className="fixed left-0 right-0 h-48 flex items-center justify-center"
+          className="fixed left-0 right-0 flex items-center justify-center"
           style={{
             top: '50%',
             transform: 'translateY(-50%)',
-            backgroundImage: 'url(/images/paperbg.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            height: '140px',
           }}
         >
-          {/* Barra rosa interna */}
-          <div className="w-full h-full bg-gradient-to-r from-pink-500 via-pink-400 to-pink-500 flex items-center justify-center" style={{boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 -4px 20px rgba(0,0,0,0.3)'}}>
-            <div className="flex items-center gap-8">
+          {/* Barra rosa con gradiente */}
+          <motion.div 
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full h-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(90deg, #FF4D8D 0%, #FF6B9D 25%, #FF8CAD 50%, #FF6B9D 75%, #FF4D8D 100%)',
+              boxShadow: '0 8px 32px rgba(255, 77, 141, 0.4), 0 -8px 32px rgba(255, 77, 141, 0.4)',
+            }}
+          >
+            <div className="flex items-center gap-6">
               {/* Personaje Jugador 1 - Izquierda */}
               <motion.div
-                initial={{ x: -200, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.6, type: 'spring' }}
+                initial={{ x: -150, opacity: 0, scale: 0.5 }}
+                animate={{ x: 0, opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.2, type: 'spring', stiffness: 150 }}
               >
                 <img 
                   src={getCharacterData(session.player1.character)?.image} 
                   alt={getCharacterData(session.player1.character)?.name}
-                  className="w-32 h-32 rounded-full border-8 border-white shadow-2xl"
+                  className="w-24 h-24 rounded-full border-4 border-white shadow-2xl"
+                  style={{ objectFit: 'cover' }}
                 />
               </motion.div>
 
-              {/* Separador */}
-              <div className="w-1 h-28 bg-white/40"></div>
+              {/* Separador vertical */}
+              <motion.div 
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+                className="w-0.5 h-20 bg-white/50"
+              ></motion.div>
 
-              {/* Stages en el centro */}
-              <div className="flex gap-4 items-center">
+              {/* Stages en el centro con animación secuencial */}
+              <div className="flex gap-3 items-center">
                 {STAGES_GAME1.map((stage, index) => (
                   <motion.div
                     key={stage.id}
-                    initial={{ scale: 0, y: 30 }}
-                    animate={{ scale: 1, y: 0 }}
+                    initial={{ scale: 0, y: 20, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ 
-                      duration: 0.4, 
-                      delay: index * 0.15,
+                      duration: 0.5, 
+                      delay: 0.6 + (index * 0.1),
                       type: 'spring',
-                      stiffness: 200
+                      stiffness: 260,
+                      damping: 20
                     }}
                   >
                     <img 
                       src={stage.image}
                       alt={stage.name}
-                      className="w-24 h-16 object-cover rounded-xl border-4 border-white shadow-xl"
+                      className="w-20 h-14 object-cover rounded-lg border-3 border-white shadow-lg hover:scale-110 transition-transform"
+                      style={{ 
+                        objectFit: 'cover',
+                        borderWidth: '3px'
+                      }}
                     />
                   </motion.div>
                 ))}
               </div>
 
-              {/* Separador */}
-              <div className="w-1 h-28 bg-white/40"></div>
+              {/* Separador vertical */}
+              <motion.div 
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.4, delay: 1.2 }}
+                className="w-0.5 h-20 bg-white/50"
+              ></motion.div>
 
               {/* Personaje Jugador 2 - Derecha */}
               <motion.div
-                initial={{ x: 200, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.6, type: 'spring' }}
+                initial={{ x: 150, opacity: 0, scale: 0.5 }}
+                animate={{ x: 0, opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 1.3, type: 'spring', stiffness: 150 }}
               >
                 <img 
                   src={getCharacterData(session.player2.character)?.image} 
                   alt={getCharacterData(session.player2.character)?.name}
-                  className="w-32 h-32 rounded-full border-8 border-white shadow-2xl"
+                  className="w-24 h-24 rounded-full border-4 border-white shadow-2xl"
+                  style={{ objectFit: 'cover' }}
                 />
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
