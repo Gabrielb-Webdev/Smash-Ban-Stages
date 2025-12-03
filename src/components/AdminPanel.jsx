@@ -10,7 +10,8 @@ export default function AdminPanel() {
 
   const handleCreateSession = async () => {
     if (player1Name && player2Name) {
-      const newSessionId = Math.random().toString(36).substring(2, 15);
+      // Si ya existe una sesión, usamos el mismo ID para mantener los links
+      const newSessionId = currentSessionId || Math.random().toString(36).substring(2, 15);
       const newSession = await createSession(player1Name, player2Name, format, newSessionId);
       if (newSession) {
         setCurrentSessionId(newSessionId);
@@ -55,10 +56,10 @@ export default function AdminPanel() {
           </p>
         </div>
 
-        {!session ? (
+        {!session || session.phase === 'FINISHED' ? (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20">
             <h2 className="text-3xl font-bold text-white mb-6">
-              Crear Nueva Sesión
+              {session?.phase === 'FINISHED' ? 'Nueva Serie (mismo link)' : 'Crear Nueva Sesión'}
             </h2>
             
             <div className="space-y-4">

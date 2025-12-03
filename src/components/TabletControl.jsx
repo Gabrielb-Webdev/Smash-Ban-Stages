@@ -3,7 +3,7 @@ import { useSession } from '../hooks/useSession';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData } from '../utils/constants';
 
 export default function TabletControl({ sessionId }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter } = useSession(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useSession(sessionId);
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!session) {
@@ -212,12 +212,17 @@ export default function TabletControl({ sessionId }) {
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-gradient-to-br from-smash-purple to-smash-blue rounded-lg hover:scale-110 hover:shadow-xl transition-all p-2 flex flex-col items-center justify-center"
+                  className="aspect-square bg-gradient-to-br from-smash-purple to-smash-blue rounded-lg hover:scale-110 hover:shadow-xl transition-all p-1 flex flex-col items-center justify-center overflow-hidden"
                 >
-                  <div className="w-full h-full flex items-center justify-center mb-1">
-                    <span className="text-3xl">🎮</span>
+                  <div className="w-full h-full flex items-center justify-center">
+                    <img 
+                      src={character.image} 
+                      alt={character.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                    />
                   </div>
-                  <p className="text-white text-xs font-semibold text-center leading-tight">
+                  <p className="text-white text-xs font-semibold text-center leading-tight mt-1">
                     {character.name}
                   </p>
                 </button>
@@ -228,11 +233,11 @@ export default function TabletControl({ sessionId }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl border border-white/20 text-center">
-            <h3 className="text-4xl font-bold text-white mb-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl border border-white/20">
+            <h3 className="text-4xl font-bold text-white mb-6 text-center">
               ⚔️ ¡En Combate! ⚔️
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-4 mb-8">
               <div className="bg-smash-red/20 rounded-lg p-4">
                 <p className="text-white/70 text-sm">Jugador 1</p>
                 <p className="text-white font-bold text-xl">
@@ -242,7 +247,7 @@ export default function TabletControl({ sessionId }) {
                   {session.player1.character || 'N/A'}
                 </p>
               </div>
-              <div className="text-white text-2xl">VS</div>
+              <div className="text-white text-2xl text-center">VS</div>
               <div className="bg-smash-blue/20 rounded-lg p-4">
                 <p className="text-white/70 text-sm">Jugador 2</p>
                 <p className="text-white font-bold text-xl">
@@ -253,24 +258,49 @@ export default function TabletControl({ sessionId }) {
                 </p>
               </div>
             </div>
-            <p className="text-white/70 mt-6">
-              Esperando resultado del administrador...
-            </p>
+            
+            <div className="space-y-3">
+              <p className="text-white/70 text-center mb-4">
+                ¿Quién ganó este game?
+              </p>
+              <button
+                onClick={() => setGameWinner('player1')}
+                className="w-full py-4 bg-gradient-to-r from-smash-red to-red-600 text-white font-bold text-lg rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
+              >
+                🏆 {session.player1.name} Ganó
+              </button>
+              <button
+                onClick={() => setGameWinner('player2')}
+                className="w-full py-4 bg-gradient-to-r from-smash-blue to-blue-600 text-white font-bold text-lg rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
+              >
+                🏆 {session.player2.name} Ganó
+              </button>
+            </div>
           </div>
         )}
 
         {/* Finished Phase */}
         {session.phase === 'FINISHED' && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl border border-white/20 text-center">
-            <h3 className="text-5xl font-bold text-white mb-4">
-              🏆 ¡Serie Finalizada! 🏆
-            </h3>
-            <p className="text-smash-yellow text-3xl font-bold mb-2">
-              Ganador: {session.player1.score > session.player2.score ? session.player1.name : session.player2.name}
-            </p>
-            <p className="text-white text-2xl">
-              Score Final: {session.player1.score} - {session.player2.score}
-            </p>
+            <div className="mb-8">
+              <h3 className="text-5xl font-bold text-white mb-4">
+                🏆 ¡Serie Finalizada! 🏆
+              </h3>
+              <p className="text-smash-yellow text-3xl font-bold mb-2">
+                Ganador: {session.player1.score > session.player2.score ? session.player1.name : session.player2.name}
+              </p>
+              <p className="text-white text-2xl mb-6">
+                Score Final: {session.player1.score} - {session.player2.score}
+              </p>
+            </div>
+            <div className="bg-smash-purple/20 rounded-lg p-6 border border-smash-purple/50">
+              <p className="text-white/90 text-lg mb-2">
+                ✨ El administrador configurará la próxima serie
+              </p>
+              <p className="text-white/60 text-sm">
+                Este link seguirá funcionando para el siguiente match
+              </p>
+            </div>
           </div>
         )}
       </div>
