@@ -6,6 +6,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function StreamOverlay({ sessionId }) {
   const { session, error } = useSession(sessionId);
 
+  // Guard para evitar renders mientras sessionId no está disponible
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse text-6xl mb-4">🎮</div>
+          <p className="text-white text-xl">Inicializando...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error && error === 'Sesión no encontrada') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center p-4">

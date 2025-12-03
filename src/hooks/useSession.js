@@ -4,6 +4,7 @@ export const useSession = (sessionId) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Función para obtener el estado de la sesión
   const fetchSession = useCallback(async () => {
@@ -15,18 +16,26 @@ export const useSession = (sessionId) => {
         const data = await response.json();
         setSession(data.session);
         setError(null);
+        setIsRestoring(false);
         // Guardar en localStorage como respaldo
         localStorage.setItem(`session_${sessionId}`, JSON.stringify(data.session));
       } else if (response.status === 404) {
+        // Solo intentar restaurar si no estamos ya en proceso de restauración
+        if (isRestoring) {
+          console.log('Ya hay una restauración en progreso, usando datos locales...');
+          return;
+        }
+
         // Intentar recuperar de localStorage
-        console.log('Sesión no encontrada en servidor, buscando en localStorage...');
         const cached = localStorage.getItem(`session_${sessionId}`);
         if (cached) {
           const cachedSession = JSON.parse(cached);
-          console.log('Sesión encontrada en localStorage, restaurando...', cachedSession);
+          console.log('Sesión no encontrada en servidor, usando datos de localStorage');
           setSession(cachedSession);
-          // Recrear la sesión en el servidor con el estado completo
-          const createResponse = await fetch(`/api/session/${sessionId}`, {
+          setIsRestoring(true);
+          
+          // Intentar recrear en servidor en segundo plano (sin bloquear la UI)
+          fetch(`/api/session/${sessionId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -34,19 +43,27 @@ export const useSession = (sessionId) => {
               player2: cachedSession.player2.name,
               format: cachedSession.format
             })
+          })
+          .then(createResponse => {
+            if (createResponse.ok) {
+              return fetch(`/api/session/${sessionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cachedSession)
+              });
+            }
+          })
+          .then(updateResponse => {
+            if (updateResponse && updateResponse.ok) {
+              console.log('Sesión restaurada en servidor en segundo plano');
+              setIsRestoring(false);
+            }
+          })
+          .catch(err => {
+            console.error('Error restaurando sesión:', err);
+            setIsRestoring(false);
           });
           
-          // Si se creó correctamente, actualizar con el estado completo
-          if (createResponse.ok) {
-            const updateResponse = await fetch(`/api/session/${sessionId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cachedSession)
-            });
-            if (updateResponse.ok) {
-              console.log('Sesión restaurada en servidor exitosamente');
-            }
-          }
           setError(null);
         } else {
           console.log('No se encontró sesión en localStorage');
@@ -64,14 +81,14 @@ export const useSession = (sessionId) => {
         setError('Error de conexión');
       }
     }
-  }, [sessionId]);
+  }, [sessionId, isRestoring]);
 
-  // Polling cada 2 segundos para sincronización
+  // Polling cada 5 segundos para sincronización (reducido para evitar ciclos)
   useEffect(() => {
     if (!sessionId) return;
 
     fetchSession();
-    const interval = setInterval(fetchSession, 2000);
+    const interval = setInterval(fetchSession, 5000);
 
     return () => clearInterval(interval);
   }, [sessionId, fetchSession]);
