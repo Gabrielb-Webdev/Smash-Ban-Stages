@@ -244,7 +244,7 @@ export default function StreamOverlay({ sessionId }) {
                     ease: "easeInOut"
                   }}
                 >
-                  STAGE BANS
+                  Stage Bans
                 </motion.h2>
               </motion.div>
             </AnimatePresence>
