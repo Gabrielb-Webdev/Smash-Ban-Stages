@@ -344,6 +344,17 @@ export default function StreamOverlay({ sessionId }) {
                 rotate: [0, 5, -5, 0]
               }}
               transition={{ duration: 3, repeat: Infinity }}
+              className="px-12 text-center relative"
+            >
+              <motion.div
+                animate={{ 
+                  boxShadow: [
+                    "0 0 20px rgba(243, 156, 18, 0.5)",
+                    "0 0 40px rgba(243, 156, 18, 0.9)",
+                    "0 0 20px rgba(243, 156, 18, 0.5)"
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
                 className="bg-gradient-to-br from-smash-yellow to-amber-600 rounded-full p-6 shadow-2xl"
               >
                 <p className="text-white text-7xl font-black drop-shadow-2xl">VS</p>
