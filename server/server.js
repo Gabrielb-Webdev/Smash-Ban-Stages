@@ -118,8 +118,10 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'RPS') {
       session.rpsWinner = winner;
-      session.currentTurn = winner;
-      session.phase = 'STAGE_BAN';
+      // Ir directo a selección de personajes
+      session.phase = 'CHARACTER_SELECT';
+      // El ganador RPS elige primero en Game 1, el ganador del game anterior en Games 2+
+      session.currentTurn = session.currentGame === 1 ? winner : session.lastGameWinner || winner;
       
       // Configurar stages disponibles según el game
       if (session.currentGame === 1) {
@@ -203,15 +205,9 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'STAGE_SELECT') {
       session.selectedStage = stage;
-      session.phase = 'CHARACTER_SELECT';
-      
-      // En Game 1, el ganador RPS elige primero
-      // En Games 2+, el ganador del game anterior elige primero
-      if (session.currentGame === 1) {
-        session.currentTurn = session.rpsWinner;
-      } else {
-        session.currentTurn = session.lastGameWinner;
-      }
+      // Ir directo a PLAYING ya que los personajes ya están seleccionados
+      session.phase = 'PLAYING';
+      session.currentTurn = null;
       
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
@@ -233,15 +229,47 @@ io.on('connection', (socket) => {
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
       } else {
-        // Ambos han seleccionado, esperar 2 segundos antes de comenzar
+        // Ambos han seleccionado, esperar 2 segundos antes de ir a STAGE_BAN
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
         
         setTimeout(() => {
           const updatedSession = sessions.get(sessionId);
           if (updatedSession && updatedSession.phase === 'CHARACTER_SELECT') {
-            updatedSession.phase = 'PLAYING';
-            updatedSession.currentTurn = null;
+            // Cambiar a STAGE_BAN
+            updatedSession.phase = 'STAGE_BAN';
+            
+            // Configurar stages disponibles según el game
+            if (updatedSession.currentGame === 1) {
+              // Game 1: 5 stages
+              updatedSession.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
+              // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
+              updatedSession.totalBansNeeded = 3;
+              updatedSession.bansRemaining = 1; // Ganador RPS banea 1 primero
+              updatedSession.currentTurn = updatedSession.rpsWinner;
+            } else {
+              // Game 2+: 8 stages
+              updatedSession.availableStages = [
+                'battlefield', 'small-battlefield', 'pokemon-stadium-2', 
+                'smashville', 'town-and-city', 'hollow-bastion', 
+                'final-destination', 'kalos'
+              ];
+              
+              // Aplicar DSR: Bloquear stages donde el ganador del game anterior ya ganó
+              if (updatedSession.lastGameWinner) {
+                const winnerStages = updatedSession[updatedSession.lastGameWinner].wonStages;
+                updatedSession.availableStages = updatedSession.availableStages.filter(
+                  stage => !winnerStages.includes(stage)
+                );
+              }
+              
+              // El ganador del game anterior banea 3
+              updatedSession.currentTurn = updatedSession.lastGameWinner;
+              updatedSession.totalBansNeeded = 3;
+              updatedSession.bansRemaining = 3;
+            }
+            
+            updatedSession.bannedStages = [];
             sessions.set(sessionId, updatedSession);
             io.to(sessionId).emit('session-updated', { session: updatedSession });
           }
@@ -270,7 +298,7 @@ io.on('connection', (socket) => {
       } else {
         // Continuar a siguiente game
         session.currentGame++;
-        session.phase = 'STAGE_BAN';
+        session.phase = 'CHARACTER_SELECT';
         session.selectedStage = null;
         session.bannedStages = [];
         
@@ -278,23 +306,8 @@ io.on('connection', (socket) => {
         session.player1.character = null;
         session.player2.character = null;
         
-        // Configurar para el siguiente game (8 stages disponibles)
-        session.availableStages = [
-          'battlefield', 'small-battlefield', 'pokemon-stadium-2',
-          'smashville', 'town-and-city', 'hollow-bastion',
-          'final-destination', 'kalos'
-        ];
-        
-        // Aplicar DSR
-        const winnerStages = session[winner].wonStages;
-        session.availableStages = session.availableStages.filter(
-          stage => !winnerStages.includes(stage)
-        );
-        
-        // El ganador banea primero
+        // El ganador del game anterior elige personaje primero
         session.currentTurn = winner;
-        session.totalBansNeeded = 3;
-        session.bansRemaining = 3;
       }
       
       sessions.set(sessionId, session);
