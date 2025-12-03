@@ -51,12 +51,12 @@ export const useSession = (sessionId) => {
     }
   }, [sessionId]);
 
-  // Polling cada 3 segundos para sincronización (reducido para evitar spam de 404)
+  // Polling cada 2 segundos para sincronización
   useEffect(() => {
     if (!sessionId) return;
 
     fetchSession();
-    const interval = setInterval(fetchSession, 3000);
+    const interval = setInterval(fetchSession, 2000);
 
     return () => clearInterval(interval);
   }, [sessionId, fetchSession]);
@@ -144,7 +144,7 @@ export const useSession = (sessionId) => {
 
     if (session.currentGame === 1) {
       updates.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
-      updates.totalBansNeeded = 3; // Solo 3 baneos: 1 del ganador + 2 del perdedor
+      updates.totalBansNeeded = 4;
       updates.bansRemaining = 1;
     } else {
       updates.availableStages = [
@@ -186,21 +186,19 @@ export const useSession = (sessionId) => {
       }]
     };
 
-    // Lógica de turnos para Game 1 (Sistema 1-2-1 pero termina en selección)
+    // Lógica de turnos para Game 1
     if (session.currentGame === 1) {
       if (newBannedStages.length === 1) {
-        // Después del primer baneo del ganador RPS, el perdedor banea 2
         updates.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
         updates.bansRemaining = 2;
       } else if (newBannedStages.length === 3) {
-        // Después de 3 baneos (1+2), el perdedor RPS selecciona directamente
-        // Ya no hay más baneos, van directo a seleccionar de los 2 restantes
+        updates.currentTurn = session.rpsWinner;
+        updates.bansRemaining = 1;
+      } else if (newBannedStages.length === 4) {
         updates.phase = 'STAGE_SELECT';
         updates.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
-        updates.bansRemaining = 0;
       }
     } else {
-      // Para Game 2+: 3 baneos del ganador, luego selección del perdedor
       if (newBansRemaining === 0) {
         updates.phase = 'STAGE_SELECT';
         updates.currentTurn = session.lastGameWinner === 'player1' ? 'player2' : 'player1';
@@ -236,17 +234,11 @@ export const useSession = (sessionId) => {
   };
 
   const setGameWinner = (winner) => {
-    const currentWinner = session[winner];
-    const newScore = currentWinner.score + 1;
-    const newWonStages = [...currentWinner.wonStages, session.selectedStage];
+    const newScore = session[winner].score + 1;
+    const newWonStages = [...session[winner].wonStages, session.selectedStage];
 
     const updates = {
-      player1: winner === 'player1' 
-        ? { ...session.player1, score: newScore, wonStages: newWonStages }
-        : session.player1,
-      player2: winner === 'player2'
-        ? { ...session.player2, score: newScore, wonStages: newWonStages }
-        : session.player2,
+      [winner]: { ...session[winner], score: newScore, wonStages: newWonStages },
       lastGameWinner: winner
     };
 
@@ -258,8 +250,8 @@ export const useSession = (sessionId) => {
       updates.phase = 'STAGE_BAN';
       updates.selectedStage = null;
       updates.bannedStages = [];
-      updates.player1 = { ...updates.player1, character: null };
-      updates.player2 = { ...updates.player2, character: null };
+      updates.player1 = { ...session.player1, character: null };
+      updates.player2 = { ...session.player2, character: null };
       
       updates.availableStages = [
         'battlefield', 'small-battlefield', 'pokemon-stadium-2',
