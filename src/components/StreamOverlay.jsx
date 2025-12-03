@@ -418,28 +418,6 @@ export default function StreamOverlay({ sessionId }) {
                   </motion.div>
                 </motion.div>
               </motion.div>
-
-              {/* Efectos decorativos */}
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -top-20 -left-20 text-9xl"
-              >
-                ⚠️
-              </motion.div>
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                className="absolute -top-20 -right-20 text-9xl"
-              >
-                ⚠️
-              </motion.div>
             </motion.div>
           </motion.div>
         )}

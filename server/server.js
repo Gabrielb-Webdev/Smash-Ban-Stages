@@ -125,8 +125,8 @@ io.on('connection', (socket) => {
       if (session.currentGame === 1) {
         // Game 1: 5 stages
         session.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
-        // Sistema 1-2-1: Total 4 baneos
-        session.totalBansNeeded = 4;
+        // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
+        session.totalBansNeeded = 3;
         session.bansRemaining = 1; // Ganador RPS banea 1 primero
       } else {
         // Game 2+: 8 stages
@@ -172,20 +172,16 @@ io.on('connection', (socket) => {
       session.availableStages = session.availableStages.filter(s => s !== stage);
       session.bansRemaining--;
       
-      // Lógica para Game 1 (Sistema 1-2-1)
+      // Lógica para Game 1 (Sistema 1-2)
       if (session.currentGame === 1) {
         if (session.bannedStages.length === 1) {
-          // Después del primer baneo, el perdedor RPS banea 2
+          // Después del primer baneo del ganador, el perdedor RPS banea 2
           session.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
           session.bansRemaining = 2;
         } else if (session.bannedStages.length === 3) {
-          // Después de 3 baneos, el ganador RPS banea 1 más
-          session.currentTurn = session.rpsWinner;
-          session.bansRemaining = 1;
-        } else if (session.bannedStages.length === 4) {
-          // Todos los baneos completados, el perdedor RPS selecciona
+          // Después de 3 baneos (1+2), el ganador RPS selecciona
           session.phase = 'STAGE_SELECT';
-          session.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
+          session.currentTurn = session.rpsWinner;
         }
       } 
       // Lógica para Game 2+ (Sistema 3-ban)
