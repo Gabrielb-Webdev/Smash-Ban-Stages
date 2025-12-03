@@ -83,12 +83,12 @@ export const useSession = (sessionId) => {
     }
   }, [sessionId, isRestoring]);
 
-  // Polling cada 5 segundos para sincronización (reducido para evitar ciclos)
+  // Polling cada 15 segundos para sincronización (aumentado para games largos)
   useEffect(() => {
     if (!sessionId) return;
 
     fetchSession();
-    const interval = setInterval(fetchSession, 5000);
+    const interval = setInterval(fetchSession, 15000);
 
     return () => clearInterval(interval);
   }, [sessionId, fetchSession]);

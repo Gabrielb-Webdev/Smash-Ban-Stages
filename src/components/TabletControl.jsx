@@ -633,7 +633,7 @@ export default function TabletControl({ sessionId }) {
               />
             </div>
 
-            <div className="grid grid-cols-8 gap-2 flex-1 overflow-y-auto pr-2">
+            <div className="grid grid-cols-8 gap-3 flex-1 overflow-y-auto pr-2">
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
