@@ -380,9 +380,8 @@ export default function TabletControl({ sessionId }) {
                               <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                                 <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
                               </div>
-                            </button>
+                            )}
                           </button>
-                        </button>
                       );
                     })}
                     <div></div>
