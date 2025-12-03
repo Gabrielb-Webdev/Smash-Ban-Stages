@@ -312,6 +312,9 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
-  console.log(`Servidor WebSocket corriendo en puerto ${PORT}`);
+const HOST = '0.0.0.0'; // Escuchar en todas las interfaces (necesario para Railway)
+
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Servidor WebSocket corriendo en ${HOST}:${PORT}`);
+  console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
 });
