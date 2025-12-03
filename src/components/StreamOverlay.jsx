@@ -159,7 +159,7 @@ export default function StreamOverlay({ sessionId }) {
 
   return (
     <div className="min-h-screen bg-transparent relative">
-      {/* Navbar estática con imagen paperbg.jpg de fondo */}
+      {/* Navbar estática con imagen paperbg.jpg de fondo - SIN FILTROS */}
       <nav 
         className="fixed top-0 left-0 right-0 z-50"
         style={{
@@ -171,14 +171,6 @@ export default function StreamOverlay({ sessionId }) {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Overlay rosa semi-transparente opcional */}
-        <div 
-          className="w-full h-full"
-          style={{
-            background: 'linear-gradient(90deg, rgba(255, 77, 141, 0.7) 0%, rgba(255, 107, 157, 0.7) 50%, rgba(255, 77, 141, 0.7) 100%)',
-          }}
-        >
-        </div>
       </nav>
 
       {/* Animación de Stage Baneado */}
