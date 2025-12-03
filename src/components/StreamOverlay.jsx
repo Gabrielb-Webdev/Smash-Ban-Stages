@@ -327,6 +327,144 @@ export default function StreamOverlay({ sessionId }) {
               {session.player1.character && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block"
+                >
+                  <p className="text-smash-yellow text-xl font-semibold">
+                    {getCharacterData(session.player1.character)?.name}
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* VS en el centro - Más dinámico */}
+            <motion.div
+              animate={{ 
+                scale: [1, 1.15, 1],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+                className="bg-gradient-to-br from-smash-yellow to-amber-600 rounded-full p-6 shadow-2xl"
+              >
+                <p className="text-white text-7xl font-black drop-shadow-2xl">VS</p>
+              </motion.div>
+              <motion.p
+                animate={{ opacity: [1, 0.6, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-white/90 text-2xl mt-3 font-bold"
+              >
+                Game {session.currentGame}
+              </motion.p>
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="mt-1"
+              >
+                <span className="text-smash-yellow text-2xl font-black drop-shadow-lg">
+                  {session.format}
+                </span>
+              </motion.div>
+            </motion.div>
+
+            {/* Jugador 2 */}
+            <motion.div
+              animate={{ 
+                x: [0, 5, 0],
+              }}
+              transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+              className="flex-1 text-center"
+            >
+              <motion.div
+                key={session.player2.score}
+                initial={{ scale: 1 }}
+                animate={{ 
+                  scale: [1, 1.3, 1],
+                  textShadow: [
+                    "0 0 10px rgba(255,255,255,0.5)",
+                    "0 0 20px rgba(255,255,255,0.8)",
+                    "0 0 10px rgba(255,255,255,0.5)"
+                  ]
+                }}
+                transition={{ duration: 0.5 }}
+                className="relative"
+              >
+                <p className="text-white text-7xl font-black drop-shadow-2xl">
+                  {session.player2.score}
+                </p>
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute inset-0 bg-smash-blue rounded-full blur-2xl -z-10"
+                />
+              </motion.div>
+              <motion.p
+                animate={{ y: [0, -3, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-white/90 text-3xl font-bold mt-3 drop-shadow-lg"
+              >
+                {session.player2.name}
+              </motion.p>
+              {session.player2.character && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block"
+                >
+                  <p className="text-smash-yellow text-xl font-semibold">
+                    {getCharacterData(session.player2.character)?.name}
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Partículas decorativas */}
+          <motion.div
+            animate={{ 
+              x: [-20, 20, -20],
+              y: [-10, 10, -10],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+            className="absolute top-4 left-4 text-4xl"
+          >
+            ⭐
+          </motion.div>
+          <motion.div
+            animate={{ 
+              x: [20, -20, 20],
+              y: [10, -10, 10],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 5, repeat: Infinity }}
+            className="absolute top-4 right-4 text-4xl"
+          >
+            ✨
+          </motion.div>
+          <motion.div
+            animate={{ 
+              x: [-15, 15, -15],
+              y: [15, -15, 15],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 3.5, repeat: Infinity }}
+            className="absolute bottom-4 left-1/4 text-4xl"
+          >
+            💫
+          </motion.div>
+          <motion.div
+            animate={{ 
+              x: [15, -15, 15],
+              y: [-15, 15, -15],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 4.5, repeat: Infinity }}
+            className="absolute bottom-4 right-1/4 text-4xl"
+          >
+            🌟
+          </motion.div>
+        </motion.div>
+
         {/* Indicador de fase actual - Mejorado */}
         <motion.div
           key={session.phase}
@@ -470,155 +608,6 @@ export default function StreamOverlay({ sessionId }) {
               </motion.p>
             )}
           </motion.div>
-        </motion.div>
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-br from-smash-yellow to-amber-600 rounded-full p-6 shadow-2xl"
-              >
-                <p className="text-white text-7xl font-black drop-shadow-2xl">VS</p>
-              </motion.div>
-              <motion.p
-                animate={{ opacity: [1, 0.6, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-white/90 text-2xl mt-3 font-bold"
-              >
-                Game {session.currentGame}
-              </motion.p>
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="mt-1"
-              >
-                <span className="text-smash-yellow text-2xl font-black drop-shadow-lg">
-                  {session.format}
-                </span>
-              </motion.div>
-            </motion.div>
-
-            {/* Jugador 2 */}
-            <motion.div
-              animate={{ 
-                x: [0, 5, 0],
-              }}
-              transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-              className="flex-1 text-center"
-            >
-              <motion.div
-                key={session.player2.score}
-                initial={{ scale: 1 }}
-                animate={{ 
-                  scale: [1, 1.3, 1],
-                  textShadow: [
-                    "0 0 10px rgba(255,255,255,0.5)",
-                    "0 0 20px rgba(255,255,255,0.8)",
-                    "0 0 10px rgba(255,255,255,0.5)"
-                  ]
-                }}
-                transition={{ duration: 0.5 }}
-                className="relative"
-              >
-                <p className="text-white text-7xl font-black drop-shadow-2xl">
-                  {session.player2.score}
-                </p>
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute inset-0 bg-smash-blue rounded-full blur-2xl -z-10"
-                />
-              </motion.div>
-              <motion.p
-                animate={{ y: [0, -3, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-white/90 text-3xl font-bold mt-3 drop-shadow-lg"
-              >
-                {session.player2.name}
-              </motion.p>
-              {session.player2.character && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 inline-block"
-                >
-                  <p className="text-smash-yellow text-xl font-semibold">
-                    {getCharacterData(session.player2.character)?.name}
-                  </p>
-                </motion.div>
-              )}
-            </motion.div>
-          </div>
-
-          {/* Partículas decorativas */}
-          <motion.div
-            animate={{ 
-              x: [-20, 20, -20],
-              y: [-10, 10, -10],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 4, repeat: Infinity }}
-            className="absolute top-4 left-4 text-4xl"
-          >
-            ⭐
-          </motion.div>
-          <motion.div
-            animate={{ 
-              x: [20, -20, 20],
-              y: [10, -10, 10],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 5, repeat: Infinity }}
-            className="absolute top-4 right-4 text-4xl"
-          >
-            ✨
-          </motion.div>
-          <motion.div
-            animate={{ 
-              x: [-15, 15, -15],
-              y: [15, -15, 15],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 3.5, repeat: Infinity }}
-            className="absolute bottom-4 left-1/4 text-4xl"
-          >
-            💫
-          </motion.div>
-          <motion.div
-            animate={{ 
-              x: [15, -15, 15],
-              y: [-15, 15, -15],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{ duration: 4.5, repeat: Infinity }}
-            className="absolute bottom-4 right-1/4 text-4xl"
-          >
-            🌟
-          </motion.div>
-        </motion.div>
-
-        {/* Indicador de fase actual */}
-        <motion.div
-          key={session.phase}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-center mb-6"
-        >
-          <div className="inline-block bg-white/10 backdrop-blur-md rounded-full px-8 py-3 border border-white/30">
-            <p className="text-white text-2xl font-bold">
-              {session.phase === 'RPS' && '✊✋✌️ Piedra, Papel o Tijera'}
-              {session.phase === 'STAGE_BAN' && '❌ Baneo de Stages'}
-              {session.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
-              {session.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
-              {session.phase === 'PLAYING' && '⚔️ ¡En Combate!'}
-              {session.phase === 'FINISHED' && '🏆 Serie Finalizada'}
-            </p>
-            {session.currentTurn && session.phase !== 'FINISHED' && (
-              <motion.p
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="text-smash-yellow text-lg font-semibold mt-1"
-              >
-                Turno: {session[session.currentTurn]?.name}
-              </motion.p>
-            )}
-          </div>
         </motion.div>
 
         {/* Grid de Stages */}
