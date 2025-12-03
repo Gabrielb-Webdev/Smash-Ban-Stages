@@ -220,10 +220,11 @@ export default function StreamOverlay({ sessionId }) {
                   times: [0, 0.3, 0.5, 0.8, 1],
                   ease: "easeInOut"
                 }}
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
+                className="absolute left-1/2 -translate-x-1/2 z-10"
+                style={{ top: '50%', transform: 'translate(-50%, -50%)' }}
               >
                 <motion.h2 
-                  className="text-black drop-shadow-2xl"
+                  className="text-black drop-shadow-2xl whitespace-nowrap"
                   style={{ 
                     fontFamily: 'Anton',
                     fontSize: '7rem',
