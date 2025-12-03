@@ -47,44 +47,76 @@ const sessions = new Map();
 io.on('connection', (socket) => {
   console.log('Cliente conectado:', socket.id);
 
-  // Crear nueva sesión
+  // Crear nueva sesión (siempre usa 'main-session' como ID fijo)
   socket.on('create-session', (data) => {
-    const sessionId = uuidv4();
-    const session = {
-      sessionId,
-      player1: {
-        name: data.player1,
-        score: 0,
-        character: null,
-        wonStages: []
-      },
-      player2: {
-        name: data.player2,
-        score: 0,
-        character: null,
-        wonStages: []
-      },
-      format: data.format, // "BO3" o "BO5"
-      currentGame: 1,
-      phase: 'RPS', // "RPS", "STAGE_BAN", "STAGE_SELECT", "CHARACTER_SELECT", "PLAYING", "FINISHED"
-      rpsWinner: null,
-      lastGameWinner: null,
-      currentTurn: null,
-      availableStages: [],
-      bannedStages: [],
-      selectedStage: null,
-      banHistory: [],
-      bansRemaining: 0,
-      totalBansNeeded: 0
-    };
+    const sessionId = 'main-session'; // ID fijo para mantener los mismos links
+    
+    // Verificar si ya existe una sesión
+    let session = sessions.get(sessionId);
+    
+    if (session) {
+      // Si existe, actualizar nombres y reiniciar
+      session.player1.name = data.player1;
+      session.player2.name = data.player2;
+      session.format = data.format;
+      // Reiniciar todo lo demás
+      session.player1.score = 0;
+      session.player1.character = null;
+      session.player1.wonStages = [];
+      session.player2.score = 0;
+      session.player2.character = null;
+      session.player2.wonStages = [];
+      session.currentGame = 1;
+      session.phase = 'RPS';
+      session.rpsWinner = null;
+      session.lastGameWinner = null;
+      session.currentTurn = null;
+      session.availableStages = [];
+      session.bannedStages = [];
+      session.selectedStage = null;
+      session.banHistory = [];
+      session.bansRemaining = 0;
+      session.totalBansNeeded = 0;
+    } else {
+      // Crear nueva sesión
+      session = {
+        sessionId,
+        player1: {
+          name: data.player1,
+          score: 0,
+          character: null,
+          wonStages: []
+        },
+        player2: {
+          name: data.player2,
+          score: 0,
+          character: null,
+          wonStages: []
+        },
+        format: data.format, // "BO3" o "BO5"
+        currentGame: 1,
+        phase: 'RPS', // "RPS", "STAGE_BAN", "STAGE_SELECT", "CHARACTER_SELECT", "PLAYING", "FINISHED"
+        rpsWinner: null,
+        lastGameWinner: null,
+        currentTurn: null,
+        availableStages: [],
+        bannedStages: [],
+        selectedStage: null,
+        banHistory: [],
+        bansRemaining: 0,
+        totalBansNeeded: 0
+      };
+    }
 
     sessions.set(sessionId, session);
     
     // Unir al cliente a la sala de la sesión
     socket.join(sessionId);
     
-    console.log('Sesión creada:', sessionId);
+    console.log('Sesión creada/actualizada:', sessionId);
     socket.emit('session-created', { sessionId, session });
+    // Notificar a todos en la sala
+    io.to(sessionId).emit('session-updated', { session });
   });
 
   // Unirse a una sesión existente
@@ -315,6 +347,21 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Actualizar nombres de jugadores
+  socket.on('update-players', ({ sessionId, player1, player2, format }) => {
+    const session = sessions.get(sessionId);
+    if (session) {
+      session.player1.name = player1;
+      session.player2.name = player2;
+      if (format) {
+        session.format = format;
+      }
+      
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
   // Reiniciar sesión
   socket.on('reset-session', ({ sessionId }) => {
     const session = sessions.get(sessionId);
@@ -334,9 +381,24 @@ io.on('connection', (socket) => {
       session.bannedStages = [];
       session.selectedStage = null;
       session.banHistory = [];
+      session.bansRemaining = 0;
+      session.totalBansNeeded = 0;
       
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+  
+  // Terminar match (marcar como FINISHED)
+  socket.on('end-match', ({ sessionId, winner }) => {
+    const session = sessions.get(sessionId);
+    if (session) {
+      session.phase = 'FINISHED';
+      session.lastGameWinner = winner;
+      
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+      io.to(sessionId).emit('series-finished', { winner, session });
     }
   });
 

@@ -8,8 +8,12 @@ export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [currentSessionId] = useState('main-session'); // ID fijo
   const [session, setSession] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPlayer1, setEditPlayer1] = useState('');
+  const [editPlayer2, setEditPlayer2] = useState('');
+  const [editFormat, setEditFormat] = useState('BO3');
 
   useEffect(() => {
     // Conectar al WebSocket cuando se monta el componente
@@ -25,14 +29,12 @@ export default function AdminPanel() {
 
     adminSocket.on('connect', () => {
       console.log('Admin conectado al servidor WebSocket');
-      if (currentSessionId) {
-        adminSocket.emit('join-session', currentSessionId);
-      }
+      // Siempre unirse a la sesión fija
+      adminSocket.emit('join-session', 'main-session');
     });
 
     adminSocket.on('session-created', (data) => {
       console.log('Sesión creada:', data);
-      setCurrentSessionId(data.sessionId);
       setSession(data.session);
     });
 
@@ -56,7 +58,7 @@ export default function AdminPanel() {
         adminSocket.disconnect();
       }
     };
-  }, [currentSessionId]);
+  }, []);
 
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
@@ -82,49 +84,47 @@ export default function AdminPanel() {
 
   const handleResetSession = () => {
     if (session && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
-      adminSocket.emit('reset-session', { sessionId: session.sessionId });
-    }
-  };
-
-  const handleDeleteAllSessions = () => {
-    if (window.confirm('⚠️ ¿Estás seguro de que quieres borrar TODAS las sesiones? Esta acción no se puede deshacer.')) {
-      // Desconectar y limpiar estado local
-      if (adminSocket) {
-        adminSocket.disconnect();
-      }
-      setCurrentSessionId(null);
-      setSession(null);
-      setPlayer1Name('');
-      setPlayer2Name('');
-      setFormat('BO3');
-      // Limpiar localStorage
-      localStorage.clear();
-      alert('✅ Todas las sesiones han sido borradas. Puedes crear una nueva.');
-      // Reconectar
-      window.location.reload();
+      adminSocket.emit('reset-session', { sessionId: currentSessionId });
     }
   };
 
   const handleEndMatch = () => {
-    if (session && window.confirm('¿Terminar el match y declarar ganador? Esta acción no se puede deshacer.')) {
+    if (session && adminSocket && window.confirm('¿Terminar el match y declarar ganador?')) {
       // Determinar ganador basado en el score actual
       const winner = session.player1.score > session.player2.score ? 'player1' : 
                      session.player2.score > session.player1.score ? 'player2' : null;
       
       if (winner) {
-        // Marcar la fase como FINISHED
-        fetch(`/api/session/${session.sessionId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phase: 'FINISHED',
-            lastGameWinner: winner
-          })
-        });
+        adminSocket.emit('end-match', { sessionId: currentSessionId, winner });
       } else {
         alert('No se puede terminar el match con empate. Debe haber un ganador con más puntos.');
       }
     }
+  };
+
+  const handleStartEditing = () => {
+    setEditPlayer1(session.player1.name);
+    setEditPlayer2(session.player2.name);
+    setEditFormat(session.format);
+    setIsEditing(true);
+  };
+
+  const handleSaveNames = () => {
+    if (editPlayer1 && editPlayer2 && adminSocket) {
+      adminSocket.emit('update-players', { 
+        sessionId: currentSessionId, 
+        player1: editPlayer1, 
+        player2: editPlayer2,
+        format: editFormat
+      });
+      setIsEditing(false);
+    } else {
+      alert('Por favor ingresa ambos nombres');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
   };
 
   const getControlLink = (type) => {
@@ -233,12 +233,65 @@ export default function AdminPanel() {
             {/* Información de la Serie */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-3xl font-bold text-white">
-                  {session.player1.name} vs {session.player2.name}
-                </h2>
-                <span className="text-2xl font-bold text-smash-yellow">
-                  {session.format}
-                </span>
+                {!isEditing ? (
+                  <>
+                    <h2 className="text-3xl font-bold text-white">
+                      {session.player1.name} vs {session.player2.name}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-bold text-smash-yellow">
+                        {session.format}
+                      </span>
+                      <button
+                        onClick={handleStartEditing}
+                        className="px-4 py-2 bg-smash-blue text-white rounded-lg hover:bg-smash-blue/80 transition-all"
+                      >
+                        ✏️ Editar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={editPlayer1}
+                        onChange={(e) => setEditPlayer1(e.target.value)}
+                        placeholder="Jugador 1"
+                        className="px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
+                      />
+                      <input
+                        type="text"
+                        value={editPlayer2}
+                        onChange={(e) => setEditPlayer2(e.target.value)}
+                        placeholder="Jugador 2"
+                        className="px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={editFormat}
+                        onChange={(e) => setEditFormat(e.target.value)}
+                        className="px-4 py-2 rounded-lg bg-white/20 text-white border border-white/30"
+                      >
+                        <option value="BO3">BO3</option>
+                        <option value="BO5">BO5</option>
+                      </select>
+                      <button
+                        onClick={handleSaveNames}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                      >
+                        💾 Guardar
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                      >
+                        ❌ Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-4 text-center">

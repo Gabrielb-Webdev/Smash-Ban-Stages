@@ -615,8 +615,8 @@ export default function StreamOverlay({ sessionId }) {
           </div>
         )}
 
-        {/* Selección de personajes */}
-        {session.phase === 'CHARACTER_SELECT' && (
+        {/* Fase de selección de personajes - Solo mostrar cuando AMBOS hayan seleccionado */}
+        {session.phase === 'CHARACTER_SELECT' && session.player1.character && session.player2.character && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
