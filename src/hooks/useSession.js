@@ -236,11 +236,17 @@ export const useSession = (sessionId) => {
   };
 
   const setGameWinner = (winner) => {
-    const newScore = session[winner].score + 1;
-    const newWonStages = [...session[winner].wonStages, session.selectedStage];
+    const currentWinner = session[winner];
+    const newScore = currentWinner.score + 1;
+    const newWonStages = [...currentWinner.wonStages, session.selectedStage];
 
     const updates = {
-      [winner]: { ...session[winner], score: newScore, wonStages: newWonStages },
+      player1: winner === 'player1' 
+        ? { ...session.player1, score: newScore, wonStages: newWonStages }
+        : session.player1,
+      player2: winner === 'player2'
+        ? { ...session.player2, score: newScore, wonStages: newWonStages }
+        : session.player2,
       lastGameWinner: winner
     };
 
@@ -252,8 +258,8 @@ export const useSession = (sessionId) => {
       updates.phase = 'STAGE_BAN';
       updates.selectedStage = null;
       updates.bannedStages = [];
-      updates.player1 = { ...session.player1, character: null };
-      updates.player2 = { ...session.player2, character: null };
+      updates.player1 = { ...updates.player1, character: null };
+      updates.player2 = { ...updates.player2, character: null };
       
       updates.availableStages = [
         'battlefield', 'small-battlefield', 'pokemon-stadium-2',

@@ -5,6 +5,8 @@ import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData } from '../ut
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useSession(sessionId);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pendingSelection, setPendingSelection] = useState(null);
+  const [selectionType, setSelectionType] = useState(null); // 'ban', 'stage', 'character'
 
   if (!session) {
     return (
@@ -22,21 +24,38 @@ export default function TabletControl({ sessionId }) {
   };
 
   const handleBanStage = (stageId) => {
-    if (session.currentTurn) {
-      banStage(stageId, session.currentTurn);
-    }
+    setPendingSelection(stageId);
+    setSelectionType('ban');
   };
 
   const handleSelectStage = (stageId) => {
-    if (session.currentTurn) {
-      selectStage(stageId);
-    }
+    setPendingSelection(stageId);
+    setSelectionType('stage');
   };
 
   const handleSelectCharacter = (characterId) => {
-    if (session.currentTurn) {
-      selectCharacter(characterId, session.currentTurn);
+    setPendingSelection(characterId);
+    setSelectionType('character');
+  };
+
+  const confirmSelection = () => {
+    if (!pendingSelection || !session.currentTurn) return;
+
+    if (selectionType === 'ban') {
+      banStage(pendingSelection, session.currentTurn);
+    } else if (selectionType === 'stage') {
+      selectStage(pendingSelection);
+    } else if (selectionType === 'character') {
+      selectCharacter(pendingSelection, session.currentTurn);
     }
+
+    setPendingSelection(null);
+    setSelectionType(null);
+  };
+
+  const cancelSelection = () => {
+    setPendingSelection(null);
+    setSelectionType(null);
   };
 
   const getAvailableStages = () => {
@@ -119,27 +138,33 @@ export default function TabletControl({ sessionId }) {
             <div className="grid grid-cols-1 gap-4">
               {getAvailableStages().map((stage) => {
                 const isBanned = session.bannedStages.includes(stage.id);
+                const isSelected = pendingSelection === stage.id && selectionType === 'ban';
                 return (
                   <button
                     key={stage.id}
                     onClick={() => !isBanned && handleBanStage(stage.id)}
                     disabled={isBanned}
                     className={`relative overflow-hidden rounded-xl transition-all ${
-                      isBanned
+                      isSelected 
+                        ? 'ring-4 ring-yellow-400 scale-105'
+                        : isBanned
                         ? 'opacity-30 cursor-not-allowed'
                         : 'hover:scale-105 hover:shadow-2xl cursor-pointer'
                     }`}
                   >
-                    <div className="h-32 bg-gradient-to-r from-smash-purple to-smash-blue flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-white font-bold text-2xl">{stage.name}</p>
-                        <p className="text-white/70 text-sm mt-1">
-                          {isBanned ? '✖️ BANEADO' : 'Toca para banear'}
-                        </p>
+                    <div className="h-32 relative">
+                      <img 
+                        src={stage.image} 
+                        alt={stage.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end justify-center pb-4">
+                        <p className="text-white font-bold text-2xl drop-shadow-lg">{stage.name}</p>
                       </div>
                     </div>
                     {isBanned && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/70">
                         <span className="text-red-500 text-6xl font-bold">✖</span>
                       </div>
                     )}
@@ -147,6 +172,23 @@ export default function TabletControl({ sessionId }) {
                 );
               })}
             </div>
+            
+            {pendingSelection && selectionType === 'ban' && (
+              <div className="mt-6 flex gap-4">
+                <button
+                  onClick={cancelSelection}
+                  className="flex-1 py-3 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-700 transition-all"
+                >
+                  ❌ Cancelar
+                </button>
+                <button
+                  onClick={confirmSelection}
+                  className="flex-1 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all"
+                >
+                  ✅ Confirmar Baneo
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -163,23 +205,50 @@ export default function TabletControl({ sessionId }) {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {getAvailableStages().map((stage) => (
-                <button
-                  key={stage.id}
-                  onClick={() => handleSelectStage(stage.id)}
-                  className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-2xl transition-all"
-                >
-                  <div className="h-32 bg-gradient-to-r from-green-600 to-emerald-500 flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-white font-bold text-2xl">{stage.name}</p>
-                      <p className="text-white/70 text-sm mt-1">
-                        Toca para seleccionar
-                      </p>
+              {getAvailableStages().map((stage) => {
+                const isSelected = pendingSelection === stage.id && selectionType === 'stage';
+                return (
+                  <button
+                    key={stage.id}
+                    onClick={() => handleSelectStage(stage.id)}
+                    className={`relative overflow-hidden rounded-xl transition-all ${
+                      isSelected
+                        ? 'ring-4 ring-green-400 scale-105'
+                        : 'hover:scale-105 hover:shadow-2xl'
+                    }`}
+                  >
+                    <div className="h-32 relative">
+                      <img 
+                        src={stage.image} 
+                        alt={stage.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-green-900/70 to-transparent flex items-end justify-center pb-4">
+                        <p className="text-white font-bold text-2xl drop-shadow-lg">{stage.name}</p>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
+            
+            {pendingSelection && selectionType === 'stage' && (
+              <div className="mt-6 flex gap-4">
+                <button
+                  onClick={cancelSelection}
+                  className="flex-1 py-3 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-700 transition-all"
+                >
+                  ❌ Cancelar
+                </button>
+                <button
+                  onClick={confirmSelection}
+                  className="flex-1 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all"
+                >
+                  ✅ Confirmar Selección
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -210,27 +279,52 @@ export default function TabletControl({ sessionId }) {
               />
             </div>
 
-            <div className="grid grid-cols-4 gap-3 max-h-96 overflow-y-auto">
-              {filteredCharacters.map((character) => (
-                <button
-                  key={character.id}
-                  onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-gradient-to-br from-smash-purple to-smash-blue rounded-lg hover:scale-110 hover:shadow-xl transition-all p-1 flex flex-col items-center justify-center overflow-hidden"
-                >
-                  <div className="w-full h-full flex items-center justify-center">
-                    <img 
-                      src={character.image} 
-                      alt={character.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
-                    />
-                  </div>
-                  <p className="text-white text-xs font-semibold text-center leading-tight mt-1">
-                    {character.name}
-                  </p>
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-3 max-h-96 overflow-y-auto mb-4">
+              {filteredCharacters.map((character) => {
+                const isSelected = pendingSelection === character.id && selectionType === 'character';
+                return (
+                  <button
+                    key={character.id}
+                    onClick={() => handleSelectCharacter(character.id)}
+                    className={`aspect-square rounded-lg hover:scale-110 transition-all p-2 flex flex-col items-center justify-center ${
+                      isSelected 
+                        ? 'bg-yellow-400/30 ring-4 ring-yellow-400 scale-110' 
+                        : 'bg-white/5 hover:bg-white/10 hover:shadow-xl'
+                    }`}
+                  >
+                    <div className="w-full h-full flex items-center justify-center">
+                      <img 
+                        src={character.image} 
+                        alt={character.name}
+                        className="w-full h-full object-contain drop-shadow-lg"
+                        style={{ imageRendering: 'crisp-edges' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+                    <p className="text-white text-xs font-semibold text-center leading-tight mt-1 drop-shadow">
+                      {character.name}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
+            
+            {pendingSelection && selectionType === 'character' && (
+              <div className="mt-4 flex gap-4">
+                <button
+                  onClick={cancelSelection}
+                  className="flex-1 py-3 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-700 transition-all"
+                >
+                  ❌ Cancelar
+                </button>
+                <button
+                  onClick={confirmSelection}
+                  className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition-all"
+                >
+                  ✅ Confirmar Personaje
+                </button>
+              </div>
+            )}
           </div>
         )}
 
