@@ -256,8 +256,7 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div></div>
+                <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                   {getAvailableStages().slice(3, 5).map((stage) => {
                     const isBanned = session.bannedStages.includes(stage.id);
                     return (
@@ -296,7 +295,6 @@ export default function TabletControl({ sessionId }) {
                         </button>
                     );
                   })}
-                  <div></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
@@ -344,8 +342,7 @@ export default function TabletControl({ sessionId }) {
                     })}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div></div>
+                  <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                     {getAvailableStages().slice(6, 8).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
@@ -384,7 +381,6 @@ export default function TabletControl({ sessionId }) {
                           </button>
                       );
                     })}
-                    <div></div>
                   </div>
                 </>
               )}
@@ -434,8 +430,7 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div></div>
+                <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                   {getAvailableStages().slice(3, 5).map((stage) => (
                     <button
                       key={stage.id}
@@ -462,7 +457,6 @@ export default function TabletControl({ sessionId }) {
                         </div>
                       </button>
                   ))}
-                  <div></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
@@ -498,8 +492,7 @@ export default function TabletControl({ sessionId }) {
                     ))}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div></div>
+                  <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                     {getAvailableStages().slice(6, 8).map((stage) => (
                       <button
                         key={stage.id}
@@ -526,7 +519,6 @@ export default function TabletControl({ sessionId }) {
                           </div>
                         </button>
                     ))}
-                    <div></div>
                   </div>
                 </>
               )}
