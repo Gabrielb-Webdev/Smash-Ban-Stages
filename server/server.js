@@ -3,18 +3,29 @@ const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 
 const httpServer = createServer((req, res) => {
-  // Health check endpoint para Railway
-  if (req.url === '/' || req.url === '/health') {
+  // Health check endpoint para Railway y otros servicios
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+  
+  if (req.url === '/' || req.url === '/health' || req.url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
-      status: 'ok', 
-      message: 'Smash Ban Stages WebSocket Server',
+      status: 'healthy', 
+      service: 'Smash Ban Stages WebSocket Server',
       uptime: process.uptime(),
-      sessions: sessions.size
+      sessions: sessions.size,
+      timestamp: new Date().toISOString()
     }));
   } else {
-    res.writeHead(404);
-    res.end('Not Found');
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not Found' }));
   }
 });
 
@@ -315,6 +326,24 @@ const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0'; // Escuchar en todas las interfaces (necesario para Railway)
 
 httpServer.listen(PORT, HOST, () => {
-  console.log(`Servidor WebSocket corriendo en ${HOST}:${PORT}`);
-  console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Servidor WebSocket corriendo en ${HOST}:${PORT}`);
+  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check disponible en http://${HOST}:${PORT}/health`);
+});
+
+// Mantener el proceso vivo
+process.on('SIGTERM', () => {
+  console.log('⚠️  SIGTERM recibido, cerrando servidor gracefully...');
+  httpServer.close(() => {
+    console.log('✅ Servidor cerrado correctamente');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️  SIGINT recibido, cerrando servidor...');
+  httpServer.close(() => {
+    console.log('✅ Servidor cerrado correctamente');
+    process.exit(0);
+  });
 });
