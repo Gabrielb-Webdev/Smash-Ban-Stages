@@ -301,8 +301,18 @@ export const useSession = (sessionId) => {
       updates.phase = 'RPS'; // Cambiar a RPS para el siguiente game
       updates.selectedStage = null;
       updates.bannedStages = [];
-      updates.player1 = { ...session.player1, character: null };
-      updates.player2 = { ...session.player2, character: null };
+      
+      // Preservar los scores actualizados, solo limpiar personajes
+      const loser = winner === 'player1' ? 'player2' : 'player1';
+      updates.player1 = { 
+        ...updates.player1 || session.player1, 
+        character: null 
+      };
+      updates.player2 = { 
+        ...updates.player2 || session.player2, 
+        character: null 
+      };
+      
       updates.rpsWinner = null;
       updates.currentTurn = null;
       
