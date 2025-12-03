@@ -217,15 +217,6 @@ export default function AdminPanel() {
               >
                 🚀 Crear Sesión
               </button>
-
-              {currentSessionId && (
-                <button
-                  onClick={handleDeleteAllSessions}
-                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all mt-2"
-                >
-                  🗑️ Borrar Todas las Sesiones
-                </button>
-              )}
             </div>
           </div>
         ) : (
