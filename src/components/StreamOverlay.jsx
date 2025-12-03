@@ -15,19 +15,25 @@ export default function StreamOverlay({ sessionId }) {
 
     // Detectar cambio de fase de RPS a otra fase (se acaba de definir el ganador)
     if (session.phase !== 'RPS' && session.rpsWinner && session.rpsWinner !== rpsWinner) {
+      console.log('🎮 Mostrando animación RPS para:', session.rpsWinner);
       setRpsWinner(session.rpsWinner);
       setShowRpsAnimation(true);
       
       // Ocultar animación después de 3 segundos
       const timer = setTimeout(() => {
+        console.log('⏰ Ocultando animación RPS después de 3 segundos');
         setShowRpsAnimation(false);
       }, 3000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        console.log('🧹 Limpiando timer');
+        clearTimeout(timer);
+      };
     }
     
     // Reset cuando vuelve a fase RPS en un nuevo game
     if (session.phase === 'RPS' && rpsWinner) {
+      console.log('🔄 Reseteando estado RPS');
       setRpsWinner(null);
       setShowRpsAnimation(false);
     }
