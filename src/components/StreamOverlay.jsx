@@ -171,7 +171,7 @@ export default function StreamOverlay({ sessionId }) {
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - EFECTO ÉPICO */}
+        {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA ÉPICA */}
         {session.player1.character && session.player2.character && (
           <>
             {/* Personaje Jugador 1 - Izquierda con efecto explosivo */}
@@ -192,20 +192,11 @@ export default function StreamOverlay({ sessionId }) {
               }}
               className="flex items-center"
             >
-              <motion.img 
+              <img 
                 src={getCharacterData(session.player1.character)?.image} 
                 alt={getCharacterData(session.player1.character)?.name}
                 className="w-32 h-32 rounded-full border-4 border-black shadow-2xl"
                 style={{ objectFit: 'cover' }}
-                animate={{ 
-                  scale: [1, 1.15, 1],
-                  rotate: [0, 5, -5, 0]
-                }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatDelay: 1
-                }}
               />
               <motion.div 
                 initial={{ scaleY: 0 }}
@@ -239,20 +230,11 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ duration: 0.4, delay: 0.3 }}
                 className="h-32 w-1 bg-black mr-4"
               ></motion.div>
-              <motion.img 
+              <img 
                 src={getCharacterData(session.player2.character)?.image} 
                 alt={getCharacterData(session.player2.character)?.name}
                 className="w-32 h-32 rounded-full border-4 border-black shadow-2xl"
                 style={{ objectFit: 'cover' }}
-                animate={{ 
-                  scale: [1, 1.15, 1],
-                  rotate: [0, -5, 5, 0]
-                }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatDelay: 1
-                }}
               />
             </motion.div>
           </>
