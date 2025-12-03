@@ -76,13 +76,8 @@ export default function TabletControl({ sessionId }) {
                 <p className="text-white/70 text-sm">Score</p>
                 <p className="text-white text-2xl font-bold">
                   {session.player1.score} - {session.player2.score}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-white/70 text-sm">Score</p>
-              <p className="text-white font-bold text-xl">
-                {session.player1.score} - {session.player2.score}
-              </p>
+                </p>
+              </div>
             </div>
           </div>
         </div>
