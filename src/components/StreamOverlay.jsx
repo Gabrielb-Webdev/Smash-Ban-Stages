@@ -178,14 +178,26 @@ export default function StreamOverlay({ sessionId }) {
                     transition={{ delay: index * 0.1 }}
                     className={`relative rounded-xl overflow-hidden shadow-2xl ${
                       !available && !banned ? 'opacity-30' : ''
-                    }`}
+                    } ${selected ? 'ring-4 ring-smash-yellow' : ''}`}
                   >
-                    <div className={`h-48 bg-gradient-to-br from-smash-purple to-smash-blue flex items-center justify-center ${
-                      selected ? 'ring-4 ring-smash-yellow' : ''
-                    }`}>
-                      <p className="text-white font-bold text-xl text-center px-4">
-                        {stage.name}
-                      </p>
+                    <div className="aspect-video relative">
+                      <img 
+                        src={stage.image} 
+                        alt={stage.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { 
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden absolute inset-0 bg-gradient-to-br from-smash-purple to-smash-blue items-center justify-center">
+                        <span className="text-white text-3xl">🎮</span>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-3">
+                        <p className="text-white font-bold text-lg text-center drop-shadow-lg">
+                          {stage.name}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Animación de baneo */}
@@ -193,15 +205,18 @@ export default function StreamOverlay({ sessionId }) {
                       <motion.div
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        className="absolute inset-0 flex items-center justify-center bg-black/70"
+                        className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm"
                       >
-                        <motion.span
-                          animate={{ rotate: [0, 10, -10, 0] }}
-                          transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
-                          className="text-red-500 text-8xl font-bold"
-                        >
-                          ✖
-                        </motion.span>
+                        <div className="text-center">
+                          <motion.span
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
+                            className="text-red-500 text-8xl font-bold drop-shadow-2xl"
+                          >
+                            ✖
+                          </motion.span>
+                          <p className="text-white font-bold text-xl mt-2 drop-shadow-lg">BANEADO</p>
+                        </div>
                       </motion.div>
                     )}
 
@@ -211,7 +226,7 @@ export default function StreamOverlay({ sessionId }) {
                         initial={{ scale: 0 }}
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 0.8 }}
-                        className="absolute inset-0 flex items-center justify-center"
+                        className="absolute inset-0 flex items-center justify-center bg-smash-yellow/20"
                       >
                         <motion.div
                           animate={{ 
@@ -224,13 +239,19 @@ export default function StreamOverlay({ sessionId }) {
                           transition={{ duration: 1, repeat: Infinity }}
                           className="absolute inset-0 border-4 border-smash-yellow rounded-xl"
                         />
-                        <motion.span
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                          className="text-smash-yellow text-6xl"
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 0.8, repeat: Infinity }}
+                          className="bg-black/70 backdrop-blur-sm rounded-full p-4"
                         >
-                          ✓
-                        </motion.span>
+                          <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                            className="text-smash-yellow text-6xl drop-shadow-2xl"
+                          >
+                            ✓
+                          </motion.span>
+                        </motion.div>
                       </motion.div>
                     )}
                   </motion.div>
