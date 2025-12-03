@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useSession } from '../hooks/useSession';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, getStageData, getCharacterData } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StreamOverlay({ sessionId }) {
-  const { session, error } = useSession(sessionId);
+  const { session, connected } = useWebSocket(sessionId);
+  const error = !connected ? 'Desconectado del servidor' : null;
   const [rpsWinner, setRpsWinner] = useState(null);
   const [showRpsAnimation, setShowRpsAnimation] = useState(false);
 
