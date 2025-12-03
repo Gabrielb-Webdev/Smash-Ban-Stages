@@ -70,14 +70,14 @@ export default function StreamOverlay({ sessionId }) {
     }
   }, [session?.bannedStages, previousBannedCount]);
 
-  // Timer para ocultar animación de baneo después de 2 segundos
+  // Timer para ocultar animación de baneo después de 4 segundos
   useEffect(() => {
     if (showBanAnimation) {
-      console.log('⏰ Mostrando animación de baneo por 2 segundos');
+      console.log('⏰ Mostrando animación de baneo por 4 segundos');
       const timer = setTimeout(() => {
         console.log('✅ Ocultando animación de baneo');
         setShowBanAnimation(false);
-      }, 2000);
+      }, 4000);
       
       return () => clearTimeout(timer);
     }
@@ -342,11 +342,13 @@ export default function StreamOverlay({ sessionId }) {
                 initial={{ y: 50 }}
                 animate={{ y: 0 }}
                 className="relative rounded-3xl overflow-hidden shadow-2xl"
+                style={{ overflow: 'hidden' }}
               >
                 <img
                   src={bannedStage.image}
                   alt={bannedStage.name}
                   className="w-full h-[600px] object-cover"
+                  style={{ display: 'block' }}
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'flex';
