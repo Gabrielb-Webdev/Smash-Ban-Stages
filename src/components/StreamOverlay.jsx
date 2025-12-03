@@ -159,19 +159,19 @@ export default function StreamOverlay({ sessionId }) {
 
   return (
     <div className="min-h-screen bg-transparent relative">
-      {/* Navbar estática con imagen paperbg.jpg de fondo - SIN FILTROS */}
-      <nav 
-        className="fixed top-0 left-0 right-0 z-50"
+      {/* Footer estático con imagen paperbg.jpg de fondo - SIN FILTROS */}
+      <footer 
+        className="fixed bottom-0 left-0 right-0 z-50"
         style={{
           height: '150px',
           backgroundImage: 'url(/images/paperbg.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-      </nav>
+      </footer>
 
       {/* Animación de Stage Baneado */}
       <AnimatePresence>
