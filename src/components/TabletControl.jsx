@@ -146,25 +146,54 @@ export default function TabletControl({ sessionId }) {
 
         {/* RPS Phase */}
         {session.phase === 'RPS' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-xl border border-white/20 flex-1 flex flex-col justify-center">
-            <div className="text-center mb-4">
-              <h3 className="text-4xl mb-2">✊✋✌️</h3>
-              <h3 className="text-2xl font-bold text-white">¿Quién ganó Piedra, Papel o Tijera?</h3>
+          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-8 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+            {/* Decorative background elements */}
+            <div className="absolute top-0 left-0 w-full h-full opacity-10">
+              <div className="absolute top-10 left-10 text-9xl">✊</div>
+              <div className="absolute top-10 right-10 text-9xl">✋</div>
+              <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-9xl">✌️</div>
+            </div>
+
+            {/* Content */}
+            <div className="text-center mb-8 relative z-10">
+              <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-4">
+                <h3 className="text-8xl font-black animate-pulse">✊ ✋ ✌️</h3>
+              </div>
+              <h3 className="text-4xl font-black text-white mb-3 drop-shadow-lg">
+                Piedra, Papel o Tijera
+              </h3>
+              <p className="text-xl text-white/80 font-semibold">
+                ¿Quién ganó el RPS? 🏆
+              </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto relative z-10 w-full">
               <button
                 onClick={() => handleRPSWinner('player1')}
-                className="py-16 bg-gradient-to-br from-smash-red to-red-700 text-white font-bold text-3xl rounded-2xl hover:scale-105 transition-all shadow-lg active:scale-95"
+                className="group py-20 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
               >
-                🔴<br/>{session.player1.name}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <div className="relative z-10">
+                  <div className="text-7xl mb-3 group-hover:scale-110 transition-transform">🔴</div>
+                  <div className="text-3xl">{session.player1.name}</div>
+                </div>
               </button>
               <button
                 onClick={() => handleRPSWinner('player2')}
-                className="py-16 bg-gradient-to-br from-smash-blue to-blue-700 text-white font-bold text-3xl rounded-2xl hover:scale-105 transition-all shadow-lg active:scale-95"
+                className="group py-20 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
               >
-                🔵<br/>{session.player2.name}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <div className="relative z-10">
+                  <div className="text-7xl mb-3 group-hover:scale-110 transition-transform">🔵</div>
+                  <div className="text-3xl">{session.player2.name}</div>
+                </div>
               </button>
+            </div>
+
+            <div className="text-center mt-6 relative z-10">
+              <p className="text-white/60 text-sm italic">
+                El ganador tendrá ventaja en el baneo de stages
+              </p>
             </div>
           </div>
         )}

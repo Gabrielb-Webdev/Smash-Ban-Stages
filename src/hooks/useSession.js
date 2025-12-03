@@ -182,17 +182,22 @@ export const useSession = (sessionId) => {
 
   // Funciones específicas del juego
   const selectRPSWinner = (winner) => {
+    const loser = winner === 'player1' ? 'player2' : 'player1';
+    
     const updates = {
       rpsWinner: winner,
-      currentTurn: winner,
+      currentTurn: winner, // Ganador banea primero
       phase: 'STAGE_BAN'
     };
 
     if (session.currentGame === 1) {
+      // Game 1: 5 stages, Ganador banea 1, Perdedor banea 2, Ganador selecciona
       updates.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
-      updates.totalBansNeeded = 4;
-      updates.bansRemaining = 1;
+      updates.totalBansNeeded = 3; // Total: 1 + 2
+      updates.bansRemaining = 1; // Ganador empieza baneando 1
+      updates.loserBansRemaining = 2; // Perdedor baneará 2 después
     } else {
+      // Game 2+: 8 stages, Ganador del game anterior banea 3, Perdedor selecciona
       updates.availableStages = [
         'battlefield', 'small-battlefield', 'pokemon-stadium-2',
         'smashville', 'town-and-city', 'hollow-bastion',
@@ -206,7 +211,7 @@ export const useSession = (sessionId) => {
         );
       }
       
-      updates.currentTurn = session.lastGameWinner;
+      updates.currentTurn = session.lastGameWinner; // Ganador del game anterior banea
       updates.totalBansNeeded = 3;
       updates.bansRemaining = 3;
     }
@@ -232,19 +237,19 @@ export const useSession = (sessionId) => {
       }]
     };
 
-    // Lógica de turnos para Game 1
+    // Game 1: Ganador RPS banea 1, Perdedor RPS banea 2, Ganador selecciona
     if (session.currentGame === 1) {
       if (newBannedStages.length === 1) {
+        // Ganador terminó su baneo, turno del perdedor para banear 2
         updates.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
         updates.bansRemaining = 2;
       } else if (newBannedStages.length === 3) {
-        updates.currentTurn = session.rpsWinner;
-        updates.bansRemaining = 1;
-      } else if (newBannedStages.length === 4) {
+        // Perdedor terminó de banear sus 2, ahora ganador selecciona stage
         updates.phase = 'STAGE_SELECT';
-        updates.currentTurn = session.rpsWinner === 'player1' ? 'player2' : 'player1';
+        updates.currentTurn = session.rpsWinner;
       }
     } else {
+      // Game 2+: Ganador del game anterior banea 3, Perdedor selecciona
       if (newBansRemaining === 0) {
         updates.phase = 'STAGE_SELECT';
         updates.currentTurn = session.lastGameWinner === 'player1' ? 'player2' : 'player1';
