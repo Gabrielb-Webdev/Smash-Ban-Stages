@@ -23,8 +23,8 @@ export const useSession = (sessionId) => {
         if (cached) {
           const cachedSession = JSON.parse(cached);
           setSession(cachedSession);
-          // Recrear la sesión en el servidor
-          await fetch(`/api/session/${sessionId}`, {
+          // Recrear la sesión en el servidor con el estado completo
+          const createResponse = await fetch(`/api/session/${sessionId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -33,6 +33,15 @@ export const useSession = (sessionId) => {
               format: cachedSession.format
             })
           });
+          
+          // Si se creó correctamente, actualizar con el estado completo
+          if (createResponse.ok) {
+            await fetch(`/api/session/${sessionId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cachedSession)
+            });
+          }
           setError(null);
         } else {
           setError('Sesión no encontrada');
