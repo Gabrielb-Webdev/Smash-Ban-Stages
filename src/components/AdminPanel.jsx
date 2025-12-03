@@ -86,6 +86,25 @@ export default function AdminPanel() {
     }
   };
 
+  const handleDeleteAllSessions = () => {
+    if (window.confirm('⚠️ ¿Estás seguro de que quieres borrar TODAS las sesiones? Esta acción no se puede deshacer.')) {
+      // Desconectar y limpiar estado local
+      if (adminSocket) {
+        adminSocket.disconnect();
+      }
+      setCurrentSessionId(null);
+      setSession(null);
+      setPlayer1Name('');
+      setPlayer2Name('');
+      setFormat('BO3');
+      // Limpiar localStorage
+      localStorage.clear();
+      alert('✅ Todas las sesiones han sido borradas. Puedes crear una nueva.');
+      // Reconectar
+      window.location.reload();
+    }
+  };
+
   const handleEndMatch = () => {
     if (session && window.confirm('¿Terminar el match y declarar ganador? Esta acción no se puede deshacer.')) {
       // Determinar ganador basado en el score actual
@@ -198,6 +217,15 @@ export default function AdminPanel() {
               >
                 🚀 Crear Sesión
               </button>
+
+              {currentSessionId && (
+                <button
+                  onClick={handleDeleteAllSessions}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all mt-2"
+                >
+                  🗑️ Borrar Todas las Sesiones
+                </button>
+              )}
             </div>
           </div>
         ) : (

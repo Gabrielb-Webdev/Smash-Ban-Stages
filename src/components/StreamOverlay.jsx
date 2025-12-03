@@ -18,17 +18,6 @@ export default function StreamOverlay({ sessionId }) {
       console.log('🎮 Mostrando animación RPS para:', session.rpsWinner);
       setRpsWinner(session.rpsWinner);
       setShowRpsAnimation(true);
-      
-      // Ocultar animación después de 3 segundos
-      const timer = setTimeout(() => {
-        console.log('⏰ Ocultando animación RPS después de 3 segundos');
-        setShowRpsAnimation(false);
-      }, 3000);
-      
-      return () => {
-        console.log('🧹 Limpiando timer');
-        clearTimeout(timer);
-      };
     }
     
     // Reset cuando vuelve a fase RPS en un nuevo game
@@ -38,6 +27,22 @@ export default function StreamOverlay({ sessionId }) {
       setShowRpsAnimation(false);
     }
   }, [session?.phase, session?.rpsWinner, rpsWinner]);
+
+  // Timer separado para ocultar la animación después de 3 segundos
+  useEffect(() => {
+    if (showRpsAnimation) {
+      console.log('⏰ Timer iniciado: ocultando en 3 segundos');
+      const timer = setTimeout(() => {
+        console.log('✅ Ocultando animación RPS');
+        setShowRpsAnimation(false);
+      }, 3000);
+      
+      return () => {
+        console.log('🧹 Limpiando timer');
+        clearTimeout(timer);
+      };
+    }
+  }, [showRpsAnimation]);
 
   // Función para obtener opciones aleatorias de RPS donde una gana a la otra
   const getRandomRPSOutcome = () => {
