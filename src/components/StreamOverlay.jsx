@@ -10,8 +10,10 @@ export default function StreamOverlay({ sessionId }) {
 
   // Detectar cuando se define un ganador del RPS
   useEffect(() => {
-    if (session && session.phase !== 'RPS' && session.rpsWinner && !rpsWinner) {
-      // Se acaba de definir el ganador del RPS
+    if (!session) return;
+
+    // Detectar cambio de fase de RPS a otra fase (se acaba de definir el ganador)
+    if (session.phase !== 'RPS' && session.rpsWinner && session.rpsWinner !== rpsWinner) {
       setRpsWinner(session.rpsWinner);
       setShowRpsAnimation(true);
       
@@ -23,12 +25,12 @@ export default function StreamOverlay({ sessionId }) {
       return () => clearTimeout(timer);
     }
     
-    // Reset cuando comienza una nueva fase RPS
-    if (session && session.phase === 'RPS' && session.currentGame > 1) {
+    // Reset cuando vuelve a fase RPS en un nuevo game
+    if (session.phase === 'RPS' && rpsWinner) {
       setRpsWinner(null);
       setShowRpsAnimation(false);
     }
-  }, [session, rpsWinner]);
+  }, [session?.phase, session?.rpsWinner, rpsWinner]);
 
   // Función para obtener opciones aleatorias de RPS donde una gana a la otra
   const getRandomRPSOutcome = () => {
