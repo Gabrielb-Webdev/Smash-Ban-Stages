@@ -15,12 +15,39 @@ export const useSession = (sessionId) => {
         const data = await response.json();
         setSession(data.session);
         setError(null);
+        // Guardar en localStorage como respaldo
+        localStorage.setItem(`session_${sessionId}`, JSON.stringify(data.session));
       } else if (response.status === 404) {
-        setError('Sesión no encontrada');
+        // Intentar recuperar de localStorage
+        const cached = localStorage.getItem(`session_${sessionId}`);
+        if (cached) {
+          const cachedSession = JSON.parse(cached);
+          setSession(cachedSession);
+          // Recrear la sesión en el servidor
+          await fetch(`/api/session/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              player1: cachedSession.player1.name,
+              player2: cachedSession.player2.name,
+              format: cachedSession.format
+            })
+          });
+          setError(null);
+        } else {
+          setError('Sesión no encontrada');
+        }
       }
     } catch (err) {
       console.error('Error fetching session:', err);
-      setError('Error de conexión');
+      // Intentar recuperar de localStorage en caso de error de red
+      const cached = localStorage.getItem(`session_${sessionId}`);
+      if (cached) {
+        setSession(JSON.parse(cached));
+        setError('Modo offline - usando datos guardados');
+      } else {
+        setError('Error de conexión');
+      }
     }
   }, [sessionId]);
 
@@ -63,6 +90,11 @@ export const useSession = (sessionId) => {
   const updateSession = async (updates) => {
     if (!sessionId) return;
 
+    // Actualizar localmente primero para mejor UX
+    const updatedSession = { ...session, ...updates, lastUpdate: Date.now() };
+    setSession(updatedSession);
+    localStorage.setItem(`session_${sessionId}`, JSON.stringify(updatedSession));
+
     try {
       const response = await fetch(`/api/session/${sessionId}`, {
         method: 'PUT',
@@ -73,12 +105,33 @@ export const useSession = (sessionId) => {
       if (response.ok) {
         const data = await response.json();
         setSession(data.session);
+        localStorage.setItem(`session_${sessionId}`, JSON.stringify(data.session));
         return data.session;
+      } else if (response.status === 404) {
+        // Sesión perdida en servidor, recrearla
+        await fetch(`/api/session/${sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            player1: updatedSession.player1.name,
+            player2: updatedSession.player2.name,
+            format: updatedSession.format
+          })
+        });
+        // Volver a intentar la actualización
+        await fetch(`/api/session/${sessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
       }
     } catch (err) {
       console.error('Error updating session:', err);
-      setError('Error al actualizar');
+      // Mantener el estado local
+      setError('Modo offline - cambios guardados localmente');
     }
+
+    return updatedSession;
   };
 
   // Funciones específicas del juego

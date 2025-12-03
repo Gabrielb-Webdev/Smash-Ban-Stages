@@ -1,7 +1,19 @@
 // API Route para manejar sesiones sin WebSocket
-// Usa memoria en runtime de Vercel (persiste durante la ejecución)
+// IMPORTANTE: La memoria se reinicia en cada deploy de Vercel
+// Las sesiones se guardan temporalmente durante la ejecución del servidor
 
 const sessions = new Map();
+
+// Cleanup de sesiones antiguas (más de 2 horas)
+const CLEANUP_INTERVAL = 2 * 60 * 60 * 1000; // 2 horas
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of sessions.entries()) {
+    if (now - session.lastUpdate > CLEANUP_INTERVAL) {
+      sessions.delete(id);
+    }
+  }
+}, 60 * 1000); // Limpiar cada minuto
 
 export default function handler(req, res) {
   const { sessionId } = req.query;
