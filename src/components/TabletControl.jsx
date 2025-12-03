@@ -250,93 +250,141 @@ export default function TabletControl({ sessionId }) {
                   );
                 })}
               </div>
-              {/* Segunda fila: 2 stages centrados (si hay más de 3) */}
-              {getAvailableStages().length > 3 && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div></div>
+              {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
+              {getAvailableStages().length === 5 && (
+                <div className="flex justify-center gap-2">
+                  <div className="w-1/3"></div>
                   {getAvailableStages().slice(3, 5).map((stage) => {
                     const isBanned = session.bannedStages.includes(stage.id);
                     return (
-                      <button
-                        key={stage.id}
-                        onClick={() => !isBanned && handleBanStage(stage.id)}
-                        disabled={isBanned}
-                        className={`relative overflow-hidden rounded-xl transition-all border-2 ${
-                          isBanned
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                            : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
-                        }`}
-                      >
-                        <div className="aspect-video relative">
-                          <img 
-                            src={stage.image} 
-                            alt={stage.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { 
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                            <span className="text-white text-xl">🎮</span>
+                      <div key={stage.id} className="w-1/3">
+                        <button
+                          onClick={() => !isBanned && handleBanStage(stage.id)}
+                          disabled={isBanned}
+                          className={`relative overflow-hidden rounded-xl transition-all border-2 w-full ${
+                            isBanned
+                              ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                              : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                          }`}
+                        >
+                          <div className="aspect-video relative">
+                            <img 
+                              src={stage.image} 
+                              alt={stage.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { 
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                              <span className="text-white text-xl">🎮</span>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            </div>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
-                          </div>
-                        </div>
-                        {isBanned && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                            <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
-                          </div>
-                        )}
-                      </button>
+                          {isBanned && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                              <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                            </div>
+                          )}
+                        </button>
+                      </div>
                     );
                   })}
-                  {getAvailableStages().length === 4 && <div></div>}
+                  <div className="w-1/3"></div>
                 </div>
               )}
-              {/* Tercera fila: stages restantes (si hay más de 5) */}
+              {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
               {getAvailableStages().length > 5 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {getAvailableStages().slice(5).map((stage) => {
-                    const isBanned = session.bannedStages.includes(stage.id);
-                    return (
-                      <button
-                        key={stage.id}
-                        onClick={() => !isBanned && handleBanStage(stage.id)}
-                        disabled={isBanned}
-                        className={`relative overflow-hidden rounded-xl transition-all border-2 ${
-                          isBanned
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                            : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
-                        }`}
-                      >
-                        <div className="aspect-video relative">
-                          <img 
-                            src={stage.image} 
-                            alt={stage.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { 
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                            <span className="text-white text-xl">🎮</span>
+                <>
+                  {/* Segunda fila: stages 4, 5, 6 */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {getAvailableStages().slice(3, 6).map((stage) => {
+                      const isBanned = session.bannedStages.includes(stage.id);
+                      return (
+                        <button
+                          key={stage.id}
+                          onClick={() => !isBanned && handleBanStage(stage.id)}
+                          disabled={isBanned}
+                          className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                            isBanned
+                              ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                              : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                          }`}
+                        >
+                          <div className="aspect-video relative">
+                            <img 
+                              src={stage.image} 
+                              alt={stage.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { 
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                              <span className="text-white text-xl">🎮</span>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            </div>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
-                          </div>
+                          {isBanned && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                              <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
+                  <div className="flex justify-center gap-2">
+                    <div className="w-1/3"></div>
+                    {getAvailableStages().slice(6, 8).map((stage) => {
+                      const isBanned = session.bannedStages.includes(stage.id);
+                      return (
+                        <div key={stage.id} className="w-1/3">
+                          <button
+                            onClick={() => !isBanned && handleBanStage(stage.id)}
+                            disabled={isBanned}
+                            className={`relative overflow-hidden rounded-xl transition-all border-2 w-full ${
+                              isBanned
+                                ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                            }`}
+                          >
+                            <div className="aspect-video relative">
+                              <img 
+                                src={stage.image} 
+                                alt={stage.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                                <span className="text-white text-xl">🎮</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                                <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                              </div>
+                            </div>
+                            {isBanned && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                                <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                              </div>
+                            )}
+                          </button>
                         </div>
-                        {isBanned && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                            <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                    <div className="w-1/3"></div>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -382,69 +430,105 @@ export default function TabletControl({ sessionId }) {
                   </button>
                 ))}
               </div>
-              {/* Segunda fila: 2 stages centrados (si hay más de 3) */}
-              {getAvailableStages().length > 3 && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div></div>
+              {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
+              {getAvailableStages().length === 5 && (
+                <div className="flex justify-center gap-2">
+                  <div className="w-1/3"></div>
                   {getAvailableStages().slice(3, 5).map((stage) => (
-                    <button
-                      key={stage.id}
-                      onClick={() => handleSelectStage(stage.id)}
-                      className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
-                    >
-                      <div className="aspect-video relative">
-                        <img 
-                          src={stage.image} 
-                          alt={stage.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          onError={(e) => { 
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
-                          <span className="text-white text-xl">🎮</span>
+                    <div key={stage.id} className="w-1/3">
+                      <button
+                        onClick={() => handleSelectStage(stage.id)}
+                        className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95 w-full"
+                      >
+                        <div className="aspect-video relative">
+                          <img 
+                            src={stage.image} 
+                            alt={stage.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => { 
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                            <span className="text-white text-xl">🎮</span>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          </div>
+                          <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                          <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
-                        </div>
-                        <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
-                      </div>
-                    </button>
+                      </button>
+                    </div>
                   ))}
-                  {getAvailableStages().length === 4 && <div></div>}
+                  <div className="w-1/3"></div>
                 </div>
               )}
-              {/* Tercera fila: stages restantes (si hay más de 5) */}
+              {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
               {getAvailableStages().length > 5 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {getAvailableStages().slice(5).map((stage) => (
-                    <button
-                      key={stage.id}
-                      onClick={() => handleSelectStage(stage.id)}
-                      className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
-                    >
-                      <div className="aspect-video relative">
-                        <img 
-                          src={stage.image} 
-                          alt={stage.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          onError={(e) => { 
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
-                          <span className="text-white text-xl">🎮</span>
+                <>
+                  {/* Segunda fila: stages 4, 5, 6 */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {getAvailableStages().slice(3, 6).map((stage) => (
+                      <button
+                        key={stage.id}
+                        onClick={() => handleSelectStage(stage.id)}
+                        className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                      >
+                        <div className="aspect-video relative">
+                          <img 
+                            src={stage.image} 
+                            alt={stage.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => { 
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                            <span className="text-white text-xl">🎮</span>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          </div>
+                          <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                          <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
-                        </div>
-                        <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
+                  <div className="flex justify-center gap-2">
+                    <div className="w-1/3"></div>
+                    {getAvailableStages().slice(6, 8).map((stage) => (
+                      <div key={stage.id} className="w-1/3">
+                        <button
+                          onClick={() => handleSelectStage(stage.id)}
+                          className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95 w-full"
+                        >
+                          <div className="aspect-video relative">
+                            <img 
+                              src={stage.image} 
+                              alt={stage.name}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              onError={(e) => { 
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                              <span className="text-white text-xl">🎮</span>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            </div>
+                            <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
+                          </div>
+                        </button>
                       </div>
-                    </button>
-                  ))}
-                </div>
+                    ))}
+                    <div className="w-1/3"></div>
+                  </div>
+                </>
               )}
             </div>
           </div>
