@@ -68,17 +68,33 @@ export default function TabletControl({ sessionId }) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 mb-4 shadow-xl border border-white/20">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-white">
-                {session.player1.name} vs {session.player2.name}
-              </h2>
-              <p className="text-smash-yellow">
-                Game {session.currentGame} - {session.format}
+    <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        {/* Header con información de la partida */}
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6 shadow-2xl border border-white/20">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-white mb-3">
+              {session.player1.name} <span className="text-smash-yellow">vs</span> {session.player2.name}
+            </h2>
+            <div className="flex justify-center items-center gap-6">
+              <div className="text-center">
+                <p className="text-white/70 text-sm">Game</p>
+                <p className="text-smash-yellow text-2xl font-bold">
+                  {session.currentGame}
+                </p>
+              </div>
+              <div className="text-white text-3xl">•</div>
+              <div className="text-center">
+                <p className="text-white/70 text-sm">Formato</p>
+                <p className="text-smash-yellow text-2xl font-bold">
+                  {session.format}
+                </p>
+              </div>
+              <div className="text-white text-3xl">•</div>
+              <div className="text-center">
+                <p className="text-white/70 text-sm">Score</p>
+                <p className="text-white text-2xl font-bold">
+                  {session.player1.score} - {session.player2.score}
               </p>
             </div>
             <div className="text-right">
@@ -330,10 +346,14 @@ export default function TabletControl({ sessionId }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl border border-white/20">
-            <h3 className="text-4xl font-bold text-white mb-6 text-center">
-              ⚔️ ¡En Combate! ⚔️
-            </h3>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-10 shadow-2xl border border-white/20">
+            <div className="text-center mb-8">
+              <div className="text-6xl mb-4">⚔️</div>
+              <h3 className="text-4xl font-bold text-white mb-2">
+                ¡En Combate!
+              </h3>
+              <p className="text-white/70 text-lg">Marca al ganador de este game</p>
+            </div>
             <div className="space-y-4 mb-8">
               <div className="bg-smash-red/20 rounded-lg p-4">
                 <p className="text-white/70 text-sm">Jugador 1</p>
@@ -352,23 +372,26 @@ export default function TabletControl({ sessionId }) {
                 </p>
                 <p className="text-smash-yellow text-lg">
                   {session.player2.character || 'N/A'}
-                </p>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <p className="text-white/70 text-center mb-4">
-                ¿Quién ganó este game?
-              </p>
+            <div className="space-y-5 mt-8">
               <button
                 onClick={() => setGameWinner('player1')}
-                className="w-full py-4 bg-gradient-to-r from-smash-red to-red-600 text-white font-bold text-lg rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
+                className="w-full py-6 bg-gradient-to-br from-smash-red via-red-600 to-red-700 text-white font-bold text-2xl rounded-2xl hover:shadow-2xl hover:scale-105 transition-all transform active:scale-95 border-4 border-red-400/50"
               >
-                🏆 {session.player1.name} Ganó
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-4xl">🏆</span>
+                  <span>{session.player1.name} Ganó</span>
+                </div>
               </button>
               <button
                 onClick={() => setGameWinner('player2')}
-                className="w-full py-4 bg-gradient-to-r from-smash-blue to-blue-600 text-white font-bold text-lg rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
+                className="w-full py-6 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-700 text-white font-bold text-2xl rounded-2xl hover:shadow-2xl hover:scale-105 transition-all transform active:scale-95 border-4 border-blue-400/50"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-4xl">🏆</span>
+                  <span>{session.player2.name} Ganó</span>
+                </div>
+              </button>
+            </div>assName="w-full py-4 bg-gradient-to-r from-smash-blue to-blue-600 text-white font-bold text-lg rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
               >
                 🏆 {session.player2.name} Ganó
               </button>
@@ -378,23 +401,27 @@ export default function TabletControl({ sessionId }) {
 
         {/* Finished Phase */}
         {session.phase === 'FINISHED' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl border border-white/20 text-center">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-10 shadow-2xl border border-white/20 text-center">
             <div className="mb-8">
-              <h3 className="text-5xl font-bold text-white mb-4">
-                🏆 ¡Serie Finalizada! 🏆
+              <div className="text-8xl mb-6 animate-bounce">🏆</div>
+              <h3 className="text-5xl font-bold text-white mb-6">
+                ¡Serie Finalizada!
               </h3>
-              <p className="text-smash-yellow text-3xl font-bold mb-2">
-                Ganador: {session.player1.score > session.player2.score ? session.player1.name : session.player2.name}
-              </p>
-              <p className="text-white text-2xl mb-6">
-                Score Final: {session.player1.score} - {session.player2.score}
+              <div className="bg-gradient-to-r from-smash-yellow/20 via-yellow-500/20 to-smash-yellow/20 rounded-2xl p-6 mb-6 border-2 border-smash-yellow/50">
+                <p className="text-white/70 text-sm mb-2">Ganador</p>
+                <p className="text-smash-yellow text-4xl font-bold">
+                  {session.player1.score > session.player2.score ? session.player1.name : session.player2.name}
+                </p>
+              </div>
+              <p className="text-white text-3xl font-bold">
+                Score Final: <span className="text-smash-yellow">{session.player1.score}</span> - <span className="text-smash-blue">{session.player2.score}</span>
               </p>
             </div>
-            <div className="bg-smash-purple/20 rounded-lg p-6 border border-smash-purple/50">
-              <p className="text-white/90 text-lg mb-2">
+            <div className="bg-smash-purple/20 rounded-xl p-8 border border-smash-purple/50">
+              <p className="text-white/90 text-xl mb-3">
                 ✨ El administrador configurará la próxima serie
               </p>
-              <p className="text-white/60 text-sm">
+              <p className="text-white/60 text-base">
                 Este link seguirá funcionando para el siguiente match
               </p>
             </div>
