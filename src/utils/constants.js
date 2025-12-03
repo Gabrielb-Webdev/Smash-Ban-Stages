@@ -34,7 +34,7 @@ export const CHARACTERS = [
   { id: 'dark-samus', name: 'Dark Samus', image: '/images/characters/Dark Samus.png' },
   { id: 'diddy-kong', name: 'Diddy Kong', image: '/images/characters/Diddy Kong.png' },
   { id: 'donkey-kong', name: 'Donkey Kong', image: '/images/characters/Donkey Kong.png' },
-  { id: 'dr-mario', name: 'Dr. Mario', image: '/images/characters/Dr Mario.png' },
+  { id: 'dr-mario', name: 'Dr. Mario', image: '/images/characters/Dr. Mario.png' },
   { id: 'duck-hunt', name: 'Duck Hunt', image: '/images/characters/Duck Hunt.png' },
   { id: 'falco', name: 'Falco', image: '/images/characters/Falco.png' },
   { id: 'fox', name: 'Fox', image: '/images/characters/Fox.png' },
