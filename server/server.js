@@ -2,7 +2,22 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  // Health check endpoint para Railway
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      message: 'Smash Ban Stages WebSocket Server',
+      uptime: process.uptime(),
+      sessions: sessions.size
+    }));
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
+});
+
 const io = new Server(httpServer, {
   cors: {
     origin: "*",
