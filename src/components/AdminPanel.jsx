@@ -34,6 +34,28 @@ export default function AdminPanel() {
     }
   };
 
+  const handleEndMatch = () => {
+    if (session && window.confirm('¿Terminar el match y declarar ganador? Esta acción no se puede deshacer.')) {
+      // Determinar ganador basado en el score actual
+      const winner = session.player1.score > session.player2.score ? 'player1' : 
+                     session.player2.score > session.player1.score ? 'player2' : null;
+      
+      if (winner) {
+        // Marcar la fase como FINISHED
+        fetch(`/api/session/${session.sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phase: 'FINISHED',
+            lastGameWinner: winner
+          })
+        });
+      } else {
+        alert('No se puede terminar el match con empate. Debe haber un ganador con más puntos.');
+      }
+    }
+  };
+
   const getControlLink = (type) => {
     if (!session) return '';
     const baseUrl = window.location.origin;
@@ -295,8 +317,14 @@ export default function AdminPanel() {
               </div>
             )}
 
-            {/* Botón de Reset */}
-            <div className="text-center">
+            {/* Botones de Control */}
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleEndMatch}
+                className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-500 hover:scale-105 transition-all shadow-lg"
+              >
+                🏁 Terminar Match
+              </button>
               <button
                 onClick={handleResetSession}
                 className="px-8 py-3 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-all border border-white/30"
