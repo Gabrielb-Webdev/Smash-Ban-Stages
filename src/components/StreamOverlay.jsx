@@ -1,10 +1,44 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from '../hooks/useSession';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, getStageData, getCharacterData } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StreamOverlay({ sessionId }) {
   const { session, error } = useSession(sessionId);
+  const [rpsWinner, setRpsWinner] = useState(null);
+  const [showRpsAnimation, setShowRpsAnimation] = useState(false);
+
+  // Detectar cuando se define un ganador del RPS
+  useEffect(() => {
+    if (session && session.phase !== 'RPS' && session.rpsWinner && !rpsWinner) {
+      // Se acaba de definir el ganador del RPS
+      setRpsWinner(session.rpsWinner);
+      setShowRpsAnimation(true);
+      
+      // Ocultar animación después de 4 segundos
+      const timer = setTimeout(() => {
+        setShowRpsAnimation(false);
+      }, 4000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset cuando comienza una nueva fase RPS
+    if (session && session.phase === 'RPS' && session.currentGame > 1) {
+      setRpsWinner(null);
+      setShowRpsAnimation(false);
+    }
+  }, [session, rpsWinner]);
+
+  // Función para obtener opciones aleatorias de RPS donde una gana a la otra
+  const getRandomRPSOutcome = () => {
+    const outcomes = [
+      { winner: '✊', loser: '✌️', name: 'Piedra vs Tijeras' },
+      { winner: '✋', loser: '✊', name: 'Papel vs Piedra' },
+      { winner: '✌️', loser: '✋', name: 'Tijeras vs Papel' }
+    ];
+    return outcomes[Math.floor(Math.random() * outcomes.length)];
+  };
 
   // Guard para evitar renders mientras sessionId no está disponible
   if (!sessionId) {
@@ -67,8 +101,172 @@ export default function StreamOverlay({ sessionId }) {
     return session.selectedStage === stageId;
   };
 
+  const rpsOutcome = getRandomRPSOutcome();
+  const winnerIsPlayer1 = rpsWinner === 'player1';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-smash-darker to-black p-8">
+      {/* Animación de RPS cuando se define el ganador */}
+      <AnimatePresence>
+        {showRpsAnimation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="text-center"
+            >
+              {/* Título de ganador */}
+              <motion.div
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mb-8"
+              >
+                <h2 className="text-white text-5xl font-bold mb-2">¡{session[rpsWinner]?.name} GANA!</h2>
+                <p className="text-smash-yellow text-2xl">Piedra, Papel o Tijera</p>
+              </motion.div>
+
+              {/* Animación de manos */}
+              <div className="flex items-center justify-center gap-12 mb-8">
+                {/* Jugador 1 */}
+                <motion.div
+                  initial={{ x: -200, opacity: 0 }}
+                  animate={{ 
+                    x: 0, 
+                    opacity: 1,
+                    rotate: winnerIsPlayer1 ? [0, -10, 0] : 0
+                  }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                  className={`text-center ${winnerIsPlayer1 ? 'scale-125' : ''}`}
+                >
+                  <div className={`w-40 h-40 ${winnerIsPlayer1 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-red-700'} rounded-full flex items-center justify-center mb-4 shadow-2xl border-4 ${winnerIsPlayer1 ? 'border-green-300' : 'border-red-300'}`}>
+                    <motion.span
+                      animate={{ 
+                        scale: winnerIsPlayer1 ? [1, 1.2, 1] : 1,
+                        rotate: [0, 5, -5, 0]
+                      }}
+                      transition={{ 
+                        duration: 0.5, 
+                        repeat: Infinity, 
+                        repeatDelay: 0.5 
+                      }}
+                      className="text-8xl"
+                    >
+                      {winnerIsPlayer1 ? rpsOutcome.winner : rpsOutcome.loser}
+                    </motion.span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{session.player1.name}</p>
+                  {winnerIsPlayer1 && (
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1 }}
+                      className="text-green-400 text-xl font-bold mt-2"
+                    >
+                      ✓ GANADOR
+                    </motion.p>
+                  )}
+                </motion.div>
+
+                {/* VS en el medio */}
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.7, type: 'spring' }}
+                  className="text-white text-6xl font-bold px-8"
+                >
+                  VS
+                </motion.div>
+
+                {/* Jugador 2 */}
+                <motion.div
+                  initial={{ x: 200, opacity: 0 }}
+                  animate={{ 
+                    x: 0, 
+                    opacity: 1,
+                    rotate: !winnerIsPlayer1 ? [0, 10, 0] : 0
+                  }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                  className={`text-center ${!winnerIsPlayer1 ? 'scale-125' : ''}`}
+                >
+                  <div className={`w-40 h-40 ${!winnerIsPlayer1 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-red-700'} rounded-full flex items-center justify-center mb-4 shadow-2xl border-4 ${!winnerIsPlayer1 ? 'border-green-300' : 'border-red-300'}`}>
+                    <motion.span
+                      animate={{ 
+                        scale: !winnerIsPlayer1 ? [1, 1.2, 1] : 1,
+                        rotate: [0, -5, 5, 0]
+                      }}
+                      transition={{ 
+                        duration: 0.5, 
+                        repeat: Infinity, 
+                        repeatDelay: 0.5 
+                      }}
+                      className="text-8xl"
+                    >
+                      {!winnerIsPlayer1 ? rpsOutcome.winner : rpsOutcome.loser}
+                    </motion.span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{session.player2.name}</p>
+                  {!winnerIsPlayer1 && (
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1 }}
+                      className="text-green-400 text-xl font-bold mt-2"
+                    >
+                      ✓ GANADOR
+                    </motion.p>
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Confetti/Sparkles effect */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+                className="text-6xl"
+              >
+                <motion.span
+                  animate={{ 
+                    y: [-10, 10, -10],
+                    opacity: [1, 0.7, 1]
+                  }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  ✨
+                </motion.span>
+                <motion.span
+                  animate={{ 
+                    y: [10, -10, 10],
+                    opacity: [0.7, 1, 0.7]
+                  }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="mx-4"
+                >
+                  🎉
+                </motion.span>
+                <motion.span
+                  animate={{ 
+                    y: [-10, 10, -10],
+                    opacity: [1, 0.7, 1]
+                  }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  ✨
+                </motion.span>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-7xl mx-auto">
         {/* Header con información de la serie */}
         <motion.div
