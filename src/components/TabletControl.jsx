@@ -256,15 +256,16 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
-                  {getAvailableStages().slice(3, 5).map((stage) => {
+                <div className="grid grid-cols-6 gap-2">
+                  <div className="col-span-1"></div>
+                  {getAvailableStages().slice(3, 5).map((stage, index) => {
                     const isBanned = session.bannedStages.includes(stage.id);
                     return (
                       <button
                         key={stage.id}
                         onClick={() => !isBanned && handleBanStage(stage.id)}
                         disabled={isBanned}
-                        className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                        className={`col-span-2 relative overflow-hidden rounded-xl transition-all border-2 ${
                           isBanned
                             ? 'opacity-30 cursor-not-allowed border-red-500/50'
                             : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
@@ -295,6 +296,7 @@ export default function TabletControl({ sessionId }) {
                         </button>
                     );
                   })}
+                  <div className="col-span-1"></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
@@ -342,7 +344,8 @@ export default function TabletControl({ sessionId }) {
                     })}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
+                  <div className="grid grid-cols-6 gap-2">
+                    <div className="col-span-1"></div>
                     {getAvailableStages().slice(6, 8).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
@@ -350,7 +353,7 @@ export default function TabletControl({ sessionId }) {
                           key={stage.id}
                           onClick={() => !isBanned && handleBanStage(stage.id)}
                           disabled={isBanned}
-                          className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                          className={`col-span-2 relative overflow-hidden rounded-xl transition-all border-2 ${
                             isBanned
                               ? 'opacity-30 cursor-not-allowed border-red-500/50'
                               : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
@@ -381,6 +384,7 @@ export default function TabletControl({ sessionId }) {
                           </button>
                       );
                     })}
+                    <div className="col-span-1"></div>
                   </div>
                 </>
               )}
@@ -430,12 +434,13 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
+                <div className="grid grid-cols-6 gap-2">
+                  <div className="col-span-1"></div>
                   {getAvailableStages().slice(3, 5).map((stage) => (
                     <button
                       key={stage.id}
                       onClick={() => handleSelectStage(stage.id)}
-                      className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                      className="col-span-2 relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
                     >
                         <div className="aspect-video relative">
                           <img 
@@ -457,6 +462,7 @@ export default function TabletControl({ sessionId }) {
                         </div>
                       </button>
                   ))}
+                  <div className="col-span-1"></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
@@ -492,12 +498,13 @@ export default function TabletControl({ sessionId }) {
                     ))}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
+                  <div className="grid grid-cols-6 gap-2">
+                    <div className="col-span-1"></div>
                     {getAvailableStages().slice(6, 8).map((stage) => (
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
-                        className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                        className="col-span-2 relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
                       >
                           <div className="aspect-video relative">
                             <img 
@@ -519,6 +526,7 @@ export default function TabletControl({ sessionId }) {
                           </div>
                         </button>
                     ))}
+                    <div className="col-span-1"></div>
                   </div>
                 </>
               )}
