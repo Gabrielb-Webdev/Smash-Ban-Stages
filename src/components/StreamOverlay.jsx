@@ -8,6 +8,9 @@ export default function StreamOverlay({ sessionId }) {
   const error = !connected ? 'Desconectado del servidor' : null;
   const [rpsWinner, setRpsWinner] = useState(null);
   const [showRpsAnimation, setShowRpsAnimation] = useState(false);
+  const [bannedStage, setBannedStage] = useState(null);
+  const [showBanAnimation, setShowBanAnimation] = useState(false);
+  const [previousBannedCount, setPreviousBannedCount] = useState(0);
 
   // Detectar cuando se define un ganador del RPS
   useEffect(() => {
@@ -43,6 +46,42 @@ export default function StreamOverlay({ sessionId }) {
       };
     }
   }, [showRpsAnimation]);
+
+  // Detectar cuando se banea un stage
+  useEffect(() => {
+    if (!session) return;
+
+    // Detectar nuevo stage baneado
+    if (session.bannedStages && session.bannedStages.length > previousBannedCount) {
+      const newBannedStageId = session.bannedStages[session.bannedStages.length - 1];
+      const stageData = getStageData(newBannedStageId);
+      
+      if (stageData) {
+        console.log('🚫 Stage baneado:', stageData.name);
+        setBannedStage(stageData);
+        setShowBanAnimation(true);
+        setPreviousBannedCount(session.bannedStages.length);
+      }
+    }
+
+    // Reset counter cuando comienza nuevo game
+    if (session.bannedStages && session.bannedStages.length === 0 && previousBannedCount > 0) {
+      setPreviousBannedCount(0);
+    }
+  }, [session?.bannedStages, previousBannedCount]);
+
+  // Timer para ocultar animación de baneo después de 2 segundos
+  useEffect(() => {
+    if (showBanAnimation) {
+      console.log('⏰ Mostrando animación de baneo por 2 segundos');
+      const timer = setTimeout(() => {
+        console.log('✅ Ocultando animación de baneo');
+        setShowBanAnimation(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showBanAnimation]);
 
   // Función para obtener opciones aleatorias de RPS donde una gana a la otra
   const getRandomRPSOutcome = () => {
@@ -275,6 +314,129 @@ export default function StreamOverlay({ sessionId }) {
                 >
                   ✨
                 </motion.span>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Animación de Stage Baneado */}
+      <AnimatePresence>
+        {showBanAnimation && bannedStage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-lg"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="relative w-full max-w-5xl mx-8"
+            >
+              {/* Imagen del stage */}
+              <motion.div
+                initial={{ y: 50 }}
+                animate={{ y: 0 }}
+                className="relative rounded-3xl overflow-hidden shadow-2xl"
+              >
+                <img
+                  src={bannedStage.image}
+                  alt={bannedStage.name}
+                  className="w-full h-[600px] object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="hidden absolute inset-0 bg-gradient-to-br from-red-600 to-red-800 items-center justify-center">
+                  <span className="text-white text-9xl">🎮</span>
+                </div>
+
+                {/* Overlay oscuro */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+
+                {/* Nombre del stage */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="absolute bottom-0 left-0 right-0 p-12"
+                >
+                  <h2 className="text-white text-7xl font-black mb-4 drop-shadow-2xl text-center">
+                    {bannedStage.name}
+                  </h2>
+                </motion.div>
+
+                {/* X gigante baneado */}
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ 
+                    scale: 1, 
+                    rotate: 0,
+                  }}
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 200, 
+                    damping: 15,
+                    delay: 0.3 
+                  }}
+                  className="absolute inset-0 flex flex-col items-center justify-center"
+                >
+                  {/* X Roja */}
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, 5, -5, 0],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{ 
+                      duration: 0.5, 
+                      repeat: Infinity,
+                      repeatDelay: 0.5
+                    }}
+                    className="text-red-500 text-[20rem] font-black drop-shadow-2xl leading-none"
+                    style={{ textShadow: '0 0 60px rgba(239, 68, 68, 0.8)' }}
+                  >
+                    ✖
+                  </motion.div>
+                  
+                  {/* Texto BANEADO */}
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-red-600 px-12 py-6 rounded-2xl border-4 border-red-400 shadow-2xl"
+                  >
+                    <p className="text-white text-6xl font-black drop-shadow-xl">
+                      BANEADO
+                    </p>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+
+              {/* Efectos decorativos */}
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -top-20 -left-20 text-9xl"
+              >
+                ⚠️
+              </motion.div>
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                className="absolute -top-20 -right-20 text-9xl"
+              >
+                ⚠️
               </motion.div>
             </motion.div>
           </motion.div>
