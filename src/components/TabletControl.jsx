@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useSession } from '../hooks/useSession';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData } from '../utils/constants';
 
 export default function TabletControl({ sessionId }) {
-  const { session, error, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useSession(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
+  const error = session ? null : 'Conectando...';
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
 
@@ -78,20 +79,20 @@ export default function TabletControl({ sessionId }) {
   };
 
   const confirmAction = () => {
-    if (!pendingAction) return;
+    if (!pendingAction || !sessionId) return;
 
     switch (pendingAction.type) {
       case 'rps':
-        selectRPSWinner(pendingAction.winner);
+        selectRPSWinner(sessionId, pendingAction.winner);
         break;
       case 'ban':
-        banStage(pendingAction.stageId, pendingAction.player);
+        banStage(sessionId, pendingAction.stageId, pendingAction.player);
         break;
       case 'select':
-        selectStage(pendingAction.stageId);
+        selectStage(sessionId, pendingAction.stageId, pendingAction.player);
         break;
       case 'character':
-        selectCharacter(pendingAction.characterId, pendingAction.player);
+        selectCharacter(sessionId, pendingAction.characterId, pendingAction.player);
         break;
       default:
         break;
