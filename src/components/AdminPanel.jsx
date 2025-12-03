@@ -1,52 +1,88 @@
-import { useState } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import io from 'socket.io-client';
+
+let adminSocket = null;
 
 export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
   const [currentSessionId, setCurrentSessionId] = useState(null);
-  const { session, createSession, setGameWinner, resetSession } = useWebSocket(currentSessionId);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    // Conectar al WebSocket cuando se monta el componente
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    adminSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,
+      timeout: 20000
+    });
+
+    adminSocket.on('connect', () => {
+      console.log('Admin conectado al servidor WebSocket');
+      if (currentSessionId) {
+        adminSocket.emit('join-session', currentSessionId);
+      }
+    });
+
+    adminSocket.on('session-created', (data) => {
+      console.log('Sesión creada:', data);
+      setCurrentSessionId(data.sessionId);
+      setSession(data.session);
+    });
+
+    adminSocket.on('session-joined', (data) => {
+      console.log('Sesión unida:', data);
+      setSession(data.session);
+    });
+
+    adminSocket.on('session-updated', (data) => {
+      console.log('Sesión actualizada:', data);
+      setSession(data.session);
+    });
+
+    adminSocket.on('series-finished', (data) => {
+      console.log('Serie finalizada:', data);
+      setSession(data.session);
+    });
+
+    return () => {
+      if (adminSocket) {
+        adminSocket.disconnect();
+      }
+    };
+  }, [currentSessionId]);
 
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
-      // Crear la sesión directamente sin usar useWebSocket
-      // porque necesitamos hacerlo antes de tener el sessionId
-      const newSessionId = Math.random().toString(36).substring(2, 15);
-      
-      // Crear conexión temporal para crear la sesión
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-      const tempSocket = require('socket.io-client').default(socketUrl, {
-        transports: ['websocket', 'polling']
-      });
-      
-      tempSocket.on('connect', () => {
-        tempSocket.emit('create-session', { 
+      if (adminSocket && adminSocket.connected) {
+        adminSocket.emit('create-session', { 
           player1: player1Name, 
           player2: player2Name, 
           format 
         });
-      });
-      
-      tempSocket.on('session-created', (data) => {
-        setCurrentSessionId(data.sessionId);
-        tempSocket.disconnect();
-      });
+      } else {
+        alert('No hay conexión con el servidor. Por favor, recarga la página.');
+      }
     } else {
       alert('Por favor ingresa los nombres de ambos jugadores');
     }
   };
 
   const handleGameWinner = (winner) => {
-    if (session && window.confirm(`¿Confirmar que ${session[winner].name} ganó este game?`)) {
-      setGameWinner(session.sessionId, winner);
+    if (session && adminSocket && window.confirm(`¿Confirmar que ${session[winner].name} ganó este game?`)) {
+      adminSocket.emit('game-winner', { sessionId: session.sessionId, winner });
     }
   };
 
   const handleResetSession = () => {
-    if (session && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
-      resetSession(session.sessionId);
+    if (session && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
+      adminSocket.emit('reset-session', { sessionId: session.sessionId });
     }
   };
 
