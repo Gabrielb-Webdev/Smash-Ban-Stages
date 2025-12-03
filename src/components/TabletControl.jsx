@@ -254,6 +254,51 @@ export default function TabletControl({ sessionId }) {
                   );
                 })}
               </div>
+              {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
+              {getAvailableStages().length === 4 && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div></div>
+                  {getAvailableStages().slice(3, 4).map((stage) => {
+                    const isBanned = session.bannedStages.includes(stage.id);
+                    return (
+                      <button
+                        key={stage.id}
+                        onClick={() => !isBanned && handleBanStage(stage.id)}
+                        disabled={isBanned}
+                        className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                          isBanned
+                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                        }`}
+                      >
+                          <div className="aspect-video relative">
+                            <img 
+                              src={stage.image} 
+                              alt={stage.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { 
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                              <span className="text-white text-xl">🎮</span>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            </div>
+                          </div>
+                          {isBanned && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                              <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                            </div>
+                          )}
+                        </button>
+                    );
+                  })}
+                  <div></div>
+                </div>
+              )}
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
                 <div className="grid grid-cols-6 gap-2">
@@ -432,6 +477,39 @@ export default function TabletControl({ sessionId }) {
                   </button>
                 ))}
               </div>
+              {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
+              {getAvailableStages().length === 4 && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div></div>
+                  {getAvailableStages().slice(3, 4).map((stage) => (
+                    <button
+                      key={stage.id}
+                      onClick={() => handleSelectStage(stage.id)}
+                      className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                    >
+                        <div className="aspect-video relative">
+                          <img 
+                            src={stage.image} 
+                            alt={stage.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => { 
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                            <span className="text-white text-xl">🎮</span>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
+                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          </div>
+                          <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
+                        </div>
+                      </button>
+                  ))}
+                  <div></div>
+                </div>
+              )}
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
                 <div className="grid grid-cols-6 gap-2">
