@@ -230,14 +230,23 @@ io.on('connection', (socket) => {
       if (!session[otherPlayer].character) {
         // El otro jugador debe seleccionar
         session.currentTurn = otherPlayer;
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
       } else {
-        // Ambos han seleccionado, comenzar el game
-        session.phase = 'PLAYING';
-        session.currentTurn = null;
+        // Ambos han seleccionado, esperar 2 segundos antes de comenzar
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
+        
+        setTimeout(() => {
+          const updatedSession = sessions.get(sessionId);
+          if (updatedSession && updatedSession.phase === 'CHARACTER_SELECT') {
+            updatedSession.phase = 'PLAYING';
+            updatedSession.currentTurn = null;
+            sessions.set(sessionId, updatedSession);
+            io.to(sessionId).emit('session-updated', { session: updatedSession });
+          }
+        }, 2000);
       }
-      
-      sessions.set(sessionId, session);
-      io.to(sessionId).emit('session-updated', { session });
     }
   });
 

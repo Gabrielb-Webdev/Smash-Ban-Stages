@@ -650,7 +650,16 @@ export default function StreamOverlay({ sessionId }) {
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', stiffness: 200 }}
                   >
-                    <div className="text-6xl mb-2">🎮</div>
+                    <img 
+                      src={getCharacterData(session.player1.character)?.image} 
+                      alt={getCharacterData(session.player1.character)?.name}
+                      className="w-24 h-24 mx-auto mb-2 rounded-full border-4 border-smash-yellow shadow-lg"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                    <div className="text-6xl mb-2 hidden">🎮</div>
                     <p className="text-smash-yellow text-xl font-bold">
                       {getCharacterData(session.player1.character)?.name}
                     </p>
@@ -676,7 +685,16 @@ export default function StreamOverlay({ sessionId }) {
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', stiffness: 200 }}
                   >
-                    <div className="text-6xl mb-2">🎮</div>
+                    <img 
+                      src={getCharacterData(session.player2.character)?.image} 
+                      alt={getCharacterData(session.player2.character)?.name}
+                      className="w-24 h-24 mx-auto mb-2 rounded-full border-4 border-smash-yellow shadow-lg"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                    <div className="text-6xl mb-2 hidden">🎮</div>
                     <p className="text-smash-yellow text-xl font-bold">
                       {getCharacterData(session.player2.character)?.name}
                     </p>
