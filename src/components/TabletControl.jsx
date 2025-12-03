@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useState } from 'react';
+import { useSession } from '../hooks/useSession';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData } from '../utils/constants';
 
-export default function TabletControl() {
-  const router = useRouter();
-  const { sessionId } = router.query;
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter } = useWebSocket(sessionId);
+export default function TabletControl({ sessionId }) {
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter } = useSession(sessionId);
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!session) {
@@ -21,24 +18,24 @@ export default function TabletControl() {
   }
 
   const handleRPSWinner = (winner) => {
-    selectRPSWinner(sessionId, winner);
+    selectRPSWinner(winner);
   };
 
   const handleBanStage = (stageId) => {
     if (session.currentTurn) {
-      banStage(sessionId, stageId, session.currentTurn);
+      banStage(stageId, session.currentTurn);
     }
   };
 
   const handleSelectStage = (stageId) => {
     if (session.currentTurn) {
-      selectStage(sessionId, stageId, session.currentTurn);
+      selectStage(stageId);
     }
   };
 
   const handleSelectCharacter = (characterId) => {
     if (session.currentTurn) {
-      selectCharacter(sessionId, characterId, session.currentTurn);
+      selectCharacter(characterId, session.currentTurn);
     }
   };
 

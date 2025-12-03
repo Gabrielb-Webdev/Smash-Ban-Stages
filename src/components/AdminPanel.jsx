@@ -1,15 +1,20 @@
 import { useState } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useSession } from '../hooks/useSession';
 
 export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const { session, createSession, setGameWinner, resetSession } = useWebSocket();
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const { session, createSession, setGameWinner, resetSession } = useSession(currentSessionId);
 
-  const handleCreateSession = () => {
+  const handleCreateSession = async () => {
     if (player1Name && player2Name) {
-      createSession(player1Name, player2Name, format);
+      const newSessionId = Math.random().toString(36).substring(2, 15);
+      const newSession = await createSession(player1Name, player2Name, format, newSessionId);
+      if (newSession) {
+        setCurrentSessionId(newSessionId);
+      }
     } else {
       alert('Por favor ingresa los nombres de ambos jugadores');
     }

@@ -1,13 +1,10 @@
 import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useSession } from '../hooks/useSession';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, getStageData, getCharacterData } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function StreamOverlay() {
-  const router = useRouter();
-  const { sessionId } = router.query;
-  const { session } = useWebSocket(sessionId);
+export default function StreamOverlay({ sessionId }) {
+  const { session } = useSession(sessionId);
 
   if (!session) {
     return (
