@@ -19,9 +19,11 @@ export const useSession = (sessionId) => {
         localStorage.setItem(`session_${sessionId}`, JSON.stringify(data.session));
       } else if (response.status === 404) {
         // Intentar recuperar de localStorage
+        console.log('Sesión no encontrada en servidor, buscando en localStorage...');
         const cached = localStorage.getItem(`session_${sessionId}`);
         if (cached) {
           const cachedSession = JSON.parse(cached);
+          console.log('Sesión encontrada en localStorage, restaurando...', cachedSession);
           setSession(cachedSession);
           // Recrear la sesión en el servidor con el estado completo
           const createResponse = await fetch(`/api/session/${sessionId}`, {
@@ -36,14 +38,18 @@ export const useSession = (sessionId) => {
           
           // Si se creó correctamente, actualizar con el estado completo
           if (createResponse.ok) {
-            await fetch(`/api/session/${sessionId}`, {
+            const updateResponse = await fetch(`/api/session/${sessionId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(cachedSession)
             });
+            if (updateResponse.ok) {
+              console.log('Sesión restaurada en servidor exitosamente');
+            }
           }
           setError(null);
         } else {
+          console.log('No se encontró sesión en localStorage');
           setError('Sesión no encontrada');
         }
       }
@@ -117,8 +123,11 @@ export const useSession = (sessionId) => {
         localStorage.setItem(`session_${sessionId}`, JSON.stringify(data.session));
         return data.session;
       } else if (response.status === 404) {
-        // Sesión perdida en servidor, recrearla
-        await fetch(`/api/session/${sessionId}`, {
+        // Sesión perdida en servidor, recrearla completamente desde el estado local
+        console.log('Sesión perdida en servidor, restaurando desde estado local...');
+        
+        // Primero crear la sesión base
+        const createResponse = await fetch(`/api/session/${sessionId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -127,12 +136,23 @@ export const useSession = (sessionId) => {
             format: updatedSession.format
           })
         });
-        // Volver a intentar la actualización
-        await fetch(`/api/session/${sessionId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates)
-        });
+
+        if (createResponse.ok) {
+          // Luego actualizar con todo el estado completo
+          const fullUpdateResponse = await fetch(`/api/session/${sessionId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedSession)
+          });
+
+          if (fullUpdateResponse.ok) {
+            const data = await fullUpdateResponse.json();
+            setSession(data.session);
+            localStorage.setItem(`session_${sessionId}`, JSON.stringify(data.session));
+            console.log('Sesión restaurada exitosamente');
+            return data.session;
+          }
+        }
       }
     } catch (err) {
       console.error('Error updating session:', err);
