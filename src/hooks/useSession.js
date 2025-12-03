@@ -318,12 +318,18 @@ export const useSession = (sessionId) => {
       updates.currentTurn = winner; // Ganador banea primero
       updates.rpsWinner = null;
       
-      // Configurar los 8 stages disponibles, filtrando los que ya ganó el ganador
+      // Configurar los 8 stages disponibles
+      // Solo filtrar stages ganados desde el Game 2 en adelante (Dave's Stupid Rule)
+      // El stage del Game 1 NO cuenta para este filtro
+      const stagesToFilter = session.currentGame === 1 
+        ? [] // Game 1 → Game 2: Todos los 8 stages disponibles
+        : newWonStages.filter(stage => stage !== session.selectedStage); // Game 2+: Filtrar stages ganados anteriormente (excepto el actual)
+      
       updates.availableStages = [
         'battlefield', 'small-battlefield', 'pokemon-stadium-2',
         'smashville', 'town-and-city', 'hollow-bastion',
         'final-destination', 'kalos'
-      ].filter(stage => !newWonStages.includes(stage));
+      ].filter(stage => !stagesToFilter.includes(stage));
       
       updates.totalBansNeeded = 3;
       updates.bansRemaining = 3;
