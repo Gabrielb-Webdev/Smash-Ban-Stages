@@ -313,36 +313,74 @@ export default function StreamOverlay({ sessionId }) {
         {/* Stages del Game 1 - Aparecen después del texto Stage Bans */}
         {session.player1.character && session.player2.character && session.currentGame === 1 && (
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-12 z-10 pointer-events-none">
-            {STAGES_GAME1.map((stage, index) => (
-              <motion.div
-                key={stage.id}
-                initial={{ scale: 0, opacity: 0, y: 100, rotate: -180 }}
-                animate={{ 
-                  scale: 1,
-                  opacity: 1,
-                  y: 0,
-                  rotate: 0
-                }}
-                transition={{ 
-                  duration: 0.6,
-                  delay: 3.5 + (index * 0.15),
-                  type: 'spring',
-                  stiffness: 250,
-                  damping: 18
-                }}
-                className="relative"
-              >
-                <img 
-                  src={stage.image}
-                  alt={stage.name}
-                  className="w-44 h-32 object-cover rounded-lg border-3 border-white shadow-2xl"
-                  style={{ 
-                    objectFit: 'cover',
-                    borderWidth: '3px'
+            {STAGES_GAME1.map((stage, index) => {
+              const isBanned = session.bannedStages?.includes(stage.id);
+              const isSelected = session.selectedStage === stage.id;
+              
+              return (
+                <motion.div
+                  key={stage.id}
+                  initial={{ scale: 0, opacity: 0, y: 100, rotate: -180 }}
+                  animate={{ 
+                    scale: 1,
+                    opacity: isBanned ? 0.5 : 1,
+                    y: 0,
+                    rotate: 0
                   }}
-                />
-              </motion.div>
-            ))}
+                  transition={{ 
+                    duration: 0.6,
+                    delay: 3.5 + (index * 0.15),
+                    type: 'spring',
+                    stiffness: 250,
+                    damping: 18
+                  }}
+                  className="relative"
+                >
+                  <img 
+                    src={stage.image}
+                    alt={stage.name}
+                    className={`w-44 h-32 object-cover rounded-lg shadow-2xl ${
+                      isSelected ? 'border-4 border-yellow-400' : 'border-3 border-white'
+                    }`}
+                    style={{ 
+                      objectFit: 'cover',
+                      borderWidth: isSelected ? '4px' : '3px',
+                      filter: isBanned ? 'grayscale(100%)' : 'none'
+                    }}
+                  />
+                  
+                  {/* X Roja para baneado */}
+                  {isBanned && (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                      className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg"
+                    >
+                      <span className="text-red-500 text-6xl font-black drop-shadow-2xl"
+                            style={{ textShadow: '0 0 20px rgba(239, 68, 68, 0.8)' }}>
+                        ✖
+                      </span>
+                    </motion.div>
+                  )}
+                  
+                  {/* Check dorado para seleccionado */}
+                  {isSelected && !isBanned && (
+                    <motion.div
+                      initial={{ scale: 0, rotate: 180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                      className="absolute inset-0 flex items-center justify-center bg-yellow-400/20 rounded-lg"
+                    >
+                      <span className="text-yellow-400 text-6xl font-black drop-shadow-2xl"
+                            style={{ textShadow: '0 0 20px rgba(250, 204, 21, 0.8)' }}>
+                        ✓
+                      </span>
+                    </motion.div>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </footer>
