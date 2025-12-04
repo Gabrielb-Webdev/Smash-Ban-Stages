@@ -11,7 +11,13 @@ export default function TabletControl({ sessionId }) {
   // Guard para evitar renders mientras sessionId no está disponible
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center"
+           style={{
+             backgroundImage: 'url(/images/paperbg.jpg)',
+             backgroundSize: 'cover',
+             backgroundPosition: 'center',
+             backgroundRepeat: 'no-repeat'
+           }}>
         <div className="text-center">
           <div className="animate-pulse text-6xl mb-4">🎮</div>
           <p className="text-white text-xl">Inicializando...</p>
@@ -22,7 +28,13 @@ export default function TabletControl({ sessionId }) {
 
   if (error && error === 'Sesión no encontrada') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4"
+           style={{
+             backgroundImage: 'url(/images/paperbg.jpg)',
+             backgroundSize: 'cover',
+             backgroundPosition: 'center',
+             backgroundRepeat: 'no-repeat'
+           }}>
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-3xl font-bold text-white mb-4">Sesión no encontrada</h2>
@@ -42,7 +54,13 @@ export default function TabletControl({ sessionId }) {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center"
+           style={{
+             backgroundImage: 'url(/images/paperbg.jpg)',
+             backgroundSize: 'cover',
+             backgroundPosition: 'center',
+             backgroundRepeat: 'no-repeat'
+           }}>
         <div className="text-center">
           <div className="animate-pulse text-6xl mb-4">🎮</div>
           <p className="text-white text-xl">Cargando sesión...</p>
@@ -118,7 +136,14 @@ export default function TabletControl({ sessionId }) {
   );
 
   return (
-    <div className="h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center p-3 overflow-hidden">
+    <div className="h-screen flex items-center justify-center p-3 overflow-hidden"
+         style={{
+           backgroundImage: 'url(/images/paperbg.jpg)',
+           backgroundSize: 'cover',
+           backgroundPosition: 'center',
+           backgroundRepeat: 'no-repeat',
+           fontFamily: 'Anton, sans-serif'
+         }}>
       <div className="w-full h-full max-w-6xl flex flex-col">
         {/* Header compacto con información de la partida */}
         <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-3 mb-3 shadow-xl border border-white/20 flex-shrink-0">
