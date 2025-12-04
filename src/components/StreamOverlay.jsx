@@ -112,14 +112,16 @@ export default function StreamOverlay({ sessionId }) {
     }
   }, [session?.selectedStage, previousSelectedStage]);
 
-  // Timer para ocultar animación de selección después de 4 segundos
+  // Timer para ocultar animación de selección después de 3 segundos y mostrar en card
   useEffect(() => {
     if (showSelectAnimation) {
-      console.log('⏰ Mostrando animación de selección por 4 segundos');
+      console.log('⏰ Mostrando animación de selección por 3 segundos');
       const timer = setTimeout(() => {
-        console.log('✅ Ocultando animación de selección');
+        console.log('✅ Ocultando animación de selección del footer');
         setShowSelectAnimation(false);
-      }, 4000);
+        // Mostrar animación en la card después de que termine la del footer
+        setShowSelectOnCard(true);
+      }, 3000);
       
       return () => clearTimeout(timer);
     }
@@ -320,6 +322,8 @@ export default function StreamOverlay({ sessionId }) {
             {STAGES_GAME1.map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
+              const showBanOverlay = isBanned && (showBanOnCard || bannedStage?.id !== stage.id);
+              const showSelectOverlay = isSelected && (showSelectOnCard || selectedStage?.id !== stage.id);
               
               return (
                 <motion.div
@@ -327,7 +331,7 @@ export default function StreamOverlay({ sessionId }) {
                   initial={{ scale: 0, opacity: 0, y: 100, rotate: -180 }}
                   animate={{ 
                     scale: 1,
-                    opacity: isBanned ? 0.5 : 1,
+                    opacity: isBanned && showBanOverlay ? 0.5 : 1,
                     y: 0,
                     rotate: 0
                   }}
@@ -344,17 +348,17 @@ export default function StreamOverlay({ sessionId }) {
                     src={stage.image}
                     alt={stage.name}
                     className={`w-44 h-32 object-cover rounded-lg shadow-2xl ${
-                      isSelected ? 'border-4 border-yellow-400' : 'border-3 border-white'
+                      isSelected && showSelectOverlay ? 'border-4 border-yellow-300' : 'border-3 border-white'
                     }`}
                     style={{ 
                       objectFit: 'cover',
-                      borderWidth: isSelected ? '4px' : '3px',
-                      filter: isBanned ? 'grayscale(100%)' : 'none'
+                      borderWidth: isSelected && showSelectOverlay ? '4px' : '3px',
+                      filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none'
                     }}
                   />
                   
-                  {/* X Roja para baneado */}
-                  {isBanned && (
+                  {/* X Roja para baneado - Solo después de la animación del footer */}
+                  {showBanOverlay && (
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
@@ -368,16 +372,19 @@ export default function StreamOverlay({ sessionId }) {
                     </motion.div>
                   )}
                   
-                  {/* Check dorado para seleccionado */}
-                  {isSelected && !isBanned && (
+                  {/* Check dorado para seleccionado - Solo después de la animación del footer */}
+                  {showSelectOverlay && !isBanned && (
                     <motion.div
                       initial={{ scale: 0, rotate: 180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className="absolute inset-0 flex items-center justify-center bg-yellow-400/20 rounded-lg"
+                      className="absolute inset-0 flex items-center justify-center rounded-lg"
+                      style={{ 
+                        background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.3) 0%, rgba(250, 204, 21, 0.1) 100%)'
+                      }}
                     >
-                      <span className="text-yellow-400 text-6xl font-black drop-shadow-2xl"
-                            style={{ textShadow: '0 0 20px rgba(250, 204, 21, 0.8)' }}>
+                      <span className="text-yellow-300 text-6xl font-black drop-shadow-2xl"
+                            style={{ textShadow: '0 0 30px rgba(250, 204, 21, 1), 0 0 60px rgba(250, 204, 21, 0.5)' }}>
                         ✓
                       </span>
                     </motion.div>
