@@ -11,6 +11,9 @@ export default function StreamOverlay({ sessionId }) {
   const [bannedStage, setBannedStage] = useState(null);
   const [showBanAnimation, setShowBanAnimation] = useState(false);
   const [previousBannedCount, setPreviousBannedCount] = useState(0);
+  const [selectedStage, setSelectedStage] = useState(null);
+  const [showSelectAnimation, setShowSelectAnimation] = useState(false);
+  const [previousSelectedStage, setPreviousSelectedStage] = useState(null);
 
   // Detectar cuando se define un ganador del RPS
   useEffect(() => {
@@ -82,6 +85,41 @@ export default function StreamOverlay({ sessionId }) {
       return () => clearTimeout(timer);
     }
   }, [showBanAnimation]);
+
+  // Detectar cuando se selecciona un stage
+  useEffect(() => {
+    if (!session) return;
+
+    // Detectar nuevo stage seleccionado
+    if (session.selectedStage && session.selectedStage !== previousSelectedStage) {
+      const stageData = getStageData(session.selectedStage);
+      
+      if (stageData) {
+        console.log('✅ Stage seleccionado:', stageData.name);
+        setSelectedStage(stageData);
+        setShowSelectAnimation(true);
+        setPreviousSelectedStage(session.selectedStage);
+      }
+    }
+
+    // Reset cuando comienza nuevo game
+    if (!session.selectedStage && previousSelectedStage) {
+      setPreviousSelectedStage(null);
+    }
+  }, [session?.selectedStage, previousSelectedStage]);
+
+  // Timer para ocultar animación de selección después de 4 segundos
+  useEffect(() => {
+    if (showSelectAnimation) {
+      console.log('⏰ Mostrando animación de selección por 4 segundos');
+      const timer = setTimeout(() => {
+        console.log('✅ Ocultando animación de selección');
+        setShowSelectAnimation(false);
+      }, 4000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showSelectAnimation]);
 
   // Función para obtener opciones aleatorias de RPS donde una gana a la otra
   const getRandomRPSOutcome = () => {
@@ -309,105 +347,152 @@ export default function StreamOverlay({ sessionId }) {
         )}
       </footer>
 
-      {/* Animación de Stage Baneado */}
+      {/* Animación de Stage Baneado en el Footer */}
       <AnimatePresence>
         {showBanAnimation && bannedStage && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-lg overflow-hidden"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
+            className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
+            style={{ height: '150px' }}
           >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-              className="relative w-full max-w-5xl mx-8"
-            >
-              {/* Imagen del stage */}
+            {/* Imagen del stage de fondo */}
+            <div className="absolute inset-0">
+              <img
+                src={bannedStage.image}
+                alt={bannedStage.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="hidden absolute inset-0 bg-gradient-to-br from-red-600 to-red-800 items-center justify-center">
+                <span className="text-white text-6xl">🎮</span>
+              </div>
+            </div>
+
+            {/* Overlay oscuro */}
+            <div className="absolute inset-0 bg-black/70" />
+
+            {/* Contenido centrado */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* X Roja */}
               <motion.div
-                initial={{ y: 50 }}
-                animate={{ y: 0 }}
-                className="relative rounded-3xl overflow-hidden shadow-2xl"
-                style={{ overflow: 'hidden' }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ 
+                  scale: 1, 
+                  rotate: 0,
+                }}
+                transition={{ 
+                  type: 'spring', 
+                  stiffness: 250, 
+                  damping: 15,
+                  delay: 0.2 
+                }}
+                className="text-red-500 text-8xl font-black drop-shadow-2xl mr-6"
+                style={{ textShadow: '0 0 40px rgba(239, 68, 68, 0.8)' }}
               >
-                <img
-                  src={bannedStage.image}
-                  alt={bannedStage.name}
-                  className="w-full h-[600px] object-cover"
-                  style={{ display: 'block' }}
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }}
-                />
-                <div className="hidden absolute inset-0 bg-gradient-to-br from-red-600 to-red-800 items-center justify-center">
-                  <span className="text-white text-9xl">🎮</span>
-                </div>
-
-                {/* Overlay oscuro */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-
-                {/* Nombre del stage */}
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="absolute bottom-0 left-0 right-0 p-12"
-                >
-                  <h2 className="text-white text-7xl font-black mb-4 drop-shadow-2xl text-center">
-                    {bannedStage.name}
-                  </h2>
-                </motion.div>
-
-                {/* X gigante baneado */}
-                <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ 
-                    scale: 1, 
-                    rotate: 0,
-                  }}
-                  transition={{ 
-                    type: 'spring', 
-                    stiffness: 200, 
-                    damping: 15,
-                    delay: 0.3 
-                  }}
-                  className="absolute inset-0 flex flex-col items-center justify-center"
-                >
-                  {/* X Roja */}
-                  <motion.div
-                    animate={{ 
-                      rotate: [0, 5, -5, 0],
-                      scale: [1, 1.05, 1]
-                    }}
-                    transition={{ 
-                      duration: 0.5, 
-                      repeat: Infinity,
-                      repeatDelay: 0.5
-                    }}
-                    className="text-red-500 text-[20rem] font-black drop-shadow-2xl leading-none"
-                    style={{ textShadow: '0 0 60px rgba(239, 68, 68, 0.8)' }}
-                  >
-                    ✖
-                  </motion.div>
-                  
-                  {/* Texto BANEADO */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-red-600 px-12 py-6 rounded-2xl border-4 border-red-400 shadow-2xl"
-                  >
-                    <p className="text-white text-6xl font-black drop-shadow-xl">
-                      BANEADO
-                    </p>
-                  </motion.div>
-                </motion.div>
+                ✖
               </motion.div>
-            </motion.div>
+              
+              {/* Texto BANEADO y nombre */}
+              <motion.div
+                initial={{ x: 30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+              >
+                <p className="text-red-500 text-5xl font-black drop-shadow-xl mb-2"
+                   style={{ 
+                     fontFamily: 'Anton',
+                     textShadow: '3px 3px 0px rgba(0, 0, 0, 0.8), 0 0 20px rgba(239, 68, 68, 0.6)'
+                   }}
+                >
+                  BANEADO
+                </p>
+                <p className="text-white text-3xl font-bold drop-shadow-lg">
+                  {bannedStage.name}
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Animación de Stage Seleccionado en el Footer */}
+      <AnimatePresence>
+        {showSelectAnimation && selectedStage && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
+            className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
+            style={{ height: '150px' }}
+          >
+            {/* Imagen del stage de fondo */}
+            <div className="absolute inset-0">
+              <img
+                src={selectedStage.image}
+                alt={selectedStage.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="hidden absolute inset-0 bg-gradient-to-br from-yellow-500 to-yellow-600 items-center justify-center">
+                <span className="text-white text-6xl">🎮</span>
+              </div>
+            </div>
+
+            {/* Overlay oscuro con tinte dorado */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-yellow-900/40 to-black/80" />
+
+            {/* Contenido centrado */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Check Dorado */}
+              <motion.div
+                initial={{ scale: 0, rotate: 180 }}
+                animate={{ 
+                  scale: 1, 
+                  rotate: 0,
+                }}
+                transition={{ 
+                  type: 'spring', 
+                  stiffness: 250, 
+                  damping: 15,
+                  delay: 0.2 
+                }}
+                className="text-yellow-400 text-8xl font-black drop-shadow-2xl mr-6"
+                style={{ textShadow: '0 0 40px rgba(250, 204, 21, 0.8)' }}
+              >
+                ✓
+              </motion.div>
+              
+              {/* Texto SELECCIONADO y nombre */}
+              <motion.div
+                initial={{ x: 30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+              >
+                <p className="text-yellow-400 text-5xl font-black drop-shadow-xl mb-2"
+                   style={{ 
+                     fontFamily: 'Anton',
+                     textShadow: '3px 3px 0px rgba(0, 0, 0, 0.8), 0 0 20px rgba(250, 204, 21, 0.6)'
+                   }}
+                >
+                  SELECCIONADO
+                </p>
+                <p className="text-white text-3xl font-bold drop-shadow-lg">
+                  {selectedStage.name}
+                </p>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
