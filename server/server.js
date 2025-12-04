@@ -158,16 +158,16 @@ io.on('connection', (socket) => {
       // Configurar stages disponibles según el game
       if (session.currentGame === 1) {
         // Game 1: 5 stages
-        session.availableStages = ['battlefield', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'town-and-city'];
+        session.availableStages = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
         // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
         session.totalBansNeeded = 3;
         session.bansRemaining = 1; // Ganador RPS banea 1 primero
       } else {
         // Game 2+: 8 stages
         session.availableStages = [
-          'battlefield', 'small-battlefield', 'pokemon-stadium-2', 
-          'smashville', 'town-and-city', 'hollow-bastion', 
-          'final-destination', 'kalos'
+          'small-battlefield', 'town-and-city', 'pokemon-stadium-2', 
+          'hollow-bastion', 'battlefield', 'final-destination', 
+          'kalos', 'smashville'
         ];
         
         // Aplicar DSR: Bloquear stages donde el ganador del game anterior ya ganó
@@ -282,9 +282,9 @@ io.on('connection', (socket) => {
             } else {
               // Game 2+: 8 stages
               updatedSession.availableStages = [
-                'battlefield', 'small-battlefield', 'pokemon-stadium-2', 
-                'smashville', 'town-and-city', 'hollow-bastion', 
-                'final-destination', 'kalos'
+                'small-battlefield', 'town-and-city', 'pokemon-stadium-2', 
+                'hollow-bastion', 'battlefield', 'final-destination', 
+                'kalos', 'smashville'
               ];
               
               // Aplicar DSR: Bloquear stages donde el ganador del game anterior ya ganó

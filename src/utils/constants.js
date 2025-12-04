@@ -9,14 +9,14 @@ export const STAGES_GAME1 = [
 ];
 
 export const STAGES_GAME2_PLUS = [
-  { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
   { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
-  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
-  { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
   { id: 'town-and-city', name: 'Town and City', image: '/images/stages/Town and City.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
   { id: 'hollow-bastion', name: 'Hollow Bastion', image: '/images/stages/Hollow Bastion.png' },
+  { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
   { id: 'final-destination', name: 'Final Destination', image: '/images/stages/Final Destination.png' },
   { id: 'kalos', name: 'Kalos', image: '/images/stages/Kalos.png' },
+  { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
 ];
 
 // Lista completa de personajes de Smash Ultimate (basada en los archivos disponibles)
