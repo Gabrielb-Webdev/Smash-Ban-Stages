@@ -322,7 +322,7 @@ export default function StreamOverlay({ sessionId }) {
 
         {/* Stages - Aparecen después del texto Stage Bans */}
         {session.player1.character && session.player2.character && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-wrap justify-center gap-6 z-10 pointer-events-none" style={{ maxWidth: '95%' }}>
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center gap-4 z-10 pointer-events-none px-44">
             {(session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
