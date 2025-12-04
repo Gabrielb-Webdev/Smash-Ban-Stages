@@ -1,12 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData } from '../utils/constants';
+import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
+  const [showRepeatModal, setShowRepeatModal] = useState({ player1: false, player2: false });
+  const [previousCharacters, setPreviousCharacters] = useState({ player1: null, player2: null });
+  const [hasAskedRepeat, setHasAskedRepeat] = useState({ player1: false, player2: false });
+
+  // Detectar cuando comienza selección de personaje en game 2+
+  useEffect(() => {
+    if (!session) return;
+
+    // Guardar personajes del game anterior
+    if (session.phase === 'PLAYING' && session.player1.character && session.player2.character) {
+      setPreviousCharacters({
+        player1: session.player1.character,
+        player2: session.player2.character
+      });
+    }
+
+    // Mostrar modal cuando sea game 2+ y fase de selección de personaje
+    if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
+      // Mostrar modal para player1 si es su turno y aún no se le ha preguntado y no ha seleccionado
+      if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && previousCharacters.player1) {
+        setShowRepeatModal(prev => ({ ...prev, player1: true }));
+        setHasAskedRepeat(prev => ({ ...prev, player1: true }));
+      }
+      
+      // Mostrar modal para player2 si es su turno y aún no se le ha preguntado y no ha seleccionado
+      if (session.currentTurn === 'player2' && !hasAskedRepeat.player2 && !session.player2.character && previousCharacters.player2) {
+        setShowRepeatModal(prev => ({ ...prev, player2: true }));
+        setHasAskedRepeat(prev => ({ ...prev, player2: true }));
+      }
+    }
+
+    // Reset cuando comienza nuevo game
+    if (session.phase === 'RPS') {
+      setHasAskedRepeat({ player1: false, player2: false });
+    }
+  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters]);
+
+  const handleRepeatCharacter = (player, repeat) => {
+    setShowRepeatModal(prev => ({ ...prev, [player]: false }));
+    
+    if (repeat && previousCharacters[player]) {
+      // Seleccionar automáticamente el personaje anterior
+      selectCharacter(sessionId, previousCharacters[player], player);
+    }
+    // Si no repite, simplemente cierra el modal y permite selección manual
+  };
 
   // Guard para evitar renders mientras sessionId no está disponible
   if (!sessionId) {
@@ -769,6 +815,106 @@ export default function TabletControl({ sessionId }) {
               <p className="text-white/90 text-base">
                 ✨ El administrador configurará la próxima serie
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Repetir Personaje - Player 1 */}
+        {showRepeatModal.player1 && previousCharacters.player1 && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-smash-red/90 to-red-700/90 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full animate-scale-in">
+              <div className="text-center mb-6">
+                <div className="text-7xl mb-4">🔄</div>
+                <h3 className="text-3xl font-bold text-white mb-4"
+                    style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0, 0, 0, 0.8)' }}>
+                  {session.player1.name}
+                </h3>
+                <p className="text-white text-xl mb-4">
+                  ¿Quieres repetir tu personaje anterior?
+                </p>
+                <div className="bg-black/40 rounded-xl p-6 border-2 border-white/30">
+                  <img 
+                    src={getCharacterData(previousCharacters.player1)?.image} 
+                    alt={getCharacterData(previousCharacters.player1)?.name}
+                    className="w-32 h-32 mx-auto mb-3 rounded-full border-4 border-white shadow-2xl"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="text-6xl mb-3 hidden">🎮</div>
+                  <p className="text-white text-2xl font-bold"
+                     style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                    {getCharacterData(previousCharacters.player1)?.name}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleRepeatCharacter('player1', false)}
+                  className="py-5 bg-gray-700 hover:bg-gray-800 text-white font-bold text-xl rounded-xl transition-all active:scale-95 border-2 border-white/30"
+                  style={{ fontFamily: 'Anton' }}
+                >
+                  ❌ NO
+                </button>
+                <button
+                  onClick={() => handleRepeatCharacter('player1', true)}
+                  className="py-5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-xl rounded-xl transition-all active:scale-95 border-2 border-white"
+                  style={{ fontFamily: 'Anton' }}
+                >
+                  ✓ SÍ
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Repetir Personaje - Player 2 */}
+        {showRepeatModal.player2 && previousCharacters.player2 && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-smash-blue/90 to-blue-700/90 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full animate-scale-in">
+              <div className="text-center mb-6">
+                <div className="text-7xl mb-4">🔄</div>
+                <h3 className="text-3xl font-bold text-white mb-4"
+                    style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0, 0, 0, 0.8)' }}>
+                  {session.player2.name}
+                </h3>
+                <p className="text-white text-xl mb-4">
+                  ¿Quieres repetir tu personaje anterior?
+                </p>
+                <div className="bg-black/40 rounded-xl p-6 border-2 border-white/30">
+                  <img 
+                    src={getCharacterData(previousCharacters.player2)?.image} 
+                    alt={getCharacterData(previousCharacters.player2)?.name}
+                    className="w-32 h-32 mx-auto mb-3 rounded-full border-4 border-white shadow-2xl"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="text-6xl mb-3 hidden">🎮</div>
+                  <p className="text-white text-2xl font-bold"
+                     style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                    {getCharacterData(previousCharacters.player2)?.name}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleRepeatCharacter('player2', false)}
+                  className="py-5 bg-gray-700 hover:bg-gray-800 text-white font-bold text-xl rounded-xl transition-all active:scale-95 border-2 border-white/30"
+                  style={{ fontFamily: 'Anton' }}
+                >
+                  ❌ NO
+                </button>
+                <button
+                  onClick={() => handleRepeatCharacter('player2', true)}
+                  className="py-5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-xl rounded-xl transition-all active:scale-95 border-2 border-white"
+                  style={{ fontFamily: 'Anton' }}
+                >
+                  ✓ SÍ
+                </button>
+              </div>
             </div>
           </div>
         )}
