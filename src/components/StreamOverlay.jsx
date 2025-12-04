@@ -65,6 +65,7 @@ export default function StreamOverlay({ sessionId }) {
         console.log('🚫 Stage baneado:', stageData.name);
         setBannedStage(stageData);
         setShowBanAnimation(true);
+        setShowBanOnCard(false); // Reset para nueva animación
         setPreviousBannedCount(session.bannedStages.length);
       }
     }
@@ -72,6 +73,7 @@ export default function StreamOverlay({ sessionId }) {
     // Reset counter cuando comienza nuevo game
     if (session.bannedStages && session.bannedStages.length === 0 && previousBannedCount > 0) {
       setPreviousBannedCount(0);
+      setShowBanOnCard(false);
     }
   }, [session?.bannedStages, previousBannedCount]);
 
@@ -102,6 +104,7 @@ export default function StreamOverlay({ sessionId }) {
         console.log('✅ Stage seleccionado:', stageData.name);
         setSelectedStage(stageData);
         setShowSelectAnimation(true);
+        setShowSelectOnCard(false); // Reset para nueva animación
         setPreviousSelectedStage(session.selectedStage);
       }
     }
@@ -109,6 +112,7 @@ export default function StreamOverlay({ sessionId }) {
     // Reset cuando comienza nuevo game
     if (!session.selectedStage && previousSelectedStage) {
       setPreviousSelectedStage(null);
+      setShowSelectOnCard(false);
     }
   }, [session?.selectedStage, previousSelectedStage]);
 
@@ -322,8 +326,10 @@ export default function StreamOverlay({ sessionId }) {
             {STAGES_GAME1.map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
-              const showBanOverlay = isBanned && (showBanOnCard || bannedStage?.id !== stage.id);
-              const showSelectOverlay = isSelected && (showSelectOnCard || selectedStage?.id !== stage.id);
+              // Solo mostrar overlay si showBanOnCard está activado y es el stage actual baneado, o si es un baneo anterior
+              const showBanOverlay = isBanned && (bannedStage?.id === stage.id ? showBanOnCard : true);
+              // Solo mostrar overlay si showSelectOnCard está activado y es el stage actual seleccionado
+              const showSelectOverlay = isSelected && (selectedStage?.id === stage.id ? showSelectOnCard : true);
               
               return (
                 <motion.div
@@ -348,7 +354,7 @@ export default function StreamOverlay({ sessionId }) {
                     src={stage.image}
                     alt={stage.name}
                     className={`w-44 h-32 object-cover rounded-lg shadow-2xl ${
-                      isSelected && showSelectOverlay ? 'border-4 border-yellow-300' : 'border-3 border-white'
+                      isSelected && showSelectOverlay ? 'border-4 border-green-400' : 'border-3 border-white'
                     }`}
                     style={{ 
                       objectFit: 'cover',
@@ -372,7 +378,7 @@ export default function StreamOverlay({ sessionId }) {
                     </motion.div>
                   )}
                   
-                  {/* Check dorado para seleccionado - Solo después de la animación del footer */}
+                  {/* Check verde para seleccionado - Solo después de la animación del footer */}
                   {showSelectOverlay && !isBanned && (
                     <motion.div
                       initial={{ scale: 0, rotate: 180 }}
@@ -380,11 +386,11 @@ export default function StreamOverlay({ sessionId }) {
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                       className="absolute inset-0 flex items-center justify-center rounded-lg"
                       style={{ 
-                        background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.3) 0%, rgba(250, 204, 21, 0.1) 100%)'
+                        background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.1) 100%)'
                       }}
                     >
-                      <span className="text-yellow-300 text-6xl font-black drop-shadow-2xl"
-                            style={{ textShadow: '0 0 30px rgba(250, 204, 21, 1), 0 0 60px rgba(250, 204, 21, 0.5)' }}>
+                      <span className="text-green-400 text-6xl font-black drop-shadow-2xl"
+                            style={{ textShadow: '0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.5)' }}>
                         ✓
                       </span>
                     </motion.div>
@@ -501,15 +507,15 @@ export default function StreamOverlay({ sessionId }) {
             {/* Overlay oscuro */}
             <div className="absolute inset-0 bg-black/75" />
 
-            {/* Líneas decorativas amarillas */}
+            {/* Líneas decorativas verdes */}
             <div className="absolute inset-0">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent"></div>
             </div>
 
             {/* Contenido centrado */}
             <div className="absolute inset-0 flex items-center justify-center">
-              {/* Check Dorado */}
+              {/* Check Verde */}
               <motion.div
                 initial={{ scale: 0, rotate: 180 }}
                 animate={{ 
@@ -522,8 +528,8 @@ export default function StreamOverlay({ sessionId }) {
                   damping: 15,
                   delay: 0.2 
                 }}
-                className="text-yellow-400 text-8xl font-black drop-shadow-2xl mr-6"
-                style={{ textShadow: '0 0 40px rgba(250, 204, 21, 1), 0 0 80px rgba(250, 204, 21, 0.5)' }}
+                className="text-green-500 text-8xl font-black drop-shadow-2xl mr-6"
+                style={{ textShadow: '0 0 40px rgba(34, 197, 94, 1), 0 0 80px rgba(34, 197, 94, 0.5)' }}
               >
                 ✓
               </motion.div>
@@ -535,10 +541,10 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ delay: 0.4 }}
                 className="text-center"
               >
-                <p className="text-yellow-300 text-5xl font-black drop-shadow-xl mb-2 uppercase"
+                <p className="text-green-400 text-5xl font-black drop-shadow-xl mb-2 uppercase"
                    style={{ 
                      fontFamily: 'Anton',
-                     textShadow: '4px 4px 0px rgba(0, 0, 0, 1), 0 0 30px rgba(250, 204, 21, 0.8)',
+                     textShadow: '4px 4px 0px rgba(0, 0, 0, 1), 0 0 30px rgba(34, 197, 94, 0.8)',
                      letterSpacing: '0.1em'
                    }}
                 >
