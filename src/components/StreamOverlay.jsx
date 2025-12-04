@@ -487,8 +487,14 @@ export default function StreamOverlay({ sessionId }) {
               </div>
             </div>
 
-            {/* Overlay oscuro con tinte dorado */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-yellow-900/40 to-black/80" />
+            {/* Overlay oscuro */}
+            <div className="absolute inset-0 bg-black/75" />
+
+            {/* Líneas decorativas amarillas */}
+            <div className="absolute inset-0">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
+            </div>
 
             {/* Contenido centrado */}
             <div className="absolute inset-0 flex items-center justify-center">
@@ -506,7 +512,7 @@ export default function StreamOverlay({ sessionId }) {
                   delay: 0.2 
                 }}
                 className="text-yellow-400 text-8xl font-black drop-shadow-2xl mr-6"
-                style={{ textShadow: '0 0 40px rgba(250, 204, 21, 0.8)' }}
+                style={{ textShadow: '0 0 40px rgba(250, 204, 21, 1), 0 0 80px rgba(250, 204, 21, 0.5)' }}
               >
                 ✓
               </motion.div>
@@ -518,15 +524,17 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ delay: 0.4 }}
                 className="text-center"
               >
-                <p className="text-yellow-400 text-5xl font-black drop-shadow-xl mb-2"
+                <p className="text-yellow-300 text-5xl font-black drop-shadow-xl mb-2 uppercase"
                    style={{ 
                      fontFamily: 'Anton',
-                     textShadow: '3px 3px 0px rgba(0, 0, 0, 0.8), 0 0 20px rgba(250, 204, 21, 0.6)'
+                     textShadow: '4px 4px 0px rgba(0, 0, 0, 1), 0 0 30px rgba(250, 204, 21, 0.8)',
+                     letterSpacing: '0.1em'
                    }}
                 >
                   SELECCIONADO
                 </p>
-                <p className="text-white text-3xl font-bold drop-shadow-lg">
+                <p className="text-white text-3xl font-bold drop-shadow-lg"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9)' }}>
                   {selectedStage.name}
                 </p>
               </motion.div>
