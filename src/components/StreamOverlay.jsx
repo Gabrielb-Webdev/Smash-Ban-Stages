@@ -206,46 +206,6 @@ export default function StreamOverlay({ sessionId }) {
               ></motion.div>
             </motion.div>
 
-            {/* Texto "Stage Bans" en el centro */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-              <AnimatePresence>
-                <motion.h2 
-                  initial={{ scale: 0, opacity: 0, y: 50 }}
-                  animate={{ 
-                    scale: [0, 1.3, 1],
-                    opacity: [0, 1, 1, 1, 0],
-                    y: [50, -10, 0, 0, -30]
-                  }}
-                  transition={{ 
-                    duration: 2.5,
-                    times: [0, 0.3, 0.5, 0.8, 1],
-                    ease: "easeInOut"
-                  }}
-                  className="text-black drop-shadow-2xl whitespace-nowrap"
-                  style={{ 
-                    fontFamily: 'Anton',
-                    fontSize: '7rem',
-                    textShadow: '4px 4px 0px rgba(255, 255, 255, 0.8), -2px -2px 0px rgba(255, 255, 255, 0.8), 2px -2px 0px rgba(255, 255, 255, 0.8), -2px 2px 0px rgba(255, 255, 255, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5)',
-                    letterSpacing: '0.05em'
-                  }}
-                  animate={{
-                    textShadow: [
-                      '4px 4px 0px rgba(255, 255, 255, 0.8), -2px -2px 0px rgba(255, 255, 255, 0.8), 2px -2px 0px rgba(255, 255, 255, 0.8), -2px 2px 0px rgba(255, 255, 255, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5)',
-                      '6px 6px 0px rgba(255, 255, 255, 1), -3px -3px 0px rgba(255, 255, 255, 1), 3px -3px 0px rgba(255, 255, 255, 1), -3px 3px 0px rgba(255, 255, 255, 1), 0 12px 30px rgba(0, 0, 0, 0.8)',
-                      '4px 4px 0px rgba(255, 255, 255, 0.8), -2px -2px 0px rgba(255, 255, 255, 0.8), 2px -2px 0px rgba(255, 255, 255, 0.8), -2px 2px 0px rgba(255, 255, 255, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5)'
-                    ]
-                  }}
-                  transition={{ 
-                    duration: 0.8,
-                    repeat: 2,
-                    ease: "easeInOut"
-                  }}
-                >
-                  Stage Bans
-                </motion.h2>
-              </AnimatePresence>
-            </div>
-
             {/* Personaje Jugador 2 - Derecha girando múltiples vueltas */}
             <motion.div
               initial={{ x: 400, opacity: 0, scale: 0, rotate: 720 }}
@@ -278,6 +238,38 @@ export default function StreamOverlay({ sessionId }) {
               />
             </motion.div>
           </>
+        )}
+
+        {/* Texto "Stage Bans" en el centro - Aparece después de los personajes */}
+        {session.player1.character && session.player2.character && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
+            <AnimatePresence>
+              <motion.h2 
+                key="stage-bans-text"
+                initial={{ scale: 0, opacity: 0, y: 50 }}
+                animate={{ 
+                  scale: [0, 1.3, 1, 1, 0.8],
+                  opacity: [0, 1, 1, 1, 0],
+                  y: [50, -10, 0, 0, -30]
+                }}
+                transition={{ 
+                  duration: 2.5,
+                  times: [0, 0.3, 0.5, 0.8, 1],
+                  ease: "easeInOut",
+                  delay: 0.8
+                }}
+                className="text-black drop-shadow-2xl whitespace-nowrap"
+                style={{ 
+                  fontFamily: 'Anton',
+                  fontSize: '7rem',
+                  textShadow: '4px 4px 0px rgba(255, 255, 255, 0.8), -2px -2px 0px rgba(255, 255, 255, 0.8), 2px -2px 0px rgba(255, 255, 255, 0.8), -2px 2px 0px rgba(255, 255, 255, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5)',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Stage Bans
+              </motion.h2>
+            </AnimatePresence>
+          </div>
         )}
       </footer>
 
