@@ -280,24 +280,23 @@ io.on('connection', (socket) => {
               updatedSession.bansRemaining = 1; // Ganador RPS banea 1 primero
               updatedSession.currentTurn = updatedSession.rpsWinner;
             } else {
-              // Game 2+: 8 stages
+              // Game 2+: 8 stages (DSR desactivado - todos los stages disponibles)
               updatedSession.availableStages = [
                 'small-battlefield', 'town-and-city', 'pokemon-stadium-2', 
                 'hollow-bastion', 'battlefield', 'final-destination', 
                 'kalos', 'smashville'
               ];
               
-              console.log('🎮 Game 2+ - Stages iniciales:', updatedSession.availableStages.length, updatedSession.availableStages);
+              console.log('🎮 Game 2+ - Stages disponibles:', updatedSession.availableStages.length, updatedSession.availableStages);
               
-              // Aplicar DSR: Bloquear stages donde el ganador del game anterior ya ganó
-              if (updatedSession.lastGameWinner) {
-                const winnerStages = updatedSession[updatedSession.lastGameWinner].wonStages;
-                console.log('🚫 DSR - Stages ganados por', updatedSession.lastGameWinner, ':', winnerStages);
-                updatedSession.availableStages = updatedSession.availableStages.filter(
-                  stage => !winnerStages.includes(stage)
-                );
-                console.log('✅ DSR - Stages disponibles después de filtrar:', updatedSession.availableStages.length, updatedSession.availableStages);
-              }
+              // DSR desactivado - todos los stages están disponibles
+              // Si quieres reactivar DSR, descomenta las siguientes líneas:
+              // if (updatedSession.lastGameWinner) {
+              //   const winnerStages = updatedSession[updatedSession.lastGameWinner].wonStages;
+              //   updatedSession.availableStages = updatedSession.availableStages.filter(
+              //     stage => !winnerStages.includes(stage)
+              //   );
+              // }
               
               // El ganador del game anterior banea 3
               updatedSession.currentTurn = updatedSession.lastGameWinner;
