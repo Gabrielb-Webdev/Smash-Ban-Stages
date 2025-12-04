@@ -271,6 +271,42 @@ export default function StreamOverlay({ sessionId }) {
             </AnimatePresence>
           </div>
         )}
+
+        {/* Stages del Game 1 - Aparecen después del texto Stage Bans */}
+        {session.player1.character && session.player2.character && session.currentGame === 1 && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-4 z-10 pointer-events-none">
+            {STAGES_GAME1.map((stage, index) => (
+              <motion.div
+                key={stage.id}
+                initial={{ scale: 0, opacity: 0, y: 100, rotate: -180 }}
+                animate={{ 
+                  scale: 1,
+                  opacity: 1,
+                  y: 0,
+                  rotate: 0
+                }}
+                transition={{ 
+                  duration: 0.6,
+                  delay: 3.5 + (index * 0.15),
+                  type: 'spring',
+                  stiffness: 250,
+                  damping: 18
+                }}
+                className="relative"
+              >
+                <img 
+                  src={stage.image}
+                  alt={stage.name}
+                  className="w-24 h-16 object-cover rounded-lg border-3 border-white shadow-2xl"
+                  style={{ 
+                    objectFit: 'cover',
+                    borderWidth: '3px'
+                  }}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </footer>
 
       {/* Animación de Stage Baneado */}
