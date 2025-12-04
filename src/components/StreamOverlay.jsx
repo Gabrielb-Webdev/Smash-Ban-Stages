@@ -322,7 +322,7 @@ export default function StreamOverlay({ sessionId }) {
 
         {/* Stages - Aparecen después del texto Stage Bans */}
         {session.player1.character && session.player2.character && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-12 z-10 pointer-events-none">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-wrap justify-center gap-6 z-10 pointer-events-none" style={{ maxWidth: '95%' }}>
             {(session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
@@ -343,7 +343,7 @@ export default function StreamOverlay({ sessionId }) {
                   }}
                   transition={{ 
                     duration: 0.6,
-                    delay: 3.5 + (index * 0.15),
+                    delay: 3.5 + (index * 0.1),
                     type: 'spring',
                     stiffness: 250,
                     damping: 18
@@ -353,7 +353,7 @@ export default function StreamOverlay({ sessionId }) {
                   <img 
                     src={stage.image}
                     alt={stage.name}
-                    className={`w-44 h-32 object-cover rounded-lg shadow-2xl ${
+                    className={`w-32 h-20 object-cover rounded-lg shadow-2xl ${
                       isSelected && showSelectOverlay ? 'border-4 border-green-400' : 'border-3 border-white'
                     }`}
                     style={{ 
@@ -371,7 +371,7 @@ export default function StreamOverlay({ sessionId }) {
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                       className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg"
                     >
-                      <span className="text-red-500 text-6xl font-black drop-shadow-2xl"
+                      <span className="text-red-500 text-5xl font-black drop-shadow-2xl"
                             style={{ textShadow: '0 0 20px rgba(239, 68, 68, 0.8)' }}>
                         ✖
                       </span>
@@ -389,7 +389,7 @@ export default function StreamOverlay({ sessionId }) {
                         background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.1) 100%)'
                       }}
                     >
-                      <span className="text-green-400 text-6xl font-black drop-shadow-2xl"
+                      <span className="text-green-400 text-5xl font-black drop-shadow-2xl"
                             style={{ textShadow: '0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.5)' }}>
                         ✓
                       </span>
