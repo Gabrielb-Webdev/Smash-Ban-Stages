@@ -151,20 +151,38 @@ export default function TabletControl({ sessionId }) {
             <div className="flex items-center gap-4">
               <div className="bg-smash-red/30 rounded-lg px-3 py-2">
                 <p className="text-white/70 text-xs">Jugador 1</p>
-                <p className="text-white font-bold text-lg">{session.player1.name}</p>
-                <p className="text-smash-yellow text-xl font-bold">{session.player1.score}</p>
+                <p className="text-white font-bold text-lg" 
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                  {session.player1.name}
+                </p>
+                <p className="text-smash-yellow text-xl font-bold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                  {session.player1.score}
+                </p>
               </div>
-              <div className="text-white text-2xl font-bold">VS</div>
+              <div className="text-white text-2xl font-bold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                VS
+              </div>
               <div className="bg-smash-blue/30 rounded-lg px-3 py-2">
                 <p className="text-white/70 text-xs">Jugador 2</p>
-                <p className="text-white font-bold text-lg">{session.player2.name}</p>
-                <p className="text-smash-yellow text-xl font-bold">{session.player2.score}</p>
+                <p className="text-white font-bold text-lg"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                  {session.player2.name}
+                </p>
+                <p className="text-smash-yellow text-xl font-bold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                  {session.player2.score}
+                </p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="text-center bg-white/10 rounded-lg px-4 py-2">
                 <p className="text-white/70 text-xs">Game</p>
-                <p className="text-smash-yellow text-xl font-bold">{session.currentGame}</p>
+                <p className="text-smash-yellow text-xl font-bold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                  {session.currentGame}
+                </p>
               </div>
               <div className="text-center bg-white/10 rounded-lg px-4 py-2">
                 <p className="text-white/70 text-xs">Formato</p>
@@ -219,12 +237,6 @@ export default function TabletControl({ sessionId }) {
                 </div>
               </button>
             </div>
-
-            <div className="text-center mt-6 relative z-10">
-              <p className="text-white/60 text-sm italic">
-                El ganador tendrá ventaja en el baneo de stages
-              </p>
-            </div>
           </div>
         )}
 
@@ -232,8 +244,12 @@ export default function TabletControl({ sessionId }) {
         {session.phase === 'STAGE_BAN' && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
             <div className="text-center mb-3 flex-shrink-0">
-              <h3 className="text-2xl font-bold text-white mb-1">❌ Banear Stage</h3>
-              <p className="text-smash-yellow text-lg font-semibold">
+              <h3 className="text-2xl font-bold text-white mb-1"
+                  style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+                ❌ Banear Stage
+              </h3>
+              <p className="text-white text-lg font-semibold"
+                 style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
                 Turno: {session[session.currentTurn]?.name} | Baneos restantes: {session.bansRemaining}
               </p>
             </div>
@@ -466,9 +482,13 @@ export default function TabletControl({ sessionId }) {
         {/* Stage Select Phase */}
         {session.phase === 'STAGE_SELECT' && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
-            <div className="text-center mb-3 flex-shrink-0">
-              <h3 className="text-2xl font-bold text-white mb-1">🎯 Seleccionar Stage</h3>
-              <p className="text-smash-yellow text-lg font-semibold">
+            <div className="text-center mb-2 flex-shrink-0">
+              <h3 className="text-2xl font-bold text-white mb-1"
+                  style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+                🎯 Seleccionar Stage
+              </h3>
+              <p className="text-white text-lg font-semibold"
+                 style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
                 Turno: {session[session.currentTurn]?.name}
               </p>
             </div>
@@ -644,8 +664,12 @@ export default function TabletControl({ sessionId }) {
             <div className="flex-shrink-0 mb-3">
               <div className="flex justify-between items-center mb-2">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
-                  <p className="text-smash-yellow text-base font-semibold">
+                  <h3 className="text-2xl font-bold text-white"
+                      style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+                    👤 Seleccionar Personaje
+                  </h3>
+                  <p className="text-white text-base font-semibold"
+                     style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
                     Turno: {session[session.currentTurn]?.name} | Stage: {getStageData(session.selectedStage)?.name}
                   </p>
                 </div>
