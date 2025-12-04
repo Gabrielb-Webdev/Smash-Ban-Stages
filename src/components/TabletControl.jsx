@@ -10,6 +10,78 @@ export default function TabletControl({ sessionId }) {
   const [showRepeatModal, setShowRepeatModal] = useState({ player1: false, player2: false });
   const [previousCharacters, setPreviousCharacters] = useState({ player1: null, player2: null });
   const [hasAskedRepeat, setHasAskedRepeat] = useState({ player1: false, player2: false });
+  const [infoModal, setInfoModal] = useState({ show: false, message: '' });
+  const [lastPhase, setLastPhase] = useState(null);
+  const [lastTurn, setLastTurn] = useState(null);
+  const [lastBansRemaining, setLastBansRemaining] = useState(null);
+
+  // Función para mostrar modal informativo
+  const showInfoModal = (message) => {
+    setInfoModal({ show: true, message });
+    setTimeout(() => {
+      setInfoModal({ show: false, message: '' });
+    }, 2000);
+  };
+
+  // Detectar cambios de fase y turno para mostrar modales informativos
+  useEffect(() => {
+    if (!session) return;
+
+    const currentPhase = session.phase;
+    const currentTurn = session.currentTurn;
+    const currentBansRemaining = session.bansRemaining;
+    const currentGame = session.currentGame;
+    const player1Name = session.player1.name;
+    const player2Name = session.player2.name;
+
+    // Detectar cambio de turno en CHARACTER_SELECT
+    if (currentPhase === 'CHARACTER_SELECT' && lastPhase === 'CHARACTER_SELECT' && currentTurn !== lastTurn && currentTurn) {
+      const playerName = session[currentTurn].name;
+      showInfoModal(`Es el turno de ${playerName}`);
+    }
+
+    // Detectar inicio de STAGE_BAN
+    if (currentPhase === 'STAGE_BAN' && lastPhase !== 'STAGE_BAN') {
+      if (currentGame === 1) {
+        // Game 1: Primera vez en STAGE_BAN
+        if (currentTurn === 'player1') {
+          showInfoModal(`${player1Name} banea 1 stage`);
+        } else if (currentTurn === 'player2') {
+          showInfoModal(`${player2Name} banea 1 stage`);
+        }
+      } else {
+        // Game 2+: El ganador banea 3 stages
+        if (currentTurn) {
+          const playerName = session[currentTurn].name;
+          showInfoModal(`${playerName} (ganador del Game ${currentGame - 1}) banea 3 stages`);
+        }
+      }
+    }
+
+    // Detectar cambio de turno en STAGE_BAN (cuando pasa de player1 a player2 en Game 1)
+    if (currentPhase === 'STAGE_BAN' && lastPhase === 'STAGE_BAN' && currentTurn !== lastTurn && currentGame === 1) {
+      if (currentTurn === 'player2') {
+        showInfoModal(`${player2Name} banea 2 stages`);
+      }
+    }
+
+    // Detectar cambio de STAGE_BAN a STAGE_SELECT
+    if (currentPhase === 'STAGE_SELECT' && lastPhase === 'STAGE_BAN') {
+      const playerName = session[currentTurn].name;
+      showInfoModal(`${playerName} selecciona stage`);
+    }
+
+    // Detectar cambio de STAGE_SELECT a CHARACTER_SELECT (primer turno)
+    if (currentPhase === 'CHARACTER_SELECT' && lastPhase === 'STAGE_SELECT' && currentTurn) {
+      const playerName = session[currentTurn].name;
+      showInfoModal(`Es el turno de ${playerName}`);
+    }
+
+    // Actualizar los últimos valores
+    setLastPhase(currentPhase);
+    setLastTurn(currentTurn);
+    setLastBansRemaining(currentBansRemaining);
+  }, [session?.phase, session?.currentTurn, session?.bansRemaining, session?.currentGame]);
 
   // Detectar cuando comienza selección de personaje en game 2+
   useEffect(() => {
@@ -914,6 +986,21 @@ export default function TabletControl({ sessionId }) {
                 >
                   ✓ SÍ
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Informativo */}
+        {infoModal.show && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 pointer-events-none">
+            <div className="bg-gradient-to-br from-smash-yellow via-amber-400 to-smash-yellow rounded-3xl p-10 shadow-2xl border-4 border-white max-w-2xl w-full animate-scale-in">
+              <div className="text-center">
+                <div className="text-8xl mb-4">🎮</div>
+                <h3 className="text-5xl font-black text-smash-darker mb-2"
+                    style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0, 0, 0, 0.2)' }}>
+                  {infoModal.message}
+                </h3>
               </div>
             </div>
           </div>
