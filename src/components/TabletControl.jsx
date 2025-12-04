@@ -392,7 +392,7 @@ export default function TabletControl({ sessionId }) {
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
                   <div className="grid grid-cols-6 gap-2">
                     <div className="col-span-1"></div>
-                    {getAvailableStages().slice(6, 8).map((stage) => {
+                    {getAvailableStages().slice(6).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
                         <button
