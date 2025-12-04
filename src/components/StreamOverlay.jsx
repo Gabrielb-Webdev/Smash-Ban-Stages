@@ -14,6 +14,8 @@ export default function StreamOverlay({ sessionId }) {
   const [selectedStage, setSelectedStage] = useState(null);
   const [showSelectAnimation, setShowSelectAnimation] = useState(false);
   const [previousSelectedStage, setPreviousSelectedStage] = useState(null);
+  const [showBanOnCard, setShowBanOnCard] = useState(false);
+  const [showSelectOnCard, setShowSelectOnCard] = useState(false);
 
   // Detectar cuando se define un ganador del RPS
   useEffect(() => {
@@ -73,14 +75,16 @@ export default function StreamOverlay({ sessionId }) {
     }
   }, [session?.bannedStages, previousBannedCount]);
 
-  // Timer para ocultar animación de baneo después de 4 segundos
+  // Timer para ocultar animación de baneo después de 3 segundos y mostrar en card
   useEffect(() => {
     if (showBanAnimation) {
-      console.log('⏰ Mostrando animación de baneo por 4 segundos');
+      console.log('⏰ Mostrando animación de baneo por 3 segundos');
       const timer = setTimeout(() => {
-        console.log('✅ Ocultando animación de baneo');
+        console.log('✅ Ocultando animación de baneo del footer');
         setShowBanAnimation(false);
-      }, 4000);
+        // Mostrar animación en la card después de que termine la del footer
+        setShowBanOnCard(true);
+      }, 3000);
       
       return () => clearTimeout(timer);
     }
