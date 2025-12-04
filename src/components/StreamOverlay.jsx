@@ -207,22 +207,20 @@ export default function StreamOverlay({ sessionId }) {
             </motion.div>
 
             {/* Texto "Stage Bans" en el centro */}
-            <AnimatePresence>
-              <motion.div
-                initial={{ scale: 0, opacity: 0, y: 50 }}
-                animate={{ 
-                  scale: [0, 1.3, 1],
-                  opacity: [0, 1, 1, 1, 0],
-                  y: [50, -10, 0, 0, -30]
-                }}
-                transition={{ 
-                  duration: 2.5,
-                  times: [0, 0.3, 0.5, 0.8, 1],
-                  ease: "easeInOut"
-                }}
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-              >
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+              <AnimatePresence>
                 <motion.h2 
+                  initial={{ scale: 0, opacity: 0, y: 50 }}
+                  animate={{ 
+                    scale: [0, 1.3, 1],
+                    opacity: [0, 1, 1, 1, 0],
+                    y: [50, -10, 0, 0, -30]
+                  }}
+                  transition={{ 
+                    duration: 2.5,
+                    times: [0, 0.3, 0.5, 0.8, 1],
+                    ease: "easeInOut"
+                  }}
                   className="text-black drop-shadow-2xl whitespace-nowrap"
                   style={{ 
                     fontFamily: 'Anton',
@@ -245,8 +243,8 @@ export default function StreamOverlay({ sessionId }) {
                 >
                   Stage Bans
                 </motion.h2>
-              </motion.div>
-            </AnimatePresence>
+              </AnimatePresence>
+            </div>
 
             {/* Personaje Jugador 2 - Derecha girando múltiples vueltas */}
             <motion.div
