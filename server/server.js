@@ -287,12 +287,16 @@ io.on('connection', (socket) => {
                 'kalos', 'smashville'
               ];
               
+              console.log('🎮 Game 2+ - Stages iniciales:', updatedSession.availableStages.length, updatedSession.availableStages);
+              
               // Aplicar DSR: Bloquear stages donde el ganador del game anterior ya ganó
               if (updatedSession.lastGameWinner) {
                 const winnerStages = updatedSession[updatedSession.lastGameWinner].wonStages;
+                console.log('🚫 DSR - Stages ganados por', updatedSession.lastGameWinner, ':', winnerStages);
                 updatedSession.availableStages = updatedSession.availableStages.filter(
                   stage => !winnerStages.includes(stage)
                 );
+                console.log('✅ DSR - Stages disponibles después de filtrar:', updatedSession.availableStages.length, updatedSession.availableStages);
               }
               
               // El ganador del game anterior banea 3
