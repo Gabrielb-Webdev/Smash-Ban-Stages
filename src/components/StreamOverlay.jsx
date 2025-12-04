@@ -297,7 +297,7 @@ export default function StreamOverlay({ sessionId }) {
                 <img 
                   src={stage.image}
                   alt={stage.name}
-                  className="w-24 h-16 object-cover rounded-lg border-3 border-white shadow-2xl"
+                  className="w-40 h-28 object-cover rounded-lg border-3 border-white shadow-2xl"
                   style={{ 
                     objectFit: 'cover',
                     borderWidth: '3px'
