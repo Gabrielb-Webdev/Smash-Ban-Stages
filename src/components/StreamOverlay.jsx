@@ -288,49 +288,49 @@ export default function StreamOverlay({ sessionId }) {
           </>
         )}
 
-        {/* Texto "Stage Bans" en el centro - Aparece después de los personajes */}
+        {/* Texto "Stage Bans" en el centro - Aparece desde abajo del footer */}
         {session.player1.character && session.player2.character && (
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
             <AnimatePresence>
               <motion.h2 
                 key="stage-bans-text"
                 initial={{ 
-                  y: 200,
+                  y: 100,
                   opacity: 0,
-                  scale: 0.5,
-                  rotateX: 90
+                  scale: 0.6,
+                  rotateX: 75
                 }}
                 animate={{ 
-                  y: [200, -50, -40, -50, -300],
+                  y: [100, 20, 0, -10, -80],
                   opacity: [0, 1, 1, 1, 0],
-                  scale: [0.5, 1.1, 1, 1, 0.8],
-                  rotateX: [90, -10, 0, 0, -90]
+                  scale: [0.6, 1.05, 1, 1, 0.85],
+                  rotateX: [75, 5, 0, -5, -75]
                 }}
                 transition={{ 
-                  duration: 3,
-                  times: [0, 0.3, 0.5, 0.75, 1],
+                  duration: 2.8,
+                  times: [0, 0.35, 0.5, 0.75, 1],
                   ease: [0.34, 1.56, 0.64, 1],
                   delay: 0.8
                 }}
                 className="whitespace-nowrap"
                 style={{ 
                   fontFamily: 'Anton',
-                  fontSize: '8rem',
+                  fontSize: '5.5rem',
                   fontWeight: '400',
                   color: '#FFFFFF',
                   textShadow: `
-                    6px 6px 0px #000000,
-                    -3px -3px 0px #000000,
-                    3px -3px 0px #000000,
-                    -3px 3px 0px #000000,
-                    0 0 20px rgba(0, 0, 0, 0.8),
-                    0 0 40px rgba(0, 0, 0, 0.6),
-                    0 10px 30px rgba(0, 0, 0, 0.9)
+                    5px 5px 0px #000000,
+                    -2px -2px 0px #000000,
+                    2px -2px 0px #000000,
+                    -2px 2px 0px #000000,
+                    0 0 15px rgba(0, 0, 0, 0.8),
+                    0 0 30px rgba(0, 0, 0, 0.6),
+                    0 8px 25px rgba(0, 0, 0, 0.9)
                   `,
                   letterSpacing: '0.08em',
                   WebkitTextStroke: '2px #000000',
                   transformStyle: 'preserve-3d',
-                  perspective: '1000px'
+                  perspective: '800px'
                 }}
               >
                 Stage Bans
