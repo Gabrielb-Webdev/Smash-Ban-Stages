@@ -184,7 +184,13 @@ export default function TabletControl({ sessionId }) {
   const handleSelectCharacter = (characterId) => {
     if (session.currentTurn) {
       const character = CHARACTERS.find(c => c.id === characterId);
-      setPendingAction({ type: 'character', characterId, characterName: character.name, player: session.currentTurn });
+      setPendingAction({ 
+        type: 'character', 
+        characterId, 
+        characterName: character.name, 
+        characterImage: character.image,
+        player: session.currentTurn 
+      });
     }
   };
 
@@ -1027,11 +1033,24 @@ export default function TabletControl({ sessionId }) {
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-darker to-smash-purple rounded-2xl p-8 shadow-2xl border-4 border-smash-yellow max-w-md w-full animate-scale-in">
               <div className="text-center mb-6">
-                <div className="text-6xl mb-4">
-                  {pendingAction.type === 'rps' && '✊✋✌️'}
-                  {pendingAction.type === 'ban' && '❌'}
-                  {pendingAction.type === 'select' && '🎯'}
-                  {pendingAction.type === 'character' && '👤'}
+                {/* Mostrar ícono del personaje o emoji genérico */}
+                <div className="mb-4 flex justify-center">
+                  {pendingAction.type === 'character' && pendingAction.characterImage ? (
+                    <div className="w-24 h-24 bg-white/10 rounded-full border-4 border-smash-yellow p-2 flex items-center justify-center">
+                      <img 
+                        src={pendingAction.characterImage} 
+                        alt={pendingAction.characterName}
+                        className="w-full h-full object-contain rounded-full"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-6xl">
+                      {pendingAction.type === 'rps' && '✊✋✌️'}
+                      {pendingAction.type === 'ban' && '❌'}
+                      {pendingAction.type === 'select' && '🎯'}
+                      {pendingAction.type === 'character' && '👤'}
+                    </div>
+                  )}
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">
                   ¿Confirmar selección?
