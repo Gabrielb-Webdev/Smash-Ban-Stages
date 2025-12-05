@@ -234,7 +234,7 @@ export default function TabletControl({ sessionId }) {
   );
 
   return (
-    <div className="h-screen flex items-center justify-center p-3 overflow-hidden"
+    <div className="h-screen flex items-center justify-center p-1 overflow-hidden"
          style={{
            backgroundImage: 'url(/images/paperbg.jpg)',
            backgroundSize: 'cover',
@@ -242,49 +242,49 @@ export default function TabletControl({ sessionId }) {
            backgroundRepeat: 'no-repeat',
            fontFamily: 'Anton, sans-serif'
          }}>
-      <div className="w-full h-full max-w-6xl flex flex-col">
+      <div className="w-full h-full max-w-5xl flex flex-col">
         {/* Header compacto con información de la partida */}
-        <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-3 mb-3 shadow-xl border border-white/20 flex-shrink-0">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-2 mb-2 shadow-xl border border-white/20 flex-shrink-0">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="bg-smash-red/30 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-3">
+              <div className="bg-smash-red/30 rounded-lg px-2 py-1">
                 <p className="text-white/70 text-xs">Jugador 1</p>
-                <p className="text-white font-bold text-lg" 
+                <p className="text-white font-bold text-sm" 
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player1.name}
                 </p>
-                <p className="text-smash-yellow text-xl font-bold"
+                <p className="text-smash-yellow text-lg font-bold"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player1.score}
                 </p>
               </div>
-              <div className="text-white text-2xl font-bold"
+              <div className="text-white text-lg font-bold"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                 VS
               </div>
-              <div className="bg-smash-blue/30 rounded-lg px-3 py-2">
+              <div className="bg-smash-blue/30 rounded-lg px-2 py-1">
                 <p className="text-white/70 text-xs">Jugador 2</p>
-                <p className="text-white font-bold text-lg"
+                <p className="text-white font-bold text-sm"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player2.name}
                 </p>
-                <p className="text-smash-yellow text-xl font-bold"
+                <p className="text-smash-yellow text-lg font-bold"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player2.score}
                 </p>
               </div>
             </div>
-            <div className="flex gap-4">
-              <div className="text-center bg-white/10 rounded-lg px-4 py-2">
+            <div className="flex gap-2">
+              <div className="text-center bg-white/10 rounded-lg px-3 py-1">
                 <p className="text-white/70 text-xs">Game</p>
-                <p className="text-smash-yellow text-xl font-bold"
+                <p className="text-smash-yellow text-lg font-bold"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.currentGame}
                 </p>
               </div>
-              <div className="text-center bg-white/10 rounded-lg px-4 py-2">
+              <div className="text-center bg-white/10 rounded-lg px-3 py-1">
                 <p className="text-white/70 text-xs">Formato</p>
-                <p className="text-smash-yellow text-xl font-bold">{session.format}</p>
+                <p className="text-smash-yellow text-lg font-bold">{session.format}</p>
               </div>
             </div>
           </div>
@@ -292,23 +292,23 @@ export default function TabletControl({ sessionId }) {
 
         {/* RPS Phase */}
         {session.phase === 'RPS' && (
-          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-8 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-4 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
             {/* Decorative background elements */}
             <div className="absolute top-0 left-0 w-full h-full opacity-10">
-              <div className="absolute top-10 left-10 text-9xl">✊</div>
-              <div className="absolute top-10 right-10 text-9xl">✋</div>
-              <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-9xl">✌️</div>
+              <div className="absolute top-5 left-5 text-6xl">✊</div>
+              <div className="absolute top-5 right-5 text-6xl">✋</div>
+              <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 text-6xl">✌️</div>
             </div>
 
             {/* Content */}
-            <div className="text-center mb-8 relative z-10">
-              <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-4">
-                <h3 className="text-8xl font-black animate-pulse">✊ ✋ ✌️</h3>
+            <div className="text-center mb-4 relative z-10">
+              <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-2">
+                <h3 className="text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
               </div>
-              <h3 className="text-4xl font-black text-white mb-3 drop-shadow-lg">
+              <h3 className="text-2xl font-black text-white mb-2 drop-shadow-lg">
                 Piedra, Papel o Tijera
               </h3>
-              <p className="text-xl text-white/80 font-semibold">
+              <p className="text-lg text-white/80 font-semibold">
                 ¿Quién ganó el RPS? 🏆
               </p>
             </div>
@@ -340,13 +340,13 @@ export default function TabletControl({ sessionId }) {
 
         {/* Stage Ban Phase */}
         {session.phase === 'STAGE_BAN' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
-            <div className="text-center mb-3 flex-shrink-0">
-              <h3 className="text-2xl font-bold text-white mb-1"
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+            <div className="text-center mb-2 flex-shrink-0">
+              <h3 className="text-xl font-bold text-white mb-1"
                   style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
                 ❌ Banear Stage
               </h3>
-              <p className="text-white text-lg font-semibold"
+              <p className="text-white text-base font-semibold"
                  style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
                 Turno: {session[session.currentTurn]?.name} | Baneos restantes: {session.bansRemaining}
               </p>
@@ -781,19 +781,19 @@ export default function TabletControl({ sessionId }) {
               />
             </div>
 
-            <div className="grid grid-cols-6 gap-6 flex-1 overflow-y-scroll pr-2">
+            <div className="grid grid-cols-6 gap-3 flex-1 overflow-y-scroll pr-1">
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-white/5 hover:bg-white/20 rounded-xl hover:scale-110 hover:brightness-110 transition-all p-3 flex flex-col items-center justify-center overflow-hidden group active:scale-95 border-2 border-white/20 hover:border-smash-yellow shadow-lg hover:shadow-2xl"
+                  className="aspect-square bg-white/5 hover:bg-white/20 rounded-xl hover:scale-110 hover:brightness-110 transition-all p-1 flex flex-col items-center justify-center overflow-hidden group active:scale-95 border-2 border-white/20 hover:border-smash-yellow shadow-lg hover:shadow-2xl"
                   title={character.name}
                 >
                   <div className="w-full h-full flex items-center justify-center">
                     <img 
                       src={character.image} 
                       alt={character.name}
-                      className="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-lg"
+                      className="w-8 h-8 object-contain group-hover:scale-110 transition-transform drop-shadow-lg"
                       onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                     />
                   </div>
@@ -1031,12 +1031,12 @@ export default function TabletControl({ sessionId }) {
         {/* Modal de Confirmación */}
         {pendingAction && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-smash-darker to-smash-purple rounded-2xl p-8 shadow-2xl border-4 border-smash-yellow max-w-md w-full animate-scale-in">
+            <div className="bg-gradient-to-br from-smash-darker to-smash-purple rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full animate-scale-in">
               <div className="text-center mb-6">
                 {/* Mostrar ícono del personaje o emoji genérico */}
                 <div className="mb-4 flex justify-center">
                   {pendingAction.type === 'character' && pendingAction.characterImage ? (
-                    <div className="w-24 h-24 bg-white/10 rounded-full border-4 border-smash-yellow p-2 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-yellow p-1 flex items-center justify-center">
                       <img 
                         src={pendingAction.characterImage} 
                         alt={pendingAction.characterName}
@@ -1044,7 +1044,7 @@ export default function TabletControl({ sessionId }) {
                       />
                     </div>
                   ) : (
-                    <div className="text-6xl">
+                    <div className="text-4xl">
                       {pendingAction.type === 'rps' && '✊✋✌️'}
                       {pendingAction.type === 'ban' && '❌'}
                       {pendingAction.type === 'select' && '🎯'}
@@ -1052,42 +1052,42 @@ export default function TabletControl({ sessionId }) {
                     </div>
                   )}
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-lg font-bold text-white mb-2">
                   ¿Confirmar selección?
                 </h3>
-                <div className="bg-white/10 rounded-xl p-4 mt-4">
+                <div className="bg-white/10 rounded-xl p-2 mt-2">
                   {pendingAction.type === 'rps' && (
-                    <p className="text-white text-xl">
+                    <p className="text-white text-base">
                       <span className="text-smash-yellow font-bold">{pendingAction.playerName}</span> ganó el RPS
                     </p>
                   )}
                   {pendingAction.type === 'ban' && (
-                    <p className="text-white text-xl">
+                    <p className="text-white text-base">
                       Banear <span className="text-red-400 font-bold">{pendingAction.stageName}</span>
                     </p>
                   )}
                   {pendingAction.type === 'select' && (
-                    <p className="text-white text-xl">
+                    <p className="text-white text-base">
                       Seleccionar <span className="text-green-400 font-bold">{pendingAction.stageName}</span>
                     </p>
                   )}
                   {pendingAction.type === 'character' && (
-                    <p className="text-white text-xl">
+                    <p className="text-white text-base">
                       Seleccionar <span className="text-smash-blue font-bold">{pendingAction.characterName}</span>
                     </p>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={cancelAction}
-                  className="py-4 bg-gray-600 hover:bg-gray-700 text-white font-bold text-lg rounded-xl transition-all active:scale-95"
+                  className="py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold text-sm rounded-lg transition-all active:scale-95"
                 >
                   ❌ Cancelar
                 </button>
                 <button
                   onClick={confirmAction}
-                  className="py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-lg rounded-xl transition-all active:scale-95"
+                  className="py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-sm rounded-lg transition-all active:scale-95"
                 >
                   ✓ Confirmar
                 </button>
