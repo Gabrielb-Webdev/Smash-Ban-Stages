@@ -10,10 +10,8 @@ export default function AdminPanel() {
   const [format, setFormat] = useState('BO3');
   const [currentSessionId] = useState('main-session'); // ID fijo
   const [session, setSession] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editPlayer1, setEditPlayer1] = useState('');
-  const [editPlayer2, setEditPlayer2] = useState('');
-  const [editFormat, setEditFormat] = useState('BO3');
+  const [player1Score, setPlayer1Score] = useState(0);
+  const [player2Score, setPlayer2Score] = useState(0);
 
   useEffect(() => {
     // Conectar al WebSocket cuando se monta el componente
@@ -46,6 +44,9 @@ export default function AdminPanel() {
     adminSocket.on('session-updated', (data) => {
       console.log('Sesión actualizada:', data);
       setSession(data.session);
+      // Actualizar los scores locales cuando la sesión se actualiza
+      setPlayer1Score(data.session.player1.score);
+      setPlayer2Score(data.session.player2.score);
     });
 
     adminSocket.on('series-finished', (data) => {
@@ -60,6 +61,42 @@ export default function AdminPanel() {
     };
   }, []);
 
+  // Calcular game actual basado en los puntos totales
+  const getCurrentGame = () => {
+    const totalPoints = player1Score + player2Score;
+    return totalPoints + 1; // Game 1 si ambos tienen 0 puntos, Game 2 si hay 1 punto total, etc.
+  };
+
+  // Generar y actualizar JSON automáticamente
+  const generateTournamentConfig = () => {
+    const config = {
+      sessionId: currentSessionId,
+      player1: {
+        name: player1Name || session?.player1?.name || 'Jugador 1',
+        score: player1Score
+      },
+      player2: {
+        name: player2Name || session?.player2?.name || 'Jugador 2',
+        score: player2Score
+      },
+      format: format,
+      currentGame: getCurrentGame(),
+      totalGames: format === 'BO3' ? 3 : 5,
+      maxWins: format === 'BO3' ? 2 : 3,
+      isFinished: (player1Score >= (format === 'BO3' ? 2 : 3)) || (player2Score >= (format === 'BO3' ? 2 : 3)),
+      winner: player1Score >= (format === 'BO3' ? 2 : 3) ? 'player1' : 
+              player2Score >= (format === 'BO3' ? 2 : 3) ? 'player2' : null
+    };
+    return config;
+  };
+
+  // Actualizar JSON cada vez que cambien los datos
+  useEffect(() => {
+    const config = generateTournamentConfig();
+    // Aquí podrías enviar esta configuración al servidor o guardarla localmente
+    console.log('🎮 Tournament Config Updated:', config);
+  }, [player1Name, player2Name, format, player1Score, player2Score]);
+
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
       if (adminSocket && adminSocket.connected) {
@@ -68,6 +105,9 @@ export default function AdminPanel() {
           player2: player2Name, 
           format 
         });
+        // Resetear scores al crear nueva sesión
+        setPlayer1Score(0);
+        setPlayer2Score(0);
       } else {
         alert('No hay conexión con el servidor. Por favor, recarga la página.');
       }
@@ -76,55 +116,40 @@ export default function AdminPanel() {
     }
   };
 
-  const handleGameWinner = (winner) => {
-    if (session && adminSocket && window.confirm(`¿Confirmar que ${session[winner].name} ganó este game?`)) {
-      adminSocket.emit('game-winner', { sessionId: session.sessionId, winner });
-    }
-  };
-
-  const handleResetSession = () => {
-    if (session && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
-      adminSocket.emit('reset-session', { sessionId: currentSessionId });
-    }
-  };
-
-  const handleEndMatch = () => {
-    if (session && adminSocket && window.confirm('¿Terminar el match y declarar ganador?')) {
-      // Determinar ganador basado en el score actual
-      const winner = session.player1.score > session.player2.score ? 'player1' : 
-                     session.player2.score > session.player1.score ? 'player2' : null;
+  const handleScoreChange = (player, increment) => {
+    if (player === 'player1') {
+      const newScore = Math.max(0, player1Score + increment);
+      setPlayer1Score(newScore);
       
-      if (winner) {
-        adminSocket.emit('end-match', { sessionId: currentSessionId, winner });
-      } else {
-        alert('No se puede terminar el match con empate. Debe haber un ganador con más puntos.');
+      // Si hay una sesión activa, actualizar también el servidor
+      if (session && adminSocket) {
+        if (increment > 0) {
+          // Sumar punto = ganó el game
+          adminSocket.emit('game-winner', { sessionId: session.sessionId, winner: 'player1' });
+        }
+      }
+    } else {
+      const newScore = Math.max(0, player2Score + increment);
+      setPlayer2Score(newScore);
+      
+      // Si hay una sesión activa, actualizar también el servidor
+      if (session && adminSocket) {
+        if (increment > 0) {
+          // Sumar punto = ganó el game
+          adminSocket.emit('game-winner', { sessionId: session.sessionId, winner: 'player2' });
+        }
       }
     }
   };
 
-  const handleStartEditing = () => {
-    setEditPlayer1(session.player1.name);
-    setEditPlayer2(session.player2.name);
-    setEditFormat(session.format);
-    setIsEditing(true);
-  };
-
-  const handleSaveNames = () => {
-    if (editPlayer1 && editPlayer2 && adminSocket) {
-      adminSocket.emit('update-players', { 
-        sessionId: currentSessionId, 
-        player1: editPlayer1, 
-        player2: editPlayer2,
-        format: editFormat
-      });
-      setIsEditing(false);
-    } else {
-      alert('Por favor ingresa ambos nombres');
+  const handleResetSession = () => {
+    if (window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
+      setPlayer1Score(0);
+      setPlayer2Score(0);
+      if (session && adminSocket) {
+        adminSocket.emit('reset-session', { sessionId: currentSessionId });
+      }
     }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
   };
 
   const getControlLink = (type) => {
@@ -219,265 +244,223 @@ export default function AdminPanel() {
               </button>
             </div>
           </div>
+  const getControlLink = (type) => {
+    if (!session) return '';
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/${type}/${session.sessionId}`;
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert('Link copiado al portapapeles');
+  };
+
+  // Generar configuración JSON para mostrar
+  const getCurrentConfig = () => {
+    return generateTournamentConfig();
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold text-white mb-2">
+            🎮 Panel de Administración Simplificado
+          </h1>
+          <p className="text-smash-light text-lg">
+            Configuración automática con JSON
+          </p>
+        </div>
+
+        {!session || session.phase === 'FINISHED' ? (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20">
+            <h2 className="text-3xl font-bold text-white mb-6">
+              {session?.phase === 'FINISHED' ? '🎉 Serie Finalizada - Crear Nueva' : '📝 Configurar Nueva Serie'}
+            </h2>
+            
+            <div className="space-y-6">
+              {/* Configuración básica en una fila */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-white font-semibold mb-2">
+                    🔴 Jugador 1 (Izquierda)
+                  </label>
+                  <input
+                    type="text"
+                    value={player1Name}
+                    onChange={(e) => setPlayer1Name(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-red-900/30 text-white placeholder-white/50 border border-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Ej: Nostra"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white font-semibold mb-2">
+                    🔵 Jugador 2 (Derecha)
+                  </label>
+                  <input
+                    type="text"
+                    value={player2Name}
+                    onChange={(e) => setPlayer2Name(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-blue-900/30 text-white placeholder-white/50 border border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ej: Iori"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white font-semibold mb-2">
+                    🏆 Formato
+                  </label>
+                  <select
+                    value={format}
+                    onChange={(e) => setFormat(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-white/20 text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-yellow"
+                  >
+                    <option value="BO3" style={{color: 'black'}}>Best of 3 (BO3)</option>
+                    <option value="BO5" style={{color: 'black'}}>Best of 5 (BO5)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreateSession}
+                className="w-full py-4 bg-gradient-to-r from-smash-red to-smash-yellow text-white font-bold text-xl rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
+              >
+                🚀 Crear Serie y Generar JSON
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-6">
-            {/* Información de la Serie */}
+            {/* Panel Principal - Manejo de Puntos */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
-              <div className="flex justify-between items-center mb-4">
-                {!isEditing ? (
-                  <>
-                    <h2 className="text-3xl font-bold text-white">
-                      {session.player1.name} vs {session.player2.name}
-                    </h2>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-bold text-smash-yellow">
-                        {session.format}
-                      </span>
-                      <button
-                        onClick={handleStartEditing}
-                        className="px-4 py-2 bg-smash-blue text-white rounded-lg hover:bg-smash-blue/80 transition-all"
-                      >
-                        ✏️ Editar
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        value={editPlayer1}
-                        onChange={(e) => setEditPlayer1(e.target.value)}
-                        placeholder="Jugador 1"
-                        className="px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
-                      />
-                      <input
-                        type="text"
-                        value={editPlayer2}
-                        onChange={(e) => setEditPlayer2(e.target.value)}
-                        placeholder="Jugador 2"
-                        className="px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={editFormat}
-                        onChange={(e) => setEditFormat(e.target.value)}
-                        className="px-4 py-2 rounded-lg bg-white/20 text-white border border-white/30"
-                      >
-                        <option value="BO3">BO3</option>
-                        <option value="BO5">BO5</option>
-                      </select>
-                      <button
-                        onClick={handleSaveNames}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
-                      >
-                        💾 Guardar
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
-                      >
-                        ❌ Cancelar
-                      </button>
-                    </div>
+              <h2 className="text-3xl font-bold text-white mb-6 text-center">
+                📊 Panel de Control Principal
+              </h2>
+              
+              <div className="grid grid-cols-3 gap-6 mb-6">
+                {/* Jugador 1 */}
+                <div className="bg-gradient-to-br from-red-900/50 to-red-700/30 rounded-xl p-6 border-2 border-red-500/30">
+                  <div className="text-center mb-4">
+                    <h3 className="text-white font-bold text-xl mb-1">{session.player1.name}</h3>
+                    <div className="text-6xl font-black text-red-400 mb-2">{player1Score}</div>
+                    <p className="text-white/70 text-sm">puntos</p>
                   </div>
-                )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleScoreChange('player1', 1)}
+                      className="py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all text-lg"
+                    >
+                      +1
+                    </button>
+                    <button
+                      onClick={() => handleScoreChange('player1', -1)}
+                      className="py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all text-lg"
+                    >
+                      -1
+                    </button>
+                  </div>
+                </div>
+
+                {/* Info Central */}
+                <div className="bg-gradient-to-br from-purple-900/50 to-purple-700/30 rounded-xl p-6 border-2 border-purple-500/30 flex flex-col justify-center">
+                  <div className="text-center">
+                    <p className="text-white/70 text-sm mb-1">Game Actual</p>
+                    <p className="text-white font-bold text-4xl mb-2">{getCurrentGame()}</p>
+                    <p className="text-white/70 text-sm mb-3">de {format === 'BO3' ? '3' : '5'}</p>
+                    
+                    <div className="bg-black/30 rounded-lg p-3 mb-3">
+                      <p className="text-white/70 text-xs">Estado</p>
+                      <p className="text-white font-semibold">
+                        {session.phase === 'RPS' && '🎯 RPS'}
+                        {session.phase === 'STAGE_BAN' && '🚫 Baneos'}
+                        {session.phase === 'STAGE_SELECT' && '🎯 Stage'}
+                        {session.phase === 'CHARACTER_SELECT' && '👤 Personajes'}
+                        {session.phase === 'PLAYING' && '⚔️ Combate'}
+                      </p>
+                    </div>
+
+                    <p className="text-yellow-400 text-xs font-semibold">
+                      {format === 'BO3' ? 'Primero en 2' : 'Primero en 3'} 🏆
+                    </p>
+                  </div>
+                </div>
+
+                {/* Jugador 2 */}
+                <div className="bg-gradient-to-br from-blue-900/50 to-blue-700/30 rounded-xl p-6 border-2 border-blue-500/30">
+                  <div className="text-center mb-4">
+                    <h3 className="text-white font-bold text-xl mb-1">{session.player2.name}</h3>
+                    <div className="text-6xl font-black text-blue-400 mb-2">{player2Score}</div>
+                    <p className="text-white/70 text-sm">puntos</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleScoreChange('player2', 1)}
+                      className="py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all text-lg"
+                    >
+                      +1
+                    </button>
+                    <button
+                      onClick={() => handleScoreChange('player2', -1)}
+                      className="py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all text-lg"
+                    >
+                      -1
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-smash-red/20 rounded-lg p-4">
-                  <p className="text-white/70 text-sm">Jugador 1</p>
-                  <p className="text-white font-bold text-2xl">
-                    {session.player1.name}
-                  </p>
-                  <p className="text-smash-yellow text-4xl font-bold">
-                    {session.player1.score}
-                  </p>
-                </div>
-
-                <div className="bg-white/10 rounded-lg p-4 flex flex-col justify-center">
-                  <p className="text-white/70 text-sm">Game Actual</p>
-                  <p className="text-white font-bold text-3xl">
-                    {session.currentGame} / {session.format === 'BO3' ? '3' : '5'}
-                  </p>
-                </div>
-
-                <div className="bg-smash-blue/20 rounded-lg p-4">
-                  <p className="text-white/70 text-sm">Jugador 2</p>
-                  <p className="text-white font-bold text-2xl">
-                    {session.player2.name}
-                  </p>
-                  <p className="text-smash-yellow text-4xl font-bold">
-                    {session.player2.score}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 text-center">
-                <p className="text-white/70 text-sm mb-1">Estado Actual</p>
-                <p className="text-white font-bold text-xl">
-                  {session.phase === 'RPS' && '⏳ Esperando Ganador de RPS'}
-                  {session.phase === 'STAGE_BAN' && '🚫 Baneo de Stages'}
-                  {session.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
-                  {session.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
-                  {session.phase === 'PLAYING' && '⚔️ Jugando'}
-                  {session.phase === 'FINISHED' && '🏆 Serie Finalizada'}
-                </p>
-                {session.currentTurn && session.phase !== 'FINISHED' && (
-                  <p className="text-smash-yellow font-semibold mt-2">
-                    Turno de: {session[session.currentTurn].name}
-                  </p>
+              {/* Controles adicionales */}
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={handleResetSession}
+                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition-all"
+                >
+                  🔄 Reset Serie
+                </button>
+                {(player1Score >= (format === 'BO3' ? 2 : 3) || player2Score >= (format === 'BO3' ? 2 : 3)) && (
+                  <div className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold rounded-lg text-center">
+                    🏆 ¡Serie Finalizada!
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Links de Control */}
+            {/* JSON Config Display */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
               <h3 className="text-2xl font-bold text-white mb-4">
-                📱 Links de Control
+                📄 Configuración JSON Automática
               </h3>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Tablet con QR */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-white font-semibold text-lg">🎮 Tablet</span>
-                  </div>
-                  
-                  {/* QR Code */}
-                  <div className="bg-white p-4 rounded-lg flex justify-center">
-                    <QRCodeSVG
-                      value={getControlLink('tablet')}
-                      size={180}
-                      level="H"
-                      includeMargin={true}
-                    />
-                  </div>
-                  
-                  {/* Link y botón */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={getControlLink('tablet')}
-                      readOnly
-                      className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
-                    />
-                    <button
-                      onClick={() => copyToClipboard(getControlLink('tablet'))}
-                      className="px-6 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
-                    >
-                      Copiar
-                    </button>
-                  </div>
-                </div>
-
-                {/* Stream con ícono de apertura */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-white font-semibold text-lg">📺 Stream</span>
-                  </div>
-                  
-                  {/* Botón grande de apertura */}
-                  <a
-                    href={getControlLink('stream')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-gradient-to-br from-smash-purple to-purple-800 rounded-lg p-8 text-center hover:scale-105 transition-all shadow-lg group"
-                  >
-                    <div className="text-6xl mb-3 group-hover:scale-110 transition-transform">
-                      🎥
-                    </div>
-                    <p className="text-white font-bold text-xl mb-1">Abrir Stream</p>
-                    <p className="text-white/70 text-sm">Click para abrir en nueva pestaña</p>
-                    <div className="mt-3 flex items-center justify-center gap-2 text-white/50">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      <span className="text-xs">Nueva pestaña</span>
-                    </div>
-                  </a>
-                  
-                  {/* Link y botón */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={getControlLink('stream')}
-                      readOnly
-                      className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
-                    />
-                    <button
-                      onClick={() => copyToClipboard(getControlLink('stream'))}
-                      className="px-6 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80 transition-all"
-                    >
-                      Copiar
-                    </button>
-                  </div>
-                </div>
+              <div className="bg-black/50 rounded-lg p-4 overflow-x-auto">
+                <pre className="text-green-400 text-sm font-mono">
+                  {JSON.stringify(getCurrentConfig(), null, 2)}
+                </pre>
               </div>
+              <p className="text-white/70 text-sm mt-2">
+                ✨ Este JSON se actualiza automáticamente cuando cambias nombres, formato o puntos
+              </p>
             </div>
 
-            {/* Controles del Game */}
-            {session.phase === 'PLAYING' && (
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
-                <h3 className="text-2xl font-bold text-white mb-4">
-                  ⚔️ Controles del Game
-                </h3>
-                
-                <p className="text-white/70 text-center mb-4">
-                  Presiona para dar 1 punto al ganador del game
-                </p>
-                
-                <div className="grid grid-cols-2 gap-6">
+            {/* Links de Control Compactos */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
+              <h3 className="text-2xl font-bold text-white mb-4">📱 Links</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-semibold">🎮 Tablet:</span>
+                  <input
+                    type="text"
+                    value={getControlLink('tablet')}
+                    readOnly
+                    className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm"
+                  />
                   <button
-                    onClick={() => handleGameWinner('player1')}
-                    className="group relative py-8 bg-gradient-to-br from-smash-red via-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-red-400/50 overflow-hidden"
+                    onClick={() => copyToClipboard(getControlLink('tablet'))}
+                    className="px-4 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                    <div className="relative z-10 flex flex-col items-center gap-3">
-                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
-                      <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{session.player1.name}</div>
-                        <div className="text-sm opacity-80">Dar punto</div>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleGameWinner('player2')}
-                    className="group relative py-8 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-blue-400/50 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                    <div className="relative z-10 flex flex-col items-center gap-3">
-                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
-                      <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{session.player2.name}</div>
-                        <div className="text-sm opacity-80">Dar punto</div>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-                
-                <div className="mt-4 text-center text-sm text-white/60">
-                  {session.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
+                    📋
                 </div>
               </div>
-            )}
-
-            {/* Botones de Control */}
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleEndMatch}
-                className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-500 hover:scale-105 transition-all shadow-lg"
-              >
-                🏁 Terminar Match
-              </button>
-              <button
-                onClick={handleResetSession}
-                className="px-8 py-3 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-all border border-white/30"
-              >
-                🔄 Reiniciar Serie
-              </button>
             </div>
           </div>
         )}
