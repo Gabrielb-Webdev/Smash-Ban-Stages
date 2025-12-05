@@ -243,7 +243,7 @@ export default function StreamOverlay({ sessionId }) {
               <img 
                 src={getCharacterData(session.player1.character)?.image} 
                 alt={getCharacterData(session.player1.character)?.name}
-                className="w-32 h-32 rounded-full shadow-2xl"
+                className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
               />
               <motion.div 
@@ -281,7 +281,7 @@ export default function StreamOverlay({ sessionId }) {
               <img 
                 src={getCharacterData(session.player2.character)?.image} 
                 alt={getCharacterData(session.player2.character)?.name}
-                className="w-32 h-32 rounded-full shadow-2xl"
+                className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
               />
             </motion.div>
