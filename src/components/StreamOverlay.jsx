@@ -295,13 +295,13 @@ export default function StreamOverlay({ sessionId }) {
               <motion.h2 
                 key="stage-bans-text"
                 initial={{ 
-                  y: 80,
+                  y: 30,
                   opacity: 0,
                   scale: 0.8,
                   rotateX: -45
                 }}
                 animate={{ 
-                  y: [80, 0, 0, -80],
+                  y: [30, 0, 0, -30],
                   opacity: [0, 1, 1, 0],
                   scale: [0.8, 1, 1, 0.8],
                   rotateX: [-45, 0, 0, 45]
