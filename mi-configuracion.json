@@ -11,7 +11,7 @@
       "totalGames": 3
     },
     {
-      "id": "BO5", 
+      "id": "BO5",
       "name": "Best of 5",
       "maxWins": 3,
       "totalGames": 5
@@ -24,9 +24,15 @@
     },
     {
       "id": "FT7",
-      "name": "First to 7", 
+      "name": "First to 7",
       "maxWins": 7,
       "totalGames": 13
+    },
+    {
+      "id": "FT10",
+      "name": "First to 10",
+      "maxWins": 10,
+      "totalGames": 19
     },
     {
       "id": "FT10",
@@ -116,6 +122,22 @@
     {
       "name": "Lui$",
       "tag": "Lui$"
+    },
+    {
+      "name": "MkLeo",
+      "tag": "MkLeo"
+    },
+    {
+      "name": "Sparg0",
+      "tag": "Sparg0"
+    },
+    {
+      "name": "Nostra",
+      "tag": "Nostra"
+    },
+    {
+      "name": "Iori",
+      "tag": "Iori"
     }
   ],
   "quickSettings": {

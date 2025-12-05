@@ -8,39 +8,15 @@ export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [currentSessionId] = useState('main-session');
+  const [currentSessionId] = useState('main-session'); // ID fijo
   const [session, setSession] = useState(null);
-  const [player1Score, setPlayer1Score] = useState(0);
-  const [player2Score, setPlayer2Score] = useState(0);
-  const [tournamentConfig, setTournamentConfig] = useState(null);
-  const [showPresetPlayers, setShowPresetPlayers] = useState(false);
-  const [showJsonEditor, setShowJsonEditor] = useState(false);
-  const [jsonEditContent, setJsonEditContent] = useState('');
-
-  // Cargar configuración desde JSON
-  useEffect(() => {
-    const loadTournamentConfig = async () => {
-      try {
-        const response = await fetch('/config/tournament-settings.json');
-        if (response.ok) {
-          const config = await response.json();
-          setTournamentConfig(config);
-          
-          if (config.quickSettings?.autoFillLastUsed) {
-            setPlayer1Name(config.defaultPlayers?.player1 || '');
-            setPlayer2Name(config.defaultPlayers?.player2 || '');
-          }
-          setFormat(config.defaultFormat || 'BO3');
-        }
-      } catch (error) {
-        console.error('Error cargando configuración del torneo:', error);
-      }
-    };
-    
-    loadTournamentConfig();
-  }, []);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPlayer1, setEditPlayer1] = useState('');
+  const [editPlayer2, setEditPlayer2] = useState('');
+  const [editFormat, setEditFormat] = useState('BO3');
 
   useEffect(() => {
+    // Conectar al WebSocket cuando se monta el componente
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     adminSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -53,6 +29,7 @@ export default function AdminPanel() {
 
     adminSocket.on('connect', () => {
       console.log('Admin conectado al servidor WebSocket');
+      // Siempre unirse a la sesión fija
       adminSocket.emit('join-session', 'main-session');
     });
 
@@ -69,8 +46,6 @@ export default function AdminPanel() {
     adminSocket.on('session-updated', (data) => {
       console.log('Sesión actualizada:', data);
       setSession(data.session);
-      setPlayer1Score(data.session.player1.score);
-      setPlayer2Score(data.session.player2.score);
     });
 
     adminSocket.on('series-finished', (data) => {
@@ -85,26 +60,6 @@ export default function AdminPanel() {
     };
   }, []);
 
-  const getCurrentGame = () => {
-    const totalPoints = player1Score + player2Score;
-    return totalPoints + 1;
-  };
-
-  const handlePresetPlayer = (playerData, playerNumber) => {
-    if (playerNumber === 1) {
-      setPlayer1Name(playerData.name);
-    } else {
-      setPlayer2Name(playerData.name);
-    }
-    setShowPresetPlayers(false);
-  };
-
-  const handleQuickSwap = () => {
-    const temp = player1Name;
-    setPlayer1Name(player2Name);
-    setPlayer2Name(temp);
-  };
-
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
       if (adminSocket && adminSocket.connected) {
@@ -113,8 +68,6 @@ export default function AdminPanel() {
           player2: player2Name, 
           format 
         });
-        setPlayer1Score(0);
-        setPlayer2Score(0);
       } else {
         alert('No hay conexión con el servidor. Por favor, recarga la página.');
       }
@@ -123,32 +76,55 @@ export default function AdminPanel() {
     }
   };
 
-  const handleScoreChange = (player, increment) => {
-    if (player === 'player1') {
-      const newScore = Math.max(0, player1Score + increment);
-      setPlayer1Score(newScore);
-      
-      if (session && adminSocket && increment > 0) {
-        adminSocket.emit('game-winner', { sessionId: session.sessionId, winner: 'player1' });
-      }
-    } else {
-      const newScore = Math.max(0, player2Score + increment);
-      setPlayer2Score(newScore);
-      
-      if (session && adminSocket && increment > 0) {
-        adminSocket.emit('game-winner', { sessionId: session.sessionId, winner: 'player2' });
-      }
+  const handleGameWinner = (winner) => {
+    if (session && adminSocket && window.confirm(`¿Confirmar que ${session[winner].name} ganó este game?`)) {
+      adminSocket.emit('game-winner', { sessionId: session.sessionId, winner });
     }
   };
 
   const handleResetSession = () => {
-    if (window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
-      setPlayer1Score(0);
-      setPlayer2Score(0);
-      if (session && adminSocket) {
-        adminSocket.emit('reset-session', { sessionId: currentSessionId });
+    if (session && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
+      adminSocket.emit('reset-session', { sessionId: currentSessionId });
+    }
+  };
+
+  const handleEndMatch = () => {
+    if (session && adminSocket && window.confirm('¿Terminar el match y declarar ganador?')) {
+      // Determinar ganador basado en el score actual
+      const winner = session.player1.score > session.player2.score ? 'player1' : 
+                     session.player2.score > session.player1.score ? 'player2' : null;
+      
+      if (winner) {
+        adminSocket.emit('end-match', { sessionId: currentSessionId, winner });
+      } else {
+        alert('No se puede terminar el match con empate. Debe haber un ganador con más puntos.');
       }
     }
+  };
+
+  const handleStartEditing = () => {
+    setEditPlayer1(session.player1.name);
+    setEditPlayer2(session.player2.name);
+    setEditFormat(session.format);
+    setIsEditing(true);
+  };
+
+  const handleSaveNames = () => {
+    if (editPlayer1 && editPlayer2 && adminSocket) {
+      adminSocket.emit('update-players', { 
+        sessionId: currentSessionId, 
+        player1: editPlayer1, 
+        player2: editPlayer2,
+        format: editFormat
+      });
+      setIsEditing(false);
+    } else {
+      alert('Por favor ingresa ambos nombres');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
   };
 
   const getControlLink = (type) => {
@@ -162,246 +138,76 @@ export default function AdminPanel() {
     alert('Link copiado al portapapeles');
   };
 
-  const generateQRCode = (url) => {
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-    return qrApiUrl;
-  };
-
-  const showQRCode = (url, title) => {
-    const qrUrl = generateQRCode(url);
-    const qrWindow = window.open('', '_blank', 'width=300,height=350,resizable=yes');
-    qrWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>QR Code - ${title}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              text-align: center;
-              padding: 20px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              margin: 0;
-              color: white;
-            }
-            .qr-container {
-              background: white;
-              padding: 20px;
-              border-radius: 15px;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-              margin: 20px auto;
-              max-width: 250px;
-            }
-            img {
-              border-radius: 10px;
-            }
-            .url {
-              word-break: break-all;
-              font-size: 12px;
-              color: #333;
-              margin-top: 10px;
-            }
-            h2 {
-              margin-top: 0;
-              color: white;
-            }
-          </style>
-        </head>
-        <body>
-          <h2>📱 ${title}</h2>
-          <div class="qr-container">
-            <img src="${qrUrl}" alt="QR Code" />
-            <div class="url">${url}</div>
-          </div>
-        </body>
-      </html>
-    `);
-    qrWindow.document.close();
-  };
-
-  const handleEditJson = () => {
-    setJsonEditContent(JSON.stringify(tournamentConfig, null, 2));
-    setShowJsonEditor(true);
-  };
-
-  const handleSaveJson = () => {
-    try {
-      const newConfig = JSON.parse(jsonEditContent);
-      setTournamentConfig(newConfig);
-      setShowJsonEditor(false);
-      
-      // Aplicar cambios inmediatamente
-      if (newConfig.quickSettings?.autoFillLastUsed) {
-        setPlayer1Name(newConfig.defaultPlayers?.player1 || '');
-        setPlayer2Name(newConfig.defaultPlayers?.player2 || '');
-      }
-      setFormat(newConfig.defaultFormat || 'BO3');
-      
-      alert('✅ Configuración actualizada! Los cambios se aplicarán en la próxima sesión.');
-    } catch (error) {
-      alert('❌ Error en JSON: ' + error.message);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2">
-            🎮 Panel de Administración Simplificado
+            🎮 Panel de Administración
           </h1>
           <p className="text-smash-light text-lg">
-            Configuración automática con JSON
+            Sistema de Baneos - Super Smash Bros Ultimate
           </p>
         </div>
 
         {!session || session.phase === 'FINISHED' ? (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20">
             <h2 className="text-3xl font-bold text-white mb-6">
-              {session?.phase === 'FINISHED' ? '🎉 Serie Finalizada - Crear Nueva' : '📝 Configurar Nueva Serie'}
+              {session?.phase === 'FINISHED' ? 'Nueva Serie (mismo link)' : 'Crear Nueva Sesión'}
             </h2>
             
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-white font-semibold">
-                      🔴 Jugador 1 (Izquierda)
-                    </label>
-                    {tournamentConfig?.quickSettings?.enablePresetPlayers && (
-                      <button
-                        onClick={() => setShowPresetPlayers(prev => prev === 'player1' ? false : 'player1')}
-                        className="text-xs bg-white/20 text-white px-2 py-1 rounded hover:bg-white/30 transition-all"
-                      >
-                        📋 Presets
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={player1Name}
-                    onChange={(e) => setPlayer1Name(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-red-900/30 text-white placeholder-white/50 border border-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Nombre del jugador..."
-                  />
-                  
-                  {showPresetPlayers === 'player1' && tournamentConfig?.presetPlayers && (
-                    <div className="mt-2 bg-black/80 rounded-lg border border-white/30 max-h-40 overflow-y-auto">
-                      {tournamentConfig.presetPlayers.map((player, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handlePresetPlayer(player, 1)}
-                          className="w-full text-left px-3 py-2 text-white hover:bg-white/20 transition-all first:rounded-t-lg last:rounded-b-lg"
-                        >
-                          {player.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-white font-semibold">
-                      🔵 Jugador 2 (Derecha)
-                    </label>
-                    {tournamentConfig?.quickSettings?.enablePresetPlayers && (
-                      <button
-                        onClick={() => setShowPresetPlayers(prev => prev === 'player2' ? false : 'player2')}
-                        className="text-xs bg-white/20 text-white px-2 py-1 rounded hover:bg-white/30 transition-all"
-                      >
-                        📋 Presets
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={player2Name}
-                    onChange={(e) => setPlayer2Name(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-blue-900/30 text-white placeholder-white/50 border border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nombre del jugador..."
-                  />
-                  
-                  {showPresetPlayers === 'player2' && tournamentConfig?.presetPlayers && (
-                    <div className="mt-2 bg-black/80 rounded-lg border border-white/30 max-h-40 overflow-y-auto">
-                      {tournamentConfig.presetPlayers.map((player, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handlePresetPlayer(player, 2)}
-                          className="w-full text-left px-3 py-2 text-white hover:bg-white/20 transition-all first:rounded-t-lg last:rounded-b-lg"
-                        >
-                          {player.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={handleQuickSwap}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all text-sm"
-                >
-                  🔄 Intercambiar
-                </button>
-                <button
-                  onClick={() => {
-                    setPlayer1Name('');
-                    setPlayer2Name('');
-                  }}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all text-sm"
-                >
-                  🗑️ Limpiar
-                </button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  Nombre del Jugador 1
+                </label>
+                <input
+                  type="text"
+                  value={player1Name}
+                  onChange={(e) => setPlayer1Name(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-blue"
+                  placeholder="Ej: Nostra"
+                />
               </div>
 
               <div>
-                <label className="block text-white font-semibold mb-3">
-                  🏆 Formato del Torneo
+                <label className="block text-white font-semibold mb-2">
+                  Nombre del Jugador 2
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {tournamentConfig?.formats ? (
-                    tournamentConfig.formats.map((formatOption) => (
-                      <button
-                        key={formatOption.id}
-                        onClick={() => setFormat(formatOption.id)}
-                        className={`p-4 rounded-lg font-bold transition-all text-center border-2 ${
-                          format === formatOption.id
-                            ? 'bg-smash-yellow text-black border-smash-yellow shadow-lg scale-105'
-                            : 'bg-white/20 text-white border-white/30 hover:bg-white/30'
-                        }`}
-                      >
-                        <div className="text-lg font-black">{formatOption.name}</div>
-                        <div className="text-sm opacity-80">
-                          Primero en {formatOption.maxWins} - Máximo {formatOption.totalGames} games
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setFormat('BO3')}
-                        className={`p-4 rounded-lg font-bold transition-all ${
-                          format === 'BO3'
-                            ? 'bg-smash-yellow text-black shadow-lg scale-105'
-                            : 'bg-white/20 text-white hover:bg-white/30'
-                        }`}
-                      >
-                        Best of 3 (BO3)
-                      </button>
-                      <button
-                        onClick={() => setFormat('BO5')}
-                        className={`p-4 rounded-lg font-bold transition-all ${
-                          format === 'BO5'
-                            ? 'bg-smash-yellow text-black shadow-lg scale-105'
-                            : 'bg-white/20 text-white hover:bg-white/30'
-                        }`}
-                      >
-                        Best of 5 (BO5)
-                      </button>
-                    </>
-                  )}
+                <input
+                  type="text"
+                  value={player2Name}
+                  onChange={(e) => setPlayer2Name(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-blue"
+                  placeholder="Ej: Iori"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  Formato del Torneo
+                </label>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setFormat('BO3')}
+                    className={`flex-1 py-3 rounded-lg font-bold transition-all ${
+                      format === 'BO3'
+                        ? 'bg-smash-blue text-white shadow-lg scale-105'
+                        : 'bg-white/20 text-white/70 hover:bg-white/30'
+                    }`}
+                  >
+                    Best of 3 (BO3)
+                  </button>
+                  <button
+                    onClick={() => setFormat('BO5')}
+                    className={`flex-1 py-3 rounded-lg font-bold transition-all ${
+                      format === 'BO5'
+                        ? 'bg-smash-blue text-white shadow-lg scale-105'
+                        : 'bg-white/20 text-white/70 hover:bg-white/30'
+                    }`}
+                  >
+                    Best of 5 (BO5)
+                  </button>
                 </div>
               </div>
 
@@ -409,262 +215,269 @@ export default function AdminPanel() {
                 onClick={handleCreateSession}
                 className="w-full py-4 bg-gradient-to-r from-smash-red to-smash-yellow text-white font-bold text-xl rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
               >
-                🚀 Crear Serie
+                🚀 Crear Sesión
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Información de la Serie */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
-              <h2 className="text-3xl font-bold text-white mb-6 text-center">
-                📊 Panel de Control Principal
-              </h2>
-              
-              <div className="grid grid-cols-3 gap-6 mb-6">
-                <div className="bg-gradient-to-br from-red-900/50 to-red-700/30 rounded-xl p-6 border-2 border-red-500/30">
-                  <div className="text-center mb-4">
-                    <h3 className="text-white font-bold text-xl mb-1">{session.player1.name}</h3>
-                    <div className="text-6xl font-black text-red-400 mb-2">{player1Score}</div>
-                    <p className="text-white/70 text-sm">puntos</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleScoreChange('player1', 1)}
-                      className="py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all text-lg"
-                    >
-                      +1
-                    </button>
-                    <button
-                      onClick={() => handleScoreChange('player1', -1)}
-                      className="py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all text-lg"
-                    >
-                      -1
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-purple-900/50 to-purple-700/30 rounded-xl p-6 border-2 border-purple-500/30 flex flex-col justify-center">
-                  <div className="text-center">
-                    <p className="text-white/70 text-sm mb-1">Game Actual</p>
-                    <p className="text-white font-bold text-4xl mb-2">{getCurrentGame()}</p>
-                    <p className="text-white/70 text-sm mb-3">de {format === 'BO3' ? '3' : '5'}</p>
-                    
-                    <div className="bg-black/30 rounded-lg p-3 mb-3">
-                      <p className="text-white/70 text-xs">Estado</p>
-                      <p className="text-white font-semibold">
-                        {session.phase === 'RPS' && '🎯 RPS'}
-                        {session.phase === 'STAGE_BAN' && '🚫 Baneos'}
-                        {session.phase === 'STAGE_SELECT' && '🎯 Stage'}
-                        {session.phase === 'CHARACTER_SELECT' && '👤 Personajes'}
-                        {session.phase === 'PLAYING' && '⚔️ Combate'}
-                      </p>
+              <div className="flex justify-between items-center mb-4">
+                {!isEditing ? (
+                  <>
+                    <h2 className="text-3xl font-bold text-white">
+                      {session.player1.name} vs {session.player2.name}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-bold text-smash-yellow">
+                        {session.format}
+                      </span>
+                      <button
+                        onClick={handleStartEditing}
+                        className="px-4 py-2 bg-smash-blue text-white rounded-lg hover:bg-smash-blue/80 transition-all"
+                      >
+                        ✏️ Editar
+                      </button>
                     </div>
-
-                    <p className="text-yellow-400 text-xs font-semibold">
-                      {format === 'BO3' ? 'Primero en 2' : 'Primero en 3'} 🏆
-                    </p>
+                  </>
+                ) : (
+                  <div className="w-full space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={editPlayer1}
+                        onChange={(e) => setEditPlayer1(e.target.value)}
+                        placeholder="Jugador 1"
+                        className="px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
+                      />
+                      <input
+                        type="text"
+                        value={editPlayer2}
+                        onChange={(e) => setEditPlayer2(e.target.value)}
+                        placeholder="Jugador 2"
+                        className="px-4 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={editFormat}
+                        onChange={(e) => setEditFormat(e.target.value)}
+                        className="px-4 py-2 rounded-lg bg-white/20 text-white border border-white/30"
+                      >
+                        <option value="BO3">BO3</option>
+                        <option value="BO5">BO5</option>
+                      </select>
+                      <button
+                        onClick={handleSaveNames}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                      >
+                        💾 Guardar
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                      >
+                        ❌ Cancelar
+                      </button>
+                    </div>
                   </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-smash-red/20 rounded-lg p-4">
+                  <p className="text-white/70 text-sm">Jugador 1</p>
+                  <p className="text-white font-bold text-2xl">
+                    {session.player1.name}
+                  </p>
+                  <p className="text-smash-yellow text-4xl font-bold">
+                    {session.player1.score}
+                  </p>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-900/50 to-blue-700/30 rounded-xl p-6 border-2 border-blue-500/30">
-                  <div className="text-center mb-4">
-                    <h3 className="text-white font-bold text-xl mb-1">{session.player2.name}</h3>
-                    <div className="text-6xl font-black text-blue-400 mb-2">{player2Score}</div>
-                    <p className="text-white/70 text-sm">puntos</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleScoreChange('player2', 1)}
-                      className="py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all text-lg"
-                    >
-                      +1
-                    </button>
-                    <button
-                      onClick={() => handleScoreChange('player2', -1)}
-                      className="py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all text-lg"
-                    >
-                      -1
-                    </button>
-                  </div>
+                <div className="bg-white/10 rounded-lg p-4 flex flex-col justify-center">
+                  <p className="text-white/70 text-sm">Game Actual</p>
+                  <p className="text-white font-bold text-3xl">
+                    {session.currentGame} / {session.format === 'BO3' ? '3' : '5'}
+                  </p>
+                </div>
+
+                <div className="bg-smash-blue/20 rounded-lg p-4">
+                  <p className="text-white/70 text-sm">Jugador 2</p>
+                  <p className="text-white font-bold text-2xl">
+                    {session.player2.name}
+                  </p>
+                  <p className="text-smash-yellow text-4xl font-bold">
+                    {session.player2.score}
+                  </p>
                 </div>
               </div>
 
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={handleResetSession}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition-all"
-                >
-                  🔄 Reset Serie
-                </button>
-                {(player1Score >= (format === 'BO3' ? 2 : 3) || player2Score >= (format === 'BO3' ? 2 : 3)) && (
-                  <div className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold rounded-lg text-center">
-                    🏆 ¡Serie Finalizada!
-                  </div>
+              <div className="mt-4 text-center">
+                <p className="text-white/70 text-sm mb-1">Estado Actual</p>
+                <p className="text-white font-bold text-xl">
+                  {session.phase === 'RPS' && '⏳ Esperando Ganador de RPS'}
+                  {session.phase === 'STAGE_BAN' && '🚫 Baneo de Stages'}
+                  {session.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
+                  {session.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
+                  {session.phase === 'PLAYING' && '⚔️ Jugando'}
+                  {session.phase === 'FINISHED' && '🏆 Serie Finalizada'}
+                </p>
+                {session.currentTurn && session.phase !== 'FINISHED' && (
+                  <p className="text-smash-yellow font-semibold mt-2">
+                    Turno de: {session[session.currentTurn].name}
+                  </p>
                 )}
               </div>
             </div>
 
+            {/* Links de Control */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
               <h3 className="text-2xl font-bold text-white mb-4">
-                📄 Información Actual del Torneo
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-black/30 rounded-lg p-4">
-                  <h4 className="text-white font-semibold mb-2">📊 Estado de la Serie</h4>
-                  <div className="text-sm text-white/80 space-y-1">
-                    <p><span className="text-smash-yellow">Game:</span> {getCurrentGame()} de {format === 'BO3' ? '3' : '5'}</p>
-                    <p><span className="text-smash-yellow">Formato:</span> {format}</p>
-                    <p><span className="text-smash-yellow">Para ganar:</span> {format === 'BO3' ? '2' : '3'} puntos</p>
-                  </div>
-                </div>
-                
-                <div className="bg-black/30 rounded-lg p-4">
-                  <h4 className="text-white font-semibold mb-2">⚙️ Configuración Cargada</h4>
-                  <div className="text-sm text-white/80 space-y-1">
-                    <p><span className="text-green-400">✓</span> Presets: {tournamentConfig?.presetPlayers?.length || 0} jugadores</p>
-                    <p><span className="text-green-400">✓</span> Formatos: {tournamentConfig?.formats?.length || 2} opciones</p>
-                    <p><span className="text-green-400">✓</span> Auto-fill: {tournamentConfig?.quickSettings?.autoFillLastUsed ? 'Sí' : 'No'}</p>
-                  </div>
-                </div>
-              </div>
-              
-              {tournamentConfig && (
-                <div className="mt-4 text-xs text-white/60 text-center">
-                  ✨ Configuración cargada desde /config/tournament-settings.json
-                  <br/>
-                  <button 
-                    onClick={handleEditJson}
-                    className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-all"
-                  >
-                    ✏️ Editar JSON Online
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
-              <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                📱 Links <span className="text-sm font-normal opacity-70">(Para móviles y tablets)</span>
+                📱 Links de Control
               </h3>
               
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-white font-semibold">🎮 Tablet Control:</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tablet con QR */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-white font-semibold text-lg">🎮 Tablet</span>
                   </div>
-                  <div className="flex gap-2">
+                  
+                  {/* QR Code */}
+                  <div className="bg-white p-4 rounded-lg flex justify-center">
+                    <QRCodeSVG
+                      value={getControlLink('tablet')}
+                      size={180}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  
+                  {/* Link y botón */}
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={getControlLink('tablet')}
                       readOnly
-                      className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm font-mono"
+                      className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
                     />
                     <button
                       onClick={() => copyToClipboard(getControlLink('tablet'))}
-                      className="px-3 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
-                      title="Copiar link"
+                      className="px-6 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
                     >
-                      📋
-                    </button>
-                    <button
-                      onClick={() => showQRCode(getControlLink('tablet'), 'Tablet Control')}
-                      className="px-3 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all"
-                      title="Ver QR Code"
-                    >
-                      📱
+                      Copiar
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-white font-semibold">📺 Stream Overlay:</span>
+                {/* Stream con ícono de apertura */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-white font-semibold text-lg">📺 Stream</span>
                   </div>
-                  <div className="flex gap-2">
+                  
+                  {/* Botón grande de apertura */}
+                  <a
+                    href={getControlLink('stream')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-gradient-to-br from-smash-purple to-purple-800 rounded-lg p-8 text-center hover:scale-105 transition-all shadow-lg group"
+                  >
+                    <div className="text-6xl mb-3 group-hover:scale-110 transition-transform">
+                      🎥
+                    </div>
+                    <p className="text-white font-bold text-xl mb-1">Abrir Stream</p>
+                    <p className="text-white/70 text-sm">Click para abrir en nueva pestaña</p>
+                    <div className="mt-3 flex items-center justify-center gap-2 text-white/50">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      <span className="text-xs">Nueva pestaña</span>
+                    </div>
+                  </a>
+                  
+                  {/* Link y botón */}
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={getControlLink('stream')}
                       readOnly
-                      className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm font-mono"
+                      className="flex-1 px-4 py-2 rounded-lg bg-white/20 text-white text-sm"
                     />
                     <button
                       onClick={() => copyToClipboard(getControlLink('stream'))}
-                      className="px-3 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80 transition-all"
-                      title="Copiar link"
+                      className="px-6 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80 transition-all"
                     >
-                      📋
-                    </button>
-                    <button
-                      onClick={() => showQRCode(getControlLink('stream'), 'Stream Overlay')}
-                      className="px-3 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all"
-                      title="Ver QR Code"
-                    >
-                      📱
+                      Copiar
                     </button>
                   </div>
                 </div>
               </div>
-
-              <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                <p className="text-blue-300 text-sm">
-                  💡 <strong>Tip:</strong> Usa el QR code 📱 para abrir rápidamente en móviles
-                </p>
-              </div>
             </div>
+
+            {/* Controles del Game */}
+            {session.phase === 'PLAYING' && (
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
+                <h3 className="text-2xl font-bold text-white mb-4">
+                  ⚔️ Controles del Game
+                </h3>
+                
+                <p className="text-white/70 text-center mb-4">
+                  Presiona para dar 1 punto al ganador del game
+                </p>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  <button
+                    onClick={() => handleGameWinner('player1')}
+                    className="group relative py-8 bg-gradient-to-br from-smash-red via-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-red-400/50 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
+                      <div className="text-center">
+                        <div className="text-2xl font-black mb-1">{session.player1.name}</div>
+                        <div className="text-sm opacity-80">Dar punto</div>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleGameWinner('player2')}
+                    className="group relative py-8 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-blue-400/50 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
+                      <div className="text-center">
+                        <div className="text-2xl font-black mb-1">{session.player2.name}</div>
+                        <div className="text-sm opacity-80">Dar punto</div>
+                      </div>
+                    </div>
                   </button>
                 </div>
+                
+                <div className="mt-4 text-center text-sm text-white/60">
+                  {session.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Modal de Edición JSON */}
-        {showJsonEditor && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-smash-darker to-smash-purple rounded-2xl p-6 shadow-2xl border-2 border-smash-yellow max-w-4xl w-full max-h-[80vh] overflow-hidden">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-2xl font-bold text-white">⚙️ Editor de Configuración JSON</h3>
-                <button
-                  onClick={() => setShowJsonEditor(false)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                >
-                  ❌ Cerrar
-                </button>
-              </div>
-              
-              <div className="mb-4">
-                <p className="text-white/80 text-sm mb-2">
-                  💡 Edita la configuración aquí. Los cambios se aplicarán temporalmente hasta el próximo refresh.
-                </p>
-                <p className="text-yellow-400 text-xs">
-                  ⚠️ Para cambios permanentes, edita el archivo en GitHub: public/config/tournament-settings.json
-                </p>
-              </div>
-
-              <textarea
-                value={jsonEditContent}
-                onChange={(e) => setJsonEditContent(e.target.value)}
-                className="w-full h-96 p-4 bg-black/50 text-green-400 font-mono text-sm rounded-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-yellow resize-none"
-                placeholder="Configura tu JSON aquí..."
-              />
-
-              <div className="flex gap-4 mt-4">
-                <button
-                  onClick={handleSaveJson}
-                  className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all"
-                >
-                  💾 Aplicar Cambios (Temporal)
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(jsonEditContent);
-                    alert('📋 JSON copiado! Pégalo en GitHub para cambios permanentes.');
-                  }}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
-                >
-                  📋 Copiar para GitHub
-                </button>
-              </div>
+            {/* Botones de Control */}
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleEndMatch}
+                className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-500 hover:scale-105 transition-all shadow-lg"
+              >
+                🏁 Terminar Match
+              </button>
+              <button
+                onClick={handleResetSession}
+                className="px-8 py-3 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-all border border-white/30"
+              >
+                🔄 Reiniciar Serie
+              </button>
             </div>
           </div>
         )}
