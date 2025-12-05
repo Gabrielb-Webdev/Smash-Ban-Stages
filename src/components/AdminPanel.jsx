@@ -424,19 +424,42 @@ export default function AdminPanel() {
                   ⚔️ Controles del Game
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <p className="text-white/70 text-center mb-4">
+                  Presiona para dar 1 punto al ganador del game
+                </p>
+                
+                <div className="grid grid-cols-2 gap-6">
                   <button
                     onClick={() => handleGameWinner('player1')}
-                    className="py-4 bg-smash-red text-white font-bold text-lg rounded-lg hover:bg-smash-red/80 hover:scale-105 transition-all"
+                    className="group relative py-8 bg-gradient-to-br from-smash-red via-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-red-400/50 overflow-hidden"
                   >
-                    🏆 {session.player1.name} Ganó
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
+                      <div className="text-center">
+                        <div className="text-2xl font-black mb-1">{session.player1.name}</div>
+                        <div className="text-sm opacity-80">Dar punto</div>
+                      </div>
+                    </div>
                   </button>
+                  
                   <button
                     onClick={() => handleGameWinner('player2')}
-                    className="py-4 bg-smash-blue text-white font-bold text-lg rounded-lg hover:bg-smash-blue/80 hover:scale-105 transition-all"
+                    className="group relative py-8 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-blue-400/50 overflow-hidden"
                   >
-                    🏆 {session.player2.name} Ganó
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
+                      <div className="text-center">
+                        <div className="text-2xl font-black mb-1">{session.player2.name}</div>
+                        <div className="text-sm opacity-80">Dar punto</div>
+                      </div>
+                    </div>
                   </button>
+                </div>
+                
+                <div className="mt-4 text-center text-sm text-white/60">
+                  {session.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
                 </div>
               </div>
             )}

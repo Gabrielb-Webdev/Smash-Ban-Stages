@@ -753,46 +753,103 @@ export default function TabletControl({ sessionId }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20 flex-1 flex flex-col justify-center">
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-2">⚔️</div>
-              <h3 className="text-3xl font-bold text-white mb-1">¡En Combate!</h3>
-              <p className="text-white/70 text-base">Marca al ganador de este game</p>
+          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+            {/* Efecto de fondo animado */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-10 left-10 text-9xl animate-pulse">⚔️</div>
+              <div className="absolute bottom-10 right-10 text-9xl animate-pulse" style={{ animationDelay: '1s' }}>⚔️</div>
             </div>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-smash-red/20 rounded-lg p-3 text-center">
-                <p className="text-white/70 text-xs mb-1">Jugador 1</p>
-                <p className="text-white font-bold text-lg">{session.player1.name}</p>
-                <p className="text-smash-yellow text-sm">{session.player1.character || 'N/A'}</p>
+
+            {/* Contenido principal */}
+            <div className="relative z-10">
+              <div className="text-center mb-8">
+                <div className="text-8xl mb-4 animate-bounce">⚔️</div>
+                <h3 className="text-5xl font-black text-white mb-3"
+                    style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
+                  ¡EN COMBATE!
+                </h3>
+                <p className="text-white/80 text-2xl font-semibold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                  Game {session.currentGame}
+                </p>
               </div>
-              <div className="flex items-center justify-center">
-                <div className="text-white text-3xl font-bold">VS</div>
-              </div>
-              <div className="bg-smash-blue/20 rounded-lg p-3 text-center">
-                <p className="text-white/70 text-xs mb-1">Jugador 2</p>
-                <p className="text-white font-bold text-lg">{session.player2.name}</p>
-                <p className="text-smash-yellow text-sm">{session.player2.character || 'N/A'}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setGameWinner('player1')}
-                className="py-10 bg-gradient-to-br from-smash-red via-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all active:scale-95 border-4 border-red-400/50"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-5xl">🏆</span>
-                  <span>{session.player1.name} Ganó</span>
+
+              {/* Matchup Display */}
+              <div className="bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-2xl p-8 border-2 border-white/30 shadow-2xl">
+                <div className="grid grid-cols-3 gap-6 items-center">
+                  {/* Player 1 */}
+                  <div className="text-center space-y-3">
+                    <div className="bg-gradient-to-br from-smash-red/40 to-red-700/40 rounded-xl p-6 border-2 border-red-400/50 shadow-lg">
+                      <p className="text-white/70 text-sm mb-2 font-semibold">Jugador 1</p>
+                      <p className="text-white font-black text-3xl mb-3"
+                         style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
+                        {session.player1.name}
+                      </p>
+                      <div className="bg-black/30 rounded-lg p-3 border border-white/20">
+                        <p className="text-smash-yellow text-sm font-semibold mb-1">Personaje</p>
+                        <p className="text-white text-lg font-bold">
+                          {getCharacterData(session.player1.character)?.name || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-smash-yellow/20 rounded-lg p-3 border-2 border-smash-yellow/50">
+                      <p className="text-white/70 text-xs font-semibold">Score</p>
+                      <p className="text-smash-yellow text-4xl font-black"
+                         style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                        {session.player1.score}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* VS */}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="bg-gradient-to-br from-white/20 to-white/10 rounded-full p-6 border-4 border-white/30 shadow-2xl">
+                      <p className="text-white text-5xl font-black"
+                         style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
+                        VS
+                      </p>
+                    </div>
+                    <div className="mt-4 bg-white/10 rounded-lg px-4 py-2 border border-white/20">
+                      <p className="text-white text-lg font-semibold">
+                        {getStageData(session.selectedStage)?.name || 'Stage'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Player 2 */}
+                  <div className="text-center space-y-3">
+                    <div className="bg-gradient-to-br from-smash-blue/40 to-blue-700/40 rounded-xl p-6 border-2 border-blue-400/50 shadow-lg">
+                      <p className="text-white/70 text-sm mb-2 font-semibold">Jugador 2</p>
+                      <p className="text-white font-black text-3xl mb-3"
+                         style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
+                        {session.player2.name}
+                      </p>
+                      <div className="bg-black/30 rounded-lg p-3 border border-white/20">
+                        <p className="text-smash-yellow text-sm font-semibold mb-1">Personaje</p>
+                        <p className="text-white text-lg font-bold">
+                          {getCharacterData(session.player2.character)?.name || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-smash-yellow/20 rounded-lg p-3 border-2 border-smash-yellow/50">
+                      <p className="text-white/70 text-xs font-semibold">Score</p>
+                      <p className="text-smash-yellow text-4xl font-black"
+                         style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                        {session.player2.score}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </button>
-              <button
-                onClick={() => setGameWinner('player2')}
-                className="py-10 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all active:scale-95 border-4 border-blue-400/50"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-5xl">🏆</span>
-                  <span>{session.player2.name} Ganó</span>
+              </div>
+
+              {/* Mensaje informativo */}
+              <div className="mt-6 text-center">
+                <div className="inline-block bg-white/10 backdrop-blur-sm rounded-xl px-6 py-3 border border-white/20">
+                  <p className="text-white/90 text-lg font-semibold">
+                    💡 El administrador marcará al ganador desde el panel
+                  </p>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
         )}
