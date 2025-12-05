@@ -324,7 +324,7 @@ export default function StreamOverlay({ sessionId }) {
                   perspective: '800px'
                 }}
               >
-                Stage Bans
+                STAGE BANS
               </motion.h2>
             </AnimatePresence>
           </div>
