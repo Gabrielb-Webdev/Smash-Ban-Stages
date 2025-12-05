@@ -162,6 +162,63 @@ export default function AdminPanel() {
     alert('Link copiado al portapapeles');
   };
 
+  const generateQRCode = (url) => {
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+    return qrApiUrl;
+  };
+
+  const showQRCode = (url, title) => {
+    const qrUrl = generateQRCode(url);
+    const qrWindow = window.open('', '_blank', 'width=300,height=350,resizable=yes');
+    qrWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>QR Code - ${title}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              text-align: center;
+              padding: 20px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              margin: 0;
+              color: white;
+            }
+            .qr-container {
+              background: white;
+              padding: 20px;
+              border-radius: 15px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+              margin: 20px auto;
+              max-width: 250px;
+            }
+            img {
+              border-radius: 10px;
+            }
+            .url {
+              word-break: break-all;
+              font-size: 12px;
+              color: #333;
+              margin-top: 10px;
+            }
+            h2 {
+              margin-top: 0;
+              color: white;
+            }
+          </style>
+        </head>
+        <body>
+          <h2>📱 ${title}</h2>
+          <div class="qr-container">
+            <img src="${qrUrl}" alt="QR Code" />
+            <div class="url">${url}</div>
+          </div>
+        </body>
+      </html>
+    `);
+    qrWindow.document.close();
+  };
+
   const handleEditJson = () => {
     setJsonEditContent(JSON.stringify(tournamentConfig, null, 2));
     setShowJsonEditor(true);
@@ -486,38 +543,74 @@ export default function AdminPanel() {
             </div>
 
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
-              <h3 className="text-2xl font-bold text-white mb-4">📱 Links</h3>
+              <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                📱 Links <span className="text-sm font-normal opacity-70">(Para móviles y tablets)</span>
+              </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-semibold">🎮 Tablet:</span>
-                  <input
-                    type="text"
-                    value={getControlLink('tablet')}
-                    readOnly
-                    className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(getControlLink('tablet'))}
-                    className="px-4 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
-                  >
-                    📋
-                  </button>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-white font-semibold">🎮 Tablet Control:</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={getControlLink('tablet')}
+                      readOnly
+                      className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm font-mono"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(getControlLink('tablet'))}
+                      className="px-3 py-2 bg-smash-blue text-white font-semibold rounded-lg hover:bg-smash-blue/80 transition-all"
+                      title="Copiar link"
+                    >
+                      📋
+                    </button>
+                    <button
+                      onClick={() => showQRCode(getControlLink('tablet'), 'Tablet Control')}
+                      className="px-3 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all"
+                      title="Ver QR Code"
+                    >
+                      📱
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-semibold">📺 Stream:</span>
-                  <input
-                    type="text"
-                    value={getControlLink('stream')}
-                    readOnly
-                    className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(getControlLink('stream'))}
-                    className="px-4 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80 transition-all"
-                  >
-                    📋
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-white font-semibold">📺 Stream Overlay:</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={getControlLink('stream')}
+                      readOnly
+                      className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white text-sm font-mono"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(getControlLink('stream'))}
+                      className="px-3 py-2 bg-smash-purple text-white font-semibold rounded-lg hover:bg-smash-purple/80 transition-all"
+                      title="Copiar link"
+                    >
+                      📋
+                    </button>
+                    <button
+                      onClick={() => showQRCode(getControlLink('stream'), 'Stream Overlay')}
+                      className="px-3 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all"
+                      title="Ver QR Code"
+                    >
+                      📱
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                <p className="text-blue-300 text-sm">
+                  💡 <strong>Tip:</strong> Usa el QR code 📱 para abrir rápidamente en móviles
+                </p>
+              </div>
+            </div>
                   </button>
                 </div>
               </div>
