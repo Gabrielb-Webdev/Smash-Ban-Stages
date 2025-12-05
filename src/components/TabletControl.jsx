@@ -805,48 +805,41 @@ export default function TabletControl({ sessionId }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
-            {/* Efecto de fondo animado */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-10 left-10 text-9xl animate-pulse">⚔️</div>
-              <div className="absolute bottom-10 right-10 text-9xl animate-pulse" style={{ animationDelay: '1s' }}>⚔️</div>
-            </div>
-
+          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-xl p-4 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
             {/* Contenido principal */}
             <div className="relative z-10">
-              <div className="text-center mb-8">
-                <div className="text-8xl mb-4 animate-bounce">⚔️</div>
-                <h3 className="text-5xl font-black text-white mb-3"
+              <div className="text-center mb-4">
+                <h3 className="text-3xl font-black text-white mb-2"
                     style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
                   ¡EN COMBATE!
                 </h3>
-                <p className="text-white/80 text-2xl font-semibold"
+                <p className="text-white/80 text-lg font-semibold"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   Game {session.currentGame}
                 </p>
               </div>
 
               {/* Matchup Display */}
-              <div className="bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-2xl p-8 border-2 border-white/30 shadow-2xl">
-                <div className="grid grid-cols-3 gap-6 items-center">
+              <div className="bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-2xl p-4 border-2 border-white/30 shadow-2xl">
+                <div className="grid grid-cols-3 gap-3 items-center">
                   {/* Player 1 */}
-                  <div className="text-center space-y-3">
-                    <div className="bg-gradient-to-br from-smash-red/40 to-red-700/40 rounded-xl p-6 border-2 border-red-400/50 shadow-lg">
-                      <p className="text-white/70 text-sm mb-2 font-semibold">Jugador 1</p>
-                      <p className="text-white font-black text-3xl mb-3"
+                  <div className="text-center space-y-2">
+                    <div className="bg-gradient-to-br from-smash-red/40 to-red-700/40 rounded-xl p-3 border-2 border-red-400/50 shadow-lg">
+                      <p className="text-white/70 text-xs mb-1 font-semibold">Jugador 1</p>
+                      <p className="text-white font-black text-xl mb-2"
                          style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
                         {session.player1.name}
                       </p>
-                      <div className="bg-black/30 rounded-lg p-3 border border-white/20">
-                        <p className="text-smash-yellow text-sm font-semibold mb-1">Personaje</p>
-                        <p className="text-white text-lg font-bold">
+                      <div className="bg-black/30 rounded-lg p-2 border border-white/20">
+                        <p className="text-smash-yellow text-xs font-semibold mb-1">Personaje</p>
+                        <p className="text-white text-sm font-bold">
                           {getCharacterData(session.player1.character)?.name || 'N/A'}
                         </p>
                       </div>
                     </div>
-                    <div className="bg-smash-yellow/20 rounded-lg p-3 border-2 border-smash-yellow/50">
+                    <div className="bg-smash-yellow/20 rounded-lg p-2 border-2 border-smash-yellow/50">
                       <p className="text-white/70 text-xs font-semibold">Score</p>
-                      <p className="text-smash-yellow text-4xl font-black"
+                      <p className="text-smash-yellow text-2xl font-black"
                          style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                         {session.player1.score}
                       </p>
@@ -855,37 +848,37 @@ export default function TabletControl({ sessionId }) {
 
                   {/* VS */}
                   <div className="flex flex-col items-center justify-center">
-                    <div className="bg-gradient-to-br from-white/20 to-white/10 rounded-full p-6 border-4 border-white/30 shadow-2xl">
-                      <p className="text-white text-5xl font-black"
+                    <div className="bg-gradient-to-br from-white/20 to-white/10 rounded-full p-3 border-4 border-white/30 shadow-2xl">
+                      <p className="text-white text-2xl font-black"
                          style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
                         VS
                       </p>
                     </div>
-                    <div className="mt-4 bg-white/10 rounded-lg px-4 py-2 border border-white/20">
-                      <p className="text-white text-lg font-semibold">
+                    <div className="mt-2 bg-white/10 rounded-lg px-3 py-1 border border-white/20">
+                      <p className="text-white text-sm font-semibold">
                         {getStageData(session.selectedStage)?.name || 'Stage'}
                       </p>
                     </div>
                   </div>
 
                   {/* Player 2 */}
-                  <div className="text-center space-y-3">
-                    <div className="bg-gradient-to-br from-smash-blue/40 to-blue-700/40 rounded-xl p-6 border-2 border-blue-400/50 shadow-lg">
-                      <p className="text-white/70 text-sm mb-2 font-semibold">Jugador 2</p>
-                      <p className="text-white font-black text-3xl mb-3"
+                  <div className="text-center space-y-2">
+                    <div className="bg-gradient-to-br from-smash-blue/40 to-blue-700/40 rounded-xl p-3 border-2 border-blue-400/50 shadow-lg">
+                      <p className="text-white/70 text-xs mb-1 font-semibold">Jugador 2</p>
+                      <p className="text-white font-black text-xl mb-2"
                          style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
                         {session.player2.name}
                       </p>
-                      <div className="bg-black/30 rounded-lg p-3 border border-white/20">
-                        <p className="text-smash-yellow text-sm font-semibold mb-1">Personaje</p>
-                        <p className="text-white text-lg font-bold">
+                      <div className="bg-black/30 rounded-lg p-2 border border-white/20">
+                        <p className="text-smash-yellow text-xs font-semibold mb-1">Personaje</p>
+                        <p className="text-white text-sm font-bold">
                           {getCharacterData(session.player2.character)?.name || 'N/A'}
                         </p>
                       </div>
                     </div>
-                    <div className="bg-smash-yellow/20 rounded-lg p-3 border-2 border-smash-yellow/50">
+                    <div className="bg-smash-yellow/20 rounded-lg p-2 border-2 border-smash-yellow/50">
                       <p className="text-white/70 text-xs font-semibold">Score</p>
-                      <p className="text-smash-yellow text-4xl font-black"
+                      <p className="text-smash-yellow text-2xl font-black"
                          style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                         {session.player2.score}
                       </p>
@@ -895,9 +888,9 @@ export default function TabletControl({ sessionId }) {
               </div>
 
               {/* Mensaje informativo */}
-              <div className="mt-6 text-center">
-                <div className="inline-block bg-white/10 backdrop-blur-sm rounded-xl px-6 py-3 border border-white/20">
-                  <p className="text-white/90 text-lg font-semibold">
+              <div className="mt-3 text-center">
+                <div className="inline-block bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
+                  <p className="text-white/90 text-sm font-semibold">
                     💡 El administrador marcará al ganador desde el panel
                   </p>
                 </div>
