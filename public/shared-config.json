@@ -1,0 +1,14 @@
+{
+  "player1": {
+    "name": "Player 1"
+  },
+  "player2": {
+    "name": "Player 2"
+  },
+  "format": "BO3",
+  "actions": {
+    "createSession": false,
+    "resetSeries": false
+  },
+  "lastUpdate": "2025-12-05T00:00:00Z"
+}

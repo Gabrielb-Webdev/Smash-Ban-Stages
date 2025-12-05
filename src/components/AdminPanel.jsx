@@ -14,6 +14,93 @@ export default function AdminPanel() {
   const [editPlayer1, setEditPlayer1] = useState('');
   const [editPlayer2, setEditPlayer2] = useState('');
   const [editFormat, setEditFormat] = useState('BO3');
+  const [lastJsonUpdate, setLastJsonUpdate] = useState('');
+
+  // Función para traducir formato
+  const translateFormat = (externalFormat) => {
+    if (typeof externalFormat !== 'string') return 'BO3';
+    
+    const format = externalFormat.toUpperCase();
+    if (format.includes('BEST OF 3') || format.includes('BO3') || format === 'BEST OF 3') return 'BO3';
+    if (format.includes('BEST OF 5') || format.includes('BO5') || format === 'BEST OF 5') return 'BO5';
+    return 'BO3'; // Default
+  };
+
+  // Función para verificar y aplicar configuración externa
+  const checkExternalConfig = async () => {
+    try {
+      const response = await fetch('/api/external-config');
+      if (!response.ok) return;
+      
+      const config = await response.json();
+      
+      // Solo actualizar si hay cambios
+      if (config.lastUpdate && config.lastUpdate !== lastJsonUpdate) {
+        console.log('📥 Configuración externa detectada:', config);
+        
+        // Actualizar nombres
+        if (config.player1?.name && config.player1.name !== player1Name) {
+          setPlayer1Name(config.player1.name);
+          console.log('👤 Player 1 actualizado:', config.player1.name);
+        }
+        
+        if (config.player2?.name && config.player2.name !== player2Name) {
+          setPlayer2Name(config.player2.name);
+          console.log('👤 Player 2 actualizado:', config.player2.name);
+        }
+        
+        // Actualizar formato
+        if (config.format) {
+          const translatedFormat = translateFormat(config.format);
+          if (translatedFormat !== format) {
+            setFormat(translatedFormat);
+            console.log('🎯 Formato actualizado:', config.format, '→', translatedFormat);
+          }
+        }
+        
+        // Ejecutar acciones
+        if (config.actions?.createSession && player1Name && player2Name) {
+          console.log('🚀 Auto-creando sesión desde configuración externa');
+          setTimeout(() => handleCreateSession(), 500);
+          // Reset action flag vía API
+          await updateExternalConfig({ ...config, actions: { ...config.actions, createSession: false } });
+        }
+        
+        if (config.actions?.resetSeries && session) {
+          console.log('🔄 Auto-reiniciando serie desde configuración externa');
+          setTimeout(() => handleResetSession(), 500);
+          // Reset action flag vía API
+          await updateExternalConfig({ ...config, actions: { ...config.actions, resetSeries: false } });
+        }
+        
+        setLastJsonUpdate(config.lastUpdate);
+      }
+    } catch (error) {
+      console.log('⚠️ Error leyendo configuración externa:', error);
+    }
+  };
+
+  // Función para actualizar configuración externa
+  const updateExternalConfig = async (newConfig) => {
+    try {
+      const response = await fetch('/api/external-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newConfig,
+          lastUpdate: new Date().toISOString()
+        })
+      });
+      
+      if (response.ok) {
+        console.log('📤 Configuración externa actualizada:', newConfig);
+      } else {
+        console.log('⚠️ Error actualizando configuración externa');
+      }
+    } catch (error) {
+      console.log('⚠️ Error actualizando configuración externa:', error);
+    }
+  };
 
   useEffect(() => {
     // Conectar al WebSocket cuando se monta el componente
@@ -47,6 +134,19 @@ export default function AdminPanel() {
       console.log('Sesión actualizada:', data);
       setSession(data.session);
     });
+
+    return () => {
+      if (adminSocket) {
+        adminSocket.disconnect();
+      }
+    };
+  }, []);
+
+  // Polling para configuración externa
+  useEffect(() => {
+    const interval = setInterval(checkExternalConfig, 2000); // Cada 2 segundos
+    return () => clearInterval(interval);
+  }, [player1Name, player2Name, format, lastJsonUpdate, session]);
 
     adminSocket.on('series-finished', (data) => {
       console.log('Serie finalizada:', data);
@@ -148,6 +248,15 @@ export default function AdminPanel() {
           <p className="text-smash-light text-lg">
             Sistema de Baneos - Super Smash Bros Ultimate
           </p>
+          {lastJsonUpdate && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-green-600/20 border border-green-500/50 rounded-lg px-4 py-2">
+              <span className="text-green-400 text-lg">🔗</span>
+              <span className="text-green-300 text-sm font-medium">
+                Sincronizado con panel externo
+              </span>
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            </div>
+          )}
         </div>
 
         {!session || session.phase === 'FINISHED' ? (
