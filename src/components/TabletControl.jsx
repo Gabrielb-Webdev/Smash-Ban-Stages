@@ -793,7 +793,7 @@ export default function TabletControl({ sessionId }) {
                     <img 
                       src={character.image} 
                       alt={character.name}
-                      className="w-8 h-8 object-contain group-hover:scale-110 transition-transform drop-shadow-lg"
+                      className="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-lg"
                       onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                     />
                   </div>
