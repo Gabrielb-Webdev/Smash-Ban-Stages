@@ -296,13 +296,16 @@ export default function StreamOverlay({ sessionId }) {
                 key="stage-bans-text"
                 initial={{ 
                   y: 30,
-                  opacity: 0,
-                  scale: 0.8
+                  clipPath: 'inset(100% 0 0 0)'
                 }}
                 animate={{ 
                   y: [30, 0, 0, -30],
-                  opacity: [0, 1, 1, 0],
-                  scale: [0.8, 1, 1, 0.8]
+                  clipPath: [
+                    'inset(100% 0 0 0)',
+                    'inset(0% 0 0 0)', 
+                    'inset(0% 0 0 0)',
+                    'inset(0 0 100% 0)'
+                  ]
                 }}
                 transition={{ 
                   duration: 3,
