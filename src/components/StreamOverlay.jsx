@@ -297,14 +297,12 @@ export default function StreamOverlay({ sessionId }) {
                 initial={{ 
                   y: 30,
                   opacity: 0,
-                  scale: 0.8,
-                  rotateX: -45
+                  scale: 0.8
                 }}
                 animate={{ 
                   y: [30, 0, 0, -30],
                   opacity: [0, 1, 1, 0],
-                  scale: [0.8, 1, 1, 0.8],
-                  rotateX: [-45, 0, 0, 45]
+                  scale: [0.8, 1, 1, 0.8]
                 }}
                 transition={{ 
                   duration: 3,
@@ -317,9 +315,7 @@ export default function StreamOverlay({ sessionId }) {
                   fontFamily: 'Anton',
                   fontSize: '5.5rem',
                   fontWeight: '400',
-                  color: '#FFFFFF',
-                  transformStyle: 'preserve-3d',
-                  perspective: '800px'
+                  color: '#FFFFFF'
                 }}
               >
                 STAGE BANS
