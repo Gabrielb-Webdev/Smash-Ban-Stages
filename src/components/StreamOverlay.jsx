@@ -291,7 +291,14 @@ export default function StreamOverlay({ sessionId }) {
         {/* Texto "Stage Bans" en el centro - Aparece desde abajo del footer */}
         {session.player1.character && session.player2.character && (
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
-            <div className="overflow-hidden h-24 flex items-center justify-center">
+            <div 
+              className="overflow-hidden h-24 flex items-center justify-center"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitScrollbar: 'none'
+              }}
+            >
               <AnimatePresence>
                 <motion.h2 
                   key="stage-bans-text"
