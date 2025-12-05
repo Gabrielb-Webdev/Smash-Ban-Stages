@@ -298,13 +298,13 @@ export default function StreamOverlay({ sessionId }) {
                   y: 100,
                   opacity: 0,
                   scale: 0.6,
-                  rotateX: 75
+                  rotateX: -75
                 }}
                 animate={{ 
-                  y: [100, 20, 0, -10, -80],
+                  y: [100, 20, 0, -10, -100],
                   opacity: [0, 1, 1, 1, 0],
                   scale: [0.6, 1.05, 1, 1, 0.85],
-                  rotateX: [75, 5, 0, -5, -75]
+                  rotateX: [-75, -5, 0, 5, 75]
                 }}
                 transition={{ 
                   duration: 2.8,
