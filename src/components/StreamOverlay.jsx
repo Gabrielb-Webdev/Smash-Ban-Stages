@@ -318,15 +318,6 @@ export default function StreamOverlay({ sessionId }) {
                   fontSize: '5.5rem',
                   fontWeight: '400',
                   color: '#FFFFFF',
-                  textShadow: `
-                    5px 5px 0px #000000,
-                    -2px -2px 0px #000000,
-                    2px -2px 0px #000000,
-                    -2px 2px 0px #000000,
-                    0 0 15px rgba(0, 0, 0, 0.8),
-                    0 0 30px rgba(0, 0, 0, 0.6),
-                    0 8px 25px rgba(0, 0, 0, 0.9)
-                  `,
                   letterSpacing: '0.08em',
                   WebkitTextStroke: '2px #000000',
                   transformStyle: 'preserve-3d',
