@@ -135,6 +135,11 @@ export default function AdminPanel() {
       setSession(data.session);
     });
 
+    adminSocket.on('series-finished', (data) => {
+      console.log('Serie finalizada:', data);
+      setSession(data.session);
+    });
+
     return () => {
       if (adminSocket) {
         adminSocket.disconnect();
@@ -147,18 +152,6 @@ export default function AdminPanel() {
     const interval = setInterval(checkExternalConfig, 2000); // Cada 2 segundos
     return () => clearInterval(interval);
   }, [player1Name, player2Name, format, lastJsonUpdate, session]);
-
-    adminSocket.on('series-finished', (data) => {
-      console.log('Serie finalizada:', data);
-      setSession(data.session);
-    });
-
-    return () => {
-      if (adminSocket) {
-        adminSocket.disconnect();
-      }
-    };
-  }, []);
 
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
