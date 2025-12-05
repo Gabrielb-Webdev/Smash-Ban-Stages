@@ -307,8 +307,8 @@ export default function StreamOverlay({ sessionId }) {
                   rotateX: [-45, 0, 0, 45]
                 }}
                 transition={{ 
-                  duration: 4,
-                  times: [0, 0.2, 0.7, 1],
+                  duration: 3,
+                  times: [0, 0.3, 0.6, 1],
                   ease: "easeInOut",
                   delay: 0.8
                 }}
