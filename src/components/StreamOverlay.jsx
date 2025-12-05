@@ -295,21 +295,21 @@ export default function StreamOverlay({ sessionId }) {
               <motion.h2 
                 key="stage-bans-text"
                 initial={{ 
-                  y: 100,
+                  y: 150,
                   opacity: 0,
-                  scale: 0.6,
-                  rotateX: -75
+                  scale: 0.8,
+                  rotateX: -60
                 }}
                 animate={{ 
-                  y: [100, 20, 0, -10, -100],
-                  opacity: [0, 1, 1, 1, 0],
-                  scale: [0.6, 1.05, 1, 1, 0.85],
-                  rotateX: [-75, -5, 0, 5, 75]
+                  y: [150, 0, -150],
+                  opacity: [0, 1, 0],
+                  scale: [0.8, 1, 0.8],
+                  rotateX: [-60, 0, 60]
                 }}
                 transition={{ 
-                  duration: 2.8,
-                  times: [0, 0.35, 0.5, 0.75, 1],
-                  ease: [0.34, 1.56, 0.64, 1],
+                  duration: 2.5,
+                  times: [0, 0.5, 1],
+                  ease: "linear",
                   delay: 0.8
                 }}
                 className="whitespace-nowrap"
