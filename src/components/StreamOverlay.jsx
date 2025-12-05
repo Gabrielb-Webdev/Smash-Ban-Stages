@@ -294,24 +294,43 @@ export default function StreamOverlay({ sessionId }) {
             <AnimatePresence>
               <motion.h2 
                 key="stage-bans-text"
-                initial={{ scale: 0, opacity: 0, y: 50 }}
+                initial={{ 
+                  y: 200,
+                  opacity: 0,
+                  scale: 0.5,
+                  rotateX: 90
+                }}
                 animate={{ 
-                  scale: [0, 1.3, 1, 1, 0.8],
+                  y: [200, -50, -40, -50, -300],
                   opacity: [0, 1, 1, 1, 0],
-                  y: [50, -10, 0, 0, -30]
+                  scale: [0.5, 1.1, 1, 1, 0.8],
+                  rotateX: [90, -10, 0, 0, -90]
                 }}
                 transition={{ 
-                  duration: 2.5,
-                  times: [0, 0.3, 0.5, 0.8, 1],
-                  ease: "easeInOut",
+                  duration: 3,
+                  times: [0, 0.3, 0.5, 0.75, 1],
+                  ease: [0.34, 1.56, 0.64, 1],
                   delay: 0.8
                 }}
-                className="text-black drop-shadow-2xl whitespace-nowrap"
+                className="whitespace-nowrap"
                 style={{ 
                   fontFamily: 'Anton',
-                  fontSize: '7rem',
-                  textShadow: '4px 4px 0px rgba(255, 255, 255, 0.8), -2px -2px 0px rgba(255, 255, 255, 0.8), 2px -2px 0px rgba(255, 255, 255, 0.8), -2px 2px 0px rgba(255, 255, 255, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5)',
-                  letterSpacing: '0.05em'
+                  fontSize: '8rem',
+                  fontWeight: '400',
+                  color: '#FFFFFF',
+                  textShadow: `
+                    6px 6px 0px #000000,
+                    -3px -3px 0px #000000,
+                    3px -3px 0px #000000,
+                    -3px 3px 0px #000000,
+                    0 0 20px rgba(0, 0, 0, 0.8),
+                    0 0 40px rgba(0, 0, 0, 0.6),
+                    0 10px 30px rgba(0, 0, 0, 0.9)
+                  `,
+                  letterSpacing: '0.08em',
+                  WebkitTextStroke: '2px #000000',
+                  transformStyle: 'preserve-3d',
+                  perspective: '1000px'
                 }}
               >
                 Stage Bans
