@@ -1,0 +1,60 @@
+{
+  "defaultPlayers": {
+    "player1": "Jugador 1",
+    "player2": "Jugador 2"
+  },
+  "formats": [
+    {
+      "id": "BO3",
+      "name": "Best of 3",
+      "maxWins": 2,
+      "totalGames": 3
+    },
+    {
+      "id": "BO5", 
+      "name": "Best of 5",
+      "maxWins": 3,
+      "totalGames": 5
+    }
+  ],
+  "defaultFormat": "BO3",
+  "presetPlayers": [
+    {
+      "name": "Nostra",
+      "tag": "Nostra"
+    },
+    {
+      "name": "Iori",
+      "tag": "Iori"
+    },
+    {
+      "name": "MkLeo",
+      "tag": "MkLeo"
+    },
+    {
+      "name": "Sparg0",
+      "tag": "Sparg0"
+    },
+    {
+      "name": "Acola",
+      "tag": "Acola"
+    },
+    {
+      "name": "Shuton",
+      "tag": "Shuton"
+    },
+    {
+      "name": "Tweek",
+      "tag": "Tweek"
+    },
+    {
+      "name": "Dabuz",
+      "tag": "Dabuz"
+    }
+  ],
+  "quickSettings": {
+    "enablePresetPlayers": true,
+    "enableQuickFormats": true,
+    "autoFillLastUsed": true
+  }
+}

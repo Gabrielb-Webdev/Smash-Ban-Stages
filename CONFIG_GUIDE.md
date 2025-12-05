@@ -1,98 +1,160 @@
-# Guía de Uso - Panel de Administración Simplificado
+# Guía de Configuración - Panel de Administración con JSON
 
-## 📋 Funcionamiento del Panel
+## 📋 Cómo Funciona
 
-El nuevo panel simplificado funciona automáticamente y genera el JSON sin necesidad de configurar manualmente stages y personajes.
+El panel de administración ahora se **alimenta** desde un archivo JSON que facilita la configuración de torneos.
 
-### 🚀 Uso Básico
+### 📁 Archivo de Configuración
+**Ubicación**: `/public/config/tournament-settings.json`
 
-1. **Configurar Serie**: 
-   - Introduce los nombres de los jugadores
-   - Selecciona formato (BO3 o BO5)  
-   - Presiona "Crear Serie"
+Este archivo contiene toda la configuración del panel para hacer el setup más rápido y fácil.
 
-2. **Manejar Puntos**:
-   - Usa los botones **+1** para dar puntos al ganador de cada game
-   - Usa los botones **-1** para corregir errores
-   - El sistema calcula automáticamente en qué game van
-
-3. **El JSON se genera automáticamente** con:
-   - Nombres de jugadores
-   - Formato de la serie (BO3/BO5)
-   - Puntos actuales
-   - Game actual calculado
-   - Estado de la serie
-
-## 🎮 Cómo funciona el cálculo automático
-
-### Lógica de Games:
-- **0 puntos total** (0-0) = **Game 1**
-- **1 punto total** (1-0 o 0-1) = **Game 2**  
-- **2 puntos total** (2-0, 1-1, 0-2) = **Game 3**
-- **3 puntos total** (2-1, 1-2) = **Game 4** (solo BO5)
-- **4 puntos total** (2-2) = **Game 5** (solo BO5)
-
-### Condiciones de victoria:
-- **BO3**: Primero en llegar a 2 puntos
-- **BO5**: Primero en llegar a 3 puntos
-
-## 📄 Ejemplo de JSON Generado
+## 🎮 Estructura del JSON
 
 ```json
 {
-  "sessionId": "main-session",
-  "player1": {
-    "name": "Nostra",
-    "score": 1
+  "defaultPlayers": {
+    "player1": "Jugador 1",
+    "player2": "Jugador 2"
   },
-  "player2": {
-    "name": "Iori", 
-    "score": 1
-  },
-  "format": "BO3",
-  "currentGame": 3,
-  "totalGames": 3,
-  "maxWins": 2,
-  "isFinished": false,
-  "winner": null
+  "formats": [
+    {
+      "id": "BO3",
+      "name": "Best of 3", 
+      "maxWins": 2,
+      "totalGames": 3
+    },
+    {
+      "id": "BO5",
+      "name": "Best of 5",
+      "maxWins": 3, 
+      "totalGames": 5
+    }
+  ],
+  "defaultFormat": "BO3",
+  "presetPlayers": [
+    {
+      "name": "Nostra",
+      "tag": "Nostra"
+    },
+    {
+      "name": "Iori", 
+      "tag": "Iori"
+    }
+  ],
+  "quickSettings": {
+    "enablePresetPlayers": true,
+    "enableQuickFormats": true,
+    "autoFillLastUsed": true
+  }
 }
 ```
 
-## 🔧 Panel Simplificado
+## ⚙️ Configuraciones Disponibles
 
-### Lo que tu amigo necesita hacer:
+### 1. **Jugadores Por Defecto**
+```json
+"defaultPlayers": {
+  "player1": "Nombre por defecto J1",
+  "player2": "Nombre por defecto J2"
+}
+```
+- Se llenan automáticamente al cargar el panel
 
-1. **Solo 3 campos**:
-   - ✅ Nombre Jugador 1
-   - ✅ Nombre Jugador 2  
-   - ✅ Formato (BO3/BO5)
+### 2. **Presets de Jugadores**
+```json
+"presetPlayers": [
+  { "name": "MkLeo", "tag": "MkLeo" },
+  { "name": "Sparg0", "tag": "Sparg0" }
+]
+```
+- Aparecen en dropdowns para selección rápida
+- Botón "📋 Presets" junto a cada campo de jugador
 
-2. **Durante la serie**:
-   - ✅ Presionar +1 cuando alguien gane un game
-   - ✅ El resto es automático
+### 3. **Formatos Personalizados**
+```json
+"formats": [
+  {
+    "id": "BO3",
+    "name": "Best of 3",
+    "maxWins": 2,
+    "totalGames": 3
+  }
+]
+```
+- Define formatos disponibles
+- `maxWins`: Puntos necesarios para ganar
+- `totalGames`: Máximo de games posibles
 
-### Lo que el sistema hace automáticamente:
+### 4. **Configuraciones Rápidas**
+```json
+"quickSettings": {
+  "enablePresetPlayers": true,    // Mostrar botones de presets
+  "enableQuickFormats": true,     // Mostrar formatos personalizados
+  "autoFillLastUsed": true        // Auto-llenar con valores por defecto
+}
+```
 
-- 🤖 Calcula el game actual basado en puntos totales
-- 🤖 Genera el JSON en tiempo real
-- 🤖 Detecta cuándo la serie termina
-- 🤖 Mantiene los links de tablet y stream actualizados
+## 🚀 Funcionalidades del Panel
 
-## ⚡ Ventajas del nuevo sistema
+### Para tu amigo es súper fácil:
 
-- **Menos formularios**: Solo nombres y formato
-- **Automático**: El JSON se actualiza solo
-- **Sin errores**: Imposible meter datos incorrectos
-- **Visual**: Ve los puntos y el game actual en tiempo real
-- **Backup**: Puede corregir puntos con -1 si se equivoca
+1. **Pre-configurado**: Los jugadores y formato se cargan automáticamente
+2. **Presets rápidos**: Click en "📋 Presets" para seleccionar jugadores comunes
+3. **Controles rápidos**: 
+   - 🔄 Intercambiar jugadores
+   - 🗑️ Limpiar campos
+4. **Formatos visuales**: Botones grandes con información clara
 
-## 🎯 Para tu amigo:
+### Durante la serie:
+- **Botones +1/-1**: Para manejar puntos
+- **Cálculo automático**: Game actual basado en puntos totales
+- **Visual claro**: Información del estado actual
 
-**Ya no necesitas configurar stages ni personajes manualmente**. El sistema:
+## 📝 Ejemplos de Personalización
 
-1. **Toma los nombres** que pongas en el panel
-2. **Cuenta los puntos** cuando presiones +1  
-3. **Calcula automáticamente** en qué game van
-4. **Genera el JSON** con toda la info actualizada
+### Añadir más jugadores presets:
+```json
+"presetPlayers": [
+  { "name": "Nostra", "tag": "Nostra" },
+  { "name": "Iori", "tag": "Iori" },
+  { "name": "MkLeo", "tag": "MkLeo" },
+  { "name": "Sparg0", "tag": "Sparg0" }
+]
+```
 
-**¡Súper simple!** 😎
+### Crear formato personalizado:
+```json
+{
+  "id": "FT10",
+  "name": "First to 10",
+  "maxWins": 10,
+  "totalGames": 19
+}
+```
+
+### Cambiar valores por defecto:
+```json
+"defaultPlayers": {
+  "player1": "Team Red",
+  "player2": "Team Blue"
+},
+"defaultFormat": "BO5"
+```
+
+## ✅ Beneficios
+
+- **Setup rápido**: Todo pre-configurado desde el JSON
+- **Menos errores**: Presets evitan typos en nombres
+- **Flexible**: Fácil de personalizar editando el JSON
+- **Visual**: Interface clara y fácil de usar
+- **Automático**: Cálculos y estados manejados automáticamente
+
+## 📋 Para tu amigo:
+
+**Ahora solo necesita**:
+1. Editar el JSON una vez con sus jugadores y configuraciones
+2. Usar el panel que ya estará pre-configurado
+3. Solo hacer click en presets o escribir nombres
+4. Presionar +1 durante los matches
+5. **¡Todo lo demás es automático!** 🎮✨

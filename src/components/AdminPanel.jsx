@@ -12,6 +12,34 @@ export default function AdminPanel() {
   const [session, setSession] = useState(null);
   const [player1Score, setPlayer1Score] = useState(0);
   const [player2Score, setPlayer2Score] = useState(0);
+  
+  // Estados para configuración desde JSON
+  const [tournamentConfig, setTournamentConfig] = useState(null);
+  const [showPresetPlayers, setShowPresetPlayers] = useState(false);
+
+  // Cargar configuración desde JSON
+  useEffect(() => {
+    const loadTournamentConfig = async () => {
+      try {
+        const response = await fetch('/config/tournament-settings.json');
+        if (response.ok) {
+          const config = await response.json();
+          setTournamentConfig(config);
+          
+          // Auto-llenar con valores por defecto si están habilitados
+          if (config.quickSettings?.autoFillLastUsed) {
+            setPlayer1Name(config.defaultPlayers?.player1 || '');
+            setPlayer2Name(config.defaultPlayers?.player2 || '');
+          }
+          setFormat(config.defaultFormat || 'BO3');
+        }
+      } catch (error) {
+        console.error('Error cargando configuración del torneo:', error);
+      }
+    };
+    
+    loadTournamentConfig();
+  }, []);
 
   useEffect(() => {
     // Conectar al WebSocket cuando se monta el componente
@@ -67,6 +95,22 @@ export default function AdminPanel() {
     return totalPoints + 1; // Game 1 si ambos tienen 0 puntos, Game 2 si hay 1 punto total, etc.
   };
 
+  // Funciones para manejar presets de jugadores
+  const handlePresetPlayer = (playerData, playerNumber) => {
+    if (playerNumber === 1) {
+      setPlayer1Name(playerData.name);
+    } else {
+      setPlayer2Name(playerData.name);
+    }
+    setShowPresetPlayers(false);
+  };
+
+  const handleQuickSwap = () => {
+    const temp = player1Name;
+    setPlayer1Name(player2Name);
+    setPlayer2Name(temp);
+  };
+
   // Generar y actualizar JSON automáticamente
   const generateTournamentConfig = () => {
     const config = {
@@ -89,13 +133,6 @@ export default function AdminPanel() {
     };
     return config;
   };
-
-  // Actualizar JSON cada vez que cambien los datos
-  useEffect(() => {
-    const config = generateTournamentConfig();
-    // Aquí podrías enviar esta configuración al servidor o guardarla localmente
-    console.log('🎮 Tournament Config Updated:', config);
-  }, [player1Name, player2Name, format, player1Score, player2Score]);
 
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
@@ -279,46 +316,151 @@ export default function AdminPanel() {
             </h2>
             
             <div className="space-y-6">
-              {/* Configuración básica en una fila */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Configuración de jugadores con presets */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-white font-semibold mb-2">
-                    🔴 Jugador 1 (Izquierda)
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-white font-semibold">
+                      🔴 Jugador 1 (Izquierda)
+                    </label>
+                    {tournamentConfig?.quickSettings?.enablePresetPlayers && (
+                      <button
+                        onClick={() => setShowPresetPlayers(prev => prev === 'player1' ? false : 'player1')}
+                        className="text-xs bg-white/20 text-white px-2 py-1 rounded hover:bg-white/30 transition-all"
+                      >
+                        📋 Presets
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={player1Name}
                     onChange={(e) => setPlayer1Name(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg bg-red-900/30 text-white placeholder-white/50 border border-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Ej: Nostra"
+                    placeholder="Nombre del jugador..."
                   />
+                  
+                  {/* Dropdown de presets para Player 1 */}
+                  {showPresetPlayers === 'player1' && tournamentConfig?.presetPlayers && (
+                    <div className="mt-2 bg-black/80 rounded-lg border border-white/30 max-h-40 overflow-y-auto">
+                      {tournamentConfig.presetPlayers.map((player, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handlePresetPlayer(player, 1)}
+                          className="w-full text-left px-3 py-2 text-white hover:bg-white/20 transition-all first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          {player.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-white font-semibold mb-2">
-                    🔵 Jugador 2 (Derecha)
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-white font-semibold">
+                      🔵 Jugador 2 (Derecha)
+                    </label>
+                    {tournamentConfig?.quickSettings?.enablePresetPlayers && (
+                      <button
+                        onClick={() => setShowPresetPlayers(prev => prev === 'player2' ? false : 'player2')}
+                        className="text-xs bg-white/20 text-white px-2 py-1 rounded hover:bg-white/30 transition-all"
+                      >
+                        📋 Presets
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={player2Name}
                     onChange={(e) => setPlayer2Name(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg bg-blue-900/30 text-white placeholder-white/50 border border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: Iori"
+                    placeholder="Nombre del jugador..."
                   />
+                  
+                  {/* Dropdown de presets para Player 2 */}
+                  {showPresetPlayers === 'player2' && tournamentConfig?.presetPlayers && (
+                    <div className="mt-2 bg-black/80 rounded-lg border border-white/30 max-h-40 overflow-y-auto">
+                      {tournamentConfig.presetPlayers.map((player, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handlePresetPlayer(player, 2)}
+                          className="w-full text-left px-3 py-2 text-white hover:bg-white/20 transition-all first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          {player.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-white font-semibold mb-2">
-                    🏆 Formato
-                  </label>
-                  <select
-                    value={format}
-                    onChange={(e) => setFormat(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-white/20 text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-yellow"
-                  >
-                    <option value="BO3" style={{color: 'black'}}>Best of 3 (BO3)</option>
-                    <option value="BO5" style={{color: 'black'}}>Best of 5 (BO5)</option>
-                  </select>
+              {/* Controles rápidos */}
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={handleQuickSwap}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all text-sm"
+                >
+                  🔄 Intercambiar
+                </button>
+                <button
+                  onClick={() => {
+                    setPlayer1Name('');
+                    setPlayer2Name('');
+                  }}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all text-sm"
+                >
+                  🗑️ Limpiar
+                </button>
+              </div>
+
+              {/* Selección de formato */}
+              <div>
+                <label className="block text-white font-semibold mb-3">
+                  🏆 Formato del Torneo
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {tournamentConfig?.formats ? (
+                    tournamentConfig.formats.map((formatOption) => (
+                      <button
+                        key={formatOption.id}
+                        onClick={() => setFormat(formatOption.id)}
+                        className={`p-4 rounded-lg font-bold transition-all text-center border-2 ${
+                          format === formatOption.id
+                            ? 'bg-smash-yellow text-black border-smash-yellow shadow-lg scale-105'
+                            : 'bg-white/20 text-white border-white/30 hover:bg-white/30'
+                        }`}
+                      >
+                        <div className="text-lg font-black">{formatOption.name}</div>
+                        <div className="text-sm opacity-80">
+                          Primero en {formatOption.maxWins} - Máximo {formatOption.totalGames} games
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setFormat('BO3')}
+                        className={`p-4 rounded-lg font-bold transition-all ${
+                          format === 'BO3'
+                            ? 'bg-smash-yellow text-black shadow-lg scale-105'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Best of 3 (BO3)
+                      </button>
+                      <button
+                        onClick={() => setFormat('BO5')}
+                        className={`p-4 rounded-lg font-bold transition-all ${
+                          format === 'BO5'
+                            ? 'bg-smash-yellow text-black shadow-lg scale-105'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Best of 5 (BO5)
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -326,7 +468,7 @@ export default function AdminPanel() {
                 onClick={handleCreateSession}
                 className="w-full py-4 bg-gradient-to-r from-smash-red to-smash-yellow text-white font-bold text-xl rounded-lg hover:shadow-2xl hover:scale-105 transition-all"
               >
-                🚀 Crear Serie y Generar JSON
+                🚀 Crear Serie
               </button>
             </div>
           </div>
@@ -429,16 +571,33 @@ export default function AdminPanel() {
             {/* JSON Config Display */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
               <h3 className="text-2xl font-bold text-white mb-4">
-                📄 Configuración JSON Automática
+                📄 Información Actual del Torneo
               </h3>
-              <div className="bg-black/50 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-green-400 text-sm font-mono">
-                  {JSON.stringify(getCurrentConfig(), null, 2)}
-                </pre>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-black/30 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-2">📊 Estado de la Serie</h4>
+                  <div className="text-sm text-white/80 space-y-1">
+                    <p><span className="text-smash-yellow">Game:</span> {getCurrentGame()} de {format === 'BO3' ? '3' : '5'}</p>
+                    <p><span className="text-smash-yellow">Formato:</span> {format}</p>
+                    <p><span className="text-smash-yellow">Para ganar:</span> {format === 'BO3' ? '2' : '3'} puntos</p>
+                  </div>
+                </div>
+                
+                <div className="bg-black/30 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-2">⚙️ Configuración Cargada</h4>
+                  <div className="text-sm text-white/80 space-y-1">
+                    <p><span className="text-green-400">✓</span> Presets: {tournamentConfig?.presetPlayers?.length || 0} jugadores</p>
+                    <p><span className="text-green-400">✓</span> Formatos: {tournamentConfig?.formats?.length || 2} opciones</p>
+                    <p><span className="text-green-400">✓</span> Auto-fill: {tournamentConfig?.quickSettings?.autoFillLastUsed ? 'Sí' : 'No'}</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-white/70 text-sm mt-2">
-                ✨ Este JSON se actualiza automáticamente cuando cambias nombres, formato o puntos
-              </p>
+              
+              {tournamentConfig && (
+                <div className="mt-4 text-xs text-white/60 text-center">
+                  ✨ Configuración cargada desde /config/tournament-settings.json
+                </div>
+              )}
             </div>
 
             {/* Links de Control Compactos */}
