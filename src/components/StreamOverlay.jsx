@@ -341,7 +341,9 @@ export default function StreamOverlay({ sessionId }) {
 
         {/* Stages - Aparecen después del texto Stage Bans */}
         {session.player1.character && session.player2.character && (
-          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center gap-3 z-10 pointer-events-none px-44">
+          <div className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center z-10 pointer-events-none px-44 ${
+            session.currentGame === 1 ? 'gap-3' : 'gap-4'
+          }`}>
             {(session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
@@ -349,6 +351,12 @@ export default function StreamOverlay({ sessionId }) {
               const showBanOverlay = isBanned && (bannedStage?.id === stage.id ? showBanOnCard : true);
               // Solo mostrar overlay si showSelectOnCard está activado y es el stage actual seleccionado
               const showSelectOverlay = isSelected && (selectedStage?.id === stage.id ? showSelectOnCard : true);
+              
+              // Tamaños diferentes según el game
+              const isGame1 = session.currentGame === 1;
+              const imageClass = isGame1 ? 'w-48 h-28' : 'w-32 h-20';
+              const borderRadius = isGame1 ? 'rounded-xl' : 'rounded-lg';
+              const iconSize = isGame1 ? 'text-7xl' : 'text-5xl';
               
               return (
                 <motion.div
@@ -372,12 +380,12 @@ export default function StreamOverlay({ sessionId }) {
                   <img 
                     src={stage.image}
                     alt={stage.name}
-                    className={`w-48 h-28 object-cover rounded-xl shadow-2xl ${
-                      isSelected && showSelectOverlay ? 'border-4 border-green-400' : 'border-4 border-white'
+                    className={`${imageClass} object-cover ${borderRadius} shadow-2xl ${
+                      isSelected && showSelectOverlay ? 'border-4 border-green-400' : isGame1 ? 'border-4 border-white' : 'border-3 border-white'
                     }`}
                     style={{ 
                       objectFit: 'cover',
-                      borderWidth: isSelected && showSelectOverlay ? '5px' : '4px',
+                      borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
                       filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none'
                     }}
                   />
@@ -388,9 +396,9 @@ export default function StreamOverlay({ sessionId }) {
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl"
+                      className={`absolute inset-0 flex items-center justify-center bg-black/60 ${borderRadius}`}
                     >
-                      <span className="text-red-500 text-7xl font-black drop-shadow-2xl"
+                      <span className={`text-red-500 ${iconSize} font-black drop-shadow-2xl`}
                             style={{ textShadow: '0 0 20px rgba(239, 68, 68, 0.8)' }}>
                         ✖
                       </span>
@@ -403,12 +411,12 @@ export default function StreamOverlay({ sessionId }) {
                       initial={{ scale: 0, rotate: 180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className="absolute inset-0 flex items-center justify-center rounded-xl"
+                      className={`absolute inset-0 flex items-center justify-center ${borderRadius}`}
                       style={{ 
                         background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.1) 100%)'
                       }}
                     >
-                      <span className="text-green-400 text-7xl font-black drop-shadow-2xl"
+                      <span className={`text-green-400 ${iconSize} font-black drop-shadow-2xl`}
                             style={{ textShadow: '0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.5)' }}>
                         ✓
                       </span>
