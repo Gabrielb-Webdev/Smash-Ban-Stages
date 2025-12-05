@@ -1,7 +1,7 @@
 {
   "defaultPlayers": {
-    "player1": "Jugador 1",
-    "player2": "Jugador 2"
+    "player1": "Team Red",
+    "player2": "Team Blue"
   },
   "formats": [
     {
@@ -15,6 +15,24 @@
       "name": "Best of 5",
       "maxWins": 3,
       "totalGames": 5
+    },
+    {
+      "id": "FT5",
+      "name": "First to 5",
+      "maxWins": 5,
+      "totalGames": 9
+    },
+    {
+      "id": "FT7",
+      "name": "First to 7", 
+      "maxWins": 7,
+      "totalGames": 13
+    },
+    {
+      "id": "FT10",
+      "name": "First to 10",
+      "maxWins": 10,
+      "totalGames": 19
     }
   ],
   "defaultFormat": "BO3",
@@ -50,6 +68,54 @@
     {
       "name": "Dabuz",
       "tag": "Dabuz"
+    },
+    {
+      "name": "Light",
+      "tag": "Light"
+    },
+    {
+      "name": "Gluttony",
+      "tag": "Gluttony"
+    },
+    {
+      "name": "Cosmos",
+      "tag": "Cosmos"
+    },
+    {
+      "name": "Kola",
+      "tag": "Kola"
+    },
+    {
+      "name": "Tea",
+      "tag": "Tea"
+    },
+    {
+      "name": "Riddles",
+      "tag": "Riddles"
+    },
+    {
+      "name": "Zomba",
+      "tag": "Zomba"
+    },
+    {
+      "name": "Maister",
+      "tag": "Maister"
+    },
+    {
+      "name": "ESAM",
+      "tag": "ESAM"
+    },
+    {
+      "name": "Marss",
+      "tag": "Marss"
+    },
+    {
+      "name": "Larry Lurr",
+      "tag": "Larry Lurr"
+    },
+    {
+      "name": "Lui$",
+      "tag": "Lui$"
     }
   ],
   "quickSettings": {
