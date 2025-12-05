@@ -14,6 +14,8 @@ export default function AdminPanel() {
   const [player2Score, setPlayer2Score] = useState(0);
   const [tournamentConfig, setTournamentConfig] = useState(null);
   const [showPresetPlayers, setShowPresetPlayers] = useState(false);
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [jsonEditContent, setJsonEditContent] = useState('');
 
   // Cargar configuración desde JSON
   useEffect(() => {
@@ -158,6 +160,30 @@ export default function AdminPanel() {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     alert('Link copiado al portapapeles');
+  };
+
+  const handleEditJson = () => {
+    setJsonEditContent(JSON.stringify(tournamentConfig, null, 2));
+    setShowJsonEditor(true);
+  };
+
+  const handleSaveJson = () => {
+    try {
+      const newConfig = JSON.parse(jsonEditContent);
+      setTournamentConfig(newConfig);
+      setShowJsonEditor(false);
+      
+      // Aplicar cambios inmediatamente
+      if (newConfig.quickSettings?.autoFillLastUsed) {
+        setPlayer1Name(newConfig.defaultPlayers?.player1 || '');
+        setPlayer2Name(newConfig.defaultPlayers?.player2 || '');
+      }
+      setFormat(newConfig.defaultFormat || 'BO3');
+      
+      alert('✅ Configuración actualizada! Los cambios se aplicarán en la próxima sesión.');
+    } catch (error) {
+      alert('❌ Error en JSON: ' + error.message);
+    }
   };
 
   return (
@@ -448,6 +474,13 @@ export default function AdminPanel() {
               {tournamentConfig && (
                 <div className="mt-4 text-xs text-white/60 text-center">
                   ✨ Configuración cargada desde /config/tournament-settings.json
+                  <br/>
+                  <button 
+                    onClick={handleEditJson}
+                    className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-all"
+                  >
+                    ✏️ Editar JSON Online
+                  </button>
                 </div>
               )}
             </div>
@@ -487,6 +520,57 @@ export default function AdminPanel() {
                     📋
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Edición JSON */}
+        {showJsonEditor && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-smash-darker to-smash-purple rounded-2xl p-6 shadow-2xl border-2 border-smash-yellow max-w-4xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-white">⚙️ Editor de Configuración JSON</h3>
+                <button
+                  onClick={() => setShowJsonEditor(false)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                >
+                  ❌ Cerrar
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-white/80 text-sm mb-2">
+                  💡 Edita la configuración aquí. Los cambios se aplicarán temporalmente hasta el próximo refresh.
+                </p>
+                <p className="text-yellow-400 text-xs">
+                  ⚠️ Para cambios permanentes, edita el archivo en GitHub: public/config/tournament-settings.json
+                </p>
+              </div>
+
+              <textarea
+                value={jsonEditContent}
+                onChange={(e) => setJsonEditContent(e.target.value)}
+                className="w-full h-96 p-4 bg-black/50 text-green-400 font-mono text-sm rounded-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-yellow resize-none"
+                placeholder="Configura tu JSON aquí..."
+              />
+
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={handleSaveJson}
+                  className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all"
+                >
+                  💾 Aplicar Cambios (Temporal)
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(jsonEditContent);
+                    alert('📋 JSON copiado! Pégalo en GitHub para cambios permanentes.');
+                  }}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
+                >
+                  📋 Copiar para GitHub
+                </button>
               </div>
             </div>
           </div>
