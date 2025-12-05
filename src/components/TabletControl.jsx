@@ -12,18 +12,16 @@ export default function TabletControl({ sessionId }) {
   const [hasAskedRepeat, setHasAskedRepeat] = useState({ player1: false, player2: false });
   const [lastGameSaved, setLastGameSaved] = useState(0);
 
-  // Detectar cuando comienza selección de personaje en game 2+
+  // Guardar personajes cuando ambos han seleccionado (se ejecuta al terminar CHARACTER_SELECT)
   useEffect(() => {
     if (!session) return;
 
-    // Guardar personajes cuando ambos han seleccionado Y estamos en PLAYING
-    // Esto asegura que guardamos los personajes del game que acaba de terminar
-    if (session.phase === 'PLAYING' && 
-        session.player1.character && 
+    // Guardar cuando ambos tienen personajes seleccionados y el game no ha sido guardado
+    if (session.player1.character && 
         session.player2.character && 
         lastGameSaved !== session.currentGame) {
       
-      console.log('Guardando personajes del Game', session.currentGame, ':', {
+      console.log('✅ Guardando personajes del Game', session.currentGame, ':', {
         player1: session.player1.character,
         player2: session.player2.character
       });
@@ -35,50 +33,61 @@ export default function TabletControl({ sessionId }) {
       
       setLastGameSaved(session.currentGame);
     }
+  }, [session?.player1?.character, session?.player2?.character, session?.currentGame, lastGameSaved]);
+
+  // Detectar cuando comienza nuevo game y resetear estados
+  useEffect(() => {
+    if (!session) return;
 
     // Reset cuando comienza nuevo game (ambos jugadores sin personaje en CHARACTER_SELECT)
     if (session.phase === 'CHARACTER_SELECT' && !session.player1.character && !session.player2.character) {
-      console.log('Reset hasAskedRepeat para Game', session.currentGame);
+      console.log('🔄 Reset hasAskedRepeat para Game', session.currentGame);
       setHasAskedRepeat({ player1: false, player2: false });
-      // Cerrar cualquier modal que pudiera estar abierto
       setShowRepeatModal({ player1: false, player2: false });
     }
+  }, [session?.phase, session?.player1?.character, session?.player2?.character, session?.currentGame]);
 
-    // Mostrar modal cuando sea game 2+ y fase de selección de personaje
+  // Mostrar modales de repetir personaje
+  useEffect(() => {
+    if (!session) return;
+
+    // Solo en game 2+ y en fase CHARACTER_SELECT
     if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
-      // Mostrar modal SOLO para player1 si:
-      // - Es su turno
-      // - No se le ha preguntado
-      // - No ha seleccionado aún
-      // - Tiene un personaje previo guardado
-      // - El modal de player1 no está ya abierto
+      
+      console.log('📊 Estado actual:', {
+        game: session.currentGame,
+        turn: session.currentTurn,
+        hasAskedP1: hasAskedRepeat.player1,
+        hasAskedP2: hasAskedRepeat.player2,
+        p1Character: session.player1.character,
+        p2Character: session.player2.character,
+        previousP1: previousCharacters.player1,
+        previousP2: previousCharacters.player2
+      });
+
+      // Mostrar modal para player1
       if (session.currentTurn === 'player1' && 
           !hasAskedRepeat.player1 && 
           !session.player1.character && 
           previousCharacters.player1 &&
           !showRepeatModal.player1) {
-        console.log('Mostrando modal para player1, personaje anterior:', previousCharacters.player1);
+        console.log('🎮 Mostrando modal para player1, personaje anterior:', previousCharacters.player1);
         setShowRepeatModal({ player1: true, player2: false });
         setHasAskedRepeat(prev => ({ ...prev, player1: true }));
       }
       
-      // Mostrar modal SOLO para player2 si:
-      // - Es su turno
-      // - No se le ha preguntado
-      // - No ha seleccionado aún
-      // - Tiene un personaje previo guardado
-      // - El modal de player2 no está ya abierto
+      // Mostrar modal para player2
       if (session.currentTurn === 'player2' && 
           !hasAskedRepeat.player2 && 
           !session.player2.character && 
           previousCharacters.player2 &&
           !showRepeatModal.player2) {
-        console.log('Mostrando modal para player2, personaje anterior:', previousCharacters.player2);
+        console.log('🎮 Mostrando modal para player2, personaje anterior:', previousCharacters.player2);
         setShowRepeatModal({ player1: false, player2: true });
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
     }
-  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character]);
+  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
 
   const handleRepeatCharacter = (player, repeat) => {
     console.log(`Player ${player} ${repeat ? 'repitió' : 'no repitió'} personaje`);
