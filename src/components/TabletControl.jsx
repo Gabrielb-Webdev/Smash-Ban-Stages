@@ -10,55 +10,79 @@ export default function TabletControl({ sessionId }) {
   const [showRepeatModal, setShowRepeatModal] = useState({ player1: false, player2: false });
   const [previousCharacters, setPreviousCharacters] = useState({ player1: null, player2: null });
   const [hasAskedRepeat, setHasAskedRepeat] = useState({ player1: false, player2: false });
+  const [lastGameSaved, setLastGameSaved] = useState(0);
 
   // Detectar cuando comienza selección de personaje en game 2+
   useEffect(() => {
     if (!session) return;
 
-    // Guardar personajes cuando ambos han seleccionado (al final de CHARACTER_SELECT antes de PLAYING)
-    // o cuando detectamos que ya están en PLAYING
-    if (session.player1.character && session.player2.character) {
-      // Solo actualizar si realmente cambiaron (evitar sobrescribir con los mismos valores)
-      setPreviousCharacters(prev => {
-        if (prev.player1 !== session.player1.character || prev.player2 !== session.player2.character) {
-          console.log('Guardando personajes del game actual:', {
-            player1: session.player1.character,
-            player2: session.player2.character
-          });
-          return {
-            player1: session.player1.character,
-            player2: session.player2.character
-          };
-        }
-        return prev;
+    // Guardar personajes cuando ambos han seleccionado Y estamos en PLAYING
+    // Esto asegura que guardamos los personajes del game que acaba de terminar
+    if (session.phase === 'PLAYING' && 
+        session.player1.character && 
+        session.player2.character && 
+        lastGameSaved !== session.currentGame) {
+      
+      console.log('Guardando personajes del Game', session.currentGame, ':', {
+        player1: session.player1.character,
+        player2: session.player2.character
       });
+      
+      setPreviousCharacters({
+        player1: session.player1.character,
+        player2: session.player2.character
+      });
+      
+      setLastGameSaved(session.currentGame);
     }
 
-    // Reset cuando comienza nuevo game (en RPS o cuando ambos jugadores no tienen personaje)
-    if (session.phase === 'RPS' || (session.phase === 'CHARACTER_SELECT' && !session.player1.character && !session.player2.character)) {
+    // Reset cuando comienza nuevo game (ambos jugadores sin personaje en CHARACTER_SELECT)
+    if (session.phase === 'CHARACTER_SELECT' && !session.player1.character && !session.player2.character) {
+      console.log('Reset hasAskedRepeat para Game', session.currentGame);
       setHasAskedRepeat({ player1: false, player2: false });
+      // Cerrar cualquier modal que pudiera estar abierto
+      setShowRepeatModal({ player1: false, player2: false });
     }
 
     // Mostrar modal cuando sea game 2+ y fase de selección de personaje
     if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
-      // Mostrar modal para player1 si es su turno y aún no se le ha preguntado y no ha seleccionado
-      if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && previousCharacters.player1) {
+      // Mostrar modal SOLO para player1 si:
+      // - Es su turno
+      // - No se le ha preguntado
+      // - No ha seleccionado aún
+      // - Tiene un personaje previo guardado
+      // - El modal de player1 no está ya abierto
+      if (session.currentTurn === 'player1' && 
+          !hasAskedRepeat.player1 && 
+          !session.player1.character && 
+          previousCharacters.player1 &&
+          !showRepeatModal.player1) {
         console.log('Mostrando modal para player1, personaje anterior:', previousCharacters.player1);
-        setShowRepeatModal(prev => ({ ...prev, player1: true }));
+        setShowRepeatModal({ player1: true, player2: false });
         setHasAskedRepeat(prev => ({ ...prev, player1: true }));
       }
       
-      // Mostrar modal para player2 si es su turno y aún no se le ha preguntado y no ha seleccionado
-      if (session.currentTurn === 'player2' && !hasAskedRepeat.player2 && !session.player2.character && previousCharacters.player2) {
+      // Mostrar modal SOLO para player2 si:
+      // - Es su turno
+      // - No se le ha preguntado
+      // - No ha seleccionado aún
+      // - Tiene un personaje previo guardado
+      // - El modal de player2 no está ya abierto
+      if (session.currentTurn === 'player2' && 
+          !hasAskedRepeat.player2 && 
+          !session.player2.character && 
+          previousCharacters.player2 &&
+          !showRepeatModal.player2) {
         console.log('Mostrando modal para player2, personaje anterior:', previousCharacters.player2);
-        setShowRepeatModal(prev => ({ ...prev, player2: true }));
+        setShowRepeatModal({ player1: false, player2: true });
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
     }
-  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters]);
+  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character]);
 
   const handleRepeatCharacter = (player, repeat) => {
-    setShowRepeatModal(prev => ({ ...prev, [player]: false }));
+    console.log(`Player ${player} ${repeat ? 'repitió' : 'no repitió'} personaje`);
+    setShowRepeatModal({ player1: false, player2: false });
     
     if (repeat && previousCharacters[player]) {
       // Seleccionar automáticamente el personaje anterior
