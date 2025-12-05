@@ -291,39 +291,34 @@ export default function StreamOverlay({ sessionId }) {
         {/* Texto "Stage Bans" en el centro - Aparece desde abajo del footer */}
         {session.player1.character && session.player2.character && (
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
-            <AnimatePresence>
-              <motion.h2 
-                key="stage-bans-text"
-                initial={{ 
-                  y: 30,
-                  clipPath: 'inset(100% 0 0 0)'
-                }}
-                animate={{ 
-                  y: [30, 0, 0, -30],
-                  clipPath: [
-                    'inset(100% 0 0 0)',
-                    'inset(0% 0 0 0)', 
-                    'inset(0% 0 0 0)',
-                    'inset(0 0 100% 0)'
-                  ]
-                }}
-                transition={{ 
-                  duration: 3,
-                  times: [0, 0.3, 0.6, 1],
-                  ease: "easeInOut",
-                  delay: 0.8
-                }}
-                className="whitespace-nowrap"
-                style={{ 
-                  fontFamily: 'Anton',
-                  fontSize: '5.5rem',
-                  fontWeight: '400',
-                  color: '#FFFFFF'
-                }}
-              >
-                STAGE BANS
-              </motion.h2>
-            </AnimatePresence>
+            <div className="overflow-hidden h-24 flex items-center justify-center">
+              <AnimatePresence>
+                <motion.h2 
+                  key="stage-bans-text"
+                  initial={{ 
+                    y: 96
+                  }}
+                  animate={{ 
+                    y: [96, 0, 0, -96]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    times: [0, 0.3, 0.6, 1],
+                    ease: "easeInOut",
+                    delay: 0.8
+                  }}
+                  className="whitespace-nowrap"
+                  style={{ 
+                    fontFamily: 'Anton',
+                    fontSize: '5.5rem',
+                    fontWeight: '400',
+                    color: '#FFFFFF'
+                  }}
+                >
+                  STAGE BANS
+                </motion.h2>
+              </AnimatePresence>
+            </div>
           </div>
         )}
 
