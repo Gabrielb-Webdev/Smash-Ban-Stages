@@ -33,12 +33,20 @@ export const useWebSocket = (sessionId) => {
       if (isLocalhost) {
         // Desarrollo local
         socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        console.log('🏠 Modo desarrollo - conectando a localhost');
       } else {
-        // Producción (Vercel u otro hosting)
+        // Producción (Vercel u otro hosting) - NUNCA usar localhost
+        socketUrl = window.location.origin;
+        console.log('🌐 Modo producción - conectando a origin:', window.location.origin);
+      }
+      
+      // Verificación adicional de seguridad
+      if (socketUrl.includes('localhost') && !isLocalhost) {
+        console.error('❌ ERROR: Detectado localhost en producción, usando origin en su lugar');
         socketUrl = window.location.origin;
       }
       
-      console.log('Conectando WebSocket a:', socketUrl, 'isLocalhost:', isLocalhost);
+      console.log('🔌 Conectando WebSocket a:', socketUrl, 'hostname:', window.location.hostname);
         
       socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
