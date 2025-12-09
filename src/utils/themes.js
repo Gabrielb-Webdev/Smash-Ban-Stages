@@ -1,9 +1,9 @@
 // Configuración de temas para cada organización
 export const TOURNAMENT_THEMES = {
-  'main-session': {
+  'cordoba': {
     name: 'Smash Córdoba',
     emoji: '🔵', 
-    // Córdoba (main-session) usa los estilos originales - sin personalización
+    // Córdoba usa los estilos originales - sin personalización
     useOriginalStyles: true
   },
   'mendoza': {
@@ -46,7 +46,7 @@ export const TOURNAMENT_THEMES = {
 
 // Función para obtener el tema de un torneo
 export const getTournamentTheme = (tournamentId) => {
-  return TOURNAMENT_THEMES[tournamentId] || TOURNAMENT_THEMES['main-session']; // main-session por defecto
+  return TOURNAMENT_THEMES[tournamentId] || TOURNAMENT_THEMES['cordoba']; // cordoba por defecto
 };
 
 // Función para verificar si debe usar estilos originales

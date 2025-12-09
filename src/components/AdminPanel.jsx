@@ -8,7 +8,7 @@ export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [selectedTournament, setSelectedTournament] = useState('main-session'); // Nuevo estado
+  const [selectedTournament, setSelectedTournament] = useState('cordoba'); // Nuevo estado
   const [session, setSession] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editPlayer1, setEditPlayer1] = useState('');
@@ -18,7 +18,7 @@ export default function AdminPanel() {
 
   // Configuración de torneos con temas
   const tournaments = {
-    'main-session': { 
+    'cordoba': { 
       name: 'Smash Córdoba', 
       emoji: '🔵',
       color: 'blue-600',

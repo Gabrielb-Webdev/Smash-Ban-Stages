@@ -8,16 +8,43 @@ export const useWebSocket = (sessionId) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Conectar al servidor WebSocket con configuración optimizada
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-    socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 500,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity,
-      timeout: 20000
-    });
+    // Inicializar el socket antes de conectar (solo en producción)
+    const initializeSocket = async () => {
+      if (process.env.NODE_ENV === 'production') {
+        await fetch('/api/socket');
+      }
+    };
+
+    const connectSocket = async () => {
+      await initializeSocket();
+      
+      // Conectar al servidor WebSocket con configuración optimizada
+      const socketUrl = process.env.NODE_ENV === 'production' 
+        ? window.location.origin 
+        : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
+        
+      socket = io(socketUrl, {
+        path: process.env.NODE_ENV === 'production' ? '/api/socket' : '/socket.io/',
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 500,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: Infinity,
+        timeout: 20000
+      });
+
+      socket.on('connect', () => {
+        console.log('Conectado al servidor WebSocket');
+        setConnected(true);
+
+        // Si hay un sessionId, unirse a la sesión
+        if (sessionId) {
+          socket.emit('join-session', sessionId);
+        }
+      });
+    };
+
+    connectSocket();
 
     socket.on('connect', () => {
       console.log('Conectado al servidor WebSocket');
