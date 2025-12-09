@@ -8,20 +8,35 @@ export const useWebSocket = (sessionId) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
+    // Si ya hay un socket conectado, no crear uno nuevo
+    if (socket && socket.connected) {
+      console.log('🔄 Usando conexión WebSocket existente');
+      if (sessionId) {
+        socket.emit('join-session', sessionId);
+      }
+      return;
+    }
+
+    // Limpiar socket anterior si existe
+    if (socket) {
+      socket.disconnect();
+    }
+
     const connectSocket = async () => {
       // Conectar al servidor WebSocket
       // Siempre usar Railway como servidor WebSocket
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://web-production-80c11.up.railway.app';
       
-      console.log('🔌 Conectando WebSocket a Railway:', socketUrl, 'desde:', window.location.hostname);
+      console.log('🔌 Conectando WebSocket a Railway:', socketUrl);
         
       socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
-        timeout: 20000
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+        reconnectionAttempts: 3,
+        timeout: 15000,
+        forceNew: false
       });
 
       socket.on('connect', () => {
@@ -35,12 +50,12 @@ export const useWebSocket = (sessionId) => {
       });
 
       socket.on('connect_error', (error) => {
-        console.error('❌ Error de conexión WebSocket:', error);
+        console.error('❌ Error de conexión WebSocket:', error.message);
         setConnected(false);
       });
 
       socket.on('disconnect', (reason) => {
-        console.log('🔌 Desconectado del servidor WebSocket, razón:', reason);
+        console.log('🔌 Desconectado del servidor WebSocket:', reason);
         setConnected(false);
       });
     };
@@ -70,9 +85,8 @@ export const useWebSocket = (sessionId) => {
     });
 
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      // NO desconectar el socket aquí para evitar múltiples desconexiones
+      console.log('🧹 Limpieza del hook useWebSocket');
     };
   }, [sessionId]);
 
