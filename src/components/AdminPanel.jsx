@@ -16,12 +16,52 @@ export default function AdminPanel() {
   const [editFormat, setEditFormat] = useState('BO3');
   const [lastJsonUpdate, setLastJsonUpdate] = useState('');
 
-  // Configuración de torneos
+  // Configuración de torneos con temas
   const tournaments = {
-    'main-session': { name: 'General', color: 'smash-blue' },
-    'cordoba': { name: 'Smash Córdoba', color: 'blue-600' },
-    'mendoza': { name: 'Smash Mendoza', color: 'purple-600' },
-    'afk': { name: 'Smash AFK (Buenos Aires)', color: 'red-600' }
+    'main-session': { 
+      name: 'General', 
+      emoji: '🎮',
+      color: 'smash-blue',
+      theme: {
+        primary: '#3B82F6',
+        secondary: '#1E40AF',
+        accent: '#F59E0B',
+        bg: 'from-blue-900 via-blue-800 to-purple-900'
+      }
+    },
+    'cordoba': { 
+      name: 'Smash Córdoba', 
+      emoji: '🔵',
+      color: 'blue-600',
+      theme: {
+        primary: '#2563EB',
+        secondary: '#1D4ED8',
+        accent: '#F59E0B',
+        bg: 'from-blue-900 via-blue-700 to-blue-800'
+      }
+    },
+    'mendoza': { 
+      name: 'Smash Mendoza', 
+      emoji: '🟢',
+      color: 'green-600',
+      theme: {
+        primary: '#059669',
+        secondary: '#047857',
+        accent: '#FBBF24',
+        bg: 'from-green-900 via-green-700 to-emerald-800'
+      }
+    },
+    'afk': { 
+      name: 'Smash AFK (Buenos Aires)', 
+      emoji: '🟡',
+      color: 'yellow-600',
+      theme: {
+        primary: '#DC2626',
+        secondary: '#B91C1C',
+        accent: '#FBBF24',
+        bg: 'from-red-900 via-red-700 to-orange-800'
+      }
+    }
   };
 
   // Función para traducir formato
