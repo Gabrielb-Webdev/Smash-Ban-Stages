@@ -783,13 +783,13 @@ export default function AdminPanel() {
                 onClick={handleEndMatch}
                 className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-500 hover:scale-105 transition-all shadow-lg"
               >
-                🏁 Terminar Match
+                Terminar Match
               </button>
               <button
                 onClick={handleResetSession}
                 className="px-8 py-3 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 transition-all border border-white/30"
               >
-                🔄 Reiniciar Serie
+                Reiniciar Serie
               </button>
             </div>
           </div>
