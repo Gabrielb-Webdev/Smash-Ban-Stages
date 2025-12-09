@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
-import { getTournamentTheme } from '../utils/themes';
+import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
@@ -9,6 +9,7 @@ export default function TabletControl({ sessionId }) {
   
   // Obtener tema del torneo
   const theme = getTournamentTheme(sessionId);
+  const useOriginalStyles = shouldUseOriginalStyles(sessionId);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
@@ -241,8 +242,10 @@ export default function TabletControl({ sessionId }) {
   return (
     <div className="h-screen flex items-center justify-center p-1 overflow-hidden"
          style={{
-           background: `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-           backgroundBlendMode: 'overlay',
+           background: useOriginalStyles ? 
+             'url(/images/paperbg.jpg)' : 
+             `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
+           backgroundBlendMode: useOriginalStyles ? 'normal' : 'overlay',
            backgroundSize: 'cover',
            backgroundPosition: 'center',
            backgroundRepeat: 'no-repeat',
@@ -322,8 +325,11 @@ export default function TabletControl({ sessionId }) {
             <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto relative z-10 w-full">
               <button
                 onClick={() => handleRPSWinner('player1')}
-                className="group py-20 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
-                style={{
+                className={useOriginalStyles ? 
+                  "group py-20 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden" :
+                  "group py-20 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
+                }
+                style={useOriginalStyles ? {} : {
                   background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`
                 }}
               >
@@ -335,8 +341,11 @@ export default function TabletControl({ sessionId }) {
               </button>
               <button
                 onClick={() => handleRPSWinner('player2')}
-                className="group py-20 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
-                style={{
+                className={useOriginalStyles ? 
+                  "group py-20 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden" :
+                  "group py-20 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
+                }
+                style={useOriginalStyles ? {} : {
                   background: `linear-gradient(135deg, ${theme.colors.secondary}, ${theme.colors.primary})`
                 }}
               >
@@ -832,15 +841,21 @@ export default function TabletControl({ sessionId }) {
               </div>
 
               {/* Matchup Display */}
-              <div className="rounded-2xl p-4 border-2 border-white/30 shadow-2xl"
-                   style={{
+              <div className={useOriginalStyles ? 
+                "bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-2xl p-4 border-2 border-white/30 shadow-2xl" :
+                "rounded-2xl p-4 border-2 border-white/30 shadow-2xl"
+              }
+                   style={useOriginalStyles ? {} : {
                      background: `linear-gradient(90deg, ${theme.colors.primary}20, rgba(255,255,255,0.1), ${theme.colors.secondary}20)`
                    }}>
                 <div className="grid grid-cols-3 gap-3 items-center">
                   {/* Player 1 */}
                   <div className="text-center space-y-2">
-                    <div className="rounded-xl p-3 border-2 shadow-lg"
-                         style={{
+                    <div className={useOriginalStyles ?
+                      "bg-gradient-to-br from-smash-red/40 to-red-700/40 rounded-xl p-3 border-2 border-red-400/50 shadow-lg" :
+                      "rounded-xl p-3 border-2 shadow-lg"
+                    }
+                         style={useOriginalStyles ? {} : {
                            background: `linear-gradient(135deg, ${theme.colors.primary}40, ${theme.colors.primary}60)`,
                            borderColor: `${theme.colors.primary}80`
                          }}>
@@ -850,24 +865,33 @@ export default function TabletControl({ sessionId }) {
                         {session.player1.name}
                       </p>
                       <div className="bg-black/30 rounded-lg p-2 border border-white/20">
-                        <p className="text-xs font-semibold mb-1"
-                           style={{ color: theme.colors.accent }}>Personaje</p>
+                        <p className={useOriginalStyles ?
+                          "text-smash-yellow text-xs font-semibold mb-1" :
+                          "text-xs font-semibold mb-1"
+                        }
+                           style={useOriginalStyles ? {} : { color: theme.colors.accent }}>Personaje</p>
                         <p className="text-white text-sm font-bold">
                           {getCharacterData(session.player1.character)?.name || 'N/A'}
                         </p>
                       </div>
                     </div>
-                    <div className="rounded-lg p-2 border-2"
-                         style={{
+                    <div className={useOriginalStyles ?
+                      "bg-smash-yellow/20 rounded-lg p-2 border-2 border-smash-yellow/50" :
+                      "rounded-lg p-2 border-2"
+                    }
+                         style={useOriginalStyles ? {} : {
                            backgroundColor: `${theme.colors.accent}20`,
                            borderColor: `${theme.colors.accent}50`
                          }}>
                       <p className="text-white/70 text-xs font-semibold">Score</p>
-                      <p className="text-2xl font-black"
-                         style={{ 
-                           color: theme.colors.accent,
-                           textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' 
-                         }}>
+                      <p className={useOriginalStyles ?
+                        "text-smash-yellow text-2xl font-black" :
+                        "text-2xl font-black"
+                      }
+                         style={useOriginalStyles ? 
+                           { textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' } : 
+                           { color: theme.colors.accent, textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }
+                         }>
                         {session.player1.score}
                       </p>
                     </div>
@@ -890,8 +914,11 @@ export default function TabletControl({ sessionId }) {
 
                   {/* Player 2 */}
                   <div className="text-center space-y-2">
-                    <div className="rounded-xl p-3 border-2 shadow-lg"
-                         style={{
+                    <div className={useOriginalStyles ?
+                      "bg-gradient-to-br from-smash-blue/40 to-blue-700/40 rounded-xl p-3 border-2 border-blue-400/50 shadow-lg" :
+                      "rounded-xl p-3 border-2 shadow-lg"
+                    }
+                         style={useOriginalStyles ? {} : {
                            background: `linear-gradient(135deg, ${theme.colors.secondary}40, ${theme.colors.secondary}60)`,
                            borderColor: `${theme.colors.secondary}80`
                          }}>
@@ -901,24 +928,33 @@ export default function TabletControl({ sessionId }) {
                         {session.player2.name}
                       </p>
                       <div className="bg-black/30 rounded-lg p-2 border border-white/20">
-                        <p className="text-xs font-semibold mb-1"
-                           style={{ color: theme.colors.accent }}>Personaje</p>
+                        <p className={useOriginalStyles ?
+                          "text-smash-yellow text-xs font-semibold mb-1" :
+                          "text-xs font-semibold mb-1"
+                        }
+                           style={useOriginalStyles ? {} : { color: theme.colors.accent }}>Personaje</p>
                         <p className="text-white text-sm font-bold">
                           {getCharacterData(session.player2.character)?.name || 'N/A'}
                         </p>
                       </div>
                     </div>
-                    <div className="rounded-lg p-2 border-2"
-                         style={{
+                    <div className={useOriginalStyles ?
+                      "bg-smash-yellow/20 rounded-lg p-2 border-2 border-smash-yellow/50" :
+                      "rounded-lg p-2 border-2"
+                    }
+                         style={useOriginalStyles ? {} : {
                            backgroundColor: `${theme.colors.accent}20`,
                            borderColor: `${theme.colors.accent}50`
                          }}>
                       <p className="text-white/70 text-xs font-semibold">Score</p>
-                      <p className="text-2xl font-black"
-                         style={{ 
-                           color: theme.colors.accent,
-                           textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' 
-                         }}>
+                      <p className={useOriginalStyles ?
+                        "text-smash-yellow text-2xl font-black" :
+                        "text-2xl font-black"
+                      }
+                         style={useOriginalStyles ? 
+                           { textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' } : 
+                           { color: theme.colors.accent, textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }
+                         }>
                         {session.player2.score}
                       </p>
                     </div>

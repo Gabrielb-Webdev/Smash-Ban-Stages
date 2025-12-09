@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, getStageData, getCharacterData } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getTournamentTheme } from '../utils/themes';
+import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
 export default function StreamOverlay({ sessionId }) {
   const { session, connected } = useWebSocket(sessionId);
@@ -10,6 +10,7 @@ export default function StreamOverlay({ sessionId }) {
   
   // Obtener tema del torneo
   const theme = getTournamentTheme(sessionId);
+  const useOriginalStyles = shouldUseOriginalStyles(sessionId);
   
   const [rpsWinner, setRpsWinner] = useState(null);
   const [showRpsAnimation, setShowRpsAnimation] = useState(false);
@@ -217,12 +218,16 @@ export default function StreamOverlay({ sessionId }) {
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
           height: '150px',
-          backgroundImage: `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-          backgroundBlendMode: 'overlay',
+          backgroundImage: useOriginalStyles ? 
+            'url(/images/paperbg.jpg)' : 
+            `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
+          backgroundBlendMode: useOriginalStyles ? 'normal' : 'overlay',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          boxShadow: `0 -4px 20px ${theme.colors.primary}40`,
+          boxShadow: useOriginalStyles ?
+            '0 -4px 20px rgba(0, 0, 0, 0.2)' :
+            `0 -4px 20px ${theme.colors.primary}40`,
         }}
       >
         {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA GIRANDO */}
@@ -256,8 +261,8 @@ export default function StreamOverlay({ sessionId }) {
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className="h-32 w-1 ml-4"
-                style={{ backgroundColor: theme.colors.accent }}
+                className={useOriginalStyles ? "h-32 w-1 bg-white ml-4" : "h-32 w-1 ml-4"}
+                style={useOriginalStyles ? {} : { backgroundColor: theme.colors.accent }}
               ></motion.div>
             </motion.div>
 
@@ -283,8 +288,8 @@ export default function StreamOverlay({ sessionId }) {
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className="h-32 w-1 mr-4"
-                style={{ backgroundColor: theme.colors.accent }}
+                className={useOriginalStyles ? "h-32 w-1 bg-white mr-4" : "h-32 w-1 mr-4"}
+                style={useOriginalStyles ? {} : { backgroundColor: theme.colors.accent }}
               ></motion.div>
               <img 
                 src={getCharacterData(session.player2.character)?.image} 
@@ -323,7 +328,12 @@ export default function StreamOverlay({ sessionId }) {
                     delay: 0.8
                   }}
                   className="whitespace-nowrap"
-                  style={{ 
+                  style={useOriginalStyles ? { 
+                    fontFamily: 'Anton',
+                    fontSize: '5.5rem',
+                    fontWeight: '400',
+                    color: '#FFFFFF'
+                  } : { 
                     fontFamily: 'Anton',
                     fontSize: '5.5rem',
                     fontWeight: '400',
@@ -379,8 +389,16 @@ export default function StreamOverlay({ sessionId }) {
                   <img 
                     src={stage.image}
                     alt={stage.name}
-                    className={`${imageClass} object-cover ${borderRadius} shadow-2xl`}
-                    style={{ 
+                    className={`${imageClass} object-cover ${borderRadius} shadow-2xl ${
+                      useOriginalStyles ? 
+                        (isSelected && showSelectOverlay ? 'border-4 border-green-400' : isGame1 ? 'border-4 border-white' : 'border-3 border-white') 
+                        : ''
+                    }`}
+                    style={useOriginalStyles ? { 
+                      objectFit: 'cover',
+                      borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
+                      filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none'
+                    } : { 
                       objectFit: 'cover',
                       borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
                       borderColor: isSelected && showSelectOverlay ? '#4ADE80' : theme.colors.accent,

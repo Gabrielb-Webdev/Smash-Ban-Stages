@@ -22,21 +22,8 @@ export const TOURNAMENT_THEMES = {
   'cordoba': {
     name: 'Smash Córdoba',
     emoji: '🔵', 
-    colors: {
-      primary: '#2563EB',
-      secondary: '#1D4ED8',
-      accent: '#F59E0B',
-      text: '#FFFFFF',
-      cardBg: 'rgba(37, 99, 235, 0.15)',
-      gradient: 'from-blue-900 via-blue-700 to-blue-800'
-    },
-    styles: {
-      // Estilo actual - mantiene como está
-      bannerText: 'text-4xl font-bold text-white',
-      cardBorder: 'border-2 border-blue-400/40',
-      buttonPrimary: 'bg-blue-600 hover:bg-blue-700',
-      buttonSecondary: 'bg-blue-800 hover:bg-blue-900'
-    }
+    // Córdoba usa los estilos originales - sin personalización
+    useOriginalStyles: true
   },
   'mendoza': {
     name: 'Smash Mendoza',
@@ -79,6 +66,12 @@ export const TOURNAMENT_THEMES = {
 // Función para obtener el tema de un torneo
 export const getTournamentTheme = (tournamentId) => {
   return TOURNAMENT_THEMES[tournamentId] || TOURNAMENT_THEMES['cordoba']; // Córdoba por defecto
+};
+
+// Función para verificar si debe usar estilos originales
+export const shouldUseOriginalStyles = (tournamentId) => {
+  const theme = getTournamentTheme(tournamentId);
+  return theme.useOriginalStyles === true;
 };
 
 // Función para aplicar estilos dinámicos
