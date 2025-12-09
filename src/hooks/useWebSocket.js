@@ -8,39 +8,12 @@ export const useWebSocket = (sessionId) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Inicializar el socket antes de conectar (solo en producción)
-    const initializeSocket = async () => {
-      if (typeof window !== 'undefined' && 
-          (window.location.hostname.includes('vercel.app') || 
-           window.location.hostname !== 'localhost')) {
-        try {
-          await fetch('/api/socket');
-        } catch (error) {
-          console.log('Error inicializando socket:', error);
-        }
-      }
-    };
-
     const connectSocket = async () => {
-      await initializeSocket();
-      
-      // Detectar si estamos en producción o desarrollo de forma más robusta
-      const isLocalhost = typeof window !== 'undefined' && 
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      
       // Conectar al servidor WebSocket
-      let socketUrl;
-      if (isLocalhost) {
-        // Desarrollo local
-        socketUrl = 'http://localhost:3001';
-        console.log('🏠 Modo desarrollo - conectando a localhost');
-      } else {
-        // Producción - usar Railway como servidor WebSocket
-        socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://web-production-80c11.up.railway.app';
-        console.log('🌐 Modo producción - conectando a Railway:', socketUrl);
-      }
+      // Siempre usar Railway como servidor WebSocket
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://web-production-80c11.up.railway.app';
       
-      console.log('🔌 Conectando WebSocket a:', socketUrl, 'hostname:', window.location.hostname);
+      console.log('🔌 Conectando WebSocket a Railway:', socketUrl, 'desde:', window.location.hostname);
         
       socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
