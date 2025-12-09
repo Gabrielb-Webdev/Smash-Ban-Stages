@@ -8,8 +8,9 @@ export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [selectedTournament, setSelectedTournament] = useState('cordoba'); // Nuevo estado
-  const [session, setSession] = useState(null);
+  const [selectedTournament, setSelectedTournament] = useState('cordoba');
+  const [activeSessions, setActiveSessions] = useState({}); // Múltiples sesiones activas
+  const [currentSession, setCurrentSession] = useState(null); // Sesión actualmente visualizada
   const [isEditing, setIsEditing] = useState(false);
   const [editPlayer1, setEditPlayer1] = useState('');
   const [editPlayer2, setEditPlayer2] = useState('');
@@ -153,93 +154,137 @@ export default function AdminPanel() {
 
     adminSocket.on('connect', () => {
       console.log('Admin conectado al servidor WebSocket');
-      // Primero intentar unirse a la sesión del torneo
-      adminSocket.emit('join-session', selectedTournament);
+      // NO auto-unirse a ninguna sesión, dejar que el usuario elija
     });
 
     adminSocket.on('session-created', (data) => {
       console.log('Sesión creada:', data);
-      setSession(data.session);
+      const sessionId = data.session.sessionId;
+      setActiveSessions(prev => ({
+        ...prev,
+        [sessionId]: data.session
+      }));
+      // Mostrar la sesión recién creada
+      setCurrentSession(data.session);
     });
 
     adminSocket.on('session-joined', (data) => {
       console.log('Sesión unida:', data);
-      setSession(data.session);
+      const sessionId = data.session.sessionId;
+      setActiveSessions(prev => ({
+        ...prev,
+        [sessionId]: data.session
+      }));
+      setCurrentSession(data.session);
     });
 
     adminSocket.on('session-updated', (data) => {
       console.log('Sesión actualizada:', data);
-      setSession(data.session);
+      const sessionId = data.session.sessionId;
+      setActiveSessions(prev => ({
+        ...prev,
+        [sessionId]: data.session
+      }));
+      // Si es la sesión actualmente mostrada, actualizarla
+      if (currentSession?.sessionId === sessionId) {
+        setCurrentSession(data.session);
+      }
     });
 
     adminSocket.on('session-error', (data) => {
       console.log('Error de sesión:', data.message);
-      // Si la sesión no existe, mostrar el panel para crearla
-      setSession(null);
+      // No hacer nada, mantener el estado actual
     });
 
     adminSocket.on('series-finished', (data) => {
       console.log('Serie finalizada:', data);
-      setSession(data.session);
+      const sessionId = data.session.sessionId;
+      setActiveSessions(prev => ({
+        ...prev,
+        [sessionId]: data.session
+      }));
+      if (currentSession?.sessionId === sessionId) {
+        setCurrentSession(data.session);
+      }
     });
 
     return () => {
-      if (adminSocket) {
-        adminSocket.disconnect();
-      }
+      // NO desconectar el socket aquí para evitar múltiples desconexiones
+      console.log('🧹 Limpieza del hook AdminPanel');
     };
-  }, [selectedTournament]); // Agregar selectedTournament como dependencia
+  }, []); // Sin dependencias para evitar reconexiones
 
-  // Re-conectar cuando cambie el torneo
-  useEffect(() => {
+  // Función para unirse a una sesión específica
+  const joinSession = (tournamentId) => {
     if (adminSocket && adminSocket.connected) {
-      adminSocket.emit('join-session', selectedTournament);
+      console.log('🔍 Intentando unirse a sesión:', tournamentId);
+      adminSocket.emit('join-session', tournamentId);
     }
-  }, [selectedTournament]);
+  };
+
+  // Función para crear sesión en el torneo seleccionado
+  const createSessionForTournament = (tournamentId, player1, player2, selectedFormat) => {
+    if (adminSocket && adminSocket.connected) {
+      adminSocket.emit('create-session', {
+        player1,
+        player2,
+        format: selectedFormat,
+        sessionId: tournamentId
+      });
+    }
+  };
+
+  // Efecto para cambio de torneo seleccionado
+  useEffect(() => {
+    // Actualizar la sesión mostrada cuando cambie la selección
+    if (activeSessions[selectedTournament]) {
+      setCurrentSession(activeSessions[selectedTournament]);
+    } else {
+      setCurrentSession(null);
+    }
+  }, [selectedTournament, activeSessions]);
 
   // Polling para configuración externa
   useEffect(() => {
     const interval = setInterval(checkExternalConfig, 2000); // Cada 2 segundos
     return () => clearInterval(interval);
-  }, [player1Name, player2Name, format, lastJsonUpdate, session]);
+  }, [player1Name, player2Name, format, lastJsonUpdate, currentSession]);
 
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
-      if (adminSocket && adminSocket.connected) {
-        adminSocket.emit('create-session', { 
-          player1: player1Name, 
-          player2: player2Name, 
-          format,
-          sessionId: selectedTournament // Usar el torneo seleccionado
-        });
-      } else {
-        alert('No hay conexión con el servidor. Por favor, recarga la página.');
-      }
+      createSessionForTournament(selectedTournament, player1Name, player2Name, format);
+      // Limpiar formulario después de crear
+      setPlayer1Name('');
+      setPlayer2Name('');
     } else {
       alert('Por favor ingresa los nombres de ambos jugadores');
     }
   };
 
+  const handleJoinSession = (tournamentId) => {
+    joinSession(tournamentId);
+  };
+
   const handleGameWinner = (winner) => {
-    if (session && adminSocket && window.confirm(`¿Confirmar que ${session[winner].name} ganó este game?`)) {
-      adminSocket.emit('game-winner', { sessionId: session.sessionId, winner });
+    if (currentSession && adminSocket && window.confirm(`¿Confirmar que ${currentSession[winner].name} ganó este game?`)) {
+      adminSocket.emit('game-winner', { sessionId: currentSession.sessionId, winner });
     }
   };
 
   const handleResetSession = () => {
-    if (session && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
-      adminSocket.emit('reset-session', { sessionId: selectedTournament });
+    if (currentSession && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
+      adminSocket.emit('reset-session', { sessionId: currentSession.sessionId });
     }
   };
 
   const handleEndMatch = () => {
-    if (session && adminSocket && window.confirm('¿Terminar el match y declarar ganador?')) {
+    if (currentSession && adminSocket && window.confirm('¿Terminar el match y declarar ganador?')) {
       // Determinar ganador basado en el score actual
-      const winner = session.player1.score > session.player2.score ? 'player1' : 
-                     session.player2.score > session.player1.score ? 'player2' : null;
+      const winner = currentSession.player1.score > currentSession.player2.score ? 'player1' : 
+                     currentSession.player2.score > currentSession.player1.score ? 'player2' : null;
       
       if (winner) {
-        adminSocket.emit('end-match', { sessionId: selectedTournament, winner });
+        adminSocket.emit('end-match', { sessionId: currentSession.sessionId, winner });
       } else {
         alert('No se puede terminar el match con empate. Debe haber un ganador con más puntos.');
       }
@@ -247,9 +292,9 @@ export default function AdminPanel() {
   };
 
   const handleStartEditing = () => {
-    setEditPlayer1(session.player1.name);
-    setEditPlayer2(session.player2.name);
-    setEditFormat(session.format);
+    setEditPlayer1(currentSession.player1.name);
+    setEditPlayer2(currentSession.player2.name);
+    setEditFormat(currentSession.format);
     setIsEditing(true);
   };
 
@@ -308,11 +353,69 @@ export default function AdminPanel() {
           )}
         </div>
 
-        {!session || session.phase === 'FINISHED' ? (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20">
-            <h2 className="text-3xl font-bold text-white mb-6">
-              {session?.phase === 'FINISHED' ? 'Nueva Serie (mismo link)' : 'Crear Nueva Sesión'}
-            </h2>
+        {!currentSession || currentSession.phase === 'FINISHED' ? (
+          <div className="space-y-6">
+            {/* Panel de estado de sesiones activas */}
+            {Object.keys(activeSessions).length > 0 && (
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
+                <h3 className="text-2xl font-bold text-white mb-4">🎯 Sesiones Activas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(tournaments).map(([key, tournament]) => {
+                    const sessionExists = activeSessions[key];
+                    return (
+                      <div key={key} className={`p-4 rounded-lg border-2 transition-all ${
+                        sessionExists 
+                          ? `bg-green-600/20 border-green-500/50` 
+                          : `bg-gray-600/20 border-gray-500/30`
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-white flex items-center gap-2">
+                              <span>{tournament.emoji}</span>
+                              {tournament.name}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {sessionExists ? 
+                                `${sessionExists.player1.name} vs ${sessionExists.player2.name}` : 
+                                'Sin sesión activa'
+                              }
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {sessionExists ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedTournament(key);
+                                  setCurrentSession(sessionExists);
+                                }}
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                              >
+                                Ver
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedTournament(key);
+                                  handleJoinSession(key);
+                                }}
+                                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded transition-colors"
+                              >
+                                Buscar
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20">
+              <h2 className="text-3xl font-bold text-white mb-6">
+                {currentSession?.phase === 'FINISHED' ? 'Nueva Serie' : 'Crear Nueva Sesión'}
+              </h2>
             
             <div className="space-y-4">
               <div>
@@ -469,27 +572,27 @@ export default function AdminPanel() {
                 <div className="bg-smash-red/20 rounded-lg p-4">
                   <p className="text-white/70 text-sm">Jugador 1</p>
                   <p className="text-white font-bold text-2xl">
-                    {session.player1.name}
+                    {currentSession.player1.name}
                   </p>
                   <p className="text-smash-yellow text-4xl font-bold">
-                    {session.player1.score}
+                    {currentSession.player1.score}
                   </p>
                 </div>
 
                 <div className="bg-white/10 rounded-lg p-4 flex flex-col justify-center">
                   <p className="text-white/70 text-sm">Game Actual</p>
                   <p className="text-white font-bold text-3xl">
-                    {session.currentGame} / {session.format === 'BO3' ? '3' : '5'}
+                    {currentSession.currentGame} / {currentSession.format === 'BO3' ? '3' : '5'}
                   </p>
                 </div>
 
                 <div className="bg-smash-blue/20 rounded-lg p-4">
                   <p className="text-white/70 text-sm">Jugador 2</p>
                   <p className="text-white font-bold text-2xl">
-                    {session.player2.name}
+                    {currentSession.player2.name}
                   </p>
                   <p className="text-smash-yellow text-4xl font-bold">
-                    {session.player2.score}
+                    {currentSession.player2.score}
                   </p>
                 </div>
               </div>
