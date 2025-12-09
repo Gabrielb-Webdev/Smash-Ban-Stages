@@ -10,7 +10,7 @@ export const useWebSocket = (sessionId) => {
   useEffect(() => {
     // Inicializar el socket antes de conectar (solo en producción)
     const initializeSocket = async () => {
-      if (process.env.NODE_ENV === 'production') {
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
         await fetch('/api/socket');
       }
     };
@@ -18,18 +18,20 @@ export const useWebSocket = (sessionId) => {
     const connectSocket = async () => {
       await initializeSocket();
       
+      // Detectar si estamos en producción o desarrollo
+      const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+      
       // Conectar al servidor WebSocket con configuración optimizada
-      const socketUrl = process.env.NODE_ENV === 'production' 
+      const socketUrl = isProduction 
         ? window.location.origin 
         : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
         
       socket = io(socketUrl, {
-        path: process.env.NODE_ENV === 'production' ? '/api/socket' : '/socket.io/',
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionDelay: 500,
+        reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        reconnectionAttempts: Infinity,
+        reconnectionAttempts: 5,
         timeout: 20000
       });
 

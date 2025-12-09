@@ -41,8 +41,6 @@ export default function handler(req, res) {
 
   console.log('Socket inicializando...');
   io = new Server(res.socket.server, {
-    path: '/api/socket',
-    addTrailingSlash: false,
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
