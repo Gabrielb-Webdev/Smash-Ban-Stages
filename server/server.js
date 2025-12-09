@@ -47,9 +47,11 @@ const sessions = new Map();
 io.on('connection', (socket) => {
   console.log('Cliente conectado:', socket.id);
 
-  // Crear nueva sesión (siempre usa 'main-session' como ID fijo)
+  // Crear nueva sesión usando el sessionId proporcionado
   socket.on('create-session', (data) => {
-    const sessionId = 'main-session'; // ID fijo para mantener los mismos links
+    const sessionId = data.sessionId || 'main-session'; // Usar sessionId del cliente o fallback
+    
+    console.log('📝 Creando sesión:', sessionId, 'para torneo:', data.sessionId);
     
     // Verificar si ya existe una sesión
     let session = sessions.get(sessionId);
