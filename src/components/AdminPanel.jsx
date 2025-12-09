@@ -422,6 +422,31 @@ export default function AdminPanel() {
                 <label className="block text-white font-semibold mb-2">
                   🏆 Seleccionar Torneo
                 </label>
+                
+                {/* Mostrar información de sesión activa si existe */}
+                {activeSessions[selectedTournament] && (
+                  <div className="mb-4 p-4 bg-green-600/20 border border-green-500/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-green-300 font-semibold">
+                          ✅ {tournaments[selectedTournament].name} tiene una sesión activa
+                        </div>
+                        <div className="text-green-200 text-sm mt-1">
+                          {activeSessions[selectedTournament].player1.name} vs {activeSessions[selectedTournament].player2.name}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentSession(activeSessions[selectedTournament]);
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                      >
+                        Volver a la sesión
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-2 gap-3">
                   {Object.entries(tournaments).map(([key, tournament]) => (
                     <button
@@ -434,7 +459,12 @@ export default function AdminPanel() {
                       }`}
                     >
                       <div className="text-lg">{tournament.name}</div>
-                      <div className="text-xs opacity-75 mt-1">ID: {key}</div>
+                      <div className="text-xs opacity-75 mt-1">
+                        ID: {key}
+                        {activeSessions[key] && (
+                          <span className="ml-2 inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
