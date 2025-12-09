@@ -32,18 +32,12 @@ export const useWebSocket = (sessionId) => {
       let socketUrl;
       if (isLocalhost) {
         // Desarrollo local
-        socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        socketUrl = 'http://localhost:3001';
         console.log('🏠 Modo desarrollo - conectando a localhost');
       } else {
-        // Producción (Vercel u otro hosting) - NUNCA usar localhost
-        socketUrl = window.location.origin;
-        console.log('🌐 Modo producción - conectando a origin:', window.location.origin);
-      }
-      
-      // Verificación adicional de seguridad
-      if (socketUrl.includes('localhost') && !isLocalhost) {
-        console.error('❌ ERROR: Detectado localhost en producción, usando origin en su lugar');
-        socketUrl = window.location.origin;
+        // Producción - usar Railway como servidor WebSocket
+        socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://web-production-80c11.up.railway.app';
+        console.log('🌐 Modo producción - conectando a Railway:', socketUrl);
       }
       
       console.log('🔌 Conectando WebSocket a:', socketUrl, 'hostname:', window.location.hostname);
