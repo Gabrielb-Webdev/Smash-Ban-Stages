@@ -540,11 +540,11 @@ export default function AdminPanel() {
                 {!isEditing ? (
                   <>
                     <h2 className="text-3xl font-bold text-white">
-                      {session.player1.name} vs {session.player2.name}
+                      {currentSession.player1.name} vs {currentSession.player2.name}
                     </h2>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl font-bold text-smash-yellow">
-                        {session.format}
+                        {currentSession.format}
                       </span>
                       <button
                         onClick={handleStartEditing}
@@ -630,16 +630,16 @@ export default function AdminPanel() {
               <div className="mt-4 text-center">
                 <p className="text-white/70 text-sm mb-1">Estado Actual</p>
                 <p className="text-white font-bold text-xl">
-                  {session.phase === 'RPS' && '⏳ Esperando Ganador de RPS'}
-                  {session.phase === 'STAGE_BAN' && '🚫 Baneo de Stages'}
-                  {session.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
-                  {session.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
-                  {session.phase === 'PLAYING' && '⚔️ Jugando'}
-                  {session.phase === 'FINISHED' && '🏆 Serie Finalizada'}
+                  {currentSession.phase === 'RPS' && '⏳ Esperando Ganador de RPS'}
+                  {currentSession.phase === 'STAGE_BAN' && '🚫 Baneo de Stages'}
+                  {currentSession.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
+                  {currentSession.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
+                  {currentSession.phase === 'PLAYING' && '⚔️ Jugando'}
+                  {currentSession.phase === 'FINISHED' && '🏆 Serie Finalizada'}
                 </p>
-                {session.currentTurn && session.phase !== 'FINISHED' && (
+                {currentSession.currentTurn && currentSession.phase !== 'FINISHED' && (
                   <p className="text-smash-yellow font-semibold mt-2">
-                    Turno de: {session[session.currentTurn].name}
+                    Turno de: {currentSession[currentSession.currentTurn].name}
                   </p>
                 )}
               </div>
@@ -731,7 +731,7 @@ export default function AdminPanel() {
             </div>
 
             {/* Controles del Game */}
-            {session.phase === 'PLAYING' && (
+            {currentSession.phase === 'PLAYING' && (
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
                 <h3 className="text-2xl font-bold text-white mb-4">
                   ⚔️ Controles del Game
@@ -750,7 +750,7 @@ export default function AdminPanel() {
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
                       <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{session.player1.name}</div>
+                        <div className="text-2xl font-black mb-1">{currentSession.player1.name}</div>
                         <div className="text-sm opacity-80">Dar punto</div>
                       </div>
                     </div>
@@ -764,7 +764,7 @@ export default function AdminPanel() {
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
                       <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{session.player2.name}</div>
+                        <div className="text-2xl font-black mb-1">{currentSession.player2.name}</div>
                         <div className="text-sm opacity-80">Dar punto</div>
                       </div>
                     </div>
@@ -772,7 +772,7 @@ export default function AdminPanel() {
                 </div>
                 
                 <div className="mt-4 text-center text-sm text-white/60">
-                  {session.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
+                  {currentSession.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
                 </div>
               </div>
             )}
