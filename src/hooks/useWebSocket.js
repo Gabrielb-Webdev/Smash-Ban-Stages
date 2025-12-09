@@ -10,21 +10,35 @@ export const useWebSocket = (sessionId) => {
   useEffect(() => {
     // Inicializar el socket antes de conectar (solo en producción)
     const initializeSocket = async () => {
-      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-        await fetch('/api/socket');
+      if (typeof window !== 'undefined' && 
+          (window.location.hostname.includes('vercel.app') || 
+           window.location.hostname !== 'localhost')) {
+        try {
+          await fetch('/api/socket');
+        } catch (error) {
+          console.log('Error inicializando socket:', error);
+        }
       }
     };
 
     const connectSocket = async () => {
       await initializeSocket();
       
-      // Detectar si estamos en producción o desarrollo
-      const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+      // Detectar si estamos en producción o desarrollo de forma más robusta
+      const isLocalhost = typeof window !== 'undefined' && 
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       
-      // Conectar al servidor WebSocket con configuración optimizada
-      const socketUrl = isProduction 
-        ? window.location.origin 
-        : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
+      // Conectar al servidor WebSocket
+      let socketUrl;
+      if (isLocalhost) {
+        // Desarrollo local
+        socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+      } else {
+        // Producción (Vercel u otro hosting)
+        socketUrl = window.location.origin;
+      }
+      
+      console.log('Conectando WebSocket a:', socketUrl, 'isLocalhost:', isLocalhost);
         
       socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
@@ -36,7 +50,7 @@ export const useWebSocket = (sessionId) => {
       });
 
       socket.on('connect', () => {
-        console.log('Conectado al servidor WebSocket');
+        console.log('✅ Conectado al servidor WebSocket');
         setConnected(true);
 
         // Si hay un sessionId, unirse a la sesión
@@ -44,24 +58,19 @@ export const useWebSocket = (sessionId) => {
           socket.emit('join-session', sessionId);
         }
       });
+
+      socket.on('connect_error', (error) => {
+        console.error('❌ Error de conexión WebSocket:', error);
+        setConnected(false);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('🔌 Desconectado del servidor WebSocket, razón:', reason);
+        setConnected(false);
+      });
     };
 
     connectSocket();
-
-    socket.on('connect', () => {
-      console.log('Conectado al servidor WebSocket');
-      setConnected(true);
-
-      // Si hay un sessionId, unirse a la sesión
-      if (sessionId) {
-        socket.emit('join-session', sessionId);
-      }
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Desconectado del servidor WebSocket');
-      setConnected(false);
-    });
 
     socket.on('session-created', (data) => {
       setSession(data.session);
