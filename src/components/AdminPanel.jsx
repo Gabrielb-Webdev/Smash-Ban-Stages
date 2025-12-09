@@ -19,17 +19,6 @@ export default function AdminPanel() {
   // Configuración de torneos con temas
   const tournaments = {
     'main-session': { 
-      name: 'General', 
-      emoji: '🎮',
-      color: 'smash-blue',
-      theme: {
-        primary: '#3B82F6',
-        secondary: '#1E40AF',
-        accent: '#F59E0B',
-        bg: 'from-blue-900 via-blue-800 to-purple-900'
-      }
-    },
-    'cordoba': { 
       name: 'Smash Córdoba', 
       emoji: '🔵',
       color: 'blue-600',
