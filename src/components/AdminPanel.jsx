@@ -153,7 +153,7 @@ export default function AdminPanel() {
 
     adminSocket.on('connect', () => {
       console.log('Admin conectado al servidor WebSocket');
-      // Unirse a la sesión del torneo seleccionado
+      // Primero intentar unirse a la sesión del torneo
       adminSocket.emit('join-session', selectedTournament);
     });
 
@@ -170,6 +170,12 @@ export default function AdminPanel() {
     adminSocket.on('session-updated', (data) => {
       console.log('Sesión actualizada:', data);
       setSession(data.session);
+    });
+
+    adminSocket.on('session-error', (data) => {
+      console.log('Error de sesión:', data.message);
+      // Si la sesión no existe, mostrar el panel para crearla
+      setSession(null);
     });
 
     adminSocket.on('series-finished', (data) => {
