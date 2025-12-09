@@ -8,13 +8,21 @@ export default function AdminPanel() {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [currentSessionId] = useState('main-session'); // ID fijo
+  const [selectedTournament, setSelectedTournament] = useState('main-session'); // Nuevo estado
   const [session, setSession] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editPlayer1, setEditPlayer1] = useState('');
   const [editPlayer2, setEditPlayer2] = useState('');
   const [editFormat, setEditFormat] = useState('BO3');
   const [lastJsonUpdate, setLastJsonUpdate] = useState('');
+
+  // Configuración de torneos
+  const tournaments = {
+    'main-session': { name: 'General', color: 'smash-blue' },
+    'cordoba': { name: 'Smash Córdoba', color: 'blue-600' },
+    'mendoza': { name: 'Smash Mendoza', color: 'purple-600' },
+    'afk': { name: 'Smash AFK (Buenos Aires)', color: 'red-600' }
+  };
 
   // Función para traducir formato
   const translateFormat = (externalFormat) => {
@@ -116,8 +124,8 @@ export default function AdminPanel() {
 
     adminSocket.on('connect', () => {
       console.log('Admin conectado al servidor WebSocket');
-      // Siempre unirse a la sesión fija
-      adminSocket.emit('join-session', 'main-session');
+      // Unirse a la sesión del torneo seleccionado
+      adminSocket.emit('join-session', selectedTournament);
     });
 
     adminSocket.on('session-created', (data) => {
@@ -145,7 +153,14 @@ export default function AdminPanel() {
         adminSocket.disconnect();
       }
     };
-  }, []);
+  }, [selectedTournament]); // Agregar selectedTournament como dependencia
+
+  // Re-conectar cuando cambie el torneo
+  useEffect(() => {
+    if (adminSocket && adminSocket.connected) {
+      adminSocket.emit('join-session', selectedTournament);
+    }
+  }, [selectedTournament]);
 
   // Polling para configuración externa
   useEffect(() => {
@@ -159,7 +174,8 @@ export default function AdminPanel() {
         adminSocket.emit('create-session', { 
           player1: player1Name, 
           player2: player2Name, 
-          format 
+          format,
+          sessionId: selectedTournament // Usar el torneo seleccionado
         });
       } else {
         alert('No hay conexión con el servidor. Por favor, recarga la página.');
@@ -177,7 +193,7 @@ export default function AdminPanel() {
 
   const handleResetSession = () => {
     if (session && adminSocket && window.confirm('¿Reiniciar la serie? Esto borrará todo el progreso.')) {
-      adminSocket.emit('reset-session', { sessionId: currentSessionId });
+      adminSocket.emit('reset-session', { sessionId: selectedTournament });
     }
   };
 
@@ -188,7 +204,7 @@ export default function AdminPanel() {
                      session.player2.score > session.player1.score ? 'player2' : null;
       
       if (winner) {
-        adminSocket.emit('end-match', { sessionId: currentSessionId, winner });
+        adminSocket.emit('end-match', { sessionId: selectedTournament, winner });
       } else {
         alert('No se puede terminar el match con empate. Debe haber un ganador con más puntos.');
       }
@@ -205,7 +221,7 @@ export default function AdminPanel() {
   const handleSaveNames = () => {
     if (editPlayer1 && editPlayer2 && adminSocket) {
       adminSocket.emit('update-players', { 
-        sessionId: currentSessionId, 
+        sessionId: selectedTournament, 
         player1: editPlayer1, 
         player2: editPlayer2,
         format: editFormat
@@ -221,9 +237,8 @@ export default function AdminPanel() {
   };
 
   const getControlLink = (type) => {
-    if (!session) return '';
     const baseUrl = window.location.origin;
-    return `${baseUrl}/${type}/${session.sessionId}`;
+    return `${baseUrl}/${type}/${selectedTournament}`;
   };
 
   const copyToClipboard = (text) => {
@@ -241,6 +256,12 @@ export default function AdminPanel() {
           <p className="text-smash-light text-lg">
             Sistema de Baneos - Super Smash Bros Ultimate
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 bg-smash-orange/20 border border-smash-orange/50 rounded-lg px-4 py-2">
+            <span className="text-smash-orange text-lg">{tournaments[selectedTournament].emoji}</span>
+            <span className="text-white text-sm font-medium">
+              {tournaments[selectedTournament].name}
+            </span>
+          </div>
           {lastJsonUpdate && (
             <div className="mt-4 inline-flex items-center gap-2 bg-green-600/20 border border-green-500/50 rounded-lg px-4 py-2">
               <span className="text-green-400 text-lg">🔗</span>
@@ -259,6 +280,28 @@ export default function AdminPanel() {
             </h2>
             
             <div className="space-y-4">
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  🏆 Seleccionar Torneo
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(tournaments).map(([key, tournament]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedTournament(key)}
+                      className={`p-4 rounded-lg font-bold transition-all border-2 ${
+                        selectedTournament === key
+                          ? `bg-${tournament.color} border-${tournament.color} text-white shadow-lg scale-105`
+                          : 'bg-white/10 border-white/30 text-white/70 hover:bg-white/20 hover:border-white/50'
+                      }`}
+                    >
+                      <div className="text-lg">{tournament.name}</div>
+                      <div className="text-xs opacity-75 mt-1">ID: {key}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
               <div>
                 <label className="block text-white font-semibold mb-2">
                   Nombre del Jugador 1
@@ -437,7 +480,7 @@ export default function AdminPanel() {
             {/* Links de Control */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
               <h3 className="text-2xl font-bold text-white mb-4">
-                📱 Links de Control
+                📱 Links de Control - {tournaments[selectedTournament].name}
               </h3>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
