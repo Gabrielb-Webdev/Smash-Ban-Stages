@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import io from 'socket.io-client';
 
+// Fix: Force rebuild to clear cache
 let adminSocket = null;
 
 export default function AdminPanel() {
