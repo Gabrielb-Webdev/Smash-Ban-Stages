@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import Image from 'next/image';
+import Head from 'next/head';
 
 export default function Home() {
   const communities = [
@@ -16,7 +17,7 @@ export default function Home() {
     {
       id: 'afk',
       name: 'Smash AFK',
-      emoji: '🟡',
+      logo: '/images/AFK.webp',
       description: 'Panel de administración de Smash AFK (Buenos Aires)',
       color: 'from-red-900 via-red-700 to-orange-800',
       borderColor: 'border-yellow-500',
@@ -34,12 +35,18 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
+    <>
+      <Head>
+        <title>la App sin H - Gestión de Torneos de Smash</title>
+        <meta name="description" content="Panel de administración para comunidades de Smash Bros" />
+      </Head>
+      
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
       <div className="max-w-6xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            🎮 Smash Ban Stages
+            🎮 la App sin H
           </h1>
           <p className="text-xl text-gray-300">
             Selecciona tu comunidad para acceder al panel de administración
@@ -111,6 +118,7 @@ export default function Home() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
