@@ -1,7 +1,7 @@
-import AdminPanel from '../src/components/AdminPanel';
+import CommunitySelector from '../src/components/CommunitySelector';
 
 export default function Home() {
-  return <AdminPanel />;
+  return <CommunitySelector />;
 }
 
 // Cache invalidation forced rebuild - 2024-12-09T22:55:00

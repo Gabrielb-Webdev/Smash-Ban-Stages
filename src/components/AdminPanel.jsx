@@ -5,11 +5,11 @@ import io from 'socket.io-client';
 // Fix: Force rebuild to clear cache
 let adminSocket = null;
 
-export default function AdminPanel() {
+export default function AdminPanel({ initialCommunity = 'cordoba' }) {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [selectedTournament, setSelectedTournament] = useState('cordoba');
+  const [selectedTournament, setSelectedTournament] = useState(initialCommunity);
   const [activeSessions, setActiveSessions] = useState({});
   const [currentSession, setCurrentSession] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -348,6 +348,19 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Back button */}
+        <div className="mb-6">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-all border border-white/20"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Volver a Comunidades
+          </a>
+        </div>
+        
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2">
             🎮 Panel de Administración
@@ -392,58 +405,30 @@ export default function AdminPanel() {
             </h2>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-white font-semibold mb-2">
-                  🏆 Seleccionar Torneo
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(tournaments).map(([key, tournament]) => (
-                    <button
-                      key={key}
-                      onClick={() => setSelectedTournament(key)}
-                      className={`p-4 rounded-lg font-bold transition-all border-2 ${
-                        selectedTournament === key
-                          ? `bg-${tournament.color} border-${tournament.color} text-white shadow-lg scale-105`
-                          : 'bg-white/10 border-white/30 text-white/70 hover:bg-white/20 hover:border-white/50'
-                      }`}
-                    >
-                      <div className="text-lg">{tournament.name}</div>
-                      <div className="text-xs opacity-75 mt-1">ID: {key}</div>
-                      {activeSessions[key] && (
-                        <div className="text-xs text-green-300 mt-1 flex items-center justify-center gap-1">
-                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                          Sesión activa
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Botón para volver a sesión activa */}
-                {activeSessions[selectedTournament] && (
-                  <div className="bg-green-600/20 border border-green-500/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-green-300 font-semibold">
-                          🎮 Sesión activa encontrada para {tournaments[selectedTournament].name}
-                        </p>
-                        <p className="text-green-200 text-sm mt-1">
-                          {activeSessions[selectedTournament]?.player1?.name} vs {activeSessions[selectedTournament]?.player2?.name}
-                        </p>
-                        <p className="text-green-200 text-xs opacity-75">
-                          Fase: {activeSessions[selectedTournament]?.phase} | Formato: {activeSessions[selectedTournament]?.format}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setCurrentSession(activeSessions[selectedTournament])}
-                        className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
-                      >
-                        🔄 Volver a la Sesión
-                      </button>
+              {/* Botón para volver a sesión activa */}
+              {activeSessions[selectedTournament] && (
+                <div className="bg-green-600/20 border border-green-500/50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-300 font-semibold">
+                        🎮 Sesión activa encontrada para {tournaments[selectedTournament].name}
+                      </p>
+                      <p className="text-green-200 text-sm mt-1">
+                        {activeSessions[selectedTournament]?.player1?.name} vs {activeSessions[selectedTournament]?.player2?.name}
+                      </p>
+                      <p className="text-green-200 text-xs opacity-75">
+                        Fase: {activeSessions[selectedTournament]?.phase} | Formato: {activeSessions[selectedTournament]?.format}
+                      </p>
                     </div>
+                    <button
+                      onClick={() => setCurrentSession(activeSessions[selectedTournament])}
+                      className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
+                    >
+                      🔄 Volver a la Sesión
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               
               <div>
                 <label className="block text-white font-semibold mb-2">
