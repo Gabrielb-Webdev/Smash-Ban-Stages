@@ -609,14 +609,12 @@ export default function TabletControl({ sessionId }) {
 
         {/* Stage Select Phase */}
         {session.phase === 'STAGE_SELECT' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
             <div className="text-center mb-1.5 sm:mb-2 flex-shrink-0">
-              <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1"
-                  style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+              <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">
                 🎯 Seleccionar Stage
               </h3>
-              <p className="text-white text-sm sm:text-lg font-semibold truncate"
-                 style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
+              <p className="text-white text-sm sm:text-lg font-semibold truncate">
                 Turno: {session[session.currentTurn]?.name}
               </p>
             </div>
@@ -628,23 +626,23 @@ export default function TabletControl({ sessionId }) {
                   <button
                     key={stage.id}
                     onClick={() => handleSelectStage(stage.id)}
-                    className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
+                    className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                   >
                     <div className="aspect-video relative">
                       <img 
                         src={stage.image} 
                         alt={stage.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        className="w-full h-full object-cover"
                         onError={(e) => { 
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'flex';
                         }}
                       />
-                      <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                      <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
                         <span className="text-white text-xl">🎮</span>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                        <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                        <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
                       </div>
                     </div>
                   </button>
@@ -658,23 +656,23 @@ export default function TabletControl({ sessionId }) {
                     <button
                       key={stage.id}
                       onClick={() => handleSelectStage(stage.id)}
-                      className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
+                      className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
                             alt={stage.name}
-                            className="w-full h-full object-cover transition-transform duration-300"
+                            className="w-full h-full object-cover"
                             onError={(e) => { 
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
                             }}
                           />
-                          <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                          <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
                           </div>
                         </div>
                       </button>
@@ -690,23 +688,23 @@ export default function TabletControl({ sessionId }) {
                     <button
                       key={stage.id}
                       onClick={() => handleSelectStage(stage.id)}
-                      className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
+                      className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
                             alt={stage.name}
-                            className="w-full h-full object-cover transition-transform duration-300"
+                            className="w-full h-full object-cover"
                             onError={(e) => { 
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
                             }}
                           />
-                          <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                          <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
                           </div>
                         </div>
                       </button>
@@ -723,23 +721,23 @@ export default function TabletControl({ sessionId }) {
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
-                        className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
+                        className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                       >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
                             alt={stage.name}
-                            className="w-full h-full object-cover transition-transform duration-300"
+                            className="w-full h-full object-cover"
                             onError={(e) => { 
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
                             }}
                           />
-                          <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                          <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
                           </div>
                         </div>
                       </button>
@@ -752,23 +750,23 @@ export default function TabletControl({ sessionId }) {
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
-                        className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
+                        className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                       >
                           <div className="aspect-video relative">
                             <img 
                               src={stage.image} 
                               alt={stage.name}
-                              className="w-full h-full object-cover transition-transform duration-300"
+                              className="w-full h-full object-cover"
                               onError={(e) => { 
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
                               }}
                             />
-                            <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
+                            <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
                               <span className="text-white text-xl">🎮</span>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                              <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
                             </div>
                           </div>
                         </button>
@@ -783,16 +781,14 @@ export default function TabletControl({ sessionId }) {
 
         {/* Character Select Phase */}
         {session.phase === 'CHARACTER_SELECT' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
             <div className="flex-shrink-0 mb-2 sm:mb-3">
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
-                  <h3 className="text-lg sm:text-2xl font-bold text-white"
-                      style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+                  <h3 className="text-lg sm:text-2xl font-bold text-white">
                     👤 Seleccionar Personaje
                   </h3>
-                  <p className="text-white text-xs sm:text-base font-semibold truncate"
-                     style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
+                  <p className="text-white text-xs sm:text-base font-semibold truncate">
                     Turno: {session[session.currentTurn]?.name} | Stage: {getStageData(session.selectedStage)?.name}
                   </p>
                 </div>
@@ -811,14 +807,14 @@ export default function TabletControl({ sessionId }) {
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-white/5 rounded-lg sm:rounded-xl transition-all p-1 flex flex-col items-center justify-center overflow-hidden group active:scale-95 border-2 border-white/20 shadow-lg touch-manipulation"
+                  className="aspect-square bg-white/5 rounded-lg sm:rounded-xl p-1 flex flex-col items-center justify-center overflow-hidden active:scale-95 border-2 border-white/20 touch-manipulation"
                   title={character.name}
                 >
                   <div className="w-full h-full flex items-center justify-center">
                     <img 
                       src={character.image} 
                       alt={character.name}
-                      className="w-full h-full object-contain transition-transform drop-shadow-lg"
+                      className="w-full h-full object-contain"
                       onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                     />
                   </div>
@@ -830,27 +826,26 @@ export default function TabletControl({ sessionId }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border-2 border-white/30 flex-1 flex flex-col justify-center">
             {/* Contenido principal */}
-            <div className="relative z-10">
+            <div>
               <div className="text-center mb-2 sm:mb-4">
                 <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2"
-                    style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
+                    style={{ fontFamily: 'Anton' }}>
                   ¡EN COMBATE!
                 </h3>
-                <p className="text-white/80 text-sm sm:text-lg font-semibold"
-                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                <p className="text-white/80 text-sm sm:text-lg font-semibold">
                   Game {session.currentGame}
                 </p>
               </div>
 
               {/* Matchup Display */}
               <div className={useOriginalStyles ? 
-                "bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30 shadow-2xl" :
-                "rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30 shadow-2xl"
+                "bg-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30" :
+                "rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30"
               }
                    style={useOriginalStyles ? {} : {
-                     background: `linear-gradient(90deg, ${theme.colors.primary}20, rgba(255,255,255,0.1), ${theme.colors.secondary}20)`
+                     background: 'rgba(255,255,255,0.1)'
                    }}>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 items-center">
                   {/* Player 1 */}
@@ -865,7 +860,7 @@ export default function TabletControl({ sessionId }) {
                          }}>
                       <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 1</p>
                       <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate"
-                         style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
+                         style={{ fontFamily: 'Anton' }}>
                         {session.player1.name}
                       </p>
                       <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
@@ -893,8 +888,8 @@ export default function TabletControl({ sessionId }) {
                         "text-xl sm:text-2xl font-black"
                       }
                          style={useOriginalStyles ? 
-                           { textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' } : 
-                           { color: theme.colors.accent, textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }
+                           {} : 
+                           { color: theme.colors.accent }
                          }>
                         {session.player1.score}
                       </p>
@@ -903,9 +898,9 @@ export default function TabletControl({ sessionId }) {
 
                   {/* VS */}
                   <div className="flex flex-col items-center justify-center">
-                    <div className="bg-gradient-to-br from-white/20 to-white/10 rounded-full p-2 sm:p-3 border-2 sm:border-4 border-white/30 shadow-2xl">
+                    <div className="bg-white/20 rounded-full p-2 sm:p-3 border-2 sm:border-4 border-white/30">
                       <p className="text-white text-lg sm:text-2xl font-black"
-                         style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
+                         style={{ fontFamily: 'Anton' }}>
                         VS
                       </p>
                     </div>
@@ -928,7 +923,7 @@ export default function TabletControl({ sessionId }) {
                          }}>
                       <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 2</p>
                       <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate"
-                         style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
+                         style={{ fontFamily: 'Anton' }}>
                         {session.player2.name}
                       </p>
                       <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
@@ -956,8 +951,8 @@ export default function TabletControl({ sessionId }) {
                         "text-xl sm:text-2xl font-black"
                       }
                          style={useOriginalStyles ? 
-                           { textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' } : 
-                           { color: theme.colors.accent, textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }
+                           {} : 
+                           { color: theme.colors.accent }
                          }>
                         {session.player2.score}
                       </p>
