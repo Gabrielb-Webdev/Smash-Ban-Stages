@@ -548,31 +548,82 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
               </div>
 
               <div className="grid grid-cols-3 gap-4 text-center">
+                {/* Jugador 1 - Con botón de +1 si está PLAYING */}
                 <div className="bg-smash-red/20 rounded-lg p-4">
-                  <p className="text-white/70 text-sm">Jugador 1</p>
-                  <p className="text-white font-bold text-2xl">
+                  <p className="text-white/70 text-sm mb-2">Jugador 1</p>
+                  <p className="text-white font-bold text-2xl mb-3">
                     {currentSession?.player1?.name}
                   </p>
-                  <p className="text-smash-yellow text-4xl font-bold">
-                    {currentSession?.player1?.score}
-                  </p>
+                  
+                  {currentSession?.phase === 'PLAYING' ? (
+                    <button
+                      onClick={() => handleGameWinner('player1')}
+                      className="group w-full py-4 bg-gradient-to-br from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 rounded-xl transition-all hover:scale-105 border-2 border-red-400/50"
+                    >
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="text-smash-yellow text-5xl font-black">
+                          {currentSession?.player1?.score}
+                        </span>
+                        <span className="text-white text-3xl font-bold group-hover:scale-125 transition-transform">
+                          +1
+                        </span>
+                      </div>
+                      <p className="text-white/70 text-xs mt-2">Click para dar punto</p>
+                    </button>
+                  ) : (
+                    <div className="py-4">
+                      <p className="text-smash-yellow text-5xl font-black">
+                        {currentSession?.player1?.score}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
+                {/* Game Actual - Calculado automáticamente */}
                 <div className="bg-white/10 rounded-lg p-4 flex flex-col justify-center">
-                  <p className="text-white/70 text-sm">Game Actual</p>
-                  <p className="text-white font-bold text-3xl">
-                    {currentSession?.currentGame} / {currentSession?.format === 'BO3' ? '3' : '5'}
+                  <p className="text-white/70 text-sm mb-2">Game Actual</p>
+                  <p className="text-white font-bold text-4xl">
+                    {(currentSession?.player1?.score || 0) + (currentSession?.player2?.score || 0) + 1}
                   </p>
+                  <p className="text-white/50 text-sm mt-1">
+                    de {currentSession?.format === 'BO3' ? '3' : '5'}
+                  </p>
+                  {currentSession?.phase === 'PLAYING' && (
+                    <p className="text-green-400 text-xs mt-2 animate-pulse">
+                      ⚡ En Combate
+                    </p>
+                  )}
                 </div>
 
+                {/* Jugador 2 - Con botón de +1 si está PLAYING */}
                 <div className="bg-smash-blue/20 rounded-lg p-4">
-                  <p className="text-white/70 text-sm">Jugador 2</p>
-                  <p className="text-white font-bold text-2xl">
+                  <p className="text-white/70 text-sm mb-2">Jugador 2</p>
+                  <p className="text-white font-bold text-2xl mb-3">
                     {currentSession?.player2?.name}
                   </p>
-                  <p className="text-smash-yellow text-4xl font-bold">
-                    {currentSession?.player2?.score}
-                  </p>
+                  
+                  {currentSession?.phase === 'PLAYING' ? (
+                    <button
+                      onClick={() => handleGameWinner('player2')}
+                      className="group w-full py-4 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl transition-all hover:scale-105 border-2 border-blue-400/50"
+                    >
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="text-smash-yellow text-5xl font-black">
+                          {currentSession?.player2?.score}
+                        </span>
+                        <span className="text-white text-3xl font-bold group-hover:scale-125 transition-transform">
+                          +1
+                        </span>
+                      </div>
+                      <p className="text-white/70 text-xs mt-2">Click para dar punto</p>
+                    </button>
+                  ) : (
+                    <div className="py-4">
+                      <p className="text-smash-yellow text-5xl font-black">
+                        {currentSession?.player2?.score}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -679,56 +730,15 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
               </div>
             </div>
 
-            {/* Controles del Game */}
-            {(currentSession?.phase === 'PLAYING' || currentSession?.phase === 'RPS' || currentSession?.phase === 'STAGE_BAN' || currentSession?.phase === 'STAGE_SELECT' || currentSession?.phase === 'CHARACTER_SELECT') && (
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
-                <h3 className="text-2xl font-bold text-white mb-4">
-                  ⚔️ Controles del Game
-                </h3>
-                
-                <p className="text-white/70 text-center mb-4">
-                  Presiona para dar 1 punto al ganador del game
+            {/* Información de estado cuando NO está PLAYING */}
+            {currentSession?.phase !== 'PLAYING' && currentSession?.phase !== 'FINISHED' && (
+              <div className="bg-yellow-600/20 border border-yellow-500/50 rounded-xl p-4 text-center">
+                <p className="text-yellow-300 font-semibold">
+                  ⚠️ Los puntos solo se pueden asignar cuando están en combate (fase PLAYING)
                 </p>
-                
-                <div className="grid grid-cols-2 gap-6">
-                  <button
-                    onClick={() => handleGameWinner('player1')}
-                    className="group relative py-8 bg-gradient-to-br from-smash-red via-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-red-400/50 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                    <div className="relative z-10 flex flex-col items-center gap-3">
-                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
-                      <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{currentSession?.player1?.name}</div>
-                        <div className="text-sm opacity-80">Dar punto</div>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => handleGameWinner('player2')}
-                    className="group relative py-8 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-700 text-white font-bold text-xl rounded-xl hover:shadow-2xl hover:scale-105 transition-all border-4 border-blue-400/50 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                    <div className="relative z-10 flex flex-col items-center gap-3">
-                      <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
-                      <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{currentSession?.player2?.name}</div>
-                        <div className="text-sm opacity-80">Dar punto</div>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-                
-                <div className="mt-4 text-center text-sm text-white/60">
-                  {currentSession?.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
-                </div>
-                
-                {currentSession?.phase !== 'PLAYING' && (
-                  <div className="mt-3 text-center text-xs text-yellow-300 bg-yellow-600/20 rounded-lg p-2">
-                    ⚠️ Nota: La sesión está en fase "{currentSession?.phase}" pero puedes puntuar directamente desde aquí
-                  </div>
-                )}
+                <p className="text-yellow-200/70 text-sm mt-2">
+                  Estado actual: {currentSession?.phase}
+                </p>
               </div>
             )}
 
