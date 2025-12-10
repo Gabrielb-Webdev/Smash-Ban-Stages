@@ -177,7 +177,7 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     });
 
     adminSocket.on('session-joined', (data) => {
-      console.log('Sesión unida:', data);
+      console.log('🔗 Sesión unida:', data);
       const sessionId = data.session.sessionId;
       
       setActiveSessions(prev => ({
@@ -185,11 +185,13 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
         [sessionId]: data.session
       }));
       
+      // Siempre actualizar currentSession cuando nos unimos
+      console.log('📌 Estableciendo currentSession desde join');
       setCurrentSession(data.session);
     });
 
     adminSocket.on('session-updated', (data) => {
-      console.log('Sesión actualizada:', data);
+      console.log('✅ Sesión actualizada:', data);
       const sessionId = data.session.sessionId;
       
       setActiveSessions(prev => ({
@@ -197,14 +199,16 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
         [sessionId]: data.session
       }));
       
-      if (currentSession?.sessionId === sessionId) {
+      // Actualizar siempre si es la sesión del torneo seleccionado o la sesión actual
+      if (currentSession?.sessionId === sessionId || sessionId === selectedTournament) {
+        console.log('🔄 Actualizando currentSession con nueva data');
         setCurrentSession(data.session);
       }
     });
 
     // Escuchar también 'session-update' por compatibilidad
     adminSocket.on('session-update', (data) => {
-      console.log('Sesión actualizada (session-update):', data);
+      console.log('✅ Sesión actualizada (session-update):', data);
       const sessionData = data.session || data;
       const sessionId = sessionData.sessionId;
       
@@ -213,7 +217,9 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
         [sessionId]: sessionData
       }));
       
-      if (currentSession?.sessionId === sessionId) {
+      // Actualizar siempre si es la sesión del torneo seleccionado o la sesión actual
+      if (currentSession?.sessionId === sessionId || sessionId === selectedTournament) {
+        console.log('🔄 Actualizando currentSession con nueva data');
         setCurrentSession(sessionData);
       }
     });
@@ -248,6 +254,14 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     if (adminSocket && adminSocket.connected && selectedTournament) {
       console.log('🔗 Uniéndose a sesión:', selectedTournament);
       adminSocket.emit('join-session', selectedTournament);
+      
+      // Dar un pequeño delay y volver a solicitar por si acaso
+      setTimeout(() => {
+        if (adminSocket && adminSocket.connected) {
+          console.log('🔄 Re-solicitando sesión para asegurar sincronización');
+          adminSocket.emit('join-session', selectedTournament);
+        }
+      }, 500);
     }
   }, [adminSocket?.connected, selectedTournament]);
 
@@ -746,14 +760,17 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => {
-                  if (adminSocket && adminSocket.connected && currentSession) {
-                    console.log('🔄 Forzando sincronización...');
-                    adminSocket.emit('join-session', currentSession.sessionId);
+                  if (adminSocket && adminSocket.connected) {
+                    console.log('🔄 Forzando recarga de sesión:', selectedTournament);
+                    adminSocket.emit('join-session', selectedTournament);
+                    alert('✅ Sesión recargada. Si hay cambios, deberían aparecer ahora.');
+                  } else {
+                    alert('⚠️ No hay conexión con el servidor');
                   }
                 }}
                 className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all border border-blue-500"
               >
-                🔄 Sincronizar
+                🔄 Refrescar Estado
               </button>
               <button
                 onClick={handleEndMatch}
