@@ -661,7 +661,7 @@ export default function AdminPanel() {
             </div>
 
             {/* Controles del Game */}
-            {currentSession?.phase === 'PLAYING' && (
+            {(currentSession?.phase === 'PLAYING' || currentSession?.phase === 'RPS' || currentSession?.phase === 'STAGE_BAN' || currentSession?.phase === 'STAGE_SELECT' || currentSession?.phase === 'CHARACTER_SELECT') && (
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
                 <h3 className="text-2xl font-bold text-white mb-4">
                   ⚔️ Controles del Game
@@ -704,6 +704,12 @@ export default function AdminPanel() {
                 <div className="mt-4 text-center text-sm text-white/60">
                   {currentSession?.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
                 </div>
+                
+                {currentSession?.phase !== 'PLAYING' && (
+                  <div className="mt-3 text-center text-xs text-yellow-300 bg-yellow-600/20 rounded-lg p-2">
+                    ⚠️ Nota: La sesión está en fase "{currentSession?.phase}" pero puedes puntuar directamente desde aquí
+                  </div>
+                )}
               </div>
             )}
 
