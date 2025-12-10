@@ -521,40 +521,39 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
               </div>
               )}
                 
-                {/* Mostrar sesiones activas de esta comunidad */}
-                {communitySessions[selectedTournament]?.length > 0 && (
-                  <div className="bg-green-600/20 border border-green-500/50 rounded-lg p-4">
-                    <p className="text-green-300 font-semibold mb-3">
-                      🎮 Sesiones activas de {tournaments[selectedTournament].name}
-                    </p>
-                    <div className="space-y-2">
-                      {communitySessions[selectedTournament].map(sessionId => {
-                        const session = activeSessions[sessionId];
-                        if (!session || session.phase === 'FINISHED') return null;
-                        
-                        return (
-                          <div key={sessionId} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                            <div>
-                              <p className="text-green-200 text-sm font-medium">
-                                {session.player1?.name} vs {session.player2?.name}
-                              </p>
-                              <p className="text-green-200 text-xs opacity-75">
-                                Fase: {session.phase} | Formato: {session.format}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => setCurrentSession(session)}
-                              className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-all"
-                            >
-                              🔄 Volver
-                            </button>
+              {/* Mostrar sesiones activas de esta comunidad */}
+              {communitySessions[selectedTournament]?.length > 0 && (
+                <div className="bg-green-600/20 border border-green-500/50 rounded-lg p-4">
+                  <p className="text-green-300 font-semibold mb-3">
+                    🎮 Sesiones activas de {tournaments[selectedTournament].name}
+                  </p>
+                  <div className="space-y-2">
+                    {communitySessions[selectedTournament].map(sessionId => {
+                      const session = activeSessions[sessionId];
+                      if (!session || session.phase === 'FINISHED') return null;
+                      
+                      return (
+                        <div key={sessionId} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                          <div>
+                            <p className="text-green-200 text-sm font-medium">
+                              {session.player1?.name} vs {session.player2?.name}
+                            </p>
+                            <p className="text-green-200 text-xs opacity-75">
+                              Fase: {session.phase} | Formato: {session.format}
+                            </p>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <button
+                            onClick={() => setCurrentSession(session)}
+                            className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-all"
+                          >
+                            🔄 Volver
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               
               <div>
                 <label className="block text-white font-semibold mb-2">
