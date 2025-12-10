@@ -104,7 +104,7 @@ export default function AdminPanel() {
           await updateExternalConfig({ ...config, actions: { ...config.actions, createSession: false } });
         }
         
-        if (config.actions?.resetSeries && session) {
+        if (config.actions?.resetSeries && currentSession) {
           console.log('🔄 Auto-reiniciando serie desde configuración externa');
           setTimeout(() => handleResetSession(), 500);
           // Reset action flag vía API
@@ -222,7 +222,7 @@ export default function AdminPanel() {
   useEffect(() => {
     const interval = setInterval(checkExternalConfig, 2000); // Cada 2 segundos
     return () => clearInterval(interval);
-  }, [player1Name, player2Name, format, lastJsonUpdate, session]);
+  }, [player1Name, player2Name, format, lastJsonUpdate, currentSession]);
 
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
