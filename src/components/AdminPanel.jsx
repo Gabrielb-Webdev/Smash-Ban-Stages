@@ -189,6 +189,20 @@ export default function AdminPanel() {
       }
     });
 
+    // Escuchar también 'session-update' por compatibilidad
+    adminSocket.on('session-update', (data) => {
+      console.log('Sesión actualizada (session-update):', data);
+      const sessionData = data.session || data;
+      const sessionId = sessionData.sessionId;
+      setActiveSessions(prev => ({
+        ...prev,
+        [sessionId]: sessionData
+      }));
+      if (currentSession?.sessionId === sessionId) {
+        setCurrentSession(sessionData);
+      }
+    });
+
     adminSocket.on('session-error', (data) => {
       console.log('Error de sesión:', data.message);
     });
@@ -253,8 +267,26 @@ export default function AdminPanel() {
   };
 
   const handleGameWinner = (winner) => {
-    if (currentSession && adminSocket && window.confirm(`¿Confirmar que ${currentSession[winner].name} ganó este game?`)) {
+    console.log('🎯 handleGameWinner called:', { winner, currentSession: currentSession?.sessionId, socketConnected: adminSocket?.connected });
+    
+    if (!currentSession) {
+      alert('Error: No hay sesión activa');
+      return;
+    }
+    
+    if (!adminSocket || !adminSocket.connected) {
+      alert('Error: No hay conexión con el servidor. Intenta recargar la página.');
+      return;
+    }
+    
+    const playerName = currentSession[winner]?.name || `Jugador ${winner}`;
+    
+    if (window.confirm(`¿Confirmar que ${playerName} ganó este game?`)) {
+      console.log('🚀 Emitiendo game-winner:', { sessionId: currentSession.sessionId, winner });
       adminSocket.emit('game-winner', { sessionId: currentSession.sessionId, winner });
+      
+      // También emitir con 'set-game-winner' por compatibilidad
+      adminSocket.emit('set-game-winner', { sessionId: currentSession.sessionId, winner });
     }
   };
 
@@ -328,6 +360,19 @@ export default function AdminPanel() {
             <span className="text-white text-sm font-medium">
               {tournaments[selectedTournament].name}
             </span>
+          </div>
+          
+          {/* Indicador de conexión */}
+          <div className="mt-2 inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/50 rounded-lg px-4 py-2">
+            <span className={`w-2 h-2 rounded-full ${adminSocket?.connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></span>
+            <span className="text-blue-300 text-sm font-medium">
+              {adminSocket?.connected ? 'WebSocket Conectado' : 'WebSocket Desconectado'}
+            </span>
+            {currentSession && (
+              <span className="text-blue-200 text-xs">
+                • Sesión: {currentSession.sessionId}
+              </span>
+            )}
           </div>
           {lastJsonUpdate && (
             <div className="mt-4 inline-flex items-center gap-2 bg-green-600/20 border border-green-500/50 rounded-lg px-4 py-2">
@@ -715,6 +760,17 @@ export default function AdminPanel() {
 
             {/* Botones de Control */}
             <div className="flex justify-center gap-4">
+              <button
+                onClick={() => {
+                  if (adminSocket && adminSocket.connected && currentSession) {
+                    console.log('🔄 Forzando sincronización...');
+                    adminSocket.emit('join-session', currentSession.sessionId);
+                  }
+                }}
+                className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all border border-blue-500"
+              >
+                🔄 Sincronizar
+              </button>
               <button
                 onClick={handleEndMatch}
                 className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold rounded-lg hover:from-yellow-500 hover:to-orange-500 hover:scale-105 transition-all shadow-lg"
