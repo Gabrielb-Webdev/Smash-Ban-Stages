@@ -620,7 +620,7 @@ export default function AdminPanel() {
             </div>
 
             {/* Controles del Game */}
-            {session.phase === 'PLAYING' && (
+            {currentSession?.phase === 'PLAYING' && (
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
                 <h3 className="text-2xl font-bold text-white mb-4">
                   ⚔️ Controles del Game
@@ -639,7 +639,7 @@ export default function AdminPanel() {
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
                       <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{session.player1.name}</div>
+                        <div className="text-2xl font-black mb-1">{currentSession?.player1?.name}</div>
                         <div className="text-sm opacity-80">Dar punto</div>
                       </div>
                     </div>
@@ -653,7 +653,7 @@ export default function AdminPanel() {
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <span className="text-6xl group-hover:scale-110 transition-transform">+1</span>
                       <div className="text-center">
-                        <div className="text-2xl font-black mb-1">{session.player2.name}</div>
+                        <div className="text-2xl font-black mb-1">{currentSession?.player2?.name}</div>
                         <div className="text-sm opacity-80">Dar punto</div>
                       </div>
                     </div>
@@ -661,7 +661,7 @@ export default function AdminPanel() {
                 </div>
                 
                 <div className="mt-4 text-center text-sm text-white/60">
-                  {session.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
+                  {currentSession?.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
                 </div>
               </div>
             )}

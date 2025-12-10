@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Force cache invalidation
   generateBuildId: async () => {
-    return 'websocket-fix-' + Date.now();
+    return 'session-fix-final-' + Date.now();
   },
   // Disable cache for development
   onDemandEntries: {
