@@ -240,7 +240,7 @@ export default function TabletControl({ sessionId }) {
   );
 
   return (
-    <div className="h-screen flex items-center justify-center p-1 overflow-hidden"
+    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 overflow-hidden"
          style={{
            background: useOriginalStyles ? 
              'url(/images/paperbg.jpg)' : 
@@ -251,83 +251,85 @@ export default function TabletControl({ sessionId }) {
            backgroundRepeat: 'no-repeat',
            fontFamily: 'Anton, sans-serif'
          }}>
-      <div className="w-full h-full max-w-5xl flex flex-col">
-        {/* Header compacto con información de la partida */}
-        <div className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-2 mb-2 shadow-xl border border-white/20 flex-shrink-0">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="bg-smash-red/30 rounded-lg px-2 py-1">
-                <p className="text-white/70 text-xs">Jugador 1</p>
-                <p className="text-white font-bold text-sm" 
+      <div className="w-full h-full max-w-7xl flex flex-col gap-2 sm:gap-3">
+        {/* Header optimizado para móvil */}
+        <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-white/20 flex-shrink-0">
+          <div className="flex justify-between items-center gap-2">
+            {/* Jugadores */}
+            <div className="flex items-center gap-2 flex-1">
+              <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
+                <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 1</p>
+                <p className="text-white font-bold text-xs sm:text-sm truncate" 
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player1.name}
                 </p>
-                <p className="text-smash-yellow text-lg font-bold"
+                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player1.score}
                 </p>
               </div>
-              <div className="text-white text-lg font-bold"
+              <div className="text-white text-sm sm:text-lg font-bold px-1"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                 VS
               </div>
-              <div className="bg-smash-blue/30 rounded-lg px-2 py-1">
-                <p className="text-white/70 text-xs">Jugador 2</p>
-                <p className="text-white font-bold text-sm"
+              <div className="bg-smash-blue/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
+                <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 2</p>
+                <p className="text-white font-bold text-xs sm:text-sm truncate"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player2.name}
                 </p>
-                <p className="text-smash-yellow text-lg font-bold"
+                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.player2.score}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <div className="text-center bg-white/10 rounded-lg px-3 py-1">
-                <p className="text-white/70 text-xs">Game</p>
-                <p className="text-smash-yellow text-lg font-bold"
+            {/* Game y Formato */}
+            <div className="flex gap-1.5 sm:gap-2">
+              <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
+                <p className="text-white/70 text-[10px] leading-none">Game</p>
+                <p className="text-smash-yellow text-lg sm:text-xl font-bold leading-tight"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   {session.currentGame}
                 </p>
               </div>
-              <div className="text-center bg-white/10 rounded-lg px-3 py-1">
-                <p className="text-white/70 text-xs">Formato</p>
-                <p className="text-smash-yellow text-lg font-bold">{session.format}</p>
+              <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
+                <p className="text-white/70 text-[10px] leading-none">Formato</p>
+                <p className="text-smash-yellow text-sm sm:text-base font-bold leading-tight">{session.format}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RPS Phase */}
+        {/* RPS Phase - Optimizado para móvil */}
         {session.phase === 'RPS' && (
-          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-4 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
-            {/* Decorative background elements */}
-            <div className="absolute top-0 left-0 w-full h-full opacity-10">
-              <div className="absolute top-5 left-5 text-6xl">✊</div>
-              <div className="absolute top-5 right-5 text-6xl">✋</div>
-              <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 text-6xl">✌️</div>
+          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+            {/* Decorative background elements - Ocultos en móvil */}
+            <div className="absolute top-0 left-0 w-full h-full opacity-5 sm:opacity-10 pointer-events-none">
+              <div className="absolute top-2 sm:top-5 left-2 sm:left-5 text-3xl sm:text-6xl">✊</div>
+              <div className="absolute top-2 sm:top-5 right-2 sm:right-5 text-3xl sm:text-6xl">✋</div>
+              <div className="absolute bottom-2 sm:bottom-5 left-1/2 transform -translate-x-1/2 text-3xl sm:text-6xl">✌️</div>
             </div>
 
             {/* Content */}
-            <div className="text-center mb-4 relative z-10">
-              <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-2">
-                <h3 className="text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
+            <div className="text-center mb-4 sm:mb-6 relative z-10">
+              <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-1 sm:mb-2">
+                <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
               </div>
-              <h3 className="text-2xl font-black text-white mb-2 drop-shadow-lg">
+              <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">
                 Piedra, Papel o Tijera
               </h3>
-              <p className="text-lg text-white/80 font-semibold">
+              <p className="text-base sm:text-lg text-white/80 font-semibold">
                 ¿Quién ganó el RPS? 🏆
               </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto relative z-10 w-full">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto relative z-10 w-full px-2 sm:px-0">
               <button
                 onClick={() => handleRPSWinner('player1')}
                 className={useOriginalStyles ? 
-                  "group py-20 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden" :
-                  "group py-20 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
+                  "group py-12 sm:py-16 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation" :
+                  "group py-12 sm:py-16 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
                 }
                 style={useOriginalStyles ? {} : {
                   background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`
@@ -335,15 +337,15 @@ export default function TabletControl({ sessionId }) {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
                 <div className="relative z-10">
-                  <div className="text-7xl mb-3 group-hover:scale-110 transition-transform">🔴</div>
-                  <div className="text-3xl">{session.player1.name}</div>
+                  <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 group-active:scale-110 transition-transform">🔴</div>
+                  <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player1.name}</div>
                 </div>
               </button>
               <button
                 onClick={() => handleRPSWinner('player2')}
                 className={useOriginalStyles ? 
-                  "group py-20 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden" :
-                  "group py-20 text-white font-black text-4xl rounded-3xl hover:scale-105 transition-all duration-300 shadow-2xl active:scale-95 border-4 border-white/30 relative overflow-hidden"
+                  "group py-12 sm:py-16 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation" :
+                  "group py-12 sm:py-16 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
                 }
                 style={useOriginalStyles ? {} : {
                   background: `linear-gradient(135deg, ${theme.colors.secondary}, ${theme.colors.primary})`
@@ -351,31 +353,38 @@ export default function TabletControl({ sessionId }) {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
                 <div className="relative z-10">
-                  <div className="text-7xl mb-3 group-hover:scale-110 transition-transform">🔵</div>
-                  <div className="text-3xl">{session.player2.name}</div>
+                  <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 group-active:scale-110 transition-transform">🔵</div>
+                  <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player2.name}</div>
                 </div>
               </button>
             </div>
           </div>
         )}
 
-        {/* Stage Ban Phase */}
+        {/* Stage Ban Phase - Optimizado para móvil */}
         {session.phase === 'STAGE_BAN' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
-            <div className="text-center mb-2 flex-shrink-0">
-              <h3 className="text-xl font-bold text-white mb-1"
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+            <div className="text-center mb-2 sm:mb-3 flex-shrink-0">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-1"
                   style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
                 ❌ Banear Stage
               </h3>
-              <p className="text-white text-base font-semibold"
-                 style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
-                Turno: {session[session.currentTurn]?.name} | Baneos restantes: {session.bansRemaining}
-              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                <p className="text-white text-sm sm:text-base font-semibold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
+                  Turno: {session[session.currentTurn]?.name}
+                </p>
+                <span className="hidden sm:inline text-white">|</span>
+                <p className="text-smash-yellow text-sm sm:text-base font-bold"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9)' }}>
+                  Baneos restantes: {session.bansRemaining}
+                </p>
+              </div>
             </div>
 
-            <div className="flex-1 flex flex-col gap-2 overflow-y-auto">
-              {/* Primera fila: 3 stages */}
-              <div className="grid grid-cols-3 gap-2">
+            <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
+              {/* Primera fila: 3 stages - Optimizado para móvil */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 {getAvailableStages().slice(0, 3).map((stage) => {
                   const isBanned = session.bannedStages.includes(stage.id);
                   return (
@@ -383,10 +392,10 @@ export default function TabletControl({ sessionId }) {
                       key={stage.id}
                       onClick={() => !isBanned && handleBanStage(stage.id)}
                       disabled={isBanned}
-                      className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                      className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                         isBanned
                           ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                          : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                       }`}
                     >
                       <div className="aspect-video relative">
@@ -400,15 +409,15 @@ export default function TabletControl({ sessionId }) {
                           }}
                         />
                         <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                          <span className="text-white text-xl">🎮</span>
+                          <span className="text-white text-xl sm:text-2xl">🎮</span>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                          <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">{stage.name}</p>
                         </div>
                       </div>
                       {isBanned && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                          <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
                         </div>
                       )}
                     </button>
@@ -417,7 +426,7 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
               {getAvailableStages().length === 4 && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   <div></div>
                   {getAvailableStages().slice(3, 4).map((stage) => {
                     const isBanned = session.bannedStages.includes(stage.id);
@@ -426,10 +435,10 @@ export default function TabletControl({ sessionId }) {
                         key={stage.id}
                         onClick={() => !isBanned && handleBanStage(stage.id)}
                         disabled={isBanned}
-                        className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                        className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           isBanned
                             ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                            : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                            : 'cursor-pointer border-white/20 active:scale-95'
                         }`}
                       >
                           <div className="aspect-video relative">
@@ -445,8 +454,8 @@ export default function TabletControl({ sessionId }) {
                             <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                               <span className="text-white text-xl">🎮</span>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                             </div>
                           </div>
                           {isBanned && (
@@ -462,7 +471,7 @@ export default function TabletControl({ sessionId }) {
               )}
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
                   <div className="col-span-1"></div>
                   {getAvailableStages().slice(3, 5).map((stage, index) => {
                     const isBanned = session.bannedStages.includes(stage.id);
@@ -471,10 +480,10 @@ export default function TabletControl({ sessionId }) {
                         key={stage.id}
                         onClick={() => !isBanned && handleBanStage(stage.id)}
                         disabled={isBanned}
-                        className={`col-span-2 relative overflow-hidden rounded-xl transition-all border-2 ${
+                        className={`col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           isBanned
                             ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                            : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                            : 'cursor-pointer border-white/20 active:scale-95'
                         }`}
                       >
                           <div className="aspect-video relative">
@@ -490,13 +499,13 @@ export default function TabletControl({ sessionId }) {
                             <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                               <span className="text-white text-xl">🎮</span>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                             </div>
                           </div>
                           {isBanned && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                              <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                              <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
                             </div>
                           )}
                         </button>
@@ -509,7 +518,7 @@ export default function TabletControl({ sessionId }) {
               {getAvailableStages().length > 5 && (
                 <>
                   {/* Segunda fila: stages 4, 5, 6 */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {getAvailableStages().slice(3, 6).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
@@ -517,10 +526,10 @@ export default function TabletControl({ sessionId }) {
                           key={stage.id}
                           onClick={() => !isBanned && handleBanStage(stage.id)}
                           disabled={isBanned}
-                          className={`relative overflow-hidden rounded-xl transition-all border-2 ${
+                          className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                             isBanned
                               ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                              : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                              : 'cursor-pointer border-white/20 active:scale-95'
                           }`}
                         >
                           <div className="aspect-video relative">
@@ -536,13 +545,13 @@ export default function TabletControl({ sessionId }) {
                             <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                               <span className="text-white text-xl">🎮</span>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                             </div>
                           </div>
                           {isBanned && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                              <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                              <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
                             </div>
                           )}
                         </button>
@@ -550,7 +559,7 @@ export default function TabletControl({ sessionId }) {
                     })}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="col-span-1"></div>
                     {getAvailableStages().slice(6).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
@@ -559,10 +568,10 @@ export default function TabletControl({ sessionId }) {
                           key={stage.id}
                           onClick={() => !isBanned && handleBanStage(stage.id)}
                           disabled={isBanned}
-                          className={`col-span-2 relative overflow-hidden rounded-xl transition-all border-2 ${
+                          className={`col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                             isBanned
                               ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                              : 'hover:scale-105 hover:shadow-xl cursor-pointer border-white/20 hover:border-red-500 active:scale-95'
+                              : 'cursor-pointer border-white/20 active:scale-95'
                           }`}
                         >
                             <div className="aspect-video relative">
@@ -578,13 +587,13 @@ export default function TabletControl({ sessionId }) {
                               <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                                 <span className="text-white text-xl">🎮</span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                                <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                                <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                               </div>
                             </div>
                             {isBanned && (
                               <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                                <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
+                                <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
                               </div>
                             )}
                           </button>
@@ -600,26 +609,26 @@ export default function TabletControl({ sessionId }) {
 
         {/* Stage Select Phase */}
         {session.phase === 'STAGE_SELECT' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
-            <div className="text-center mb-2 flex-shrink-0">
-              <h3 className="text-2xl font-bold text-white mb-1"
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+            <div className="text-center mb-1.5 sm:mb-2 flex-shrink-0">
+              <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1"
                   style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
                 🎯 Seleccionar Stage
               </h3>
-              <p className="text-white text-lg font-semibold"
+              <p className="text-white text-sm sm:text-lg font-semibold truncate"
                  style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
                 Turno: {session[session.currentTurn]?.name}
               </p>
             </div>
 
-            <div className="flex-1 flex flex-col gap-2 overflow-y-auto">
+            <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
               {/* Primera fila: 3 stages */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 {getAvailableStages().slice(0, 3).map((stage) => (
                   <button
                     key={stage.id}
                     onClick={() => handleSelectStage(stage.id)}
-                    className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                    className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
                   >
                     <div className="aspect-video relative">
                       <img 
@@ -634,29 +643,28 @@ export default function TabletControl({ sessionId }) {
                       <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
                         <span className="text-white text-xl">🎮</span>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                        <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                        <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                       </div>
-                      <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                     </div>
                   </button>
                 ))}
               </div>
               {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
               {getAvailableStages().length === 4 && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   <div></div>
                   {getAvailableStages().slice(3, 4).map((stage) => (
                     <button
                       key={stage.id}
                       onClick={() => handleSelectStage(stage.id)}
-                      className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                      className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
                     >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
                             alt={stage.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover transition-transform duration-300"
                             onError={(e) => { 
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
@@ -665,10 +673,9 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                           </div>
-                          <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                         </div>
                       </button>
                   ))}
@@ -677,19 +684,19 @@ export default function TabletControl({ sessionId }) {
               )}
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
                   <div className="col-span-1"></div>
                   {getAvailableStages().slice(3, 5).map((stage) => (
                     <button
                       key={stage.id}
                       onClick={() => handleSelectStage(stage.id)}
-                      className="col-span-2 relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                      className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
                     >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
                             alt={stage.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover transition-transform duration-300"
                             onError={(e) => { 
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
@@ -698,10 +705,9 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                           </div>
-                          <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                         </div>
                       </button>
                   ))}
@@ -712,18 +718,18 @@ export default function TabletControl({ sessionId }) {
               {getAvailableStages().length > 5 && (
                 <>
                   {/* Segunda fila: stages 4, 5, 6 */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {getAvailableStages().slice(3, 6).map((stage) => (
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
-                        className="relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                        className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
                       >
                         <div className="aspect-video relative">
                           <img 
                             src={stage.image} 
                             alt={stage.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover transition-transform duration-300"
                             onError={(e) => { 
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
@@ -732,28 +738,27 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                            <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                           </div>
-                          <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                         </div>
                       </button>
                     ))}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="col-span-1"></div>
                     {getAvailableStages().slice(6, 8).map((stage) => (
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
-                        className="col-span-2 relative overflow-hidden rounded-xl hover:scale-105 hover:shadow-xl transition-all border-2 border-white/20 hover:border-green-500 group active:scale-95"
+                        className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 border-white/20 group active:scale-95 touch-manipulation"
                       >
                           <div className="aspect-video relative">
                             <img 
                               src={stage.image} 
                               alt={stage.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              className="w-full h-full object-cover transition-transform duration-300"
                               onError={(e) => { 
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -762,10 +767,9 @@ export default function TabletControl({ sessionId }) {
                             <div className="hidden absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-500 items-center justify-center">
                               <span className="text-white text-xl">🎮</span>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1.5">
-                              <p className="text-white font-bold text-xs text-center drop-shadow-lg">{stage.name}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                             </div>
-                            <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/20 transition-colors duration-300"></div>
                           </div>
                         </button>
                     ))}
@@ -779,15 +783,15 @@ export default function TabletControl({ sessionId }) {
 
         {/* Character Select Phase */}
         {session.phase === 'CHARACTER_SELECT' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
-            <div className="flex-shrink-0 mb-3">
-              <div className="flex justify-between items-center mb-2">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 mb-2 sm:mb-3">
+              <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
-                  <h3 className="text-2xl font-bold text-white"
+                  <h3 className="text-lg sm:text-2xl font-bold text-white"
                       style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
                     👤 Seleccionar Personaje
                   </h3>
-                  <p className="text-white text-base font-semibold"
+                  <p className="text-white text-xs sm:text-base font-semibold truncate"
                      style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
                     Turno: {session[session.currentTurn]?.name} | Stage: {getStageData(session.selectedStage)?.name}
                   </p>
@@ -798,23 +802,23 @@ export default function TabletControl({ sessionId }) {
                 placeholder="Buscar personaje..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-blue text-sm"
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-smash-blue text-xs sm:text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-6 gap-3 flex-1 overflow-y-scroll pr-1">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 flex-1 overflow-y-scroll pr-1 pb-2">
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-white/5 hover:bg-white/20 rounded-xl hover:scale-110 hover:brightness-110 transition-all p-1 flex flex-col items-center justify-center overflow-hidden group active:scale-95 border-2 border-white/20 hover:border-smash-yellow shadow-lg hover:shadow-2xl"
+                  className="aspect-square bg-white/5 rounded-lg sm:rounded-xl transition-all p-1 flex flex-col items-center justify-center overflow-hidden group active:scale-95 border-2 border-white/20 shadow-lg touch-manipulation"
                   title={character.name}
                 >
                   <div className="w-full h-full flex items-center justify-center">
                     <img 
                       src={character.image} 
                       alt={character.name}
-                      className="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-lg"
+                      className="w-full h-full object-contain transition-transform drop-shadow-lg"
                       onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                     />
                   </div>
@@ -826,15 +830,15 @@ export default function TabletControl({ sessionId }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-xl p-4 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
             {/* Contenido principal */}
             <div className="relative z-10">
-              <div className="text-center mb-4">
-                <h3 className="text-3xl font-black text-white mb-2"
+              <div className="text-center mb-2 sm:mb-4">
+                <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2"
                     style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
                   ¡EN COMBATE!
                 </h3>
-                <p className="text-white/80 text-lg font-semibold"
+                <p className="text-white/80 text-sm sm:text-lg font-semibold"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
                   Game {session.currentGame}
                 </p>
@@ -842,51 +846,51 @@ export default function TabletControl({ sessionId }) {
 
               {/* Matchup Display */}
               <div className={useOriginalStyles ? 
-                "bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-2xl p-4 border-2 border-white/30 shadow-2xl" :
-                "rounded-2xl p-4 border-2 border-white/30 shadow-2xl"
+                "bg-gradient-to-r from-smash-red/20 via-white/10 to-smash-blue/20 rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30 shadow-2xl" :
+                "rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30 shadow-2xl"
               }
                    style={useOriginalStyles ? {} : {
                      background: `linear-gradient(90deg, ${theme.colors.primary}20, rgba(255,255,255,0.1), ${theme.colors.secondary}20)`
                    }}>
-                <div className="grid grid-cols-3 gap-3 items-center">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 items-center">
                   {/* Player 1 */}
-                  <div className="text-center space-y-2">
+                  <div className="text-center space-y-1 sm:space-y-2">
                     <div className={useOriginalStyles ?
-                      "bg-gradient-to-br from-smash-red/40 to-red-700/40 rounded-xl p-3 border-2 border-red-400/50 shadow-lg" :
-                      "rounded-xl p-3 border-2 shadow-lg"
+                      "bg-gradient-to-br from-smash-red/40 to-red-700/40 rounded-lg sm:rounded-xl p-1.5 sm:p-3 border-2 border-red-400/50 shadow-lg" :
+                      "rounded-lg sm:rounded-xl p-1.5 sm:p-3 border-2 shadow-lg"
                     }
                          style={useOriginalStyles ? {} : {
                            background: `linear-gradient(135deg, ${theme.colors.primary}40, ${theme.colors.primary}60)`,
                            borderColor: `${theme.colors.primary}80`
                          }}>
-                      <p className="text-white/70 text-xs mb-1 font-semibold">Jugador 1</p>
-                      <p className="text-white font-black text-xl mb-2"
+                      <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 1</p>
+                      <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate"
                          style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
                         {session.player1.name}
                       </p>
-                      <div className="bg-black/30 rounded-lg p-2 border border-white/20">
+                      <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
                         <p className={useOriginalStyles ?
-                          "text-smash-yellow text-xs font-semibold mb-1" :
-                          "text-xs font-semibold mb-1"
+                          "text-smash-yellow text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1" :
+                          "text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1"
                         }
                            style={useOriginalStyles ? {} : { color: theme.colors.accent }}>Personaje</p>
-                        <p className="text-white text-sm font-bold">
+                        <p className="text-white text-xs sm:text-sm font-bold truncate">
                           {getCharacterData(session.player1.character)?.name || 'N/A'}
                         </p>
                       </div>
                     </div>
                     <div className={useOriginalStyles ?
-                      "bg-smash-yellow/20 rounded-lg p-2 border-2 border-smash-yellow/50" :
-                      "rounded-lg p-2 border-2"
+                      "bg-smash-yellow/20 rounded-md sm:rounded-lg p-1 sm:p-2 border-2 border-smash-yellow/50" :
+                      "rounded-md sm:rounded-lg p-1 sm:p-2 border-2"
                     }
                          style={useOriginalStyles ? {} : {
                            backgroundColor: `${theme.colors.accent}20`,
                            borderColor: `${theme.colors.accent}50`
                          }}>
-                      <p className="text-white/70 text-xs font-semibold">Score</p>
+                      <p className="text-white/70 text-[10px] sm:text-xs font-semibold">Score</p>
                       <p className={useOriginalStyles ?
-                        "text-smash-yellow text-2xl font-black" :
-                        "text-2xl font-black"
+                        "text-smash-yellow text-xl sm:text-2xl font-black" :
+                        "text-xl sm:text-2xl font-black"
                       }
                          style={useOriginalStyles ? 
                            { textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' } : 
@@ -899,57 +903,57 @@ export default function TabletControl({ sessionId }) {
 
                   {/* VS */}
                   <div className="flex flex-col items-center justify-center">
-                    <div className="bg-gradient-to-br from-white/20 to-white/10 rounded-full p-3 border-4 border-white/30 shadow-2xl">
-                      <p className="text-white text-2xl font-black"
+                    <div className="bg-gradient-to-br from-white/20 to-white/10 rounded-full p-2 sm:p-3 border-2 sm:border-4 border-white/30 shadow-2xl">
+                      <p className="text-white text-lg sm:text-2xl font-black"
                          style={{ fontFamily: 'Anton', textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)' }}>
                         VS
                       </p>
                     </div>
-                    <div className="mt-2 bg-white/10 rounded-lg px-3 py-1 border border-white/20">
-                      <p className="text-white text-sm font-semibold">
+                    <div className="mt-1 sm:mt-2 bg-white/10 rounded-md sm:rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 border border-white/20">
+                      <p className="text-white text-[10px] sm:text-sm font-semibold truncate">
                         {getStageData(session.selectedStage)?.name || 'Stage'}
                       </p>
                     </div>
                   </div>
 
                   {/* Player 2 */}
-                  <div className="text-center space-y-2">
+                  <div className="text-center space-y-1 sm:space-y-2">
                     <div className={useOriginalStyles ?
-                      "bg-gradient-to-br from-smash-blue/40 to-blue-700/40 rounded-xl p-3 border-2 border-blue-400/50 shadow-lg" :
-                      "rounded-xl p-3 border-2 shadow-lg"
+                      "bg-gradient-to-br from-smash-blue/40 to-blue-700/40 rounded-lg sm:rounded-xl p-1.5 sm:p-3 border-2 border-blue-400/50 shadow-lg" :
+                      "rounded-lg sm:rounded-xl p-1.5 sm:p-3 border-2 shadow-lg"
                     }
                          style={useOriginalStyles ? {} : {
                            background: `linear-gradient(135deg, ${theme.colors.secondary}40, ${theme.colors.secondary}60)`,
                            borderColor: `${theme.colors.secondary}80`
                          }}>
-                      <p className="text-white/70 text-xs mb-1 font-semibold">Jugador 2</p>
-                      <p className="text-white font-black text-xl mb-2"
+                      <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 2</p>
+                      <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate"
                          style={{ fontFamily: 'Anton', textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)' }}>
                         {session.player2.name}
                       </p>
-                      <div className="bg-black/30 rounded-lg p-2 border border-white/20">
+                      <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
                         <p className={useOriginalStyles ?
-                          "text-smash-yellow text-xs font-semibold mb-1" :
-                          "text-xs font-semibold mb-1"
+                          "text-smash-yellow text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1" :
+                          "text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1"
                         }
                            style={useOriginalStyles ? {} : { color: theme.colors.accent }}>Personaje</p>
-                        <p className="text-white text-sm font-bold">
+                        <p className="text-white text-xs sm:text-sm font-bold truncate">
                           {getCharacterData(session.player2.character)?.name || 'N/A'}
                         </p>
                       </div>
                     </div>
                     <div className={useOriginalStyles ?
-                      "bg-smash-yellow/20 rounded-lg p-2 border-2 border-smash-yellow/50" :
-                      "rounded-lg p-2 border-2"
+                      "bg-smash-yellow/20 rounded-md sm:rounded-lg p-1 sm:p-2 border-2 border-smash-yellow/50" :
+                      "rounded-md sm:rounded-lg p-1 sm:p-2 border-2"
                     }
                          style={useOriginalStyles ? {} : {
                            backgroundColor: `${theme.colors.accent}20`,
                            borderColor: `${theme.colors.accent}50`
                          }}>
-                      <p className="text-white/70 text-xs font-semibold">Score</p>
+                      <p className="text-white/70 text-[10px] sm:text-xs font-semibold">Score</p>
                       <p className={useOriginalStyles ?
-                        "text-smash-yellow text-2xl font-black" :
-                        "text-2xl font-black"
+                        "text-smash-yellow text-xl sm:text-2xl font-black" :
+                        "text-xl sm:text-2xl font-black"
                       }
                          style={useOriginalStyles ? 
                            { textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' } : 
