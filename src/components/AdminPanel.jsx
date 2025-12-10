@@ -21,7 +21,7 @@ export default function AdminPanel() {
   const tournaments = {
     'cordoba': { 
       name: 'Smash Córdoba', 
-      emoji: '🔵',
+      emoji: 'COR',
       color: 'blue-600',
       theme: {
         primary: '#2563EB',
@@ -32,7 +32,7 @@ export default function AdminPanel() {
     },
     'mendoza': { 
       name: 'Smash Mendoza', 
-      emoji: '🟢',
+      emoji: 'MDZ',
       color: 'green-600',
       theme: {
         primary: '#059669',
@@ -43,7 +43,7 @@ export default function AdminPanel() {
     },
     'afk': { 
       name: 'Smash AFK (Buenos Aires)', 
-      emoji: '🟡',
+      emoji: 'AFK',
       color: 'yellow-600',
       theme: {
         primary: '#DC2626',
@@ -420,7 +420,7 @@ export default function AdminPanel() {
             <div className="space-y-4">
               <div>
                 <label className="block text-white font-semibold mb-2">
-                  🏆 Seleccionar Torneo
+                  Seleccionar Torneo
                 </label>
                 
                 {/* Mostrar información de sesión activa si existe */}
@@ -635,7 +635,7 @@ export default function AdminPanel() {
                   {currentSession.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
                   {currentSession.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
                   {currentSession.phase === 'PLAYING' && '⚔️ Jugando'}
-                  {currentSession.phase === 'FINISHED' && '🏆 Serie Finalizada'}
+                  {currentSession.phase === 'FINISHED' && 'Serie Finalizada'}
                 </p>
                 {currentSession.currentTurn && currentSession.phase !== 'FINISHED' && (
                   <p className="text-smash-yellow font-semibold mt-2">
@@ -734,7 +734,7 @@ export default function AdminPanel() {
             {currentSession.phase === 'PLAYING' && (
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
                 <h3 className="text-2xl font-bold text-white mb-4">
-                  ⚔️ Controles del Game
+                  Controles del Game
                 </h3>
                 
                 <p className="text-white/70 text-center mb-4">
@@ -772,7 +772,7 @@ export default function AdminPanel() {
                 </div>
                 
                 <div className="mt-4 text-center text-sm text-white/60">
-                  {currentSession.format === 'BO3' ? '🏆 Primero en llegar a 2 puntos gana' : '🏆 Primero en llegar a 3 puntos gana'}
+                  {currentSession.format === 'BO3' ? 'Primero en llegar a 2 puntos gana' : 'Primero en llegar a 3 puntos gana'}
                 </div>
               </div>
             )}
