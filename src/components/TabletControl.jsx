@@ -383,8 +383,8 @@ export default function TabletControl({ sessionId }) {
             </div>
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
-              {/* Primera fila: 3 stages - Optimizado para móvil */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              {/* Primera fila: 3 stages - 1 columna en mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                 {getAvailableStages().slice(0, 3).map((stage) => {
                   const isBanned = session.bannedStages.includes(stage.id);
                   return (
@@ -426,8 +426,8 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
               {getAvailableStages().length === 4 && (
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                  <div></div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="hidden sm:block"></div>
                   {getAvailableStages().slice(3, 4).map((stage) => {
                     const isBanned = session.bannedStages.includes(stage.id);
                     return (
@@ -466,13 +466,13 @@ export default function TabletControl({ sessionId }) {
                         </button>
                     );
                   })}
-                  <div></div>
+                  <div className="hidden sm:block"></div>
                 </div>
               )}
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
-                  <div className="col-span-1"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <div className="hidden sm:block sm:col-span-1"></div>
                   {getAvailableStages().slice(3, 5).map((stage, index) => {
                     const isBanned = session.bannedStages.includes(stage.id);
                     return (
@@ -480,7 +480,7 @@ export default function TabletControl({ sessionId }) {
                         key={stage.id}
                         onClick={() => !isBanned && handleBanStage(stage.id)}
                         disabled={isBanned}
-                        className={`col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                        className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           isBanned
                             ? 'opacity-30 cursor-not-allowed border-red-500/50'
                             : 'cursor-pointer border-white/20 active:scale-95'
@@ -511,14 +511,14 @@ export default function TabletControl({ sessionId }) {
                         </button>
                     );
                   })}
-                  <div className="col-span-1"></div>
+                  <div className="hidden sm:block sm:col-span-1"></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
               {getAvailableStages().length > 5 && (
                 <>
                   {/* Segunda fila: stages 4, 5, 6 */}
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAvailableStages().slice(3, 6).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
@@ -559,8 +559,8 @@ export default function TabletControl({ sessionId }) {
                     })}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
-                    <div className="col-span-1"></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                    <div className="hidden sm:block sm:col-span-1"></div>
                     {getAvailableStages().slice(6).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
@@ -568,7 +568,7 @@ export default function TabletControl({ sessionId }) {
                           key={stage.id}
                           onClick={() => !isBanned && handleBanStage(stage.id)}
                           disabled={isBanned}
-                          className={`col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                          className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                             isBanned
                               ? 'opacity-30 cursor-not-allowed border-red-500/50'
                               : 'cursor-pointer border-white/20 active:scale-95'
@@ -599,7 +599,7 @@ export default function TabletControl({ sessionId }) {
                           </button>
                       );
                     })}
-                    <div className="col-span-1"></div>
+                    <div className="hidden sm:block sm:col-span-1"></div>
                   </div>
                 </>
               )}
@@ -621,7 +621,7 @@ export default function TabletControl({ sessionId }) {
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
               {/* Primera fila: 3 stages */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                 {getAvailableStages().slice(0, 3).map((stage) => (
                   <button
                     key={stage.id}
@@ -650,8 +650,8 @@ export default function TabletControl({ sessionId }) {
               </div>
               {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
               {getAvailableStages().length === 4 && (
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                  <div></div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="hidden sm:block"></div>
                   {getAvailableStages().slice(3, 4).map((stage) => (
                     <button
                       key={stage.id}
@@ -677,18 +677,18 @@ export default function TabletControl({ sessionId }) {
                         </div>
                       </button>
                   ))}
-                  <div></div>
+                  <div className="hidden sm:block"></div>
                 </div>
               )}
               {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
               {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
-                  <div className="col-span-1"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <div className="hidden sm:block sm:col-span-1"></div>
                   {getAvailableStages().slice(3, 5).map((stage) => (
                     <button
                       key={stage.id}
                       onClick={() => handleSelectStage(stage.id)}
-                      className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                      className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                         <div className="aspect-video relative">
                           <img 
@@ -709,14 +709,14 @@ export default function TabletControl({ sessionId }) {
                         </div>
                       </button>
                   ))}
-                  <div className="col-span-1"></div>
+                  <div className="hidden sm:block sm:col-span-1"></div>
                 </div>
               )}
               {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
               {getAvailableStages().length > 5 && (
                 <>
                   {/* Segunda fila: stages 4, 5, 6 */}
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAvailableStages().slice(3, 6).map((stage) => (
                       <button
                         key={stage.id}
@@ -744,13 +744,13 @@ export default function TabletControl({ sessionId }) {
                     ))}
                   </div>
                   {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
-                    <div className="col-span-1"></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                    <div className="hidden sm:block sm:col-span-1"></div>
                     {getAvailableStages().slice(6, 8).map((stage) => (
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
-                        className="col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                        className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                       >
                           <div className="aspect-video relative">
                             <img 
@@ -771,7 +771,7 @@ export default function TabletControl({ sessionId }) {
                           </div>
                         </button>
                     ))}
-                    <div className="col-span-1"></div>
+                    <div className="hidden sm:block sm:col-span-1"></div>
                   </div>
                 </>
               )}

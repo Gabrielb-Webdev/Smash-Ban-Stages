@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function Home() {
   const communities = [
     {
       id: 'cordoba',
       name: 'Smash Córdoba',
-      emoji: '🔵',
+      logo: '/images/SCC.webp',
       description: 'Panel de administración de Smash Córdoba',
       color: 'from-blue-900 via-blue-700 to-blue-800',
       borderColor: 'border-blue-500',
@@ -64,9 +65,23 @@ export default function Home() {
                 cursor-pointer
                 h-full
               `}>
-                {/* Emoji Icon */}
-                <div className="text-7xl mb-6 text-center transform group-hover:scale-110 transition-transform duration-300">
-                  {community.emoji}
+                {/* Logo/Icon */}
+                <div className="mb-6 text-center transform group-hover:scale-110 transition-transform duration-300">
+                  {community.logo ? (
+                    <div className="flex justify-center">
+                      <Image 
+                        src={community.logo} 
+                        alt={community.name}
+                        width={120}
+                        height={120}
+                        className="object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-7xl">
+                      {community.emoji}
+                    </div>
+                  )}
                 </div>
 
                 {/* Community Name */}
