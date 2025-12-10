@@ -268,9 +268,9 @@ export default function AdminPanel() {
   };
 
   const handleStartEditing = () => {
-    setEditPlayer1(session.player1.name);
-    setEditPlayer2(session.player2.name);
-    setEditFormat(session.format);
+    setEditPlayer1(currentSession.player1.name);
+    setEditPlayer2(currentSession.player2.name);
+    setEditFormat(currentSession.format);
     setIsEditing(true);
   };
 
@@ -428,11 +428,11 @@ export default function AdminPanel() {
                 {!isEditing ? (
                   <>
                     <h2 className="text-3xl font-bold text-white">
-                      {session.player1.name} vs {session.player2.name}
+                      {currentSession.player1.name} vs {currentSession.player2.name}
                     </h2>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl font-bold text-smash-yellow">
-                        {session.format}
+                        {currentSession.format}
                       </span>
                       <button
                         onClick={handleStartEditing}
@@ -490,27 +490,27 @@ export default function AdminPanel() {
                 <div className="bg-smash-red/20 rounded-lg p-4">
                   <p className="text-white/70 text-sm">Jugador 1</p>
                   <p className="text-white font-bold text-2xl">
-                    {session.player1.name}
+                    {currentSession.player1.name}
                   </p>
                   <p className="text-smash-yellow text-4xl font-bold">
-                    {session.player1.score}
+                    {currentSession.player1.score}
                   </p>
                 </div>
 
                 <div className="bg-white/10 rounded-lg p-4 flex flex-col justify-center">
                   <p className="text-white/70 text-sm">Game Actual</p>
                   <p className="text-white font-bold text-3xl">
-                    {session.currentGame} / {session.format === 'BO3' ? '3' : '5'}
+                    {currentSession.currentGame} / {currentSession.format === 'BO3' ? '3' : '5'}
                   </p>
                 </div>
 
                 <div className="bg-smash-blue/20 rounded-lg p-4">
                   <p className="text-white/70 text-sm">Jugador 2</p>
                   <p className="text-white font-bold text-2xl">
-                    {session.player2.name}
+                    {currentSession.player2.name}
                   </p>
                   <p className="text-smash-yellow text-4xl font-bold">
-                    {session.player2.score}
+                    {currentSession.player2.score}
                   </p>
                 </div>
               </div>
@@ -518,16 +518,16 @@ export default function AdminPanel() {
               <div className="mt-4 text-center">
                 <p className="text-white/70 text-sm mb-1">Estado Actual</p>
                 <p className="text-white font-bold text-xl">
-                  {session.phase === 'RPS' && '⏳ Esperando Ganador de RPS'}
-                  {session.phase === 'STAGE_BAN' && '🚫 Baneo de Stages'}
-                  {session.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
-                  {session.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
-                  {session.phase === 'PLAYING' && '⚔️ Jugando'}
-                  {session.phase === 'FINISHED' && '🏆 Serie Finalizada'}
+                  {currentSession.phase === 'RPS' && '⏳ Esperando Ganador de RPS'}
+                  {currentSession.phase === 'STAGE_BAN' && '🚫 Baneo de Stages'}
+                  {currentSession.phase === 'STAGE_SELECT' && '🎯 Selección de Stage'}
+                  {currentSession.phase === 'CHARACTER_SELECT' && '👤 Selección de Personajes'}
+                  {currentSession.phase === 'PLAYING' && '⚔️ Jugando'}
+                  {currentSession.phase === 'FINISHED' && '🏆 Serie Finalizada'}
                 </p>
-                {session.currentTurn && session.phase !== 'FINISHED' && (
+                {currentSession.currentTurn && currentSession.phase !== 'FINISHED' && (
                   <p className="text-smash-yellow font-semibold mt-2">
-                    Turno de: {session[session.currentTurn].name}
+                    Turno de: {currentSession[currentSession.currentTurn].name}
                   </p>
                 )}
               </div>
