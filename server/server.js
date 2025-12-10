@@ -50,8 +50,9 @@ io.on('connection', (socket) => {
   // Crear nueva sesión usando el sessionId proporcionado
   socket.on('create-session', (data) => {
     const sessionId = data.sessionId || 'main-session'; // Usar sessionId del cliente o fallback
+    const community = data.community; // Guardar la comunidad
     
-    console.log('📝 Creando sesión:', sessionId, 'para torneo:', data.sessionId);
+    console.log('📝 Creando sesión:', sessionId, 'para comunidad:', community);
     
     // Verificar si ya existe una sesión
     let session = sessions.get(sessionId);
@@ -61,6 +62,7 @@ io.on('connection', (socket) => {
       session.player1.name = data.player1;
       session.player2.name = data.player2;
       session.format = data.format;
+      session.community = community; // Actualizar comunidad
       // Reiniciar todo lo demás
       session.player1.score = 0;
       session.player1.character = null;
@@ -83,6 +85,7 @@ io.on('connection', (socket) => {
       // Crear nueva sesión
       session = {
         sessionId,
+        community, // Guardar la comunidad
         player1: {
           name: data.player1,
           score: 0,
@@ -119,6 +122,27 @@ io.on('connection', (socket) => {
     socket.emit('session-created', { sessionId, session });
     // Notificar a todos en la sala
     io.to(sessionId).emit('session-updated', { session });
+  });
+
+  // Obtener todas las sesiones de una comunidad específica
+  socket.on('get-community-sessions', (data) => {
+    const { community } = data;
+    console.log('🔍 Buscando sesiones para comunidad:', community);
+    
+    const communitySessions = [];
+    sessions.forEach((session, sessionId) => {
+      if (session.community === community) {
+        communitySessions.push(session);
+        // Unir al socket a cada sesión para recibir actualizaciones
+        socket.join(sessionId);
+      }
+    });
+    
+    console.log(`📋 Encontradas ${communitySessions.length} sesiones para ${community}`);
+    socket.emit('community-sessions', { 
+      community, 
+      sessions: communitySessions 
+    });
   });
 
   // Unirse a una sesión existente

@@ -5,6 +5,13 @@ import io from 'socket.io-client';
 // Fix: Force rebuild to clear cache
 let adminSocket = null;
 
+// Función para generar ID único para cada sesión
+const generateSessionId = (community) => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 9);
+  return `${community}-${timestamp}-${random}`;
+};
+
 export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
@@ -17,6 +24,7 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [editPlayer2, setEditPlayer2] = useState('');
   const [editFormat, setEditFormat] = useState('BO3');
   const [lastJsonUpdate, setLastJsonUpdate] = useState('');
+  const [communitySessions, setCommunitySessions] = useState({});
 
   // Configuración de torneos con temas
   const tournaments = {
@@ -164,33 +172,85 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
       console.log('Admin conectado al servidor WebSocket');
     });
 
+    // Listener para recibir sesiones de la comunidad
+    adminSocket.on('community-sessions', (data) => {
+      console.log('📋 Sesiones de comunidad recibidas:', data);
+      const { community, sessions: communitySessions } = data;
+      
+      // Actualizar el estado con todas las sesiones recibidas
+      const newActiveSessions = {};
+      const sessionIds = [];
+      
+      communitySessions.forEach(session => {
+        newActiveSessions[session.sessionId] = session;
+        sessionIds.push(session.sessionId);
+      });
+      
+      setActiveSessions(prev => ({
+        ...prev,
+        ...newActiveSessions
+      }));
+      
+      setCommunitySessions(prev => ({
+        ...prev,
+        [community]: sessionIds
+      }));
+    });
+
     adminSocket.on('session-created', (data) => {
       console.log('Sesión creada:', data);
       const sessionId = data.session.sessionId;
+      const community = data.session.community || selectedTournament;
+      
       setActiveSessions(prev => ({
         ...prev,
         [sessionId]: data.session
       }));
+      
+      // Trackear sesiones por comunidad
+      setCommunitySessions(prev => ({
+        ...prev,
+        [community]: [...(prev[community] || []).filter(id => id !== sessionId), sessionId]
+      }));
+      
       setCurrentSession(data.session);
     });
 
     adminSocket.on('session-joined', (data) => {
       console.log('Sesión unida:', data);
       const sessionId = data.session.sessionId;
+      const community = data.session.community || selectedTournament;
+      
       setActiveSessions(prev => ({
         ...prev,
         [sessionId]: data.session
       }));
+      
+      // Trackear sesiones por comunidad
+      setCommunitySessions(prev => ({
+        ...prev,
+        [community]: [...(prev[community] || []).filter(id => id !== sessionId), sessionId]
+      }));
+      
       setCurrentSession(data.session);
     });
 
     adminSocket.on('session-updated', (data) => {
       console.log('Sesión actualizada:', data);
       const sessionId = data.session.sessionId;
+      const community = data.session.community || selectedTournament;
+      
       setActiveSessions(prev => ({
         ...prev,
         [sessionId]: data.session
       }));
+      
+      // Trackear sesiones por comunidad
+      setCommunitySessions(prev => ({
+        ...prev,
+        [community]: [...(prev[community] || []).filter(id => id !== sessionId), sessionId]
+      }));
+      
       if (currentSession?.sessionId === sessionId) {
         setCurrentSession(data.session);
       }
@@ -201,10 +261,19 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
       console.log('Sesión actualizada (session-update):', data);
       const sessionData = data.session || data;
       const sessionId = sessionData.sessionId;
+      const community = sessionData.community || selectedTournament;
+      
       setActiveSessions(prev => ({
         ...prev,
         [sessionId]: sessionData
       }));
+      
+      // Trackear sesiones por comunidad
+      setCommunitySessions(prev => ({
+        ...prev,
+        [community]: [...(prev[community] || []).filter(id => id !== sessionId), sessionId]
+      }));
+      
       if (currentSession?.sessionId === sessionId) {
         setCurrentSession(sessionData);
       }
@@ -217,10 +286,19 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     adminSocket.on('series-finished', (data) => {
       console.log('Serie finalizada:', data);
       const sessionId = data.session.sessionId;
+      const community = data.session.community || selectedTournament;
+      
       setActiveSessions(prev => ({
         ...prev,
         [sessionId]: data.session
       }));
+      
+      // Mantener en el tracking pero marcar como finalizada
+      setCommunitySessions(prev => ({
+        ...prev,
+        [community]: prev[community] || []
+      }));
+      
       if (currentSession?.sessionId === sessionId) {
         setCurrentSession(data.session);
       }
@@ -233,22 +311,13 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     };
   }, [selectedTournament]); // Agregar selectedTournament como dependencia
 
-  // Re-conectar cuando cambie el torneo
+  // Solicitar lista de sesiones activas para esta comunidad al conectar
   useEffect(() => {
-    if (adminSocket && adminSocket.connected) {
-      adminSocket.emit('join-session', selectedTournament);
+    if (adminSocket && adminSocket.connected && selectedTournament) {
+      console.log('🔍 Solicitando sesiones activas para:', selectedTournament);
+      adminSocket.emit('get-community-sessions', { community: selectedTournament });
     }
-  }, [selectedTournament]);
-
-  // Verificar sesiones activas al inicio
-  useEffect(() => {
-    if (adminSocket && adminSocket.connected) {
-      // Intentar unirse a todas las sesiones existentes para detectar cuáles están activas
-      Object.keys(tournaments).forEach(tournamentId => {
-        adminSocket.emit('join-session', tournamentId);
-      });
-    }
-  }, [adminSocket?.connected]);
+  }, [adminSocket?.connected, selectedTournament]);
 
   // Polling para configuración externa
   useEffect(() => {
@@ -259,11 +328,21 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const handleCreateSession = () => {
     if (player1Name && player2Name) {
       if (adminSocket && adminSocket.connected) {
+        // Generar ID único para esta sesión
+        const uniqueSessionId = generateSessionId(selectedTournament);
+        
         adminSocket.emit('create-session', { 
           player1: player1Name, 
           player2: player2Name, 
           format,
-          sessionId: selectedTournament // Usar el torneo seleccionado
+          sessionId: uniqueSessionId,
+          community: selectedTournament // Agregar la comunidad como metadata
+        });
+        
+        console.log('🎮 Creando sesión:', {
+          sessionId: uniqueSessionId,
+          community: selectedTournament,
+          players: `${player1Name} vs ${player2Name}`
         });
       } else {
         alert('No hay conexión con el servidor. Por favor, recarga la página.');
@@ -325,9 +404,9 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   };
 
   const handleSaveNames = () => {
-    if (editPlayer1 && editPlayer2 && adminSocket) {
+    if (editPlayer1 && editPlayer2 && adminSocket && currentSession) {
       adminSocket.emit('update-players', { 
-        sessionId: selectedTournament, 
+        sessionId: currentSession.sessionId, // Usar el sessionId real de la sesión activa
         player1: editPlayer1, 
         player2: editPlayer2,
         format: editFormat
@@ -343,8 +422,9 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   };
 
   const getControlLink = (type) => {
+    if (!currentSession) return '#';
     const baseUrl = window.location.origin;
-    return `${baseUrl}/${type}/${selectedTournament}`;
+    return `${baseUrl}/${type}/${currentSession.sessionId}`;
   };
 
   const copyToClipboard = (text) => {
@@ -441,27 +521,36 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
               </div>
               )}
                 
-                {/* Botón para volver a sesión activa */}
-                {activeSessions[selectedTournament] && (
+                {/* Mostrar sesiones activas de esta comunidad */}
+                {communitySessions[selectedTournament]?.length > 0 && (
                   <div className="bg-green-600/20 border border-green-500/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-green-300 font-semibold">
-                          🎮 Sesión activa encontrada para {tournaments[selectedTournament].name}
-                        </p>
-                        <p className="text-green-200 text-sm mt-1">
-                          {activeSessions[selectedTournament]?.player1?.name} vs {activeSessions[selectedTournament]?.player2?.name}
-                        </p>
-                        <p className="text-green-200 text-xs opacity-75">
-                          Fase: {activeSessions[selectedTournament]?.phase} | Formato: {activeSessions[selectedTournament]?.format}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setCurrentSession(activeSessions[selectedTournament])}
-                        className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
-                      >
-                        🔄 Volver a la Sesión
-                      </button>
+                    <p className="text-green-300 font-semibold mb-3">
+                      🎮 Sesiones activas de {tournaments[selectedTournament].name}
+                    </p>
+                    <div className="space-y-2">
+                      {communitySessions[selectedTournament].map(sessionId => {
+                        const session = activeSessions[sessionId];
+                        if (!session || session.phase === 'FINISHED') return null;
+                        
+                        return (
+                          <div key={sessionId} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                            <div>
+                              <p className="text-green-200 text-sm font-medium">
+                                {session.player1?.name} vs {session.player2?.name}
+                              </p>
+                              <p className="text-green-200 text-xs opacity-75">
+                                Fase: {session.phase} | Formato: {session.format}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setCurrentSession(session)}
+                              className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-all"
+                            >
+                              🔄 Volver
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
