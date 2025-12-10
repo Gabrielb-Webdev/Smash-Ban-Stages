@@ -5,11 +5,11 @@ import io from 'socket.io-client';
 // Fix: Force rebuild to clear cache
 let adminSocket = null;
 
-export default function AdminPanel() {
+export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [selectedTournament, setSelectedTournament] = useState('cordoba');
+  const [selectedTournament, setSelectedTournament] = useState(defaultCommunity);
   const [activeSessions, setActiveSessions] = useState({});
   const [currentSession, setCurrentSession] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -140,6 +140,13 @@ export default function AdminPanel() {
       console.log('⚠️ Error actualizando configuración externa:', error);
     }
   };
+
+  // Efecto para sincronizar la comunidad seleccionada con el prop defaultCommunity
+  useEffect(() => {
+    if (defaultCommunity && defaultCommunity !== selectedTournament) {
+      setSelectedTournament(defaultCommunity);
+    }
+  }, [defaultCommunity]);
 
   useEffect(() => {
     // Conectar al WebSocket cuando se monta el componente
@@ -348,6 +355,17 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Botón de volver */}
+        <div className="mb-6">
+          <a 
+            href="/"
+            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-white font-medium transition-all"
+          >
+            <span>←</span>
+            <span>Volver a Comunidades</span>
+          </a>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2">
             🎮 Panel de Administración
@@ -392,6 +410,8 @@ export default function AdminPanel() {
             </h2>
             
             <div className="space-y-4">
+              {/* Solo mostrar selector si no hay comunidad por defecto fija */}
+              {defaultCommunity === 'cordoba' && (
               <div>
                 <label className="block text-white font-semibold mb-2">
                   🏆 Seleccionar Torneo
@@ -418,6 +438,8 @@ export default function AdminPanel() {
                     </button>
                   ))}
                 </div>
+              </div>
+              )}
                 
                 {/* Botón para volver a sesión activa */}
                 {activeSessions[selectedTournament] && (
