@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 5.9.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "API_BASE_URL": "https://smash-ban-stages.vercel.app",
+        "WS_URL": "wss://sweet-insight-production-80c1.up.railway.app"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
