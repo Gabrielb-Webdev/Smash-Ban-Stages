@@ -16,11 +16,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
-  // Scopes necesarios
-  const scopes = [
-    'user.identity',  // Info básica del usuario
-    'user.email',     // Email del usuario
-  ].join('%20'); // URL encoded space
+  // Scopes necesarios (separados por espacios, searchParams hace el encoding)
+  const scopes = 'user.identity user.email';
 
   // State para prevenir CSRF (en producción, guardar en session/cookie)
   const state = Buffer.from(JSON.stringify({
@@ -32,8 +29,8 @@ export default async function handler(req, res) {
   const authUrl = new URL('https://start.gg/oauth/authorize');
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('client_id', clientId);
-  authUrl.searchParams.append('scope', scopes);
   authUrl.searchParams.append('redirect_uri', redirectUri);
+  authUrl.searchParams.append('scope', scopes);
   authUrl.searchParams.append('state', state);
 
   // Opcional: Guardar state en cookie para validar después
