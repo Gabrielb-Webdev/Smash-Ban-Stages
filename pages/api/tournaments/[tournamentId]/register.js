@@ -2,7 +2,7 @@
 
 
 // Mock storage para registros - en producción usar base de datos
-let mockRegistrations: any[] = [];
+let mockRegistrations = [];
 
 export default function handler(req, res) {
   // CORS headers

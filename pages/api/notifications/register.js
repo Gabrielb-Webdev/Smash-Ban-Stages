@@ -52,7 +52,7 @@ export default function handler(req, res) {
 }
 
 // Función helper para enviar notificaciones (para uso interno)
-export async function sendPushNotification(userId: string, notification: any) {
+export async function sendPushNotification(userId, notification) {
   const userToken = mockPushTokens.find(t => t.userId === userId && t.active);
   
   if (!userToken) {

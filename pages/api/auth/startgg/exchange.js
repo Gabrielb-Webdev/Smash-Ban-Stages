@@ -23,8 +23,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: START_GG_CLIENT_ID!,
-        client_secret: START_GG_CLIENT_SECRET!,
+        client_id: START_GG_CLIENT_ID,
+        client_secret: START_GG_CLIENT_SECRET,
         code,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
