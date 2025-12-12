@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
-// Cache invalidation for Mendoza background - v0.5 - 2024-12-12T18:00:00
+// Cache invalidation for Mendoza background - v0.6 - 2024-12-12T18:15:00
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
@@ -165,6 +165,7 @@ export default function TabletControl({ sessionId }) {
              backgroundSize: 'cover',
              backgroundPosition: 'center',
              backgroundRepeat: 'no-repeat',
+             backgroundAttachment: 'fixed',
              fontFamily: 'Anton, sans-serif'
            }}>
         <div className="text-center">
@@ -259,6 +260,7 @@ export default function TabletControl({ sessionId }) {
            backgroundSize: 'cover',
            backgroundPosition: 'center',
            backgroundRepeat: 'no-repeat',
+           backgroundAttachment: 'fixed',
            fontFamily: 'Anton, sans-serif'
          }}>
       <div className="w-full h-full max-w-7xl flex flex-col gap-2 sm:gap-3">
