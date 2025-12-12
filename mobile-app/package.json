@@ -3,18 +3,22 @@
   "version": "1.0.0",
   "main": "App.js",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~49.0.0",
+    "expo": "~51.0.0",
     "react": "18.2.0",
-    "react-native": "0.72.6"
+    "react-native": "0.74.0",
+    "react-native-web": "^0.19.13"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "metro": "^0.80.0"
+  }
 }
