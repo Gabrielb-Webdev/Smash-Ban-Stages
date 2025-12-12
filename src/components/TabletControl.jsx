@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
-// Cache invalidation for Mendoza background - v0.7 - 2024-12-12T18:30:00
+// Cache invalidation for Mendoza background - v0.8 - 2024-12-12T18:45:00
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
