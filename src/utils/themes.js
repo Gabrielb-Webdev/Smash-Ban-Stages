@@ -49,21 +49,26 @@ export const TOURNAMENT_THEMES = {
 export const getTournamentTheme = (sessionId) => {
   if (!sessionId) return TOURNAMENT_THEMES['cordoba']; // cordoba por defecto
   
-  // Extraer el nombre del torneo del sessionId (ej: "mendoza-12345" -> "mendoza")
-  let tournamentId = sessionId;
+  // Extraer el nombre del torneo del sessionId
+  let tournamentId = 'cordoba'; // Por defecto
   
-  // Si contiene un guión, tomar solo la primera parte
-  if (sessionId.includes('-')) {
-    tournamentId = sessionId.split('-')[0];
+  // Caso 1: sessionId directo (ej: "mendoza" desde /tablet/mendoza)
+  if (sessionId === 'mendoza') {
+    tournamentId = 'mendoza';
   }
-  
-  // Si contiene una barra, tomar la última parte y luego la primera parte antes del guión
-  if (sessionId.includes('/')) {
+  // Caso 2: sessionId con formato session-torneo (ej: "abc123-mendoza")
+  else if (sessionId.includes('-')) {
+    const parts = sessionId.split('-');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart === 'mendoza') {
+      tournamentId = 'mendoza';
+    }
+  }
+  // Caso 3: sessionId con URL path (ej: "path/mendoza")
+  else if (sessionId.includes('/')) {
     const lastPart = sessionId.split('/').pop();
-    if (lastPart && lastPart.includes('-')) {
-      tournamentId = lastPart.split('-')[0];
-    } else {
-      tournamentId = lastPart || 'cordoba';
+    if (lastPart === 'mendoza') {
+      tournamentId = 'mendoza';
     }
   }
   

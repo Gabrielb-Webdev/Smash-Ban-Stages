@@ -3,8 +3,8 @@ const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 
 // Constantes para stages - Mendoza (Team Anexo)
-const MENDOZA_STAGES_GAME1 = ['battlefield', 'town-and-city', 'small-battlefield', 'pokemon-stadium-2', 'smashville'];
-const MENDOZA_STAGES_GAME2_PLUS = ['battlefield', 'town-and-city', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'final-destination', 'hollow-bastion', 'kalos'];
+const MENDOZA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
+const MENDOZA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
 
 // Constantes para stages - Córdoba (por defecto)
 const CORDOBA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
@@ -14,20 +14,29 @@ const CORDOBA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemo
 function detectTournament(sessionId) {
   if (!sessionId) return 'cordoba';
   
-  let tournamentId = 'cordoba';
+  // Caso 1: sessionId directo (ej: "mendoza" desde /tablet/mendoza)
+  if (sessionId === 'mendoza') {
+    return 'mendoza';
+  }
   
+  // Caso 2: sessionId con formato session-torneo (ej: "abc123-mendoza")
   if (sessionId.includes('-')) {
     const parts = sessionId.split('-');
     const lastPart = parts[parts.length - 1];
-    
-    if (lastPart && lastPart.includes('-')) {
-      tournamentId = lastPart.split('-')[0];
-    } else {
-      tournamentId = lastPart || 'cordoba';
+    if (lastPart === 'mendoza') {
+      return 'mendoza';
     }
   }
   
-  return tournamentId;
+  // Caso 3: sessionId con URL path (ej: "path/mendoza")
+  if (sessionId.includes('/')) {
+    const lastPart = sessionId.split('/').pop();
+    if (lastPart === 'mendoza') {
+      return 'mendoza';
+    }
+  }
+  
+  return 'cordoba'; // Por defecto
 }
 
 // Función para obtener stages según el torneo
