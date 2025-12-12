@@ -246,16 +246,10 @@ export default function StreamOverlay({ sessionId }) {
             style={{ 
               zIndex: 1,
               objectFit: 'cover',
-              objectPosition: 'center top' // Ajusta esto para posición vertical
-              // Opciones:
-              // 'center top' - Muestra la parte superior del video
-              // 'center center' - Muestra la parte central del video (default)
-              // 'center bottom' - Muestra la parte inferior del video
-              // 'center 20%' - Muestra desde el 20% desde arriba
-              // 'center 80%' - Muestra desde el 80% desde arriba
+              objectPosition: 'center bottom' // Muestra la parte inferior del video
             }}
           >
-            <source src="/images/Team_Anexo/barra_de_abajo.mp4?v=1.0" type="video/mp4" />
+            <source src="/images/Team_Anexo/barra_de_abajo.mp4?v=1.1" type="video/mp4" />
           </video>
         )}
         {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA GIRANDO */}
