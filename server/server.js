@@ -3,7 +3,7 @@ const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 
 // Constantes para stages - Mendoza (Team Anexo)
-const MENDOZA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
+const MENDOZA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'smashville', 'battlefield'];
 const MENDOZA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
 
 // Constantes para stages - Córdoba (por defecto)

@@ -24,7 +24,7 @@ export const MENDOZA_STAGES_GAME1 = [
   { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
   { id: 'town-and-city', name: 'Town and City', image: '/images/stages/Town and City.png' },
   { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
-  { id: 'hollow-bastion', name: 'Hollow Bastion', image: '/images/stages/Hollow Bastion.png' },
+  { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
   { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
 ];
 
