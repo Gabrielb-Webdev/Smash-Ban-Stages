@@ -218,19 +218,24 @@ export default function StreamOverlay({ sessionId }) {
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
           height: '150px',
-          backgroundImage: useOriginalStyles ? 
-            'url(/images/paperbg.jpg)' : 
-            `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-          backgroundBlendMode: useOriginalStyles ? 'normal' : 'overlay',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          // Para Mendoza, solo usar el video sin fondo adicional
+          ...(theme.name === 'Team Anexo - Mendoza' ? {
+            background: 'transparent'
+          } : {
+            backgroundImage: useOriginalStyles ? 
+              'url(/images/paperbg.jpg)' : 
+              `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
+            backgroundBlendMode: useOriginalStyles ? 'normal' : 'overlay',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }),
           boxShadow: useOriginalStyles ?
             '0 -4px 20px rgba(0, 0, 0, 0.2)' :
             `0 -4px 20px ${theme.colors.primary}40`,
         }}
       >
-        {/* Video de fondo específico para Mendoza/Team Anexo */}
+        {/* Video de fondo específico para Mendoza/Team Anexo - Ocupa todo el footer */}
         {theme.name === 'Team Anexo - Mendoza' && (
           <video
             autoPlay
@@ -238,9 +243,12 @@ export default function StreamOverlay({ sessionId }) {
             muted
             playsInline
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ zIndex: -1 }}
+            style={{ 
+              zIndex: 1,
+              objectFit: 'cover'
+            }}
           >
-            <source src="/images/Team_Anexo/barra_de_abajo.mp4" type="video/mp4" />
+            <source src="/images/Team_Anexo/barra_de_abajo.mp4?v=1.0" type="video/mp4" />
           </video>
         )}
         {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA GIRANDO */}
@@ -263,6 +271,7 @@ export default function StreamOverlay({ sessionId }) {
                 bounce: 0.5
               }}
               className="flex items-center"
+              style={{ zIndex: 10 }}
             >
               <img 
                 src={getCharacterData(session.player1.character)?.image} 
@@ -296,6 +305,7 @@ export default function StreamOverlay({ sessionId }) {
                 bounce: 0.5
               }}
               className="flex items-center"
+              style={{ zIndex: 10 }}
             >
               <motion.div 
                 initial={{ scaleY: 0 }}
@@ -316,7 +326,7 @@ export default function StreamOverlay({ sessionId }) {
 
         {/* Texto "Stage Bans" en el centro - Aparece desde abajo del footer */}
         {session.player1.character && session.player2.character && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 20 }}>
             <div 
               className="overflow-hidden h-24 flex items-center justify-center"
               style={{
@@ -363,9 +373,9 @@ export default function StreamOverlay({ sessionId }) {
 
         {/* Stages - Aparecen después del texto Stage Bans */}
         {session.player1.character && session.player2.character && (
-          <div className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center z-10 pointer-events-none px-44 ${
+          <div className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none px-44 ${
             session.currentGame === 1 ? 'gap-3' : 'gap-4'
-          }`}>
+          }`} style={{ zIndex: 15 }}>
             {(session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
