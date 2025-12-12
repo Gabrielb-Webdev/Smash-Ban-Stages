@@ -19,6 +19,26 @@ export const STAGES_GAME2_PLUS = [
   { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
 ];
 
+// Stages específicos para Team Anexo - Mendoza
+export const MENDOZA_STAGES_GAME1 = [
+  { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
+  { id: 'town-and-city', name: 'Town and City', image: '/images/stages/Town and City.png' },
+  { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
+];
+
+export const MENDOZA_STAGES_GAME2_PLUS = [
+  { id: 'battlefield', name: 'Battlefield', image: '/images/stages/Battlefield.png' },
+  { id: 'town-and-city', name: 'Town and City', image: '/images/stages/Town and City.png' },
+  { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'smashville', name: 'Smashville', image: '/images/stages/Smashville.png' },
+  { id: 'final-destination', name: 'Final Destination', image: '/images/stages/Final Destination.png' },
+  { id: 'hollow-bastion', name: 'Hollow Bastion', image: '/images/stages/Hollow Bastion.png' },
+  { id: 'kalos', name: 'Kalos', image: '/images/stages/Kalos.png' },
+];
+
 // Lista completa de personajes de Smash Ultimate (basada en los archivos disponibles)
 export const CHARACTERS = [
   { id: 'banjo-kazooie', name: 'Banjo & Kazooie', image: '/images/characters/Banjo Kazooie.png' },
@@ -128,10 +148,37 @@ export const PHASE_NAMES = {
 };
 
 export const getStageData = (stageId) => {
-  const allStages = [...STAGES_GAME1, ...STAGES_GAME2_PLUS];
+  const allStages = [...STAGES_GAME1, ...STAGES_GAME2_PLUS, ...MENDOZA_STAGES_GAME1, ...MENDOZA_STAGES_GAME2_PLUS];
   return allStages.find(stage => stage.id === stageId);
 };
 
 export const getCharacterData = (characterId) => {
   return CHARACTERS.find(char => char.id === characterId);
+};
+
+// Función para obtener los stages según el torneo y game
+export const getStagesForTournament = (sessionId, currentGame) => {
+  // Extraer nombre del torneo del sessionId
+  let tournamentId = sessionId || '';
+  
+  if (sessionId && sessionId.includes('-')) {
+    tournamentId = sessionId.split('-')[0];
+  }
+  
+  if (sessionId && sessionId.includes('/')) {
+    const lastPart = sessionId.split('/').pop();
+    if (lastPart && lastPart.includes('-')) {
+      tournamentId = lastPart.split('-')[0];
+    } else {
+      tournamentId = lastPart || 'cordoba';
+    }
+  }
+  
+  // Usar ruleset específico para Mendoza
+  if (tournamentId === 'mendoza') {
+    return currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
+  }
+  
+  // Ruleset por defecto (Córdoba)
+  return currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS;
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
+import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
 // Cache invalidation for Mendoza background - v1.1 - 2024-12-12T19:20:00
@@ -252,9 +252,9 @@ export default function TabletControl({ sessionId }) {
   };
 
   const getAvailableStages = () => {
-    const stageList = session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS;
+    const stageList = getStagesForTournament(sessionId, session.currentGame);
     const filtered = stageList.filter(stage => session.availableStages.includes(stage.id));
-    console.log('📊 Game:', session.currentGame, '| Total stages en constants:', stageList.length, '| Disponibles en session:', session.availableStages.length, '| Filtrados:', filtered.length);
+    console.log('📊 Tournament:', sessionId, '| Game:', session.currentGame, '| Total stages en constants:', stageList.length, '| Disponibles en session:', session.availableStages.length, '| Filtrados:', filtered.length);
     console.log('Stages disponibles:', session.availableStages);
     console.log('Stages filtrados:', filtered.map(s => s.name));
     return filtered;

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { STAGES_GAME1, STAGES_GAME2_PLUS, getStageData, getCharacterData } from '../utils/constants';
+import { getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
@@ -202,7 +202,7 @@ export default function StreamOverlay({ sessionId }) {
   }
 
   const getAvailableStages = () => {
-    const stageList = session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS;
+    const stageList = getStagesForTournament(sessionId, session.currentGame);
     return stageList;
   };
 
@@ -388,7 +388,7 @@ export default function StreamOverlay({ sessionId }) {
           <div className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none px-44 ${
             session.currentGame === 1 ? 'gap-3' : 'gap-4'
           }`} style={{ zIndex: 15 }}>
-            {(session.currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS).map((stage, index) => {
+            {getStagesForTournament(sessionId, session.currentGame).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
               // Solo mostrar overlay si showBanOnCard está activado y es el stage actual baneado, o si es un baneo anterior
@@ -687,7 +687,7 @@ export default function StreamOverlay({ sessionId }) {
 
               {/* Stages en el centro con animación secuencial */}
               <div className="flex gap-3 items-center">
-                {STAGES_GAME1.map((stage, index) => (
+                {getStagesForTournament(sessionId, 1).map((stage, index) => (
                   <motion.div
                     key={stage.id}
                     initial={{ scale: 0, y: 20, opacity: 0 }}
