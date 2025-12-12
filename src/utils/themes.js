@@ -10,20 +10,20 @@ export const TOURNAMENT_THEMES = {
     name: 'Smash Mendoza',
     emoji: '🟢',
     colors: {
-      primary: '#059669',
-      secondary: '#047857',
+      primary: '#F59E0B',
+      secondary: '#D97706',
       accent: '#FBBF24', 
       text: '#FFFFFF',
-      cardBg: 'rgba(5, 150, 105, 0.15)',
-      gradient: 'from-green-900 via-green-700 to-emerald-800'
+      cardBg: 'rgba(245, 158, 11, 0.15)',
+      gradient: 'from-amber-900 via-yellow-700 to-orange-800'
     },
     styles: {
-      bannerText: 'text-4xl font-bold text-green-100 drop-shadow-lg',
-      cardBorder: 'border-2 border-green-400/40',
-      buttonPrimary: 'bg-green-600 hover:bg-green-700',
-      buttonSecondary: 'bg-emerald-600 hover:bg-emerald-700'
+      bannerText: 'text-4xl font-bold text-yellow-100 drop-shadow-lg',
+      cardBorder: 'border-2 border-yellow-400/40',
+      buttonPrimary: 'bg-yellow-600 hover:bg-yellow-700',
+      buttonSecondary: 'bg-amber-600 hover:bg-amber-700'
     },
-    customBackground: '/images/Team_Anexo/FONDO_tablet.png?v=0.2'
+    customBackground: '/images/Team_Anexo/FONDO_tablet.png?v=0.3'
   },
   'afk': {
     name: 'Smash AFK (Buenos Aires)',
