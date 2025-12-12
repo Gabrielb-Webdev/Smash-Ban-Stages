@@ -12,10 +12,16 @@ const CORDOBA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemo
 
 // Función para detectar el torneo basado en sessionId
 function detectTournament(sessionId) {
-  if (!sessionId) return 'cordoba';
+  console.log('🔍 SERVER detectTournament input:', sessionId);
+  
+  if (!sessionId) {
+    console.log('❌ No sessionId provided, defaulting to cordoba');
+    return 'cordoba';
+  }
   
   // Caso 1: sessionId directo (ej: "mendoza" desde /tablet/mendoza)
   if (sessionId === 'mendoza') {
+    console.log('✅ Direct match: mendoza detected');
     return 'mendoza';
   }
   
@@ -23,7 +29,9 @@ function detectTournament(sessionId) {
   if (sessionId.includes('-')) {
     const parts = sessionId.split('-');
     const lastPart = parts[parts.length - 1];
+    console.log('🔍 Checking hyphenated sessionId:', { parts, lastPart });
     if (lastPart === 'mendoza') {
+      console.log('✅ Hyphenated match: mendoza detected');
       return 'mendoza';
     }
   }
@@ -31,11 +39,14 @@ function detectTournament(sessionId) {
   // Caso 3: sessionId con URL path (ej: "path/mendoza")
   if (sessionId.includes('/')) {
     const lastPart = sessionId.split('/').pop();
+    console.log('🔍 Checking path sessionId:', { lastPart });
     if (lastPart === 'mendoza') {
+      console.log('✅ Path match: mendoza detected');
       return 'mendoza';
     }
   }
   
+  console.log('⚪ No match found, defaulting to cordoba');
   return 'cordoba'; // Por defecto
 }
 
@@ -43,12 +54,23 @@ function detectTournament(sessionId) {
 function getStagesForTournament(sessionId, currentGame) {
   const tournament = detectTournament(sessionId);
   
+  console.log('🎯 SERVER getStagesForTournament:', {
+    sessionId,
+    tournament,
+    currentGame,
+    isMendoza: tournament === 'mendoza'
+  });
+  
   if (tournament === 'mendoza') {
-    return currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
+    const stages = currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
+    console.log('✅ Mendoza ruleset selected:', stages);
+    return stages;
   }
   
   // Ruleset por defecto (Córdoba)
-  return currentGame === 1 ? CORDOBA_STAGES_GAME1 : CORDOBA_STAGES_GAME2_PLUS;
+  const stages = currentGame === 1 ? CORDOBA_STAGES_GAME1 : CORDOBA_STAGES_GAME2_PLUS;
+  console.log('⚪ Córdoba ruleset selected:', stages);
+  return stages;
 }
 
 const httpServer = createServer((req, res) => {
