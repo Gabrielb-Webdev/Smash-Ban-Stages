@@ -15,7 +15,7 @@ let mockMatches = [
   },
 ];
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

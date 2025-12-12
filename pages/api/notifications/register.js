@@ -1,10 +1,9 @@
 // API Route para registrar tokens de notificaciones push
-import { NextApiRequest, NextApiResponse } from 'next';
 
 // Mock storage para tokens - en producción usar base de datos
-let mockPushTokens: any[] = [];
+let mockPushTokens = [];
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

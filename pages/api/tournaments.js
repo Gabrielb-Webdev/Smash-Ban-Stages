@@ -1,5 +1,4 @@
 // API Route para gestionar torneos
-import { NextApiRequest, NextApiResponse } from 'next';
 
 // Mock data para desarrollo - en producción esto vendría de una base de datos
 const mockTournaments = [
@@ -53,7 +52,7 @@ const mockTournaments = [
   }
 ];
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');

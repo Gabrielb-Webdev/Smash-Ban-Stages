@@ -4,7 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 const START_GG_CLIENT_ID = process.env.START_GG_CLIENT_ID;
 const START_GG_CLIENT_SECRET = process.env.START_GG_CLIENT_SECRET;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
