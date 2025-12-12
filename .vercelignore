@@ -1,0 +1,19 @@
+# Excluir app móvil del deploy de Vercel
+mobile-app/
+mobile-app/**
+
+# Archivos de configuración innecesarios para producción
+*.bat
+*.sh
+start-mobile.bat
+setup.bat
+setup.sh
+
+# Logs y cache
+*.log
+.expo/
+.expo-shared/
+
+# Archivos temporales
+temp/
+tmp/
