@@ -13,6 +13,12 @@ export default function TabletControl({ sessionId }) {
   const theme = getTournamentTheme(sessionId);
   const useOriginalStyles = shouldUseOriginalStyles(sessionId);
   
+  // Función para detectar si es Mendoza
+  const isMendoza = () => {
+    if (!sessionId) return false;
+    return sessionId === 'mendoza' || sessionId.includes('mendoza');
+  };
+  
   // Debug para tablets
   useEffect(() => {
     console.log('🎨 TabletControl Theme Debug:', {
@@ -408,7 +414,166 @@ export default function TabletControl({ sessionId }) {
             </div>
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
-              {/* Primera fila: 3 stages - 1 columna en mobile */}
+              {/* Layout específico para Mendoza */}
+              {isMendoza() ? (
+                <>
+                  {/* Primera fila: 3 stages */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'small-battlefield');
+                        if (stage && !session.bannedStages.includes('small-battlefield')) {
+                          handleBanStage('small-battlefield');
+                        }
+                      }}
+                      disabled={session.bannedStages.includes('small-battlefield')}
+                      className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                        session.bannedStages.includes('small-battlefield')
+                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
+                      }`}
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Small Battlefield.png" alt="Small Battlefield" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                          <span className="text-white text-xl sm:text-2xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Small Battlefield</p>
+                        </div>
+                      </div>
+                      {session.bannedStages.includes('small-battlefield') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'town-and-city');
+                        if (stage && !session.bannedStages.includes('town-and-city')) {
+                          handleBanStage('town-and-city');
+                        }
+                      }}
+                      disabled={session.bannedStages.includes('town-and-city')}
+                      className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                        session.bannedStages.includes('town-and-city')
+                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
+                      }`}
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Town and City.png" alt="Town and City" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                          <span className="text-white text-xl sm:text-2xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Town and City</p>
+                        </div>
+                      </div>
+                      {session.bannedStages.includes('town-and-city') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'pokemon-stadium-2');
+                        if (stage && !session.bannedStages.includes('pokemon-stadium-2')) {
+                          handleBanStage('pokemon-stadium-2');
+                        }
+                      }}
+                      disabled={session.bannedStages.includes('pokemon-stadium-2')}
+                      className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                        session.bannedStages.includes('pokemon-stadium-2')
+                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
+                      }`}
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Pokemon Stadium 2.png" alt="Pokémon Stadium 2" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                          <span className="text-white text-xl sm:text-2xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Pokémon Stadium 2</p>
+                        </div>
+                      </div>
+                      {session.bannedStages.includes('pokemon-stadium-2') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* Segunda fila: Smashville y Battlefield centrados */}
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                    <div className="hidden sm:block sm:col-span-1"></div>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'smashville');
+                        if (stage && !session.bannedStages.includes('smashville')) {
+                          handleBanStage('smashville');
+                        }
+                      }}
+                      disabled={session.bannedStages.includes('smashville')}
+                      className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                        session.bannedStages.includes('smashville')
+                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          : 'cursor-pointer border-white/20 active:scale-95'
+                      }`}
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Smashville.png" alt="Smashville" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Smashville</p>
+                        </div>
+                      </div>
+                      {session.bannedStages.includes('smashville') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'battlefield');
+                        if (stage && !session.bannedStages.includes('battlefield')) {
+                          handleBanStage('battlefield');
+                        }
+                      }}
+                      disabled={session.bannedStages.includes('battlefield')}
+                      className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                        session.bannedStages.includes('battlefield')
+                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          : 'cursor-pointer border-white/20 active:scale-95'
+                      }`}
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Battlefield.png" alt="Battlefield" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Battlefield</p>
+                        </div>
+                      </div>
+                      {session.bannedStages.includes('battlefield') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
+                    </button>
+                    <div className="hidden sm:block sm:col-span-1"></div>
+                  </div>
+                </>
+              ) : (
+                /* Layout dinámico para Córdoba y otros torneos */
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                 {getAvailableStages().slice(0, 3).map((stage) => {
                   const isBanned = session.bannedStages.includes(stage.id);
@@ -681,7 +846,106 @@ export default function TabletControl({ sessionId }) {
             </div>
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
-              {/* Primera fila: 3 stages */}
+              {/* Layout específico para Mendoza */}
+              {isMendoza() ? (
+                <>
+                  {/* Primera fila: 3 stages */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'small-battlefield');
+                        if (stage) handleSelectStage('small-battlefield');
+                      }}
+                      className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Small Battlefield.png" alt="Small Battlefield" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center">Small Battlefield</p>
+                        </div>
+                      </div>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'town-and-city');
+                        if (stage) handleSelectStage('town-and-city');
+                      }}
+                      className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Town and City.png" alt="Town and City" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center">Town and City</p>
+                        </div>
+                      </div>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'pokemon-stadium-2');
+                        if (stage) handleSelectStage('pokemon-stadium-2');
+                      }}
+                      className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Pokemon Stadium 2.png" alt="Pokémon Stadium 2" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center">Pokémon Stadium 2</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  {/* Segunda fila: Smashville y Battlefield centrados */}
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                    <div className="hidden sm:block sm:col-span-1"></div>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'smashville');
+                        if (stage) handleSelectStage('smashville');
+                      }}
+                      className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Smashville.png" alt="Smashville" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center">Smashville</p>
+                        </div>
+                      </div>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const stage = getAvailableStages().find(s => s.id === 'battlefield');
+                        if (stage) handleSelectStage('battlefield');
+                      }}
+                      className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                    >
+                      <div className="aspect-video relative">
+                        <img src="/images/stages/Battlefield.png" alt="Battlefield" className="w-full h-full object-cover" />
+                        <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                          <span className="text-white text-xl">🎮</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                          <p className="text-white font-bold text-[10px] sm:text-xs text-center">Battlefield</p>
+                        </div>
+                      </div>
+                    </button>
+                    <div className="hidden sm:block sm:col-span-1"></div>
+                  </div>
+                </>
+              ) : (
+                /* Layout dinámico para Córdoba y otros torneos */
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                 {getAvailableStages().slice(0, 3).map((stage) => (
                   <button
