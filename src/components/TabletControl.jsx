@@ -245,9 +245,9 @@ export default function TabletControl({ sessionId }) {
            background: useOriginalStyles ? 
              'url(/images/paperbg.jpg)' : 
              theme.customBackground ? 
-             `linear-gradient(${theme.colors.gradient}), url(${theme.customBackground})` :
+             `url(${theme.customBackground})` :
              `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-           backgroundBlendMode: useOriginalStyles ? 'normal' : 'overlay',
+           backgroundBlendMode: useOriginalStyles || theme.customBackground ? 'normal' : 'overlay',
            backgroundSize: 'cover',
            backgroundPosition: 'center',
            backgroundRepeat: 'no-repeat',
