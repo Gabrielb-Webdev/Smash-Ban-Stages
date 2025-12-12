@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
-// Cache invalidation for Mendoza background - v0.3 - 2024-12-12T17:30:00
+// Cache invalidation for Mendoza background - v0.4 - 2024-12-12T17:45:00
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
@@ -161,7 +161,7 @@ export default function TabletControl({ sessionId }) {
                theme.customBackground ? 
                `url(${theme.customBackground})` :
                `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-             backgroundSize: 'contain',
+             backgroundSize: 'cover',
              backgroundPosition: 'center',
              backgroundRepeat: 'no-repeat',
              backgroundColor: '#1a1a1a'
@@ -255,7 +255,7 @@ export default function TabletControl({ sessionId }) {
              `url(${theme.customBackground})` :
              `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
            backgroundBlendMode: useOriginalStyles || theme.customBackground ? 'normal' : 'overlay',
-           backgroundSize: theme.customBackground ? 'contain' : 'cover',
+           backgroundSize: theme.customBackground ? 'cover' : 'cover',
            backgroundPosition: 'center',
            backgroundRepeat: 'no-repeat',
            backgroundColor: theme.customBackground ? '#1a1a1a' : 'transparent',
