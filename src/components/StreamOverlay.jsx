@@ -230,6 +230,19 @@ export default function StreamOverlay({ sessionId }) {
             `0 -4px 20px ${theme.colors.primary}40`,
         }}
       >
+        {/* Video de fondo específico para Mendoza/Team Anexo */}
+        {theme.name === 'Team Anexo - Mendoza' && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: -1 }}
+          >
+            <source src="/images/Team_Anexo/barra_de_abajo.mp4" type="video/mp4" />
+          </video>
+        )}
         {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA GIRANDO */}
         {session.player1.character && session.player2.character && (
           <>
