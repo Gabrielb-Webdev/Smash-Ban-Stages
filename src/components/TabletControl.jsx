@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
-// Cache invalidation for Mendoza background - v0.6 - 2024-12-12T18:15:00
+// Cache invalidation for Mendoza background - v0.7 - 2024-12-12T18:30:00
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
@@ -159,13 +159,12 @@ export default function TabletControl({ sessionId }) {
              background: useOriginalStyles ? 
                'url(/images/paperbg.jpg)' : 
                theme.customBackground ? 
-               `url(${theme.customBackground}) rgb(26, 26, 26)` :
+               `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
                `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
              backgroundBlendMode: 'normal',
              backgroundSize: 'cover',
              backgroundPosition: 'center',
              backgroundRepeat: 'no-repeat',
-             backgroundAttachment: 'fixed',
              fontFamily: 'Anton, sans-serif'
            }}>
         <div className="text-center">
@@ -254,13 +253,12 @@ export default function TabletControl({ sessionId }) {
            background: useOriginalStyles ? 
              'url(/images/paperbg.jpg)' : 
              theme.customBackground ? 
-             `url(${theme.customBackground}) rgb(26, 26, 26)` :
+             `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
              `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
            backgroundBlendMode: 'normal',
            backgroundSize: 'cover',
            backgroundPosition: 'center',
            backgroundRepeat: 'no-repeat',
-           backgroundAttachment: 'fixed',
            fontFamily: 'Anton, sans-serif'
          }}>
       <div className="w-full h-full max-w-7xl flex flex-col gap-2 sm:gap-3">
