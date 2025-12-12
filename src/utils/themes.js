@@ -22,7 +22,8 @@ export const TOURNAMENT_THEMES = {
       cardBorder: 'border-2 border-green-400/40',
       buttonPrimary: 'bg-green-600 hover:bg-green-700',
       buttonSecondary: 'bg-emerald-600 hover:bg-emerald-700'
-    }
+    },
+    customBackground: '/images/Team Anexo/FONDO tablet.png'
   },
   'afk': {
     name: 'Smash AFK (Buenos Aires)',
