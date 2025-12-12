@@ -7,8 +7,8 @@ export const TOURNAMENT_THEMES = {
     useOriginalStyles: true
   },
   'mendoza': {
-    name: 'Smash Mendoza',
-    emoji: '🟢',
+    name: 'Team Anexo - Mendoza',
+    emoji: '🟣',
     colors: {
       primary: '#8B5CF6',
       secondary: '#7C3AED',
@@ -23,7 +23,7 @@ export const TOURNAMENT_THEMES = {
       buttonPrimary: 'bg-purple-600 hover:bg-purple-700',
       buttonSecondary: 'bg-violet-600 hover:bg-violet-700'
     },
-    customBackground: '/images/Team_Anexo/FONDO_tablet.png?v=1.0'
+    customBackground: '/images/Team_Anexo/FONDO_tablet.png?v=1.1'
   },
   'afk': {
     name: 'Smash AFK (Buenos Aires)',
@@ -46,19 +46,43 @@ export const TOURNAMENT_THEMES = {
 };
 
 // Función para obtener el tema de un torneo
-export const getTournamentTheme = (tournamentId) => {
+export const getTournamentTheme = (sessionId) => {
+  if (!sessionId) return TOURNAMENT_THEMES['cordoba']; // cordoba por defecto
+  
+  // Extraer el nombre del torneo del sessionId (ej: "mendoza-12345" -> "mendoza")
+  let tournamentId = sessionId;
+  
+  // Si contiene un guión, tomar solo la primera parte
+  if (sessionId.includes('-')) {
+    tournamentId = sessionId.split('-')[0];
+  }
+  
+  // Si contiene una barra, tomar la última parte y luego la primera parte antes del guión
+  if (sessionId.includes('/')) {
+    const lastPart = sessionId.split('/').pop();
+    if (lastPart && lastPart.includes('-')) {
+      tournamentId = lastPart.split('-')[0];
+    } else {
+      tournamentId = lastPart || 'cordoba';
+    }
+  }
+  
+  console.log('🎨 Tema detectado:', { sessionId, tournamentId, theme: TOURNAMENT_THEMES[tournamentId]?.name });
+  
   return TOURNAMENT_THEMES[tournamentId] || TOURNAMENT_THEMES['cordoba']; // cordoba por defecto
 };
 
 // Función para verificar si debe usar estilos originales
-export const shouldUseOriginalStyles = (tournamentId) => {
-  const theme = getTournamentTheme(tournamentId);
+export const shouldUseOriginalStyles = (sessionId) => {
+  const theme = getTournamentTheme(sessionId);
   return theme.useOriginalStyles === true;
 };
 
 // Función para aplicar estilos dinámicos
-export const getThemeStyles = (tournamentId) => {
-  const theme = getTournamentTheme(tournamentId);
+export const getThemeStyles = (sessionId) => {
+  const theme = getTournamentTheme(sessionId);
+  
+  if (!theme.colors) return {};
   
   return {
     '--primary-color': theme.colors.primary,
