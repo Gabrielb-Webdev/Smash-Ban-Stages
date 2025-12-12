@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
-// Cache invalidation for Mendoza background - v1.0 - 2024-12-12T19:15:00
+// Cache invalidation for Mendoza background - v1.1 - 2024-12-12T19:20:00
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
@@ -12,6 +12,17 @@ export default function TabletControl({ sessionId }) {
   // Obtener tema del torneo
   const theme = getTournamentTheme(sessionId);
   const useOriginalStyles = shouldUseOriginalStyles(sessionId);
+  
+  // Debug para tablets
+  useEffect(() => {
+    console.log('🎨 TabletControl Theme Debug:', {
+      sessionId,
+      theme: theme?.name,
+      customBackground: theme?.customBackground,
+      useOriginalStyles,
+      viewport: { width: window.innerWidth, height: window.innerHeight }
+    });
+  }, [sessionId, theme, useOriginalStyles]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
@@ -114,15 +125,13 @@ export default function TabletControl({ sessionId }) {
       <div className="min-h-screen flex items-center justify-center"
            style={{
              background: theme.customBackground ? 
-               `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
+               `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
                useOriginalStyles ? 
-               'url(/images/paperbg.jpg)' : 
-               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-             backgroundBlendMode: 'normal',
-             backgroundSize: 'cover',
-             backgroundPosition: 'center',
-             backgroundRepeat: 'no-repeat',
-             fontFamily: 'Anton, sans-serif'
+               'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
+               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+             fontFamily: 'Anton, sans-serif',
+             minHeight: '100vh',
+             minHeight: '100dvh' // Para tablets modernos
            }}>
         <div className="text-center">
           <div className="animate-pulse text-6xl mb-4">🎮</div>
@@ -137,15 +146,13 @@ export default function TabletControl({ sessionId }) {
       <div className="min-h-screen flex items-center justify-center p-4"
            style={{
              background: theme.customBackground ? 
-               `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
+               `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
                useOriginalStyles ? 
-               'url(/images/paperbg.jpg)' : 
-               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-             backgroundBlendMode: 'normal',
-             backgroundSize: 'cover',
-             backgroundPosition: 'center',
-             backgroundRepeat: 'no-repeat',
-             fontFamily: 'Anton, sans-serif'
+               'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
+               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+             fontFamily: 'Anton, sans-serif',
+             minHeight: '100vh',
+             minHeight: '100dvh' // Para tablets modernos
            }}>
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">❌</div>
@@ -169,15 +176,13 @@ export default function TabletControl({ sessionId }) {
       <div className="min-h-screen flex items-center justify-center"
            style={{
              background: theme.customBackground ? 
-               `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
+               `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
                useOriginalStyles ? 
-               'url(/images/paperbg.jpg)' : 
-               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-             backgroundBlendMode: 'normal',
-             backgroundSize: 'cover',
-             backgroundPosition: 'center',
-             backgroundRepeat: 'no-repeat',
-             fontFamily: 'Anton, sans-serif'
+               'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
+               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+             fontFamily: 'Anton, sans-serif',
+             minHeight: '100vh',
+             minHeight: '100dvh' // Para tablets modernos
            }}>
         <div className="text-center">
           <div className="animate-pulse text-6xl mb-4">🎮</div>
@@ -260,20 +265,18 @@ export default function TabletControl({ sessionId }) {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+    <div className="min-h-screen flex items-center justify-center p-3 md:p-4 overflow-hidden"
          style={{
            background: theme.customBackground ? 
-             `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
+             `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
              useOriginalStyles ? 
-             'url(/images/paperbg.jpg)' : 
-             `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
-           backgroundBlendMode: 'normal',
-           backgroundSize: 'cover',
-           backgroundPosition: 'center',
-           backgroundRepeat: 'no-repeat',
-           fontFamily: 'Anton, sans-serif'
+             'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
+             `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+           fontFamily: 'Anton, sans-serif',
+           minHeight: '100vh',
+           minHeight: '100dvh' // Para tablets modernos
          }}>
-      <div className="w-full h-full max-w-7xl flex flex-col gap-2 sm:gap-3">
+      <div className="w-full h-full max-w-7xl flex flex-col gap-3 md:gap-4">
         {/* Header optimizado para móvil */}
         <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-white/20 flex-shrink-0">
           <div className="flex justify-between items-center gap-2">
