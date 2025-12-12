@@ -23,7 +23,7 @@ export const TOURNAMENT_THEMES = {
       buttonPrimary: 'bg-green-600 hover:bg-green-700',
       buttonSecondary: 'bg-emerald-600 hover:bg-emerald-700'
     },
-    customBackground: '/images/Team Anexo/FONDO tablet.png?v=0.2'
+    customBackground: '/images/Team_Anexo/FONDO_tablet.png?v=0.2'
   },
   'afk': {
     name: 'Smash AFK (Buenos Aires)',

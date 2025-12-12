@@ -26,7 +26,7 @@ export default function Home() {
     {
       id: 'mendoza',
       name: 'Smash Mendoza',
-      logo: '/images/Team Anexo/team_anexo_logo_nwe.png',
+      logo: '/images/Team_Anexo/team_anexo_logo_nwe.png',
       description: 'Panel de administración de Smash Mendoza',
       color: 'from-gray-900 via-slate-700 to-gray-800',
       borderColor: 'border-gray-400',
