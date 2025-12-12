@@ -2,6 +2,46 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 
+// Constantes para stages - Mendoza (Team Anexo)
+const MENDOZA_STAGES_GAME1 = ['battlefield', 'town-and-city', 'small-battlefield', 'pokemon-stadium-2', 'smashville'];
+const MENDOZA_STAGES_GAME2_PLUS = ['battlefield', 'town-and-city', 'small-battlefield', 'pokemon-stadium-2', 'smashville', 'final-destination', 'hollow-bastion', 'kalos'];
+
+// Constantes para stages - Córdoba (por defecto)
+const CORDOBA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
+const CORDOBA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
+
+// Función para detectar el torneo basado en sessionId
+function detectTournament(sessionId) {
+  if (!sessionId) return 'cordoba';
+  
+  let tournamentId = 'cordoba';
+  
+  if (sessionId.includes('-')) {
+    const parts = sessionId.split('-');
+    const lastPart = parts[parts.length - 1];
+    
+    if (lastPart && lastPart.includes('-')) {
+      tournamentId = lastPart.split('-')[0];
+    } else {
+      tournamentId = lastPart || 'cordoba';
+    }
+  }
+  
+  return tournamentId;
+}
+
+// Función para obtener stages según el torneo
+function getStagesForTournament(sessionId, currentGame) {
+  const tournament = detectTournament(sessionId);
+  
+  if (tournament === 'mendoza') {
+    return currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
+  }
+  
+  // Ruleset por defecto (Córdoba)
+  return currentGame === 1 ? CORDOBA_STAGES_GAME1 : CORDOBA_STAGES_GAME2_PLUS;
+}
+
 const httpServer = createServer((req, res) => {
   // Health check endpoint para Railway y otros servicios
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -181,20 +221,16 @@ io.on('connection', (socket) => {
       // El ganador RPS elige primero en Game 1, el ganador del game anterior en Games 2+
       session.currentTurn = session.currentGame === 1 ? winner : session.lastGameWinner || winner;
       
-      // Configurar stages disponibles según el game
+      // Configurar stages disponibles según el torneo y el game
+      const availableStages = getStagesForTournament(sessionId, session.currentGame);
+      session.availableStages = [...availableStages]; // Hacer copia para poder modificar después
+      
       if (session.currentGame === 1) {
-        // Game 1: 5 stages
-        session.availableStages = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
-        // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
+        // Game 1: Sistema 1-2 (Ganador banea 1, perdedor banea 2, ganador selecciona)
         session.totalBansNeeded = 3;
         session.bansRemaining = 1; // Ganador RPS banea 1 primero
       } else {
-        // Game 2+: 8 stages
-        session.availableStages = [
-          'small-battlefield', 'town-and-city', 'pokemon-stadium-2', 
-          'hollow-bastion', 'battlefield', 'final-destination', 
-          'kalos', 'smashville'
-        ];
+        // Game 2+: El ganador del game anterior banea 3
         
         // Aplicar DSR: Bloquear stages donde el ganador del game anterior ya ganó
         if (session.lastGameWinner) {
