@@ -866,130 +866,9 @@ export default function TabletControl({ sessionId }) {
                 </>
               ) : (
                 /* Layout dinámico para Córdoba y otros torneos */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                {getAvailableStages().slice(0, 3).map((stage) => (
-                  <button
-                    key={stage.id}
-                    onClick={() => handleSelectStage(stage.id)}
-                    className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                  >
-                    <div className="aspect-video relative">
-                      <img 
-                        src={stage.image} 
-                        alt={stage.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { 
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                        <span className="text-white text-xl">🎮</span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                        <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
-              {getAvailableStages().length === 4 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                  <div className="hidden sm:block"></div>
-                  {getAvailableStages().slice(3, 4).map((stage) => (
-                    <button
-                      key={stage.id}
-                      onClick={() => handleSelectStage(stage.id)}
-                      className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                    >
-                        <div className="aspect-video relative">
-                          <img 
-                            src={stage.image} 
-                            alt={stage.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { 
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                            <span className="text-white text-xl">🎮</span>
-                          </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                            <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
-                          </div>
-                        </div>
-                      </button>
-                  ))}
-                  <div className="hidden sm:block"></div>
-                </div>
-              )}
-              {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
-              {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
-                  <div className="hidden sm:block sm:col-span-1"></div>
-                  {/* Smashville */}
-                  <button
-                    onClick={() => {
-                      const smashvilleAvailable = getAvailableStages().some(s => s.id === 'smashville');
-                      if (smashvilleAvailable) handleSelectStage('smashville');
-                    }}
-                    className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                  >
-                    <div className="aspect-video relative">
-                      <img 
-                        src="/images/stages/Smashville.png" 
-                        alt="Smashville" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { 
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                        <span className="text-white text-xl">🎮</span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                        <p className="text-white font-bold text-[10px] sm:text-xs text-center">Smashville</p>
-                      </div>
-                    </div>
-                  </button>
-                  {/* Battlefield */}
-                  <button
-                    onClick={() => {
-                      const battlefieldAvailable = getAvailableStages().some(s => s.id === 'battlefield');
-                      if (battlefieldAvailable) handleSelectStage('battlefield');
-                    }}
-                    className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                  >
-                    <div className="aspect-video relative">
-                      <img 
-                        src="/images/stages/Battlefield.png" 
-                        alt="Battlefield" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { 
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                        <span className="text-white text-xl">🎮</span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                        <p className="text-white font-bold text-[10px] sm:text-xs text-center">Battlefield</p>
-                      </div>
-                    </div>
-                  </button>
-                  <div className="hidden sm:block sm:col-span-1"></div>
-                </div>
-              )}
-              {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
-              {getAvailableStages().length > 5 && (
                 <>
-                  {/* Segunda fila: stages 4, 5, 6 */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                    {getAvailableStages().slice(3, 6).map((stage) => (
+                    {getAvailableStages().slice(0, 3).map((stage) => (
                       <button
                         key={stage.id}
                         onClick={() => handleSelectStage(stage.id)}
@@ -1015,15 +894,16 @@ export default function TabletControl({ sessionId }) {
                       </button>
                     ))}
                   </div>
-                  {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
-                    <div className="hidden sm:block sm:col-span-1"></div>
-                    {getAvailableStages().slice(6, 8).map((stage) => (
-                      <button
-                        key={stage.id}
-                        onClick={() => handleSelectStage(stage.id)}
-                        className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                      >
+                  {/* Layouts dinámicos para diferentes casos */}
+                  {getAvailableStages().length === 4 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                      <div className="hidden sm:block"></div>
+                      {getAvailableStages().slice(3, 4).map((stage) => (
+                        <button
+                          key={stage.id}
+                          onClick={() => handleSelectStage(stage.id)}
+                          className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                        >
                           <div className="aspect-video relative">
                             <img 
                               src={stage.image} 
@@ -1042,9 +922,70 @@ export default function TabletControl({ sessionId }) {
                             </div>
                           </div>
                         </button>
-                    ))}
-                    <div className="hidden sm:block sm:col-span-1"></div>
-                  </div>
+                      ))}
+                      <div className="hidden sm:block"></div>
+                    </div>
+                  )}
+                  {getAvailableStages().length > 5 && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                        {getAvailableStages().slice(3, 6).map((stage) => (
+                          <button
+                            key={stage.id}
+                            onClick={() => handleSelectStage(stage.id)}
+                            className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                          >
+                            <div className="aspect-video relative">
+                              <img 
+                                src={stage.image} 
+                                alt={stage.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                                <span className="text-white text-xl">🎮</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                                <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                        <div className="hidden sm:block sm:col-span-1"></div>
+                        {getAvailableStages().slice(6, 8).map((stage) => (
+                          <button
+                            key={stage.id}
+                            onClick={() => handleSelectStage(stage.id)}
+                            className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                          >
+                            <div className="aspect-video relative">
+                              <img 
+                                src={stage.image} 
+                                alt={stage.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                                <span className="text-white text-xl">🎮</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                                <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                        <div className="hidden sm:block sm:col-span-1"></div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
