@@ -10,27 +10,27 @@ export default function Home() {
       name: 'Smash Córdoba',
       logo: '/images/SCC.webp',
       description: 'Panel de administración de Smash Córdoba',
-      color: 'from-blue-900 via-blue-700 to-blue-800',
-      borderColor: 'border-blue-500',
-      hoverColor: 'hover:border-blue-300'
+      color: 'from-pink-900 via-purple-700 to-pink-800',
+      borderColor: 'border-pink-400',
+      hoverColor: 'hover:border-pink-300'
     },
     {
       id: 'afk',
       name: 'Smash AFK',
       logo: '/images/AFK.webp',
       description: 'Panel de administración de Smash AFK (Buenos Aires)',
-      color: 'from-red-900 via-red-700 to-orange-800',
-      borderColor: 'border-yellow-500',
-      hoverColor: 'hover:border-yellow-300'
+      color: 'from-sky-900 via-cyan-700 to-blue-800',
+      borderColor: 'border-cyan-400',
+      hoverColor: 'hover:border-cyan-300'
     },
     {
       id: 'mendoza',
       name: 'Smash Mendoza',
       logo: '/images/Team Anexo/team_anexo_logo_nwe.png',
       description: 'Panel de administración de Smash Mendoza',
-      color: 'from-green-900 via-green-700 to-emerald-800',
-      borderColor: 'border-green-500',
-      hoverColor: 'hover:border-green-300'
+      color: 'from-gray-900 via-slate-700 to-gray-800',
+      borderColor: 'border-gray-400',
+      hoverColor: 'hover:border-gray-300'
     }
   ];
 
