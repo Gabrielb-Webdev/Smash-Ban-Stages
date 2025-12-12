@@ -574,178 +574,9 @@ export default function TabletControl({ sessionId }) {
                 </>
               ) : (
                 /* Layout dinámico para Córdoba y otros torneos */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                {getAvailableStages().slice(0, 3).map((stage) => {
-                  const isBanned = session.bannedStages.includes(stage.id);
-                  return (
-                    <button
-                      key={stage.id}
-                      onClick={() => !isBanned && handleBanStage(stage.id)}
-                      disabled={isBanned}
-                      className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
-                        isBanned
-                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
-                      }`}
-                    >
-                      <div className="aspect-video relative">
-                        <img 
-                          src={stage.image} 
-                          alt={stage.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { 
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                          <span className="text-white text-xl sm:text-2xl">🎮</span>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                          <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">{stage.name}</p>
-                        </div>
-                      </div>
-                      {isBanned && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Segunda fila: 1 stage centrado para Game 1 (4 stages restantes) */}
-              {getAvailableStages().length === 4 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                  <div className="hidden sm:block"></div>
-                  {getAvailableStages().slice(3, 4).map((stage) => {
-                    const isBanned = session.bannedStages.includes(stage.id);
-                    return (
-                      <button
-                        key={stage.id}
-                        onClick={() => !isBanned && handleBanStage(stage.id)}
-                        disabled={isBanned}
-                        className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
-                          isBanned
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                            : 'cursor-pointer border-white/20 active:scale-95'
-                        }`}
-                      >
-                          <div className="aspect-video relative">
-                            <img 
-                              src={stage.image} 
-                              alt={stage.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { 
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                              <span className="text-white text-xl">🎮</span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
-                            </div>
-                          </div>
-                          {isBanned && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                              <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
-                            </div>
-                          )}
-                        </button>
-                    );
-                  })}
-                  <div className="hidden sm:block"></div>
-                </div>
-              )}
-              {/* Segunda fila: 2 stages centrados para Game 1 (5 stages total) */}
-              {getAvailableStages().length === 5 && (
-                <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
-                  <div className="hidden sm:block sm:col-span-1"></div>
-                  {/* Smashville */}
-                  <button
-                    onClick={() => {
-                      const smashvilleStage = getAvailableStages().find(s => s.id === 'smashville');
-                      const isBanned = session.bannedStages.includes('smashville');
-                      if (smashvilleStage && !isBanned) handleBanStage('smashville');
-                    }}
-                    disabled={session.bannedStages.includes('smashville')}
-                    className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
-                      session.bannedStages.includes('smashville')
-                        ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                        : 'cursor-pointer border-white/20 active:scale-95'
-                    }`}
-                  >
-                    <div className="aspect-video relative">
-                      <img 
-                        src="/images/stages/Smashville.png" 
-                        alt="Smashville" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { 
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                        <span className="text-white text-xl">🎮</span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                        <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Smashville</p>
-                      </div>
-                    </div>
-                    {session.bannedStages.includes('smashville') && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                        <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
-                      </div>
-                    )}
-                  </button>
-                  {/* Battlefield */}
-                  <button
-                    onClick={() => {
-                      const battlefieldStage = getAvailableStages().find(s => s.id === 'battlefield');
-                      const isBanned = session.bannedStages.includes('battlefield');
-                      if (battlefieldStage && !isBanned) handleBanStage('battlefield');
-                    }}
-                    disabled={session.bannedStages.includes('battlefield')}
-                    className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
-                      session.bannedStages.includes('battlefield')
-                        ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                        : 'cursor-pointer border-white/20 active:scale-95'
-                    }`}
-                  >
-                    <div className="aspect-video relative">
-                      <img 
-                        src="/images/stages/Battlefield.png" 
-                        alt="Battlefield" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { 
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                        <span className="text-white text-xl">🎮</span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                        <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Battlefield</p>
-                      </div>
-                    </div>
-                    {session.bannedStages.includes('battlefield') && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                        <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
-                      </div>
-                    )}
-                  </button>
-                  <div className="hidden sm:block sm:col-span-1"></div>
-                </div>
-              )}
-              {/* Segunda y tercera fila: stages para Game 2+ (8 stages total) */}
-              {getAvailableStages().length > 5 && (
                 <>
-                  {/* Segunda fila: stages 4, 5, 6 */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                    {getAvailableStages().slice(3, 6).map((stage) => {
+                    {getAvailableStages().slice(0, 3).map((stage) => {
                       const isBanned = session.bannedStages.includes(stage.id);
                       return (
                         <button
@@ -755,7 +586,7 @@ export default function TabletControl({ sessionId }) {
                           className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                             isBanned
                               ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                              : 'cursor-pointer border-white/20 active:scale-95'
+                              : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                           }`}
                         >
                           <div className="aspect-video relative">
@@ -769,10 +600,10 @@ export default function TabletControl({ sessionId }) {
                               }}
                             />
                             <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
-                              <span className="text-white text-xl">🎮</span>
+                              <span className="text-white text-xl sm:text-2xl">🎮</span>
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
-                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                              <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">{stage.name}</p>
                             </div>
                           </div>
                           {isBanned && (
@@ -784,22 +615,23 @@ export default function TabletControl({ sessionId }) {
                       );
                     })}
                   </div>
-                  {/* Tercera fila: últimos 2 stages centrados (7 y 8) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
-                    <div className="hidden sm:block sm:col-span-1"></div>
-                    {getAvailableStages().slice(6).map((stage) => {
-                      const isBanned = session.bannedStages.includes(stage.id);
-                      return (
-                        <button
-                          key={stage.id}
-                          onClick={() => !isBanned && handleBanStage(stage.id)}
-                          disabled={isBanned}
-                          className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
-                            isBanned
-                              ? 'opacity-30 cursor-not-allowed border-red-500/50'
-                              : 'cursor-pointer border-white/20 active:scale-95'
-                          }`}
-                        >
+                  {/* Segunda fila: stages adicionales para layout dinámico */}
+                  {getAvailableStages().length === 4 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                      <div className="hidden sm:block"></div>
+                      {getAvailableStages().slice(3, 4).map((stage) => {
+                        const isBanned = session.bannedStages.includes(stage.id);
+                        return (
+                          <button
+                            key={stage.id}
+                            onClick={() => !isBanned && handleBanStage(stage.id)}
+                            disabled={isBanned}
+                            className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                              isBanned
+                                ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                : 'cursor-pointer border-white/20 active:scale-95'
+                            }`}
+                          >
                             <div className="aspect-video relative">
                               <img 
                                 src={stage.image} 
@@ -819,14 +651,102 @@ export default function TabletControl({ sessionId }) {
                             </div>
                             {isBanned && (
                               <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                                <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                                <span className="text-red-500 text-4xl font-bold drop-shadow-2xl">✖</span>
                               </div>
                             )}
                           </button>
-                      );
-                    })}
-                    <div className="hidden sm:block sm:col-span-1"></div>
-                  </div>
+                        );
+                      })}
+                      <div className="hidden sm:block"></div>
+                    </div>
+                  )}
+                  {/* Más layouts dinámicos para otros casos */}
+                  {getAvailableStages().length > 5 && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                        {getAvailableStages().slice(3, 6).map((stage) => {
+                          const isBanned = session.bannedStages.includes(stage.id);
+                          return (
+                            <button
+                              key={stage.id}
+                              onClick={() => !isBanned && handleBanStage(stage.id)}
+                              disabled={isBanned}
+                              className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                                isBanned
+                                  ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                  : 'cursor-pointer border-white/20 active:scale-95'
+                              }`}
+                            >
+                              <div className="aspect-video relative">
+                                <img 
+                                  src={stage.image} 
+                                  alt={stage.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { 
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                                <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                                  <span className="text-white text-xl">🎮</span>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                                  <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                                </div>
+                              </div>
+                              {isBanned && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                                  <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                        <div className="hidden sm:block sm:col-span-1"></div>
+                        {getAvailableStages().slice(6).map((stage) => {
+                          const isBanned = session.bannedStages.includes(stage.id);
+                          return (
+                            <button
+                              key={stage.id}
+                              onClick={() => !isBanned && handleBanStage(stage.id)}
+                              disabled={isBanned}
+                              className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
+                                isBanned
+                                  ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                  : 'cursor-pointer border-white/20 active:scale-95'
+                              }`}
+                            >
+                              <div className="aspect-video relative">
+                                <img 
+                                  src={stage.image} 
+                                  alt={stage.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { 
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                                <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
+                                  <span className="text-white text-xl">🎮</span>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                                  <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
+                                </div>
+                              </div>
+                              {isBanned && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                                  <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                        <div className="hidden sm:block sm:col-span-1"></div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
