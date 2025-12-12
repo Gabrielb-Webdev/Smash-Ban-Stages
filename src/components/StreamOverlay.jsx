@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, getStageData, getCharacterData } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,9 @@ export default function StreamOverlay({ sessionId }) {
   const theme = getTournamentTheme(sessionId);
   const useOriginalStyles = shouldUseOriginalStyles(sessionId);
   
+  // Ref para el video
+  const videoRef = useRef(null);
+  
   const [rpsWinner, setRpsWinner] = useState(null);
   const [showRpsAnimation, setShowRpsAnimation] = useState(false);
   const [bannedStage, setBannedStage] = useState(null);
@@ -22,6 +25,13 @@ export default function StreamOverlay({ sessionId }) {
   const [previousSelectedStage, setPreviousSelectedStage] = useState(null);
   const [showBanOnCard, setShowBanOnCard] = useState(false);
   const [showSelectOnCard, setShowSelectOnCard] = useState(false);
+
+  // Controlar velocidad del video de Team Anexo
+  useEffect(() => {
+    if (videoRef.current && theme.name === 'Team Anexo - Mendoza') {
+      videoRef.current.playbackRate = 0.5; // Reproducir a mitad de velocidad
+    }
+  }, [theme.name]);
 
   // Detectar cuando se define un ganador del RPS
   useEffect(() => {
@@ -238,6 +248,7 @@ export default function StreamOverlay({ sessionId }) {
         {/* Video de fondo específico para Mendoza/Team Anexo - Ocupa todo el footer */}
         {theme.name === 'Team Anexo - Mendoza' && (
           <video
+            ref={videoRef}
             autoPlay
             loop
             muted
@@ -249,7 +260,7 @@ export default function StreamOverlay({ sessionId }) {
               objectPosition: 'center bottom' // Muestra la parte inferior del video
             }}
           >
-            <source src="/images/Team_Anexo/barra_de_abajo.mp4?v=1.1" type="video/mp4" />
+            <source src="/images/Team_Anexo/barra_de_abajo.mp4?v=1.2" type="video/mp4" />
           </video>
         )}
         {/* Mostrar personajes SOLO cuando AMBOS hayan seleccionado - ENTRADA GIRANDO */}
