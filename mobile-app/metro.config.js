@@ -1,4 +1,4 @@
-# Metro configuration for React Native
+// Metro configuration for React Native
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);

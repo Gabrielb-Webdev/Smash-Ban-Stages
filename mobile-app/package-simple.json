@@ -1,7 +1,7 @@
 {
   "name": "afk-smash-mobile",
   "version": "1.0.0",
-  "main": "App.js",
+  "main": "AppSimple.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
