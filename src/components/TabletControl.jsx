@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { STAGES_GAME1, STAGES_GAME2_PLUS, CHARACTERS, getStageData, getCharacterData } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
-// Cache invalidation for Mendoza background - v0.9 - 2024-12-12T19:00:00
+// Cache invalidation for Mendoza background - v1.0 - 2024-12-12T19:15:00
 
 export default function TabletControl({ sessionId }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
@@ -113,14 +113,20 @@ export default function TabletControl({ sessionId }) {
     return (
       <div className="min-h-screen flex items-center justify-center"
            style={{
-             backgroundImage: 'url(/images/paperbg.jpg)',
+             background: theme.customBackground ? 
+               `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
+               useOriginalStyles ? 
+               'url(/images/paperbg.jpg)' : 
+               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
+             backgroundBlendMode: 'normal',
              backgroundSize: 'cover',
              backgroundPosition: 'center',
-             backgroundRepeat: 'no-repeat'
+             backgroundRepeat: 'no-repeat',
+             fontFamily: 'Anton, sans-serif'
            }}>
         <div className="text-center">
           <div className="animate-pulse text-6xl mb-4">🎮</div>
-          <p className="text-white text-xl">Inicializando...</p>
+          <p className="text-white text-xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Inicializando...</p>
         </div>
       </div>
     );
@@ -130,15 +136,21 @@ export default function TabletControl({ sessionId }) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4"
            style={{
-             backgroundImage: 'url(/images/paperbg.jpg)',
+             background: theme.customBackground ? 
+               `url(${theme.customBackground}) fixed rgb(26, 26, 26)` :
+               useOriginalStyles ? 
+               'url(/images/paperbg.jpg)' : 
+               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg)`,
+             backgroundBlendMode: 'normal',
              backgroundSize: 'cover',
              backgroundPosition: 'center',
-             backgroundRepeat: 'no-repeat'
+             backgroundRepeat: 'no-repeat',
+             fontFamily: 'Anton, sans-serif'
            }}>
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Sesión no encontrada</h2>
-          <p className="text-white/70 text-lg mb-6">
+          <h2 className="text-3xl font-bold text-white mb-4" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Sesión no encontrada</h2>
+          <p className="text-white/70 text-lg mb-6" style={{ textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
             Esta sesión no existe o ha expirado. Por favor, crea una nueva sesión desde el panel de administración.
           </p>
           <a
