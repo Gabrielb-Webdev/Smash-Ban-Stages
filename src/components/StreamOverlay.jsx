@@ -29,7 +29,7 @@ export default function StreamOverlay({ sessionId }) {
   // Controlar velocidad del video de Team Anexo
   useEffect(() => {
     if (videoRef.current && theme.name === 'Team Anexo - Mendoza') {
-      videoRef.current.playbackRate = 0.067; // Video de 8 segundos durará ~2 minutos
+      videoRef.current.playbackRate = 0.067; // Reproducir extremadamente lento (8 seg -> ~2 minutos)
     }
   }, [theme.name]);
 
