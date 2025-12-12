@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     }
 
     const user = userData.data.currentUser;
-    const avatar = user.images?.find((img: any) => img.type === 'profile')?.url;
+    const avatar = user.images?.find((img) => img.type === 'profile')?.url;
 
     res.status(200).json({
       access_token: tokenData.access_token,
