@@ -887,10 +887,7 @@ export default function TabletControl({ sessionId }) {
                   {/* Primera fila: 3 stages */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     <button 
-                      onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'small-battlefield');
-                        if (stage) handleSelectStage('small-battlefield');
-                      }}
+                      onClick={() => handleSelectStage('small-battlefield')}
                       className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                       <div className="aspect-video relative">
@@ -909,10 +906,7 @@ export default function TabletControl({ sessionId }) {
                       )}
                     </button>
                     <button 
-                      onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'town-and-city');
-                        if (stage) handleSelectStage('town-and-city');
-                      }}
+                      onClick={() => handleSelectStage('town-and-city')}
                       className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                       <div className="aspect-video relative">
@@ -931,10 +925,7 @@ export default function TabletControl({ sessionId }) {
                       )}
                     </button>
                     <button 
-                      onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'pokemon-stadium-2');
-                        if (stage) handleSelectStage('pokemon-stadium-2');
-                      }}
+                      onClick={() => handleSelectStage('pokemon-stadium-2')}
                       className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                       <div className="aspect-video relative">
@@ -958,10 +949,7 @@ export default function TabletControl({ sessionId }) {
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1"></div>
                     <button 
-                      onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'smashville');
-                        if (stage) handleSelectStage('smashville');
-                      }}
+                      onClick={() => handleSelectStage('smashville')}
                       className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                       <div className="aspect-video relative">
@@ -973,12 +961,14 @@ export default function TabletControl({ sessionId }) {
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center">Smashville</p>
                         </div>
                       </div>
+                      {session.bannedStages?.includes('smashville') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
                     </button>
                     <button 
-                      onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'battlefield');
-                        if (stage) handleSelectStage('battlefield');
-                      }}
+                      onClick={() => handleSelectStage('battlefield')}
                       className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                     >
                       <div className="aspect-video relative">
@@ -990,6 +980,11 @@ export default function TabletControl({ sessionId }) {
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center">Battlefield</p>
                         </div>
                       </div>
+                      {session.bannedStages?.includes('battlefield') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
                     </button>
                     <div className="hidden sm:block sm:col-span-1"></div>
                   </div>
