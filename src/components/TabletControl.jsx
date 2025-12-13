@@ -427,8 +427,7 @@ export default function TabletControl({ sessionId }) {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     <button 
                       onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'small-battlefield');
-                        if (stage && !session.bannedStages.includes('small-battlefield')) {
+                        if (!session.bannedStages.includes('small-battlefield')) {
                           handleBanStage('small-battlefield');
                         }
                       }}
@@ -456,8 +455,7 @@ export default function TabletControl({ sessionId }) {
                     </button>
                     <button 
                       onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'town-and-city');
-                        if (stage && !session.bannedStages.includes('town-and-city')) {
+                        if (!session.bannedStages.includes('town-and-city')) {
                           handleBanStage('town-and-city');
                         }
                       }}
@@ -485,8 +483,7 @@ export default function TabletControl({ sessionId }) {
                     </button>
                     <button 
                       onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'pokemon-stadium-2');
-                        if (stage && !session.bannedStages.includes('pokemon-stadium-2')) {
+                        if (!session.bannedStages.includes('pokemon-stadium-2')) {
                           handleBanStage('pokemon-stadium-2');
                         }
                       }}
@@ -519,8 +516,7 @@ export default function TabletControl({ sessionId }) {
                     <div className="hidden sm:block sm:col-span-1"></div>
                     <button 
                       onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'smashville');
-                        if (stage && !session.bannedStages.includes('smashville')) {
+                        if (!session.bannedStages.includes('smashville')) {
                           handleBanStage('smashville');
                         }
                       }}
@@ -548,8 +544,7 @@ export default function TabletControl({ sessionId }) {
                     </button>
                     <button 
                       onClick={() => {
-                        const stage = getAvailableStages().find(s => s.id === 'battlefield');
-                        if (stage && !session.bannedStages.includes('battlefield')) {
+                        if (!session.bannedStages.includes('battlefield')) {
                           handleBanStage('battlefield');
                         }
                       }}
