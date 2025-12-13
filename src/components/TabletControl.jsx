@@ -206,14 +206,14 @@ export default function TabletControl({ sessionId }) {
 
   const handleBanStage = (stageId) => {
     if (session.currentTurn) {
-      const stage = getAvailableStages().find(s => s.id === stageId);
+      const stage = getAllStagesForBanning().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: session.currentTurn });
     }
   };
 
   const handleSelectStage = (stageId) => {
     if (session.currentTurn) {
-      const stage = getAvailableStages().find(s => s.id === stageId);
+      const stage = getAllStagesForBanning().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage.name });
     }
   };
