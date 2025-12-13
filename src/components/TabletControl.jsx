@@ -429,7 +429,7 @@ export default function TabletControl({ sessionId }) {
                       disabled={session.bannedStages.includes('small-battlefield')}
                       className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                         session.bannedStages.includes('small-battlefield')
-                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          ? 'cursor-not-allowed border-white/20'
                           : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                       }`}
                     >
@@ -458,7 +458,7 @@ export default function TabletControl({ sessionId }) {
                       disabled={session.bannedStages.includes('town-and-city')}
                       className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                         session.bannedStages.includes('town-and-city')
-                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          ? 'cursor-not-allowed border-white/20'
                           : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                       }`}
                     >
@@ -487,7 +487,7 @@ export default function TabletControl({ sessionId }) {
                       disabled={session.bannedStages.includes('pokemon-stadium-2')}
                       className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                         session.bannedStages.includes('pokemon-stadium-2')
-                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          ? 'cursor-not-allowed border-white/20'
                           : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                       }`}
                     >
@@ -521,7 +521,7 @@ export default function TabletControl({ sessionId }) {
                       disabled={session.bannedStages.includes('smashville')}
                       className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                         session.bannedStages.includes('smashville')
-                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          ? 'cursor-not-allowed border-white/20'
                           : 'cursor-pointer border-white/20 active:scale-95'
                       }`}
                     >
@@ -550,7 +550,7 @@ export default function TabletControl({ sessionId }) {
                       disabled={session.bannedStages.includes('battlefield')}
                       className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                         session.bannedStages.includes('battlefield')
-                          ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                          ? 'cursor-not-allowed border-white/20'
                           : 'cursor-pointer border-white/20 active:scale-95'
                       }`}
                     >
@@ -589,7 +589,7 @@ export default function TabletControl({ sessionId }) {
                         disabled={session.bannedStages.includes('small-battlefield')}
                         className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           session.bannedStages.includes('small-battlefield')
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            ? 'cursor-not-allowed border-white/20'
                             : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                         }`}
                       >
@@ -618,7 +618,7 @@ export default function TabletControl({ sessionId }) {
                         disabled={session.bannedStages.includes('town-and-city')}
                         className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           session.bannedStages.includes('town-and-city')
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            ? 'cursor-not-allowed border-white/20'
                             : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                         }`}
                       >
@@ -647,7 +647,7 @@ export default function TabletControl({ sessionId }) {
                         disabled={session.bannedStages.includes('pokemon-stadium-2')}
                         className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           session.bannedStages.includes('pokemon-stadium-2')
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            ? 'cursor-not-allowed border-white/20'
                             : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                         }`}
                       >
@@ -680,7 +680,7 @@ export default function TabletControl({ sessionId }) {
                         disabled={session.bannedStages.includes('hollow-bastion')}
                         className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           session.bannedStages.includes('hollow-bastion')
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            ? 'cursor-not-allowed border-white/20'
                             : 'cursor-pointer border-white/20 active:scale-95'
                         }`}
                       >
@@ -708,7 +708,7 @@ export default function TabletControl({ sessionId }) {
                         disabled={session.bannedStages.includes('battlefield')}
                         className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                           session.bannedStages.includes('battlefield')
-                            ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                            ? 'cursor-not-allowed border-white/20'
                             : 'cursor-pointer border-white/20 active:scale-95'
                         }`}
                       >
@@ -743,7 +743,7 @@ export default function TabletControl({ sessionId }) {
                             disabled={isBanned}
                             className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                               isBanned
-                                ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                ? 'cursor-not-allowed border-white/20'
                                 : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
                             }`}
                           >
@@ -783,7 +783,7 @@ export default function TabletControl({ sessionId }) {
                             disabled={isBanned}
                             className={`relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                               isBanned
-                                ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                ? 'cursor-not-allowed border-white/20'
                                 : 'cursor-pointer border-white/20 active:scale-95'
                             }`}
                           >
@@ -824,7 +824,7 @@ export default function TabletControl({ sessionId }) {
                             disabled={isBanned}
                             className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
                               isBanned
-                                ? 'opacity-30 cursor-not-allowed border-red-500/50'
+                                ? 'cursor-not-allowed border-white/20'
                                 : 'cursor-pointer border-white/20 active:scale-95'
                             }`}
                           >
