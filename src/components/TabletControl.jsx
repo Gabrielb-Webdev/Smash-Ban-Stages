@@ -438,7 +438,7 @@ export default function TabletControl({ sessionId }) {
                         <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                           <span className="text-white text-xl sm:text-2xl">🎮</span>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Small Battlefield</p>
                         </div>
                       </div>
@@ -467,7 +467,7 @@ export default function TabletControl({ sessionId }) {
                         <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                           <span className="text-white text-xl sm:text-2xl">🎮</span>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Town and City</p>
                         </div>
                       </div>
@@ -496,7 +496,7 @@ export default function TabletControl({ sessionId }) {
                         <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                           <span className="text-white text-xl sm:text-2xl">🎮</span>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Pokémon Stadium 2</p>
                         </div>
                       </div>
@@ -530,7 +530,7 @@ export default function TabletControl({ sessionId }) {
                         <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                           <span className="text-white text-xl">🎮</span>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Smashville</p>
                         </div>
                       </div>
@@ -559,7 +559,7 @@ export default function TabletControl({ sessionId }) {
                         <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                           <span className="text-white text-xl">🎮</span>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Battlefield</p>
                         </div>
                       </div>
@@ -598,7 +598,7 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                             <span className="text-white text-xl sm:text-2xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Small Battlefield</p>
                           </div>
                         </div>
@@ -627,7 +627,7 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                             <span className="text-white text-xl sm:text-2xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Town and City</p>
                           </div>
                         </div>
@@ -656,7 +656,7 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                             <span className="text-white text-xl sm:text-2xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">Pokémon Stadium 2</p>
                           </div>
                         </div>
@@ -689,7 +689,7 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Hollow Bastion</p>
                           </div>
                         </div>
@@ -717,7 +717,7 @@ export default function TabletControl({ sessionId }) {
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Battlefield</p>
                           </div>
                         </div>
@@ -760,7 +760,7 @@ export default function TabletControl({ sessionId }) {
                               <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                                 <span className="text-white text-xl sm:text-2xl">🎮</span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                                 <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg leading-tight">{stage.name}</p>
                               </div>
                             </div>
@@ -800,7 +800,7 @@ export default function TabletControl({ sessionId }) {
                               <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                                 <span className="text-white text-xl">🎮</span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                                 <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                               </div>
                             </div>
@@ -841,7 +841,7 @@ export default function TabletControl({ sessionId }) {
                               <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                                 <span className="text-white text-xl">🎮</span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-1 sm:p-1.5">
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
                                 <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">{stage.name}</p>
                               </div>
                             </div>
