@@ -266,6 +266,12 @@ export default function TabletControl({ sessionId }) {
     return filtered;
   };
 
+  // Obtener todos los stages sin filtrar por baneados (para la fase de baneo)
+  const getAllStagesForBanning = () => {
+    const stageList = getStagesForTournament(sessionId, session.currentGame);
+    return stageList;
+  };
+
   const filteredCharacters = CHARACTERS.filter(char =>
     char.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -734,7 +740,7 @@ export default function TabletControl({ sessionId }) {
                   /* Games 2+ para Córdoba - Layout dinámico de 8 stages */
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                      {getAvailableStages().slice(0, 3).map((stage) => {
+                      {getAllStagesForBanning().slice(0, 3).map((stage) => {
                         const isBanned = session.bannedStages.includes(stage.id);
                         return (
                           <button
@@ -774,7 +780,7 @@ export default function TabletControl({ sessionId }) {
                       })}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                      {getAvailableStages().slice(3, 6).map((stage) => {
+                      {getAllStagesForBanning().slice(3, 6).map((stage) => {
                         const isBanned = session.bannedStages.includes(stage.id);
                         return (
                           <button
@@ -815,7 +821,7 @@ export default function TabletControl({ sessionId }) {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                       <div className="hidden sm:block sm:col-span-1"></div>
-                      {getAvailableStages().slice(6, 8).map((stage) => {
+                      {getAllStagesForBanning().slice(6, 8).map((stage) => {
                         const isBanned = session.bannedStages.includes(stage.id);
                         return (
                           <button
