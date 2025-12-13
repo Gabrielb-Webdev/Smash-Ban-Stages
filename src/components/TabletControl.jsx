@@ -896,6 +896,11 @@ export default function TabletControl({ sessionId }) {
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center">Small Battlefield</p>
                         </div>
                       </div>
+                      {session.bannedStages?.includes('small-battlefield') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
                     </button>
                     <button 
                       onClick={() => {
@@ -913,6 +918,11 @@ export default function TabletControl({ sessionId }) {
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center">Town and City</p>
                         </div>
                       </div>
+                      {session.bannedStages?.includes('town-and-city') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
                     </button>
                     <button 
                       onClick={() => {
@@ -930,6 +940,11 @@ export default function TabletControl({ sessionId }) {
                           <p className="text-white font-bold text-[10px] sm:text-xs text-center">Pokémon Stadium 2</p>
                         </div>
                       </div>
+                      {session.bannedStages?.includes('pokemon-stadium-2') && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                          <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                        </div>
+                      )}
                     </button>
                   </div>
                   
@@ -996,6 +1011,11 @@ export default function TabletControl({ sessionId }) {
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center">Small Battlefield</p>
                           </div>
                         </div>
+                        {session.bannedStages?.includes('small-battlefield') && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                            <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                          </div>
+                        )}
                       </button>
                       <button 
                         onClick={() => {
@@ -1013,6 +1033,11 @@ export default function TabletControl({ sessionId }) {
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center">Town and City</p>
                           </div>
                         </div>
+                        {session.bannedStages?.includes('town-and-city') && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                            <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                          </div>
+                        )}
                       </button>
                       <button 
                         onClick={() => {
@@ -1030,6 +1055,11 @@ export default function TabletControl({ sessionId }) {
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center">Pokémon Stadium 2</p>
                           </div>
                         </div>
+                        {session.bannedStages?.includes('pokemon-stadium-2') && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                            <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                          </div>
+                        )}
                       </button>
                     </div>
                     
@@ -1051,6 +1081,11 @@ export default function TabletControl({ sessionId }) {
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center">Hollow Bastion</p>
                           </div>
                         </div>
+                        {session.bannedStages?.includes('hollow-bastion') && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                            <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                          </div>
+                        )}
                       </button>
                       <button 
                         onClick={() => {
@@ -1067,6 +1102,11 @@ export default function TabletControl({ sessionId }) {
                             <p className="text-white font-bold text-[10px] sm:text-xs text-center">Battlefield</p>
                           </div>
                         </div>
+                        {session.bannedStages?.includes('battlefield') && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                            <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                          </div>
+                        )}
                       </button>
                       <div className="hidden sm:block sm:col-span-1"></div>
                     </div>
@@ -1075,86 +1115,110 @@ export default function TabletControl({ sessionId }) {
                   /* Games 2+ para Córdoba - Layout dinámico de 8 stages */
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                      {getAvailableStages().slice(0, 3).map((stage) => (
-                        <button
-                          key={stage.id}
-                          onClick={() => handleSelectStage(stage.id)}
-                          className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                        >
-                          <div className="aspect-video relative">
-                            <img 
-                              src={stage.image} 
-                              alt={stage.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { 
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                              <span className="text-white text-xl">🎮</span>
+                      {getAvailableStages().slice(0, 3).map((stage) => {
+                        const isBanned = session.bannedStages?.includes(stage.id);
+                        return (
+                          <button
+                            key={stage.id}
+                            onClick={() => handleSelectStage(stage.id)}
+                            className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                          >
+                            <div className="aspect-video relative">
+                              <img 
+                                src={stage.image} 
+                                alt={stage.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                                <span className="text-white text-xl">🎮</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                                <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
+                              </div>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                              <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                            {isBanned && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                                <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                      {getAvailableStages().slice(3, 6).map((stage) => (
-                        <button
-                          key={stage.id}
-                          onClick={() => handleSelectStage(stage.id)}
-                          className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                        >
-                          <div className="aspect-video relative">
-                            <img 
-                              src={stage.image} 
-                              alt={stage.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { 
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                              <span className="text-white text-xl">🎮</span>
+                      {getAvailableStages().slice(3, 6).map((stage) => {
+                        const isBanned = session.bannedStages?.includes(stage.id);
+                        return (
+                          <button
+                            key={stage.id}
+                            onClick={() => handleSelectStage(stage.id)}
+                            className="relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                          >
+                            <div className="aspect-video relative">
+                              <img 
+                                src={stage.image} 
+                                alt={stage.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                                <span className="text-white text-xl">🎮</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                                <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
+                              </div>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                              <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                            {isBanned && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                                <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                       <div className="hidden sm:block sm:col-span-1"></div>
-                      {getAvailableStages().slice(6, 8).map((stage) => (
-                        <button
-                          key={stage.id}
-                          onClick={() => handleSelectStage(stage.id)}
-                          className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
-                        >
-                          <div className="aspect-video relative">
-                            <img 
-                              src={stage.image} 
-                              alt={stage.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { 
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
-                              <span className="text-white text-xl">🎮</span>
+                      {getAvailableStages().slice(6, 8).map((stage) => {
+                        const isBanned = session.bannedStages?.includes(stage.id);
+                        return (
+                          <button
+                            key={stage.id}
+                            onClick={() => handleSelectStage(stage.id)}
+                            className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
+                          >
+                            <div className="aspect-video relative">
+                              <img 
+                                src={stage.image} 
+                                alt={stage.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
+                                <span className="text-white text-xl">🎮</span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
+                                <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
+                              </div>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                              <p className="text-white font-bold text-[10px] sm:text-xs text-center">{stage.name}</p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                            {isBanned && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                                <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                       <div className="hidden sm:block sm:col-span-1"></div>
                     </div>
                   </>
