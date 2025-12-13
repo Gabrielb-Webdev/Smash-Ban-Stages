@@ -1809,6 +1809,21 @@ export default function TabletControl({ sessionId }) {
           </div>
         )}
       </div>
+
+      {/* Powered By Logo - Solo para Mendoza */}
+      {isMendoza() && (
+        <div className="mt-2 flex items-center justify-center gap-2 opacity-80">
+          <span className="text-white/70 text-xs sm:text-sm font-semibold tracking-wide">
+            POWERED BY:
+          </span>
+          <img 
+            src="/images/Logo_GSH.png" 
+            alt="GSH Logo" 
+            className="h-6 sm:h-8 object-contain filter drop-shadow-lg"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        </div>
+      )}
     </div>
   );
 }
