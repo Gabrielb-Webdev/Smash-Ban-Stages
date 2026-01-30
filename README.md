@@ -4,15 +4,19 @@ Un sistema web completo para gestionar el proceso de baneos de stages y selecci�
 
 ## 📚 Documentación
 
-### 🚨 Migración desde Railway (IMPORTANTE)
-- **[🚀 SOLUCION_RAILWAY.md](SOLUCION_RAILWAY.md)** ⭐ **EMPIEZA AQUÍ** - Guía rápida (10 min)
-- **[📖 MIGRACION_RENDER.md](MIGRACION_RENDER.md)** - Migración a Render.com (recomendado)
-- **[✈️ MIGRACION_FLY.md](MIGRACION_FLY.md)** - Migración a Fly.io (mejor rendimiento)
-- **[📝 MIGRACION_RESUMEN.md](MIGRACION_RESUMEN.md)** - Resumen completo de la migración
+### 🚨 Migración desde Railway (LEE ESTO PRIMERO)
+Tu servicio de Railway expiró. Elige una opción para migrar:
 
-### 📖 Guías generales
+- **[⚡ QUICKSTART_MIGRACION.md](QUICKSTART_MIGRACION.md)** ⭐ **EMPIEZA AQUÍ** - Paso a paso en 10 minutos
+- **[🚀 SOLUCION_RAILWAY.md](SOLUCION_RAILWAY.md)** - Comparación de opciones
+- **[📖 MIGRACION_RENDER.md](MIGRACION_RENDER.md)** - Render.com (más fácil)
+- **[✈️ MIGRACION_FLY.md](MIGRACION_FLY.md)** - Fly.io (mejor rendimiento, Chile)
+- **[📝 MIGRACION_RESUMEN.md](MIGRACION_RESUMEN.md)** - Resumen completo
+
+### 📖 Guías de uso
 - **[🔧 TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Solución de problemas comunes
 - **[⚡ COMANDOS_UTILES.md](COMANDOS_UTILES.md)** - Referencia rápida de comandos
+- **[🏗️ ARQUITECTURA.md](ARQUITECTURA.md)** - Cómo funciona el sistema
 
 ## 🎮 Características
 
