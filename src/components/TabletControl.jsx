@@ -39,6 +39,8 @@ export default function TabletControl({ sessionId }) {
   const [previousCharacters, setPreviousCharacters] = useState({ player1: null, player2: null });
   const [hasAskedRepeat, setHasAskedRepeat] = useState({ player1: false, player2: false });
   const [lastGameSaved, setLastGameSaved] = useState(0);
+  const [cooldown, setCooldown] = useState(0);
+  const [isActionBlocked, setIsActionBlocked] = useState(false);
 
   // Guardar personajes cuando ambos han seleccionado (se ejecuta al terminar CHARACTER_SELECT)
   useEffect(() => {
@@ -223,17 +225,39 @@ export default function TabletControl({ sessionId }) {
     setPendingAction({ type: 'rps', winner, playerName });
   };
 
+  const startCooldown = () => {
+    setIsActionBlocked(true);
+    setCooldown(2);
+    
+    const interval = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsActionBlocked(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   const handleBanStage = (stageId) => {
+    if (isActionBlocked) return;
+    
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: session.currentTurn });
+      startCooldown();
     }
   };
 
   const handleSelectStage = (stageId) => {
+    if (isActionBlocked) return;
+    
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage.name });
+      startCooldown();
     }
   };
 
@@ -313,6 +337,18 @@ export default function TabletControl({ sessionId }) {
         {/* Header optimizado para móvil */}
         <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-white/20 flex-shrink-0">
           <div className="flex justify-between items-center gap-2">
+            {/* Logo AFK (solo para AFK) */}
+            {isAfk && (
+              <div className="flex-shrink-0">
+                <img 
+                  src="/images/AFK.webp" 
+                  alt="AFK" 
+                  className="h-12 w-12 sm:h-16 sm:w-16 object-contain"
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))' }}
+                />
+              </div>
+            )}
+            
             {/* Jugadores */}
             <div className="flex items-center gap-2 flex-1">
               <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
@@ -437,6 +473,21 @@ export default function TabletControl({ sessionId }) {
         {/* Stage Ban Phase - Optimizado para móvil */}
         {session.phase === 'STAGE_BAN' && (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
+            {/* Cooldown Overlay */}
+            {cooldown > 0 && (
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
+                <div className="text-center">
+                  <div className="text-8xl sm:text-9xl font-black text-white animate-pulse mb-4" 
+                       style={{ textShadow: '0 0 40px rgba(255, 255, 255, 0.8)' }}>
+                    {cooldown}
+                  </div>
+                  <p className="text-xl sm:text-2xl text-white font-bold">
+                    Espera antes de la siguiente acción...
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="text-center mb-2 sm:mb-3 flex-shrink-0">
               <h3 className="text-lg sm:text-xl font-bold text-white mb-1"
                   style={{ textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
@@ -1016,6 +1067,21 @@ export default function TabletControl({ sessionId }) {
         {/* Stage Select Phase */}
         {session.phase === 'STAGE_SELECT' && (
           <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
+            {/* Cooldown Overlay */}
+            {cooldown > 0 && (
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
+                <div className="text-center">
+                  <div className="text-8xl sm:text-9xl font-black text-white animate-pulse mb-4" 
+                       style={{ textShadow: '0 0 40px rgba(255, 255, 255, 0.8)' }}>
+                    {cooldown}
+                  </div>
+                  <p className="text-xl sm:text-2xl text-white font-bold">
+                    Espera antes de la siguiente acción...
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="text-center mb-1.5 sm:mb-2 flex-shrink-0">
               <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">
                 🎯 Seleccionar Stage
