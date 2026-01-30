@@ -257,10 +257,9 @@ export default function StreamOverlay({ sessionId }) {
               src="/images/AFK.webp" 
               alt="AFK Background" 
               style={{ 
-                height: '120px',
-                width: 'auto',
-                opacity: 0.15,
-                filter: 'brightness(0.8)'
+                width: '125px',
+                height: 'auto',
+                opacity: 0.75
               }}
             />
           </div>
