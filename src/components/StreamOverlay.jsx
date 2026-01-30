@@ -252,16 +252,15 @@ export default function StreamOverlay({ sessionId }) {
       >
         {/* Logo AFK de fondo en el footer - Solo para AFK */}
         {isAfk && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 0 }}>
             <img 
               src="/images/AFK.webp" 
               alt="AFK Background" 
-              className="opacity-30"
               style={{ 
-                width: '50%',
-                maxWidth: '400px',
+                width: '280px',
                 height: 'auto',
-                filter: 'drop-shadow(0 0 30px rgba(255, 255, 255, 0.3))'
+                opacity: 0.15,
+                filter: 'brightness(0.8)'
               }}
             />
           </div>
