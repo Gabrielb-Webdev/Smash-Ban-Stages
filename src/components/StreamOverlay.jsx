@@ -226,23 +226,6 @@ export default function StreamOverlay({ sessionId }) {
 
   return (
     <div className="min-h-screen bg-transparent relative">
-      {/* Logo AFK de fondo centrado - Solo para AFK */}
-      {isAfk && (
-        <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
-          <img 
-            src="/images/AFK.webp" 
-            alt="AFK Background" 
-            className="opacity-20"
-            style={{ 
-              width: '40%',
-              maxWidth: '600px',
-              height: 'auto',
-              filter: 'drop-shadow(0 0 50px rgba(255, 255, 255, 0.2))'
-            }}
-          />
-        </div>
-      )}
-      
       {/* Footer con imagen personalizada de fondo y personajes */}
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
@@ -267,6 +250,23 @@ export default function StreamOverlay({ sessionId }) {
             `0 -4px 20px ${theme.colors.primary}40`,
         }}
       >
+        {/* Logo AFK de fondo en el footer - Solo para AFK */}
+        {isAfk && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
+            <img 
+              src="/images/AFK.webp" 
+              alt="AFK Background" 
+              className="opacity-30"
+              style={{ 
+                width: '50%',
+                maxWidth: '400px',
+                height: 'auto',
+                filter: 'drop-shadow(0 0 30px rgba(255, 255, 255, 0.3))'
+              }}
+            />
+          </div>
+        )}
+        
         {/* Video de fondo específico para Mendoza/Team Anexo - Ocupa todo el footer */}
         {theme.name === 'Team Anexo - Mendoza' && (
           <video
