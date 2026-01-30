@@ -225,17 +225,16 @@ export default function StreamOverlay({ sessionId }) {
   const winnerIsPlayer1 = rpsWinner === 'player1';
 
   return (
-    <div className="min-h-screen relative"
-         style={{
-           background: isAfk ? '#000000' : 'transparent'
-         }}>
+    <div className="min-h-screen bg-transparent relative">
       {/* Footer con imagen personalizada de fondo y personajes */}
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
           height: '150px',
-          // Para Mendoza, solo usar el video sin fondo adicional
-          ...(theme.name === 'Team Anexo - Mendoza' ? {
+          // Para AFK usar fondo negro, para Mendoza solo video, para otros el fondo con imagen
+          ...(isAfk ? {
+            background: '#000000'
+          } : theme.name === 'Team Anexo - Mendoza' ? {
             background: 'transparent'
           } : {
             backgroundImage: useOriginalStyles ? 

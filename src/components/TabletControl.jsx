@@ -227,7 +227,7 @@ export default function TabletControl({ sessionId }) {
 
   const startCooldown = () => {
     setIsActionBlocked(true);
-    setCooldown(5);
+    setCooldown(3);
     
     const interval = setInterval(() => {
       setCooldown(prev => {
