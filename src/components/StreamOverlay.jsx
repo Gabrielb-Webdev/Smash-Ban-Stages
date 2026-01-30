@@ -12,6 +12,9 @@ export default function StreamOverlay({ sessionId }) {
   const theme = getTournamentTheme(sessionId);
   const useOriginalStyles = shouldUseOriginalStyles(sessionId);
   
+  // Verificar si es AFK (fondo negro)
+  const isAfk = sessionId === 'afk' || sessionId?.includes('afk');
+  
   // Ref para el video
   const videoRef = useRef(null);
   
@@ -222,7 +225,10 @@ export default function StreamOverlay({ sessionId }) {
   const winnerIsPlayer1 = rpsWinner === 'player1';
 
   return (
-    <div className="min-h-screen bg-transparent relative">
+    <div className="min-h-screen relative"
+         style={{
+           background: isAfk ? '#000000' : 'transparent'
+         }}>
       {/* Footer con imagen personalizada de fondo y personajes */}
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"

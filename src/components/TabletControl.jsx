@@ -227,7 +227,7 @@ export default function TabletControl({ sessionId }) {
 
   const startCooldown = () => {
     setIsActionBlocked(true);
-    setCooldown(2);
+    setCooldown(5);
     
     const interval = setInterval(() => {
       setCooldown(prev => {
@@ -257,7 +257,7 @@ export default function TabletControl({ sessionId }) {
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage.name });
-      startCooldown();
+      // No activar cooldown después de seleccionar stage
     }
   };
 
