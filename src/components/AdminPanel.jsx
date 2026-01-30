@@ -349,13 +349,37 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
 
   const handleSaveNames = () => {
     if (editPlayer1 && editPlayer2 && adminSocket && currentSession) {
-      adminSocket.emit('update-players', { 
-        sessionId: selectedTournament,
-        player1: editPlayer1, 
-        player2: editPlayer2,
-        format: editFormat
-      });
-      setIsEditing(false);
+      // Verificar si hubo cambios
+      const namesChanged = editPlayer1 !== currentSession.player1.name || 
+                          editPlayer2 !== currentSession.player2.name;
+      const formatChanged = editFormat !== currentSession.format;
+      
+      if (namesChanged || formatChanged) {
+        const confirmMessage = 'Has cambiado ' + 
+          (namesChanged && formatChanged ? 'los nombres y el formato' : 
+           namesChanged ? 'los nombres' : 'el formato') + 
+          '. Esto reiniciará la partida. ¿Continuar?';
+        
+        if (window.confirm(confirmMessage)) {
+          // Actualizar nombres/formato
+          adminSocket.emit('update-players', { 
+            sessionId: selectedTournament,
+            player1: editPlayer1, 
+            player2: editPlayer2,
+            format: editFormat
+          });
+          
+          // Reiniciar la sesión
+          setTimeout(() => {
+            adminSocket.emit('reset-session', { sessionId: currentSession.sessionId });
+          }, 300);
+          
+          setIsEditing(false);
+        }
+      } else {
+        // No hubo cambios, solo cerrar edición
+        setIsEditing(false);
+      }
     } else {
       alert('Por favor ingresa ambos nombres');
     }

@@ -13,6 +13,9 @@ export default function TabletControl({ sessionId }) {
   const theme = getTournamentTheme(sessionId);
   const useOriginalStyles = shouldUseOriginalStyles(sessionId);
   
+  // Verificar si es AFK (fondo negro)
+  const isAfk = sessionId === 'afk' || sessionId?.includes('afk');
+  
   // Función para detectar si es Mendoza
   const isMendoza = () => {
     if (!sessionId) return false;
@@ -279,11 +282,13 @@ export default function TabletControl({ sessionId }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-3 md:p-4 overflow-hidden"
          style={{
-           background: theme.customBackground ? 
-             `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
-             useOriginalStyles ? 
-             'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
-             `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+           background: isAfk ? 
+             '#000000' : // Fondo negro puro para AFK
+             theme.customBackground ? 
+               `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
+               useOriginalStyles ? 
+               'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
+               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
            fontFamily: 'Anton, sans-serif',
            minHeight: '100vh',
            minHeight: '100dvh' // Para tablets modernos
