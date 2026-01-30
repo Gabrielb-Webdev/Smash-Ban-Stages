@@ -2,35 +2,116 @@
 
 Un sistema web completo para gestionar el proceso de baneos de stages y selección de personajes en torneos de Super Smash Bros Ultimate, tanto presenciales como online.
 
+## 📚 Documentación
+
+### 🚨 Migración desde Railway (IMPORTANTE)
+- **[🚀 SOLUCION_RAILWAY.md](SOLUCION_RAILWAY.md)** ⭐ **EMPIEZA AQUÍ** - Guía rápida (10 min)
+- **[📖 MIGRACION_RENDER.md](MIGRACION_RENDER.md)** - Migración a Render.com (recomendado)
+- **[✈️ MIGRACION_FLY.md](MIGRACION_FLY.md)** - Migración a Fly.io (mejor rendimiento)
+- **[📝 MIGRACION_RESUMEN.md](MIGRACION_RESUMEN.md)** - Resumen completo de la migración
+
+### 📖 Guías generales
+- **[🔧 TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Solución de problemas comunes
+- **[⚡ COMANDOS_UTILES.md](COMANDOS_UTILES.md)** - Referencia rápida de comandos
+
 ## 🎮 Características
 
-- **Sincronización en Tiempo Real**: Todas las pantallas se actualizan instantáneamente sin necesidad de refrescar
+- **Sincronización en Tiempo Real**: Todas las pantallas se actualizan instantáneamente vía WebSocket
 - **Sistema de Baneos Completo**: Implementa el sistema 1-2-1 para Game 1 y 3-ban para Games subsecuentes
 - **DSR (Dave's Stupid Rule)**: Previene que un jugador vuelva a elegir un stage donde ya ganó
 - **Soporte BO3 y BO5**: Compatible con ambos formatos de torneo
 - **Animaciones para Stream**: Efectos visuales atractivos para transmisiones
 - **Responsive Design**: Funciona en PC, tablets y móviles
+- **Multi-comunidad**: Soporte para diferentes rulesets (Mendoza, Córdoba, etc.)
 
-## 📦 Instalación
+## ⚠️ IMPORTANTE: Migración desde Railway
 
-1. **Instalar dependencias:**
+Si vienes desde Railway y el servicio dejó de funcionar, **lee esto primero:**
+
+👉 **[SOLUCION_RAILWAY.md](SOLUCION_RAILWAY.md)** - Guía rápida de migración (10 minutos)
+
+Tu servicio de Railway expiró. Tienes dos opciones gratuitas:
+1. **Render.com** - Más fácil (web UI)
+2. **Fly.io** - Mejor rendimiento (CLI)
+
+## 📦 Instalación Local
+
+### Requisitos
+- Node.js 18+ (https://nodejs.org)
+- npm o yarn
+
+### Pasos
+
+1. **Clonar el repositorio:**
+```bash
+git clone https://github.com/tu-usuario/smash-ban-stages.git
+cd smash-ban-stages
+```
+
+2. **Instalar dependencias:**
 ```bash
 npm install
 ```
 
-2. **Iniciar el servidor WebSocket:**
+3. **Configurar variables de entorno:**
+```bash
+# Copiar el archivo de ejemplo
+cp .env.example .env
+
+# Editar .env y configurar:
+# NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+```
+
+4. **Iniciar el servidor WebSocket:**
 ```bash
 npm run server
 ```
 
 El servidor se ejecutará en `http://localhost:3001`
 
-3. **Iniciar la aplicación Next.js (en otra terminal):**
+5. **Iniciar la aplicación Next.js (en otra terminal):**
 ```bash
 npm run dev
 ```
 
 La aplicación se ejecutará en `http://localhost:3000`
+
+### Scripts útiles
+
+```bash
+# Probar que el servidor WebSocket funciona
+.\test-server.ps1
+
+# Verificar estado del servidor
+.\check-server.ps1
+
+# Verificar servidor remoto
+.\check-server.ps1 -Url "https://tu-servidor.onrender.com"
+```
+
+## 🚀 Despliegue en Producción
+
+### Frontend (Vercel) - YA DESPLEGADO
+Tu frontend ya está en Vercel. Solo necesitas actualizar la variable de entorno:
+
+1. Ve a https://vercel.com → Tu proyecto → Settings → Environment Variables
+2. Actualiza `NEXT_PUBLIC_SOCKET_URL` con la URL de tu servidor WebSocket
+3. Redeploy
+
+### Backend WebSocket (Elige una opción)
+
+#### Opción 1: Render.com (Recomendado - Más fácil)
+- 📖 Ver guía completa: **[MIGRACION_RENDER.md](MIGRACION_RENDER.md)**
+- ⏱️ Tiempo: 10 minutos
+- 💰 Gratis: 750 horas/mes
+- 🖱️ Interfaz web (sin CLI)
+
+#### Opción 2: Fly.io (Mejor rendimiento)
+- 📖 Ver guía completa: **[MIGRACION_FLY.md](MIGRACION_FLY.md)**
+- ⏱️ Tiempo: 15 minutos
+- 💰 Gratis: Ilimitado (con límites de recursos)
+- 🔧 Requiere CLI
+- ⚡ Baja latencia desde Argentina/Chile
 
 ## 🚀 Uso
 

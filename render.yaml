@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: smash-websocket-server
+    env: node
+    buildCommand: npm install
+    startCommand: node server/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+    autoDeploy: true

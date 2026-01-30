@@ -24,10 +24,10 @@ export const useWebSocket = (sessionId) => {
 
     const connectSocket = async () => {
       // Conectar al servidor WebSocket
-      // Siempre usar Railway como servidor WebSocket
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://web-production-80c11.up.railway.app';
+      // IMPORTANTE: Actualiza NEXT_PUBLIC_SOCKET_URL en Vercel con tu URL de Render o Fly.io
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
       
-      console.log('🔌 Conectando WebSocket a Railway:', socketUrl);
+      console.log('🔌 Conectando WebSocket a:', socketUrl);
         
       socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
