@@ -184,18 +184,34 @@ export default function TabletControl({ sessionId }) {
     return (
       <div className="min-h-screen flex items-center justify-center"
            style={{
-             background: theme.customBackground ? 
-               `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
-               useOriginalStyles ? 
-               'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
-               `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+             background: isAfk ? 
+               '#000000' : // Fondo negro puro para AFK
+               theme.customBackground ? 
+                 `url(${theme.customBackground}) center center / cover no-repeat fixed, rgb(26, 26, 26)` :
+                 useOriginalStyles ? 
+                 'url(/images/paperbg.jpg) center center / cover no-repeat fixed' : 
+                 `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
              fontFamily: 'Anton, sans-serif',
              minHeight: '100vh',
              minHeight: '100dvh' // Para tablets modernos
            }}>
         <div className="text-center">
-          <div className="animate-pulse text-6xl mb-4">🎮</div>
-          <p className="text-white text-xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Cargando sesión...</p>
+          {isAfk ? (
+            <>
+              <img 
+                src="/images/AFK.webp" 
+                alt="AFK Logo" 
+                className="w-32 h-32 mx-auto mb-6 animate-pulse"
+                style={{ filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.3))' }}
+              />
+              <p className="text-white text-xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Cargando sesión...</p>
+            </>
+          ) : (
+            <>
+              <div className="animate-pulse text-6xl mb-4">🎮</div>
+              <p className="text-white text-xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Cargando sesión...</p>
+            </>
+          )}
           {error && <p className="text-yellow-400 text-sm mt-2 font-semibold drop-shadow-lg">{error}</p>}
         </div>
       </div>
