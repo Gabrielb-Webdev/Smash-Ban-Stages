@@ -870,32 +870,32 @@ export default function TabletControl({ sessionId }) {
                       </button>
                     </div>
                     
-                    {/* Segunda fila: Hollow Bastion y Battlefield centrados */}
+                    {/* Segunda fila: Smashville y Battlefield centrados */}
                     <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                       <div className="hidden sm:block sm:col-span-1"></div>
                       <button 
                         onClick={() => {
-                          if (!session.bannedStages.includes('hollow-bastion')) {
-                            handleBanStage('hollow-bastion');
+                          if (!session.bannedStages.includes('smashville')) {
+                            handleBanStage('smashville');
                           }
                         }}
-                        disabled={session.bannedStages.includes('hollow-bastion')}
+                        disabled={session.bannedStages.includes('smashville')}
                         className={`sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
-                          session.bannedStages.includes('hollow-bastion')
+                          session.bannedStages.includes('smashville')
                             ? 'cursor-not-allowed border-white/20'
                             : 'cursor-pointer border-white/20 active:scale-95'
                         }`}
                       >
                         <div className="aspect-video relative">
-                          <img src="/images/stages/Hollow Bastion.png" alt="Hollow Bastion" className="w-full h-full object-cover" />
+                          <img src="/images/stages/Smashville.png" alt="Smashville" className="w-full h-full object-cover" />
                           <div className="hidden absolute inset-0 bg-gradient-to-r from-smash-purple to-smash-blue items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Hollow Bastion</p>
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center drop-shadow-lg">Smashville</p>
                           </div>
                         </div>
-                        {session.bannedStages.includes('hollow-bastion') && (
+                        {session.bannedStages.includes('smashville') && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                             <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
                           </div>
@@ -1362,25 +1362,25 @@ export default function TabletControl({ sessionId }) {
                       </button>
                     </div>
                     
-                    {/* Segunda fila: Hollow Bastion y Battlefield centrados */}
+                    {/* Segunda fila: Smashville y Battlefield centrados */}
                     <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                       <div className="hidden sm:block sm:col-span-1"></div>
                       <button 
                         onClick={() => {
-                          handleSelectStage('hollow-bastion');
+                          handleSelectStage('smashville');
                         }}
                         className="sm:col-span-2 relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation"
                       >
                         <div className="aspect-video relative">
-                          <img src="/images/stages/Hollow Bastion.png" alt="Hollow Bastion" className="w-full h-full object-cover" />
+                          <img src="/images/stages/Smashville.png" alt="Smashville" className="w-full h-full object-cover" />
                           <div className="hidden absolute inset-0 bg-green-600 items-center justify-center">
                             <span className="text-white text-xl">🎮</span>
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1 sm:p-1.5">
-                            <p className="text-white font-bold text-[10px] sm:text-xs text-center">Hollow Bastion</p>
+                            <p className="text-white font-bold text-[10px] sm:text-xs text-center">Smashville</p>
                           </div>
                         </div>
-                        {session.bannedStages?.includes('hollow-bastion') && (
+                        {session.bannedStages?.includes('smashville') && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                             <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
                           </div>

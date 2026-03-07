@@ -7,7 +7,7 @@ const MENDOZA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-sta
 const MENDOZA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
 
 // Constantes para stages - Córdoba (por defecto)
-const CORDOBA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
+const CORDOBA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'smashville', 'battlefield'];
 const CORDOBA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
 
 // Función para detectar el torneo basado en sessionId
@@ -367,7 +367,7 @@ io.on('connection', (socket) => {
             // Configurar stages disponibles según el game
             if (updatedSession.currentGame === 1) {
               // Game 1: 5 stages en orden específico
-              updatedSession.availableStages = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
+              updatedSession.availableStages = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'smashville', 'battlefield'];
               // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
               updatedSession.totalBansNeeded = 3;
               updatedSession.bansRemaining = 1; // Ganador RPS banea 1 primero
