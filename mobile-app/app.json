@@ -32,7 +32,10 @@
               "scheme": "afk-smash"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -41,7 +44,14 @@
     },
     "scheme": "afk-smash",
     "extra": {
-      "startGgClientId": "435"
-    }
+      "startGgClientId": "435",
+      "eas": {
+        "projectId": "1cc82cc6-5c6c-437d-aa76-3a3d79eda94e"
+      }
+    },
+    "owner": "gabriel_sin_h",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
