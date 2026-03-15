@@ -291,6 +291,13 @@ export default function TabletControlAfk({ sessionId }) {
     }
   };
 
+  const handleRandomCharacter = () => {
+    const randomChar = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+    if (session.currentTurn) {
+      setPendingAction({ type: 'character', characterId: randomChar.id, characterName: `? (${randomChar.name})`, characterImage: randomChar.image, player: session.currentTurn, isRandom: true });
+    }
+  };
+
   const handleSetGameWinner = (winner) => {
     setPendingAction({ type: 'winner', winner, playerName: session[winner].name });
   };
@@ -556,6 +563,15 @@ export default function TabletControlAfk({ sessionId }) {
               />
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 p-2 sm:p-4 pb-4 bg-white/10">
+              {/* Botón aleatorio "?" - siempre visible */}
+              <button
+                onClick={handleRandomCharacter}
+                className="aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center active:scale-95 border-2 border-smash-yellow/70 touch-manipulation"
+                style={{ background: 'linear-gradient(135deg, #78350f, #b45309)' }}
+                title="Aleatorio"
+              >
+                <span className="text-white font-black" style={{ fontFamily: 'Anton', fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>?</span>
+              </button>
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
