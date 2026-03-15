@@ -243,6 +243,10 @@ export default function TabletControlAfk({ sessionId }) {
     }
   };
 
+  const handleSetGameWinner = (winner) => {
+    setPendingAction({ type: 'winner', winner, playerName: session[winner].name });
+  };
+
   const confirmAction = () => {
     if (!pendingAction || !sessionId) return;
     switch (pendingAction.type) {
@@ -250,6 +254,7 @@ export default function TabletControlAfk({ sessionId }) {
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player); break;
+      case 'winner':    setGameWinner(sessionId, pendingAction.winner); break;
     }
     setPendingAction(null);
   };
@@ -542,9 +547,25 @@ export default function TabletControlAfk({ sessionId }) {
                 </div>
               </div>
             </div>
-            <div className="mt-3 text-center">
-              <div className="inline-block bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
-                <p className="text-white/90 text-sm font-semibold">💡 El administrador marcará al ganador desde el panel</p>
+            <div className="mt-3">
+              <p className="text-white/60 text-xs text-center mb-2 font-semibold uppercase tracking-wider">¿Quién ganó el game?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleSetGameWinner('player1')}
+                  className="py-4 sm:py-5 rounded-xl font-black text-base sm:text-lg text-white active:scale-95 transition-all shadow-2xl border-2 border-smash-red/60 touch-manipulation"
+                  style={{ background: 'linear-gradient(135deg, #7f1d1d, #991b1b)' }}
+                >
+                  🏆<br />
+                  <span className="truncate block px-1 mt-1">{session.player1.name}</span>
+                </button>
+                <button
+                  onClick={() => handleSetGameWinner('player2')}
+                  className="py-4 sm:py-5 rounded-xl font-black text-base sm:text-lg text-white active:scale-95 transition-all shadow-2xl border-2 border-smash-blue/60 touch-manipulation"
+                  style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
+                >
+                  🏆<br />
+                  <span className="truncate block px-1 mt-1">{session.player2.name}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -628,6 +649,7 @@ export default function TabletControlAfk({ sessionId }) {
                       {pendingAction.type === 'ban' && '❌'}
                       {pendingAction.type === 'select' && '🎯'}
                       {pendingAction.type === 'character' && '👤'}
+                      {pendingAction.type === 'winner' && '🏆'}
                     </div>
                   )}
                 </div>
@@ -637,6 +659,7 @@ export default function TabletControlAfk({ sessionId }) {
                   {pendingAction.type === 'ban' && <p className="text-white text-base">Banear <span className="text-red-400 font-bold">{pendingAction.stageName}</span></p>}
                   {pendingAction.type === 'select' && <p className="text-white text-base">Seleccionar <span className="text-green-400 font-bold">{pendingAction.stageName}</span></p>}
                   {pendingAction.type === 'character' && <p className="text-white text-base">Seleccionar <span className="text-smash-yellow font-bold">{pendingAction.characterName}</span></p>}
+                  {pendingAction.type === 'winner' && <p className="text-white text-base"><span className="text-smash-yellow font-bold">{pendingAction.playerName}</span> ganó el game 🏆</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
