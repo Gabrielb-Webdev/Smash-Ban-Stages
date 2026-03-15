@@ -84,6 +84,11 @@ export const useWebSocket = (sessionId) => {
       setSession(data.session);
     });
 
+    socket.on('player-history', (data) => {
+      // Dispatched to listeners registered via getPlayerHistory
+      socket._playerHistoryHandler && socket._playerHistoryHandler(data);
+    });
+
     return () => {
       // NO desconectar el socket aquí para evitar múltiples desconexiones
       console.log('🧹 Limpieza del hook useWebSocket');
@@ -132,6 +137,13 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const getPlayerHistory = (playerName, callback) => {
+    if (socket) {
+      socket._playerHistoryHandler = callback;
+      socket.emit('get-player-history', { playerName });
+    }
+  };
+
   const resetSession = (sessionId) => {
     if (socket) {
       socket.emit('reset-session', { sessionId });
@@ -148,6 +160,7 @@ export const useWebSocket = (sessionId) => {
     selectCharacter,
     setGameWinner,
     repeatStage,
+    getPlayerHistory,
     resetSession,
   };
 };

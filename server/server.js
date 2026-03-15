@@ -1,6 +1,55 @@
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
+
+// ── Historial de picks por jugador (persistido en disco) ──────────────
+const HISTORY_FILE = path.join(__dirname, 'player-history.json');
+
+function loadPlayerHistory() {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      const raw = fs.readFileSync(HISTORY_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      // Convertir a Map<playerName, string[]>
+      const map = new Map();
+      for (const [name, chars] of Object.entries(parsed)) {
+        map.set(name, Array.isArray(chars) ? chars : []);
+      }
+      return map;
+    }
+  } catch (e) {
+    console.error('⚠️ Error cargando player-history.json:', e.message);
+  }
+  return new Map();
+}
+
+function savePlayerHistory() {
+  try {
+    const obj = {};
+    for (const [name, chars] of playerHistory.entries()) {
+      obj[name] = chars;
+    }
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(obj, null, 2), 'utf8');
+  } catch (e) {
+    console.error('⚠️ Error guardando player-history.json:', e.message);
+  }
+}
+
+function recordCharacterPick(playerName, characterId) {
+  if (!playerName || !characterId) return;
+  const key = playerName.trim().toLowerCase();
+  const existing = playerHistory.get(key) || [];
+  // Mover al frente si ya existe, si no agregar al frente (máx 20)
+  const filtered = existing.filter(c => c !== characterId);
+  const updated = [characterId, ...filtered].slice(0, 20);
+  playerHistory.set(key, updated);
+  savePlayerHistory();
+}
+
+const playerHistory = loadPlayerHistory();
+console.log(`📚 Historial cargado: ${playerHistory.size} jugadores`);
 
 // Constantes para stages - Mendoza (Team Anexo)
 const MENDOZA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'smashville', 'battlefield'];
@@ -352,10 +401,19 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Obtener historial de picks de un jugador
+  socket.on('get-player-history', ({ playerName }) => {
+    const key = (playerName || '').trim().toLowerCase();
+    const chars = playerHistory.get(key) || [];
+    socket.emit('player-history', { playerName, characters: chars });
+  });
+
   // Seleccionar personaje
   socket.on('select-character', ({ sessionId, character, player }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'CHARACTER_SELECT') {
+      // Guardar en historial por nombre de jugador
+      recordCharacterPick(session[player].name, character);
       session[player].character = character;
       
       // Verificar si ambos jugadores han seleccionado

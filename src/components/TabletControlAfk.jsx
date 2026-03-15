@@ -66,7 +66,7 @@ const GAME1_STAGES_AFK = [
 
 // ─────────────────────────────────────────────────────────────
 export default function TabletControlAfk({ sessionId }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, repeatStage } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, repeatStage, getPlayerHistory } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +81,7 @@ export default function TabletControlAfk({ sessionId }) {
   const [previousStageData, setPreviousStageData] = useState({ bannedStages: [], selectedStage: null });
   const [showRepeatStageModal, setShowRepeatStageModal] = useState(false);
   const [hasAskedRepeatStage, setHasAskedRepeatStage] = useState(false);
+  const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -118,6 +119,17 @@ export default function TabletControlAfk({ sessionId }) {
       setHasAskedRepeatStage(true);
     }
   }, [session?.phase, session?.currentGame, hasAskedRepeatStage, previousStageData.selectedStage]);
+
+  // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
+  useEffect(() => {
+    if (!session || session.phase !== 'CHARACTER_SELECT' || !session.currentTurn) return;
+    const playerName = session[session.currentTurn]?.name;
+    if (!playerName) return;
+    setPlayerPickHistory([]);
+    getPlayerHistory(playerName, (data) => {
+      setPlayerPickHistory(data.characters || []);
+    });
+  }, [session?.phase, session?.currentTurn]);
 
   // Reset al inicio de nuevo game
   useEffect(() => {
@@ -508,6 +520,33 @@ export default function TabletControlAfk({ sessionId }) {
                   </p>
                 </div>
               </div>
+              {/* Picks anteriores del jugador */}
+              {playerPickHistory.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1.5 font-semibold">Picks anteriores</p>
+                  <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    {playerPickHistory.map((charId) => {
+                      const char = CHARACTERS.find(c => c.id === charId);
+                      if (!char) return null;
+                      return (
+                        <button
+                          key={charId}
+                          onClick={() => handleSelectCharacter(charId)}
+                          title={char.name}
+                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-yellow/60 active:scale-95 touch-manipulation overflow-hidden"
+                        >
+                          <img
+                            src={char.image}
+                            alt={char.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <input
                 type="text"
                 placeholder="Buscar personaje..."
