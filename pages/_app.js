@@ -12,7 +12,8 @@ function MyApp({ Component, pageProps }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#000000" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/images/AFK.webp" />
+        <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
       </Head>
       <Component {...pageProps} />
     </>
