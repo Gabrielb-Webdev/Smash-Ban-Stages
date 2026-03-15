@@ -6,6 +6,7 @@
     "sdkVersion": "54.0.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
     "splash": {
       "backgroundColor": "#000000",
       "resizeMode": "contain"
