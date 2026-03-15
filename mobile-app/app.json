@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
     "icon": "./assets/afk-icon.png",
     "splash": { "backgroundColor": "#000000", "resizeMode": "contain" },
     "assetBundlePatterns": ["**/*"],
@@ -19,8 +20,7 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "1.9.25",
-            "minSdkVersion": 23
+            "kotlinVersion": "1.9.25"
           }
         }
       ]
