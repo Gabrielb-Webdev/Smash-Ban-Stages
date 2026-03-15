@@ -497,9 +497,9 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Character Select Phase ── */}
         {session.phase === 'CHARACTER_SELECT' && (
-          <div className="rounded-xl border border-white/20 overflow-hidden">
+          <div className="rounded-xl border border-white/20">
             {/* Sub-header sticky (debajo del header principal) */}
-            <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20">
+            <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl">
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
                   <h3 className="text-lg sm:text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
