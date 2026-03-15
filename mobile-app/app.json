@@ -3,10 +3,11 @@
     "name": "AFK Smash",
     "slug": "afk-smash-mobile",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "sdkVersion": "54.0.0",
+    "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#DC2626",
+      "backgroundColor": "#000000",
       "resizeMode": "contain"
     },
     "assetBundlePatterns": [
