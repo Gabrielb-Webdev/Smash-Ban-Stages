@@ -66,7 +66,7 @@ export default function StreamOverlayAfk({ sessionId }) {
       const timer = setTimeout(() => {
         setShowBanAnimation(false);
         setShowBanOnCard(true);
-      }, 3000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [showBanAnimation]);
@@ -94,7 +94,7 @@ export default function StreamOverlayAfk({ sessionId }) {
       const timer = setTimeout(() => {
         setShowSelectAnimation(false);
         setShowSelectOnCard(true);
-      }, 3000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [showSelectAnimation]);
