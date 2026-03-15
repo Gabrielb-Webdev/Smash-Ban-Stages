@@ -4,7 +4,7 @@
     "slug": "afk-smash-mobile",
     "version": "1.0.0",
     "sdkVersion": "52.0.0",
-    "orientation": "landscape",
+    "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "splash": {
@@ -22,11 +22,26 @@
       "package": "com.afksmash.mobile",
       "permissions": [
         "INTERNET"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "afk-smash"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
       "bundler": "metro"
     },
-    "scheme": "afk-smash"
+    "scheme": "afk-smash",
+    "extra": {
+      "startGgClientId": "REEMPLAZAR_CON_TU_CLIENT_ID_DE_STARTGG"
+    }
   }
 }
