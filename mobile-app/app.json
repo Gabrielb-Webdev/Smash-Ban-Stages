@@ -3,55 +3,20 @@
     "name": "AFK Smash",
     "slug": "afk-smash-mobile",
     "version": "1.0.0",
-    "sdkVersion": "52.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
-    "splash": {
-      "backgroundColor": "#000000",
-      "resizeMode": "contain"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.afksmash.mobile"
-    },
-    "android": {
-      "package": "com.afksmash.mobile",
-      "permissions": [
-        "INTERNET"
-      ],
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "afk-smash"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
-    },
-    "web": {
-      "bundler": "metro"
-    },
+    "splash": { "backgroundColor": "#000000", "resizeMode": "contain" },
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.afksmash.mobile" },
+    "android": { "package": "com.afksmash.mobile", "permissions": ["INTERNET"] },
+    "web": { "bundler": "metro" },
     "scheme": "afk-smash",
+    "owner": "gabriel_sin_h",
+    "plugins": ["expo-secure-store"],
     "extra": {
       "startGgClientId": "435",
-      "eas": {
-        "projectId": "1cc82cc6-5c6c-437d-aa76-3a3d79eda94e"
-      }
-    },
-    "owner": "gabriel_sin_h",
-    "plugins": [
-      "expo-secure-store"
-    ]
+      "eas": { "projectId": "1cc82cc6-5c6c-437d-aa76-3a3d79eda94e" }
+    }
   }
 }
