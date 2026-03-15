@@ -21,8 +21,5 @@
   "devDependencies": {
     "@babel/core": "^7.20.0"
   },
-  "private": true,
-  "resolutions": {
-    "metro": "^0.80.0"
-  }
+  "private": true
 }
