@@ -182,9 +182,7 @@ export default function StreamOverlayAfk({ sessionId }) {
               style={{ zIndex: 10 }}
             >
               {session.player1.character === 'random' ? (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-900 to-yellow-700 border-4 border-yellow-400 flex items-center justify-center">
-                  <span className="text-white font-black" style={{ fontFamily: 'Anton', fontSize: '4rem' }}>?</span>
-                </div>
+                <span className="text-white font-black w-32 h-32 flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '6rem' }}>?</span>
               ) : (
                 <img
                   src={getCharacterData(session.player1.character)?.image}
@@ -216,9 +214,7 @@ export default function StreamOverlayAfk({ sessionId }) {
                 className="h-32 w-1 bg-white mr-4"
               />
               {session.player2.character === 'random' ? (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-900 to-yellow-700 border-4 border-yellow-400 flex items-center justify-center">
-                  <span className="text-white font-black" style={{ fontFamily: 'Anton', fontSize: '4rem' }}>?</span>
-                </div>
+                <span className="text-white font-black w-32 h-32 flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '6rem' }}>?</span>
               ) : (
                 <img
                   src={getCharacterData(session.player2.character)?.image}
