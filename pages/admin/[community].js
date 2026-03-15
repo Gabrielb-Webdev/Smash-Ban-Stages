@@ -1,24 +1,22 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import AdminPanel from '../../src/components/AdminPanel';
 import Link from 'next/link';
 
 export default function CommunityAdmin() {
   const router = useRouter();
   const { community } = router.query;
-  const [isValidCommunity, setIsValidCommunity] = useState(true);
 
   const validCommunities = ['cordoba', 'afk', 'mendoza'];
 
+  // Redirigir rutas especiales que tienen su propia página
   useEffect(() => {
-    if (community && !validCommunities.includes(community)) {
-      setIsValidCommunity(false);
-    } else if (community) {
-      setIsValidCommunity(true);
+    if (community === 'afk-multi') {
+      router.replace('/admin/afk-multi');
     }
   }, [community]);
 
-  // Mostrar loading mientras se carga el router
+  // Loading mientras el router resuelve
   if (!community) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
@@ -27,8 +25,17 @@ export default function CommunityAdmin() {
     );
   }
 
-  // Mostrar error si la comunidad no es válida
-  if (!isValidCommunity) {
+  // Redirigiendo afk-multi
+  if (community === 'afk-multi') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Redirigiendo...</div>
+      </div>
+    );
+  }
+
+  // Comunidad no válida
+  if (!validCommunities.includes(community)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
         <div className="text-center">
@@ -46,6 +53,5 @@ export default function CommunityAdmin() {
     );
   }
 
-  // Renderizar el panel de administración con la comunidad seleccionada
   return <AdminPanel defaultCommunity={community} />;
 }
