@@ -66,7 +66,7 @@ const GAME1_STAGES_AFK = [
 
 // ─────────────────────────────────────────────────────────────
 export default function TabletControlAfk({ sessionId }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, repeatStage } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,6 +78,9 @@ export default function TabletControlAfk({ sessionId }) {
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
   const [turnModal, setTurnModal] = useState(null);
+  const [previousStageData, setPreviousStageData] = useState({ bannedStages: [], selectedStage: null });
+  const [showRepeatStageModal, setShowRepeatStageModal] = useState(false);
+  const [hasAskedRepeatStage, setHasAskedRepeatStage] = useState(false);
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -91,12 +94,38 @@ export default function TabletControlAfk({ sessionId }) {
     }
   }, [session?.player1?.character, session?.player2?.character, session?.currentGame, lastGameSaved]);
 
+  // Guardar datos del stage cuando entra en PLAYING
+  useEffect(() => {
+    if (!session) return;
+    if (session.phase === 'PLAYING' && session.selectedStage) {
+      setPreviousStageData({
+        bannedStages: [...(session.bannedStages || [])],
+        selectedStage: session.selectedStage,
+      });
+    }
+  }, [session?.phase, session?.selectedStage]);
+
+  // Mostrar modal de repetir stage al entrar a STAGE_BAN en game 2+
+  useEffect(() => {
+    if (!session) return;
+    if (
+      session.phase === 'STAGE_BAN' &&
+      session.currentGame >= 2 &&
+      !hasAskedRepeatStage &&
+      previousStageData.selectedStage
+    ) {
+      setShowRepeatStageModal(true);
+      setHasAskedRepeatStage(true);
+    }
+  }, [session?.phase, session?.currentGame, hasAskedRepeatStage, previousStageData.selectedStage]);
+
   // Reset al inicio de nuevo game
   useEffect(() => {
     if (!session) return;
     if (session.phase === 'CHARACTER_SELECT' && !session.player1.character && !session.player2.character) {
       setHasAskedRepeat({ player1: false, player2: false });
       setShowRepeatModal({ player1: false, player2: false });
+      setHasAskedRepeatStage(false);
     }
   }, [session?.phase, session?.player1?.character, session?.player2?.character, session?.currentGame]);
 
@@ -162,6 +191,13 @@ export default function TabletControlAfk({ sessionId }) {
     setShowRepeatModal({ player1: false, player2: false });
     if (repeat && previousCharacters[player]) {
       selectCharacter(sessionId, previousCharacters[player], player);
+    }
+  };
+
+  const handleRepeatStage = (repeat) => {
+    setShowRepeatStageModal(false);
+    if (repeat) {
+      repeatStage(sessionId, previousStageData.bannedStages, previousStageData.selectedStage);
     }
   };
 
@@ -632,6 +668,47 @@ export default function TabletControlAfk({ sessionId }) {
             </div>
           </div>
         )}
+
+        {/* ── Modal: Repetir stage ── */}
+        {showRepeatStageModal && previousStageData.selectedStage && (() => {
+          const stageInfo = getStageData(previousStageData.selectedStage);
+          return (
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 sm:p-8 shadow-2xl border-4 border-smash-yellow max-w-lg w-full">
+                <div className="text-center mb-5">
+                  <div className="text-5xl mb-3">🗺️</div>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3" style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>¿Repetir stage?</h3>
+                  <div className="bg-white/10 rounded-xl overflow-hidden border-2 border-white/30 mb-3">
+                    {stageInfo?.image && (
+                      <img
+                        src={stageInfo.image}
+                        alt={stageInfo?.name}
+                        className="w-full h-32 object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
+                    <p className="text-white text-xl font-bold py-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{stageInfo?.name}</p>
+                  </div>
+                  <p className="text-white/60 text-sm">Se repetirán los mismos baneos y el mismo stage</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handleRepeatStage(false)}
+                    className="py-4 bg-gray-700 text-white font-bold text-lg rounded-xl transition-all active:scale-95 border-2 border-white/30 touch-manipulation"
+                  >
+                    ❌ NO
+                  </button>
+                  <button
+                    onClick={() => handleRepeatStage(true)}
+                    className="py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-lg rounded-xl transition-all active:scale-95 border-2 border-white touch-manipulation"
+                  >
+                    ✓ SÍ
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Modal: Confirmación de acción ── */}
         {pendingAction && (

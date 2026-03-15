@@ -126,6 +126,12 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const repeatStage = (sessionId, bannedStages, selectedStage) => {
+    if (socket) {
+      socket.emit('repeat-stage', { sessionId, bannedStages, selectedStage });
+    }
+  };
+
   const resetSession = (sessionId) => {
     if (socket) {
       socket.emit('reset-session', { sessionId });
@@ -141,6 +147,7 @@ export const useWebSocket = (sessionId) => {
     selectStage,
     selectCharacter,
     setGameWinner,
+    repeatStage,
     resetSession,
   };
 };

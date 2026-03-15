@@ -339,6 +339,19 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Repetir stage anterior (aplica los mismos baneos y stage directamente)
+  socket.on('repeat-stage', ({ sessionId, bannedStages, selectedStage }) => {
+    const session = sessions.get(sessionId);
+    if (session && session.phase === 'STAGE_BAN') {
+      session.bannedStages = Array.isArray(bannedStages) ? bannedStages : [];
+      session.selectedStage = selectedStage;
+      session.phase = 'PLAYING';
+      session.currentTurn = null;
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
   // Seleccionar personaje
   socket.on('select-character', ({ sessionId, character, player }) => {
     const session = sessions.get(sessionId);
