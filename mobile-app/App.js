@@ -1,102 +1,228 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  StatusBar,
+  SafeAreaView,
+  Image,
+} from 'react-native';
+import { WebView } from 'react-native-webview';
+
+const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>🎮 AFK Smash</Text>
-        <Text style={styles.subtitle}>Aplicación Móvil</Text>
-      </View>
-      
-      <View style={styles.content}>
-        <Text style={styles.description}>
-          ¡Bienvenido a la app oficial de la comunidad AFK Buenos Aires!
-        </Text>
-        
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>
-            🚀 Iniciar Sesión con start.gg
-          </Text>
+  const [sessionId, setSessionId] = useState('');
+  const [activeUrl, setActiveUrl] = useState(null);
+  const webViewRef = useRef(null);
+
+  const handleConnect = (id) => {
+    const trimmed = (id || sessionId).trim();
+    if (!trimmed) return;
+    setActiveUrl(`${BASE_URL}/tablet/${trimmed}`);
+  };
+
+  const handleBack = () => {
+    setActiveUrl(null);
+    setSessionId('');
+  };
+
+  if (activeUrl) {
+    return (
+      <SafeAreaView style={styles.fullScreen}>
+        <StatusBar hidden />
+        <WebView
+          ref={webViewRef}
+          source={{ uri: activeUrl }}
+          style={styles.webview}
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState
+          onError={() => handleBack()}
+        />
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <Text style={styles.backBtnText}>✕</Text>
         </TouchableOpacity>
-        
-        <Text style={styles.note}>
-          Esta es una versión de prueba básica.
-        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+
+      <View style={styles.logo}>
+        <Image
+          source={{ uri: `${BASE_URL}/images/AFK.webp` }}
+          style={styles.logoImg}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>AFK Smash Stages</Text>
+        <Text style={styles.subtitle}>Control de Tablet</Text>
       </View>
-      
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Hecho con ❤️ para la comunidad AFK
-        </Text>
+
+      <View style={styles.card}>
+        <Text style={styles.label}>ID de sesión</Text>
+        <TextInput
+          style={styles.input}
+          value={sessionId}
+          onChangeText={setSessionId}
+          placeholder="Ej: afk-test"
+          placeholderTextColor="#666"
+          autoCapitalize="none"
+          autoCorrect={false}
+          onSubmitEditing={() => handleConnect()}
+        />
+        <TouchableOpacity
+          style={[styles.btnMain, !sessionId.trim() && styles.btnDisabled]}
+          onPress={() => handleConnect()}
+          disabled={!sessionId.trim()}
+        >
+          <Text style={styles.btnMainText}>🎮 Conectar</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+
+      <View style={styles.quickAccess}>
+        <Text style={styles.quickLabel}>Accesos rápidos</Text>
+        <View style={styles.quickRow}>
+          {['afk-test', 'afk', 'cordoba', 'mendoza'].map((id) => (
+            <TouchableOpacity
+              key={id}
+              style={styles.quickBtn}
+              onPress={() => handleConnect(id)}
+            >
+              <Text style={styles.quickBtnText}>{id}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  fullScreen: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  webview: {
+    flex: 1,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#DC2626',
+    backgroundColor: '#0a0a0a',
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 30,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  header: {
+  logo: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 40,
+  },
+  logoImg: {
+    width: 80,
+    height: 80,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 10,
+    marginBottom: 4,
   },
   subtitle: {
+    fontSize: 14,
+    color: '#888',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  card: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  label: {
+    color: '#888',
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#111',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#444',
+    color: '#fff',
     fontSize: 18,
-    color: '#FEF3C7',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
   },
-  content: {
+  btnMain: {
+    backgroundColor: '#DC2626',
+    borderRadius: 10,
+    paddingVertical: 14,
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    width: '100%',
   },
-  description: {
-    fontSize: 16,
-    color: '#FEF3C7',
-    textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 24,
+  btnDisabled: {
+    opacity: 0.4,
   },
-  button: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  buttonText: {
+  btnMainText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#DC2626',
   },
-  note: {
-    fontSize: 12,
-    color: '#FEF3C7',
-    marginTop: 20,
-    opacity: 0.8,
+  quickAccess: {
+    alignItems: 'center',
   },
-  footer: {
-    marginTop: 'auto',
+  quickLabel: {
+    color: '#555',
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
   },
-  footerText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
+  quickRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  quickBtn: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    backgroundColor: '#111',
+  },
+  quickBtnText: {
+    color: '#aaa',
+    fontSize: 13,
   },
 });
