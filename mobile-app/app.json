@@ -5,27 +5,27 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
     "icon": "./assets/afk-icon.png",
     "splash": { "backgroundColor": "#000000", "resizeMode": "contain" },
     "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.afksmash.mobile", "icon": "./assets/afk-icon.png" },
-    "android": { "package": "com.afksmash.mobile", "permissions": ["INTERNET"], "adaptiveIcon": { "foregroundImage": "./assets/afk-icon.png", "backgroundColor": "#000000" } },
-    "web": { "bundler": "metro" },
-    "scheme": "afk-smash",
+    "android": {
+      "package": "com.afksmash.mobile",
+      "permissions": ["INTERNET"],
+      "adaptiveIcon": { "foregroundImage": "./assets/afk-icon.png", "backgroundColor": "#000000" }
+    },
     "owner": "gabriel_sin_h",
     "plugins": [
       [
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "1.9.25"
+            "kotlinVersion": "1.9.25",
+            "minSdkVersion": 23
           }
         }
       ]
     ],
     "extra": {
-      "startGgClientId": "435",
       "eas": { "projectId": "1cc82cc6-5c6c-437d-aa76-3a3d79eda94e" }
     }
   }
