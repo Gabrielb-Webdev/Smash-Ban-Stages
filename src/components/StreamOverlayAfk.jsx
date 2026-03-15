@@ -225,7 +225,7 @@ export default function StreamOverlayAfk({ sessionId }) {
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{ zIndex: 20 }}
           >
-            <div className="overflow-hidden h-24 flex items-center justify-center">
+            <div className="overflow-hidden h-24 flex items-center justify-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <AnimatePresence>
                 <motion.h2
                   key="stage-bans-text"
