@@ -20,6 +20,36 @@ import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
+// ─────────────────────────────────────────────────────────────
+// ERROR BOUNDARY — evita que el crash cierre la app silenciosamente
+// ─────────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          <Text style={{ color: '#E88E00', fontSize: 20, fontWeight: '900', marginBottom: 12 }}>⚠️ Error de inicio</Text>
+          <Text style={{ color: '#fff', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>
+            {this.state.error?.message || 'Error desconocido'}
+          </Text>
+          <Text style={{ color: '#555', fontSize: 11, textAlign: 'center' }}>
+            {this.state.error?.stack?.slice(0, 300)}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
 // Client ID de tu app en Start.gg (https://developer.start.gg/docs/oauth/overview)
@@ -273,9 +303,13 @@ export default function App() {
     );
   }
 
-  return auth
-    ? <MainScreen user={auth.user} onLogout={handleLogout} />
-    : <LoginScreen onLogin={setAuth} />;
+  return (
+    <ErrorBoundary>
+      {auth
+        ? <MainScreen user={auth.user} onLogout={handleLogout} />
+        : <LoginScreen onLogin={setAuth} />}
+    </ErrorBoundary>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
