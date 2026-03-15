@@ -13,7 +13,17 @@
     "web": { "bundler": "metro" },
     "scheme": "afk-smash",
     "owner": "gabriel_sin_h",
-    "plugins": ["expo-secure-store"],
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ]
+    ],
     "extra": {
       "startGgClientId": "435",
       "eas": { "projectId": "1cc82cc6-5c6c-437d-aa76-3a3d79eda94e" }
