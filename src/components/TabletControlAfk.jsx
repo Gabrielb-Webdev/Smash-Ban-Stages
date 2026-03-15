@@ -456,8 +456,9 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Character Select Phase ── */}
         {session.phase === 'CHARACTER_SELECT' && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex flex-col">
-            <div className="flex-shrink-0 mb-2 sm:mb-3">
+          <div className="rounded-xl border border-white/20 overflow-hidden">
+            {/* Sub-header sticky (debajo del header principal) */}
+            <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20">
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
                   <h3 className="text-lg sm:text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
@@ -474,7 +475,7 @@ export default function TabletControlAfk({ sessionId }) {
                 className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none text-xs sm:text-sm"
               />
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 pb-4">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 p-2 sm:p-4 pb-4 bg-white/10">
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
