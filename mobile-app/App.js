@@ -13,12 +13,9 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
-
-WebBrowser.maybeCompleteAuthSession();
 
 // ─────────────────────────────────────────────────────────────
 // ERROR BOUNDARY — evita que el crash cierre la app silenciosamente
@@ -52,14 +49,17 @@ class ErrorBoundary extends React.Component {
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
-// Client ID de tu app en Start.gg (https://developer.start.gg/docs/oauth/overview)
-// Cámbialo también en app.json > extra > startGgClientId
 const START_GG_CLIENT_ID =
-  Constants.expoConfig?.extra?.startGgClientId || 'REEMPLAZAR_CON_TU_CLIENT_ID';
+  Constants.expoConfig?.extra?.startGgClientId || '435';
 
-const START_GG_DISCOVERY = {
-  authorizationEndpoint: 'https://start.gg/oauth/authorize',
-};
+const REDIRECT_URI = 'afk-smash://auth';
+
+const AUTH_URL =
+  `https://start.gg/oauth/authorize` +
+  `?client_id=${START_GG_CLIENT_ID}` +
+  `&response_type=code` +
+  `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+  `&scope=user.identity`;
 
 // ─────────────────────────────────────────────────────────────
 // PANTALLA DE LOGIN
@@ -67,37 +67,12 @@ const START_GG_DISCOVERY = {
 function LoginScreen({ onLogin }) {
   const [loading, setLoading] = useState(false);
 
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: 'afk-smash', path: 'auth' });
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: START_GG_CLIENT_ID,
-      redirectUri,
-      scopes: ['user.identity'],
-      responseType: 'code',
-      usePKCE: false,
-    },
-    START_GG_DISCOVERY
-  );
-
-  useEffect(() => {
-    if (!response) return;
-    if (response.type === 'success') {
-      exchangeCode(response.params.code);
-    } else if (response.type === 'error' || response.type === 'cancel') {
-      setLoading(false);
-      if (response.type === 'error') {
-        Alert.alert('Error', 'No se pudo autenticar con Start.gg. Intenta de nuevo.');
-      }
-    }
-  }, [response]);
-
   const exchangeCode = async (code) => {
     try {
       const res = await fetch(`${BASE_URL}/api/auth/startgg/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, redirectUri }),
+        body: JSON.stringify({ code, redirectUri: REDIRECT_URI }),
       });
 
       if (!res.ok) {
@@ -111,6 +86,27 @@ function LoginScreen({ onLogin }) {
         await SecureStore.setItemAsync('startgg_user', JSON.stringify(data.user));
       }
       onLogin({ token: data.access_token, user: data.user || null });
+    } catch (e) {
+      Alert.alert('Error de autenticación', e.message || 'No se pudo completar el login.');
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(AUTH_URL, REDIRECT_URI);
+      if (result.type === 'success' && result.url) {
+        const match = result.url.match(/[?&]code=([^&#]+)/);
+        const code = match ? decodeURIComponent(match[1]) : null;
+        if (code) {
+          await exchangeCode(code);
+        } else {
+          throw new Error('No se recibió código de autorización');
+        }
+      } else {
+        setLoading(false);
+      }
     } catch (e) {
       Alert.alert('Error de autenticación', e.message || 'No se pudo completar el login.');
       setLoading(false);
@@ -137,12 +133,9 @@ function LoginScreen({ onLogin }) {
 
         {/* Botón Start.gg */}
         <TouchableOpacity
-          style={[styles.startggBtn, (!request || loading) && styles.btnDisabled]}
-          disabled={!request || loading}
-          onPress={() => {
-            setLoading(true);
-            promptAsync();
-          }}
+          style={[styles.startggBtn, loading && styles.btnDisabled]}
+          disabled={loading}
+          onPress={handleLogin}
           activeOpacity={0.85}
         >
           {loading ? (
