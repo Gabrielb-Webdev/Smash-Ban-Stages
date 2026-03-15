@@ -9,7 +9,9 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [format, setFormat] = useState('BO3');
-  const [selectedTournament, setSelectedTournament] = useState(defaultCommunity);
+  const [selectedTournament, setSelectedTournament] = useState(
+    ['cordoba', 'afk', 'mendoza'].includes(defaultCommunity) ? defaultCommunity : 'cordoba'
+  );
   const [activeSessions, setActiveSessions] = useState({});
   const [currentSession, setCurrentSession] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -421,9 +423,9 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
             Sistema de Baneos - Super Smash Bros Ultimate
           </p>
           <div className="mt-3 inline-flex items-center gap-2 bg-smash-orange/20 border border-smash-orange/50 rounded-lg px-4 py-2">
-            <span className="text-smash-orange text-lg">{tournaments[selectedTournament].emoji}</span>
+            <span className="text-smash-orange text-lg">{tournaments[selectedTournament]?.emoji}</span>
             <span className="text-white text-sm font-medium">
-              {tournaments[selectedTournament].name}
+              {tournaments[selectedTournament]?.name}
             </span>
           </div>
           
@@ -686,7 +688,7 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
             {/* Links de Control */}
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
               <h3 className="text-2xl font-bold text-white mb-4">
-                📱 Links de Control - {tournaments[selectedTournament].name}
+                📱 Links de Control - {tournaments[selectedTournament]?.name}
               </h3>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
