@@ -181,12 +181,18 @@ export default function StreamOverlayAfk({ sessionId }) {
               className="flex items-center"
               style={{ zIndex: 10 }}
             >
-              <img
-                src={getCharacterData(session.player1.character)?.image}
-                alt={getCharacterData(session.player1.character)?.name}
-                className="w-32 h-32 rounded-full"
-                style={{ objectFit: 'cover' }}
-              />
+              {session.player1.character === 'random' ? (
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-900 to-yellow-700 border-4 border-yellow-400 flex items-center justify-center">
+                  <span className="text-white font-black" style={{ fontFamily: 'Anton', fontSize: '4rem' }}>?</span>
+                </div>
+              ) : (
+                <img
+                  src={getCharacterData(session.player1.character)?.image}
+                  alt={getCharacterData(session.player1.character)?.name}
+                  className="w-32 h-32 rounded-full"
+                  style={{ objectFit: 'cover' }}
+                />
+              )}
               <motion.div
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
@@ -209,12 +215,18 @@ export default function StreamOverlayAfk({ sessionId }) {
                 transition={{ duration: 0.4, delay: 0.5 }}
                 className="h-32 w-1 bg-white mr-4"
               />
-              <img
-                src={getCharacterData(session.player2.character)?.image}
-                alt={getCharacterData(session.player2.character)?.name}
-                className="w-32 h-32 rounded-full"
-                style={{ objectFit: 'cover' }}
-              />
+              {session.player2.character === 'random' ? (
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-900 to-yellow-700 border-4 border-yellow-400 flex items-center justify-center">
+                  <span className="text-white font-black" style={{ fontFamily: 'Anton', fontSize: '4rem' }}>?</span>
+                </div>
+              ) : (
+                <img
+                  src={getCharacterData(session.player2.character)?.image}
+                  alt={getCharacterData(session.player2.character)?.name}
+                  className="w-32 h-32 rounded-full"
+                  style={{ objectFit: 'cover' }}
+                />
+              )}
             </motion.div>
           </>
         )}

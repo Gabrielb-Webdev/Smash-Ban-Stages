@@ -294,7 +294,7 @@ export default function TabletControlAfk({ sessionId }) {
   const handleRandomCharacter = () => {
     const randomChar = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
     if (session.currentTurn) {
-      setPendingAction({ type: 'character', characterId: randomChar.id, characterName: `? (${randomChar.name})`, characterImage: randomChar.image, player: session.currentTurn, isRandom: true });
+      setPendingAction({ type: 'character', characterId: 'random', characterName: '?', characterImage: null, player: session.currentTurn, isRandom: true });
     }
   };
 
@@ -771,7 +771,11 @@ export default function TabletControlAfk({ sessionId }) {
             <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full">
               <div className="text-center mb-6">
                 <div className="mb-4 flex justify-center">
-                  {pendingAction.type === 'character' && pendingAction.characterImage ? (
+                  {pendingAction.type === 'character' && pendingAction.isRandom ? (
+                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-900 to-yellow-700 rounded-full border-4 border-smash-yellow flex items-center justify-center">
+                      <span className="text-white font-black text-3xl" style={{ fontFamily: 'Anton' }}>?</span>
+                    </div>
+                  ) : pendingAction.type === 'character' && pendingAction.characterImage ? (
                     <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-yellow p-1 flex items-center justify-center">
                       <img src={pendingAction.characterImage} alt={pendingAction.characterName} className="w-full h-full object-contain rounded-full" />
                     </div>
