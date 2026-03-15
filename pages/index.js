@@ -112,6 +112,21 @@ export default function Home() {
           ))}
         </div>
 
+        {/* AFK Multi-Setup */}
+        <div className="mt-4">
+          <Link href="/admin/afk-multi" className="group block">
+            <div className="rounded-2xl p-5 flex items-center gap-5 border transition-all duration-300 hover:scale-[1.02]"
+              style={{ background: 'linear-gradient(135deg,#1a0a0a,#2d0c0c)', borderColor: 'rgba(220,38,38,0.4)' }}>
+              <div className="text-4xl">📡</div>
+              <div className="flex-1">
+                <p className="text-white font-bold text-lg">AFK — Multi Setup</p>
+                <p className="text-white/50 text-sm">Gestionar 6 setups simultáneos · 1 stream + 5 offline</p>
+              </div>
+              <span className="text-white/40 group-hover:text-white/70 transition-colors text-xl">→</span>
+            </div>
+          </Link>
+        </div>
+
         {/* Footer Info */}
         <div className="text-center text-gray-400 text-sm mt-8">
           <p>Selecciona una comunidad para gestionar sesiones, jugadores y configuraciones</p>
