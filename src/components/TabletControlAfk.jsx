@@ -3,7 +3,7 @@
 // Archivo exclusivo para AFK. No tocar para Córdoba ni Mendoza.
 // Stages Game 1: Battlefield, Smashville, Town and City, Small Battlefield, Pokemon Stadium 2
 // ============================================================
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
 
@@ -77,6 +77,10 @@ export default function TabletControlAfk({ sessionId }) {
   const [lastGameSaved, setLastGameSaved] = useState(0);
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
+  const [turnModal, setTurnModal] = useState(null);
+  const isFirstRender = useRef(true);
+  const prevPhaseRef = useRef(null);
+  const prevTurnRef = useRef(null);
 
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
@@ -110,6 +114,49 @@ export default function TabletControlAfk({ sessionId }) {
       }
     }
   }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
+
+  // ── Detectar cambios de fase/turno para mostrar modal de anuncio ──────────
+  useEffect(() => {
+    if (!session) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevPhaseRef.current = session.phase;
+      prevTurnRef.current = session.currentTurn;
+      return;
+    }
+    const prevPhase = prevPhaseRef.current;
+    const prevTurn = prevTurnRef.current;
+    const turn = session.currentTurn;
+    const name = turn ? session[turn]?.name : '';
+
+    // Transición de fase
+    if (prevPhase !== session.phase) {
+      if (session.phase === 'STAGE_BAN' && turn) {
+        setTurnModal({ icon: '❌', subtitle: 'Le toca BANEAR stage a:', playerName: name, gradient: 'linear-gradient(135deg,#7f1d1d,#991b1b)' });
+      } else if (session.phase === 'STAGE_SELECT' && turn) {
+        setTurnModal({ icon: '🎯', subtitle: 'Le toca ELEGIR stage a:', playerName: name, gradient: 'linear-gradient(135deg,#1e3a5f,#1d4ed8)' });
+      } else if (session.phase === 'CHARACTER_SELECT' && turn) {
+        setTurnModal({ icon: '👤', subtitle: '¡Elige personaje primero!', playerName: name, gradient: 'linear-gradient(135deg,#1a1a2e,#16213e)' });
+      }
+    } else if (prevTurn !== turn && turn && session.phase !== 'RPS') {
+      // Cambio de turno dentro de la misma fase
+      if (session.phase === 'STAGE_BAN') {
+        setTurnModal({ icon: '❌', subtitle: 'Ahora le toca BANEAR a:', playerName: name, gradient: 'linear-gradient(135deg,#7f1d1d,#991b1b)' });
+      } else if (session.phase === 'CHARACTER_SELECT') {
+        setTurnModal({ icon: '👤', subtitle: '¡Ahora te toca elegir a vos!', playerName: name, gradient: 'linear-gradient(135deg,#1a1a2e,#16213e)' });
+      }
+    }
+    prevPhaseRef.current = session.phase;
+    prevTurnRef.current = session.currentTurn;
+  }, [session?.phase, session?.currentTurn]);
+
+  // Auto-dismiss del modal de turno después de 4s
+  useEffect(() => {
+    if (turnModal) {
+      const t = setTimeout(() => setTurnModal(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [turnModal]);
 
   const handleRepeatCharacter = (player, repeat) => {
     setShowRepeatModal({ player1: false, player2: false });
@@ -214,11 +261,10 @@ export default function TabletControlAfk({ sessionId }) {
   const filteredCharacters = CHARACTERS.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 md:p-4 overflow-hidden" style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
-      <div className="w-full h-full max-w-7xl flex flex-col gap-3 md:gap-4">
+    <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
 
-        {/* ── Header ── */}
-        <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-white/20 flex-shrink-0">
+      {/* ── Header sticky ── */}
+      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl">
           <div className="flex justify-between items-center gap-2">
 
             {/* Jugadores */}
@@ -252,9 +298,12 @@ export default function TabletControlAfk({ sessionId }) {
           </div>
         </div>
 
+      {/* ── Contenido scrollable ── */}
+      <div className="p-3 md:p-4 max-w-7xl mx-auto flex flex-col gap-3 md:gap-4">
+
         {/* ── RPS Phase ── */}
         {session.phase === 'RPS' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-white/30 flex flex-col justify-center relative overflow-hidden min-h-[70vh]">
             <div className="text-center mb-4 sm:mb-6 relative z-10">
               <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
               <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">Piedra, Papel o Tijera</h3>
@@ -287,7 +336,7 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Stage Ban Phase ── */}
         {session.phase === 'STAGE_BAN' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden relative">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex flex-col relative">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
                 <div className="text-center">
@@ -305,7 +354,7 @@ export default function TabletControlAfk({ sessionId }) {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
+            <div className="flex flex-col gap-1.5 sm:gap-2 pb-2">
               {session.currentGame === 1 ? (
                 /* Game 1 - 5 stages fijos de AFK: 3+2 */
                 <>
@@ -350,7 +399,7 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Stage Select Phase ── */}
         {session.phase === 'STAGE_SELECT' && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden relative">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex flex-col relative">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
                 <div className="text-center">
@@ -364,7 +413,7 @@ export default function TabletControlAfk({ sessionId }) {
               <p className="text-white text-sm sm:text-lg font-semibold truncate">Turno: {session[session.currentTurn]?.name}</p>
             </div>
 
-            <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
+            <div className="flex flex-col gap-1.5 sm:gap-2 pb-2">
               {session.currentGame === 1 ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
@@ -407,7 +456,7 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Character Select Phase ── */}
         {session.phase === 'CHARACTER_SELECT' && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex flex-col">
             <div className="flex-shrink-0 mb-2 sm:mb-3">
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
@@ -425,7 +474,7 @@ export default function TabletControlAfk({ sessionId }) {
                 className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none text-xs sm:text-sm"
               />
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 flex-1 overflow-y-scroll pr-1 pb-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 pb-4">
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
@@ -447,7 +496,7 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Playing Phase ── */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border-2 border-white/30 flex-1 flex flex-col justify-center">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border-2 border-white/30 flex flex-col justify-center">
             <div className="text-center mb-2 sm:mb-4">
               <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2">¡EN COMBATE!</h3>
               <p className="text-white/80 text-sm sm:text-lg font-semibold">Game {session.currentGame}</p>
@@ -502,7 +551,7 @@ export default function TabletControlAfk({ sessionId }) {
 
         {/* ── Finished Phase ── */}
         {session.phase === 'FINISHED' && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex flex-col justify-center">
             <div className="text-7xl mb-4 animate-bounce">🏆</div>
             <h3 className="text-4xl font-bold text-white mb-4">¡Serie Finalizada!</h3>
             <div className="rounded-xl p-4 mb-4 border-2 bg-smash-yellow/20 border-smash-yellow/50">
@@ -597,7 +646,38 @@ export default function TabletControlAfk({ sessionId }) {
           </div>
         )}
 
-      </div>
+      </div>{/* fin contenido scrollable */}
+
+      {/* ── Modal de anuncio de turno ── */}
+      {turnModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-[60] p-6"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setTurnModal(null)}
+        >
+          <div
+            className="rounded-3xl p-8 sm:p-12 shadow-2xl border-4 border-white/30 max-w-sm w-full text-center"
+            style={{ background: turnModal.gradient }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-7xl sm:text-8xl mb-4">{turnModal.icon}</div>
+            <p className="text-white/70 text-base sm:text-lg font-semibold mb-2 uppercase tracking-widest">{turnModal.subtitle}</p>
+            <p
+              className="text-white text-4xl sm:text-5xl font-black mb-6 leading-tight"
+              style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}
+            >
+              {turnModal.playerName}
+            </p>
+            <button
+              onClick={() => setTurnModal(null)}
+              className="bg-white/20 hover:bg-white/30 active:scale-95 text-white font-bold text-sm px-6 py-3 rounded-xl border border-white/30 transition-all touch-manipulation"
+            >
+              Entendido ✓
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
