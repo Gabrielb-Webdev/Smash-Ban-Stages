@@ -7,23 +7,18 @@ import {
   TextInput,
   StatusBar,
   SafeAreaView,
-  Image,
+  Linking,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
 export default function App() {
   const [sessionId, setSessionId] = useState('');
 
-  const handleConnect = async (id) => {
+  const handleConnect = (id) => {
     const trimmed = (id || sessionId).trim();
     if (!trimmed) return;
-    await WebBrowser.openBrowserAsync(`${BASE_URL}/tablet/${trimmed}`, {
-      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-      controlsColor: '#DC2626',
-      toolbarColor: '#000000',
-    });
+    Linking.openURL(`${BASE_URL}/tablet/${trimmed}`);
   };
 
   return (
@@ -31,13 +26,8 @@ export default function App() {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <View style={styles.logo}>
-        <Image
-          source={{ uri: `${BASE_URL}/images/AFK.webp` }}
-          style={styles.logoImg}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>AFK Smash Stages</Text>
-        <Text style={styles.subtitle}>Control de Tablet</Text>
+        <Text style={styles.title}>🎮 AFK Smash Stages</Text>
+        <Text style={styles.subtitle}>CONTROL DE TABLET</Text>
       </View>
 
       <View style={styles.card}>
@@ -57,7 +47,7 @@ export default function App() {
           onPress={() => handleConnect()}
           disabled={!sessionId.trim()}
         >
-          <Text style={styles.btnMainText}>🎮 Conectar</Text>
+          <Text style={styles.btnMainText}>Conectar</Text>
         </TouchableOpacity>
       </View>
 
@@ -91,11 +81,6 @@ const styles = StyleSheet.create({
   logo: {
     alignItems: 'center',
     marginBottom: 40,
-  },
-  logoImg: {
-    width: 80,
-    height: 80,
-    marginBottom: 12,
   },
   title: {
     fontSize: 28,

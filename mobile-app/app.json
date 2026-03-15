@@ -3,7 +3,7 @@
     "name": "AFK Smash",
     "slug": "afk-smash-mobile",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
+    "sdkVersion": "52.0.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
