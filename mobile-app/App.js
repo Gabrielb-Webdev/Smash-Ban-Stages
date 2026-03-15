@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,47 +9,22 @@ import {
   SafeAreaView,
   Image,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
+import * as WebBrowser from 'expo-web-browser';
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
 export default function App() {
   const [sessionId, setSessionId] = useState('');
-  const [activeUrl, setActiveUrl] = useState(null);
-  const webViewRef = useRef(null);
 
-  const handleConnect = (id) => {
+  const handleConnect = async (id) => {
     const trimmed = (id || sessionId).trim();
     if (!trimmed) return;
-    setActiveUrl(`${BASE_URL}/tablet/${trimmed}`);
+    await WebBrowser.openBrowserAsync(`${BASE_URL}/tablet/${trimmed}`, {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      controlsColor: '#DC2626',
+      toolbarColor: '#000000',
+    });
   };
-
-  const handleBack = () => {
-    setActiveUrl(null);
-    setSessionId('');
-  };
-
-  if (activeUrl) {
-    return (
-      <SafeAreaView style={styles.fullScreen}>
-        <StatusBar hidden />
-        <WebView
-          ref={webViewRef}
-          source={{ uri: activeUrl }}
-          style={styles.webview}
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          javaScriptEnabled
-          domStorageEnabled
-          startInLoadingState
-          onError={() => handleBack()}
-        />
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Text style={styles.backBtnText}>✕</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,29 +80,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  fullScreen: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  webview: {
-    flex: 1,
-  },
-  backBtn: {
-    position: 'absolute',
-    top: 14,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   container: {
     flex: 1,
     backgroundColor: '#0a0a0a',
