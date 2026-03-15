@@ -261,7 +261,7 @@ function MainScreen({ user, onLogout }) {
 // ROOT
 // ─────────────────────────────────────────────────────────────
 export default function App() {
-  const [auth, setAuth] = useState(null);
+  const [vvvauth, setAuth] = useState(null);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
