@@ -14,8 +14,6 @@ import {
   ScrollView,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
 
 // ─────────────────────────────────────────────────────────────
 // ERROR BOUNDARY — evita que el crash cierre la app silenciosamente
@@ -49,8 +47,7 @@ class ErrorBoundary extends React.Component {
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
-const START_GG_CLIENT_ID =
-  Constants.expoConfig?.extra?.startGgClientId || '435';
+const START_GG_CLIENT_ID = '435';
 
 const REDIRECT_URI = 'afk-smash://auth';
 
@@ -81,10 +78,6 @@ function LoginScreen({ onLogin }) {
       }
 
       const data = await res.json();
-      await SecureStore.setItemAsync('startgg_token', data.access_token);
-      if (data.user) {
-        await SecureStore.setItemAsync('startgg_user', JSON.stringify(data.user));
-      }
       onLogin({ token: data.access_token, user: data.user || null });
     } catch (e) {
       Alert.alert('Error de autenticación', e.message || 'No se pudo completar el login.');
@@ -261,29 +254,10 @@ function MainScreen({ user, onLogout }) {
 // ROOT
 // ─────────────────────────────────────────────────────────────
 export default function App() {
-  const [vvvauth, setAuth] = useState(null);
-  const [checking, setChecking] = useState(true);
+  const [auth, setAuth] = useState(null);
+  const [checking, setChecking] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const token = await SecureStore.getItemAsync('startgg_token');
-        const userRaw = await SecureStore.getItemAsync('startgg_user');
-        if (token) {
-          const user = userRaw ? JSON.parse(userRaw) : null;
-          setAuth({ token, user });
-        }
-      } catch (_) {
-        // token invalido o expirado, ignorar
-      } finally {
-        setChecking(false);
-      }
-    })();
-  }, []);
-
-  const handleLogout = async () => {
-    await SecureStore.deleteItemAsync('startgg_token');
-    await SecureStore.deleteItemAsync('startgg_user');
+  const handleLogout = () => {
     setAuth(null);
   };
 

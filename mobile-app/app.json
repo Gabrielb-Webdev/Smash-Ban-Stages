@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
     "icon": "./assets/afk-icon.png",
     "splash": { "backgroundColor": "#000000", "resizeMode": "contain" },
     "assetBundlePatterns": ["**/*"],
@@ -15,7 +14,6 @@
     "scheme": "afk-smash",
     "owner": "gabriel_sin_h",
     "plugins": [
-      "expo-secure-store",
       [
         "expo-build-properties",
         {
