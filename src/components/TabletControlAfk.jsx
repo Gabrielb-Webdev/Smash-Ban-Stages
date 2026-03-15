@@ -530,7 +530,7 @@ export default function TabletControlAfk({ sessionId }) {
               {/* Picks anteriores del jugador */}
               {playerPickHistory.length > 0 && (
                 <div className="mb-2">
-                  <p className=\"text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1.5 font-semibold\">Personajes seleccionados anteriormente</p>
+                  <p className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1.5 font-semibold">Personajes seleccionados anteriormente</p>
                   <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
                     {playerPickHistory.map((charId) => {
                       const char = CHARACTERS.find(c => c.id === charId);
