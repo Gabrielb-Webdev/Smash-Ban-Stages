@@ -1,9 +1,31 @@
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Head from 'next/head';
+import { getStoredUser } from '../src/utils/auth';
 
 export default function Home() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const user = getStoredUser();
+    if (!user || !user.isAdmin) {
+      router.replace('/login');
+    } else {
+      setChecking(false);
+    }
+  }, []);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const communities = [
     {
       id: 'cordoba',
