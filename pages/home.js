@@ -515,11 +515,19 @@ function TabTorneos() {
    TAB — TIPS
 ═══════════════════════════════════════════════════ */
 const CHARS = [
-  'Mario','Pikachu','Fox','Marth','Samus','Link','Kirby','Donkey Kong',
-  'Sheik','Falco','Mewtwo','Zelda','Young Link','Ice Climbers','Jigglypuff',
-  'Pichu','Ness','Captain Falcon','Roy','Game & Watch',
+  'Banjo Kazooie','Bayonetta','Bowser','Bowser Jr.','Byleth','Captain Falcon',
+  'Chrom','Cloud','Corrin','Daisy','Dark Pit','Dark Samus','Diddy Kong','Donkey Kong',
+  'Dr. Mario','Duck Hunt','Falco','Fox','Ganondorf','Greninja','Hero','Ice Climbers',
+  'Ike','Incineroar','Inkling','Isabelle','Jigglypuff','Joker','Kazuya','Ken',
+  'King Dedede','King K. Rool','Kirby','Link','Little Mac','Lucario','Lucas',
+  'Lucina','Luigi','Mario','Marth','Mega Man','Meta Knight','Mewtwo','Mii Brawler',
+  'Mii Gunner','Mii Swordfighter','Min Min','Mr. Game & Watch','Ness','Olimar',
+  'Pac-Man','Palutena','Peach','Pichu','Pikachu','Piranha Plant','Pit',
+  'Pokemon Trainer','Pyra Mythra','R.O.B.','Richter','Ridley','Robin',
+  'Rosalina & Luma','Roy','Ryu','Samus','Sephiroth','Sheik','Shulk','Simon',
+  'Snake','Sonic','Sora','Steve','Terry','Toon Link','Villager','Wario',
+  'Wii Fit Trainer','Wolf','Yoshi','Young Link','Zelda','Zero Suit Samus',
 ];
-const CHAR_COLORS = ['#3B82F6','#EAB308','#EF4444','#10B981','#8B5CF6','#F97316','#06B6D4','#EC4899'];
 
 function TabTips() {
   const [selected, setSelected] = useState(null);
@@ -551,26 +559,27 @@ function TabTips() {
       <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Tips</h1>
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí un personaje</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {CHARS.map((c, i) => {
-          const accent = CHAR_COLORS[i % CHAR_COLORS.length];
-          return (
-            <button key={c} onClick={() => setSelected(c)} style={{
-              background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: 16, padding: '14px 14px', textAlign: 'left',
-              cursor: 'pointer', transition: 'all 0.15s',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}
-              onMouseEnter={e => { e.currentTarget.style.border = `1px solid ${accent}30`; e.currentTarget.style.background = `${accent}0a`; }}
-              onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#141414'; }}
-            >
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, flexShrink: 0, boxShadow: `0 0 6px ${accent}80` }} />
-              <div>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff' }}>{c}</p>
-                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>0 tips</p>
-              </div>
-            </button>
-          );
-        })}
+        {CHARS.map((c) => (
+          <button key={c} onClick={() => setSelected(c)} style={{
+            background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
+            borderRadius: 16, padding: '10px 12px', textAlign: 'left',
+            cursor: 'pointer', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}
+            onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(232,142,0,0.3)'; e.currentTarget.style.background = 'rgba(232,142,0,0.06)'; }}
+            onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#141414'; }}
+          >
+            <img
+              src={`/images/characters/${encodeURIComponent(c)}.png`}
+              alt={c}
+              style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0, borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}
+            />
+            <div style={{ overflow: 'hidden' }}>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</p>
+              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>0 tips</p>
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
