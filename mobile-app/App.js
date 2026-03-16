@@ -426,7 +426,7 @@ export default function App() {
           source={{ uri: webUrl || ADMIN_HOME }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          injectedJavaScript={"var s=document.createElement('style');s.innerHTML='.fixed.top-0.right-0.z-50{display:none!important}';document.head.appendChild(s);true;"}
+          injectedJavaScript={"var s=document.createElement('style');s.innerHTML='.fixed.top-0.right-0.z-50{display:none!important}#app-profile-header{display:none!important}';document.head.appendChild(s);true;"}
         />
         {FloatingProfileBtn}
       </View>

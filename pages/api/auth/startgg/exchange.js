@@ -57,6 +57,9 @@ export default async function handler(req, res) {
               id
               name
               slug
+              player {
+                gamerTag
+              }
               images {
                 type
                 url
@@ -91,8 +94,8 @@ export default async function handler(req, res) {
       isAdmin,
       user: {
         id: user.id,
-        name: user.name,
-        slug: user.slug,
+        name: user.player?.gamerTag || user.name || slugNormalized,
+        slug: slugNormalized,
         avatar,
       },
     });
