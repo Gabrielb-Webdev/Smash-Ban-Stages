@@ -119,37 +119,46 @@ export default function HomePage() {
         <title>AFK Smash</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-          body { background: #080808; margin: 0; }
+          body { background: #050508; margin: 0; }
           ::-webkit-scrollbar { display: none; }
           .tab-content { animation: fadeUp 0.18s ease; }
-          @keyframes fadeUp { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
-          @keyframes spin   { to { transform: rotate(360deg) } }
-          .shimmer { background: linear-gradient(90deg,#1a1a1a 25%,#242424 50%,#1a1a1a 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-          @keyframes shimmer { to { background-position: -200% 0 } }
+          @keyframes fadeUp  { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+          @keyframes spin    { to { transform: rotate(360deg) } }
+          @keyframes pulse-ring { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.12)} }
+          @keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px rgba(232,142,0,0.35)} 50%{box-shadow:0 0 28px rgba(232,142,0,0.7)} }
+          @keyframes scan { 0%{background-position:0 0} 100%{background-position:0 100%} }
           @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+          @keyframes neon-flicker { 0%,19%,21%,23%,25%,54%,56%,100%{opacity:1} 20%,24%,55%{opacity:0.8} }
+          .shimmer { background: linear-gradient(90deg,#111116 25%,#1c1c22 50%,#111116 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+          @keyframes shimmer { to { background-position: -200% 0 } }
+          .gamer-card { transition: border-color 0.2s, box-shadow 0.2s; }
+          .gamer-card:hover { border-color: rgba(232,142,0,0.4) !important; box-shadow: 0 0 20px rgba(232,142,0,0.08) !important; }
+          .btn-gamer:active { transform: scale(0.97); }
         `}</style>
       </Head>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: '#050508', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
         {/* ── TOP BAR ── */}
         <header style={{
-          position: 'sticky', top: 0, zIndex: 40,
-          padding: '14px 18px 12px',
-          background: 'rgba(8,8,8,0.92)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          position: 'sticky', top: 0, zIndex: 50,
+          padding: '12px 18px 11px',
+          background: 'rgba(5,5,8,0.95)',
+          backdropFilter: 'blur(24px)',
+          borderBottom: '1px solid rgba(232,142,0,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          boxShadow: '0 1px 0 rgba(232,142,0,0.08), 0 4px 20px rgba(0,0,0,0.6)',
         }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, boxShadow: '0 4px 12px rgba(232,142,0,0.4)' }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, boxShadow: '0 0 16px rgba(232,142,0,0.55), 0 4px 12px rgba(0,0,0,0.4)', animation: 'glow-pulse 3s ease-in-out infinite' }}>
               🎮
             </div>
-            <div>
-              <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: '-0.5px', color: '#fff' }}>AFK</span>
-              <span style={{ fontWeight: 400, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginLeft: 2 }}>Smash</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+              <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>AFK</span>
+              <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>SMASH</span>
             </div>
           </div>
 
@@ -159,11 +168,11 @@ export default function HomePage() {
             {/* Campana — fuera del div oculto en la app mobile */}
             <button
               onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
-              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center' }}
+              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', zIndex: 51 }}
             >
               <Svg size={22} sw={1.8}>{ICO.bell}</Svg>
               {unreadCount > 0 && (
-                <div style={{ position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #080808', padding: '0 2px' }}>
+                <div style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: 'linear-gradient(135deg,#EF4444,#DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #050508', padding: '0 2px', boxShadow: '0 0 8px rgba(239,68,68,0.6)' }}>
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </div>
               )}
@@ -338,7 +347,9 @@ function BottomNav({ tab, setTab }) {
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 480, zIndex: 50,
-      background: '#0a0a0a',
+      background: 'rgba(5,5,8,0.97)',
+      backdropFilter: 'blur(20px)',
+      borderTop: '1px solid rgba(232,142,0,0.12)',
       display: 'flex',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
@@ -354,16 +365,25 @@ function BottomNav({ tab, setTab }) {
               paddingTop: 12, paddingBottom: 12,
               border: 'none', background: 'transparent', cursor: 'pointer',
               position: 'relative',
-              color: active ? '#ffffff' : 'rgba(255,255,255,0.28)',
+              color: active ? '#FF8C00' : 'rgba(255,255,255,0.28)',
               transition: 'color 0.2s ease',
             }}
           >
+            {/* Indicador barra superior naranja con glow */}
+            {active && (
+              <span style={{
+                position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                width: 28, height: 2, borderRadius: 2,
+                background: 'linear-gradient(90deg,#FF8C00,#FF6000)',
+                boxShadow: '0 0 10px rgba(232,142,0,0.8)',
+              }} />
+            )}
             {/* Pill glow detrás del icono activo */}
             {active && (
               <span style={{
                 position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
                 width: 40, height: 32, borderRadius: 12,
-                background: 'rgba(255,255,255,0.07)',
+                background: 'rgba(232,142,0,0.08)',
                 pointerEvents: 'none',
               }} />
             )}
@@ -389,22 +409,29 @@ function BottomNav({ tab, setTab }) {
 function SectionTitle({ children, action, onAction }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', margin: 0 }}>{children}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 3, height: 14, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', boxShadow: '0 0 8px rgba(232,142,0,0.6)', flexShrink: 0, display: 'inline-block' }} />
+        <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', margin: 0 }}>{children}</p>
+      </div>
       {action && <button onClick={onAction} style={{ fontSize: 11, color: '#FF8C00', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{action}</button>}
     </div>
   );
 }
 
 /* ─── STAT CARD ─────────────────────────────────── */
-function StatCard({ icon, label, value, sub }) {
+function StatCard({ icon, label, value, sub, accent }) {
   return (
     <div style={{
-      flex: 1, background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
+      flex: 1, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)',
       borderRadius: 16, padding: '14px 10px', textAlign: 'center',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      position: 'relative', overflow: 'hidden',
     }}>
+      {accent && (
+        <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${accent}60,transparent)` }} />
+      )}
       <span style={{ fontSize: 20 }}>{icon}</span>
-      <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{value}</span>
+      <span style={{ fontSize: 21, fontWeight: 900, color: accent || '#fff', lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</span>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em' }}>{label}</span>
       {sub && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{sub}</span>}
     </div>
@@ -415,9 +442,9 @@ function StatCard({ icon, label, value, sub }) {
 function Tag({ children, color = '#FF8C00' }) {
   return (
     <span style={{
-      fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
-      background: `${color}18`, color, border: `1px solid ${color}28`,
-      letterSpacing: '0.06em',
+      fontSize: 8.5, fontWeight: 800, padding: '3px 7px', borderRadius: 4,
+      background: `${color}18`, color, border: `1px solid ${color}35`,
+      letterSpacing: '0.08em', textTransform: 'uppercase',
     }}>
       {children}
     </span>
@@ -434,12 +461,19 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
       <div style={{
         position: 'relative', overflow: 'hidden',
         padding: '28px 20px 32px',
-        background: 'linear-gradient(160deg, rgba(232,142,0,0.12) 0%, rgba(232,80,0,0.06) 40%, transparent 70%)',
+        background: 'linear-gradient(160deg, rgba(232,142,0,0.1) 0%, rgba(232,80,0,0.05) 40%, transparent 70%)',
+        backgroundImage: 'linear-gradient(rgba(232,142,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232,142,0,0.04) 1px, transparent 1px)',
+        backgroundSize: '100% 32px, 32px 100%',
       }}>
-        {/* Decorative circle */}
+        {/* Orb naranja derecha */}
         <div style={{
           position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(232,142,0,0.08) 0%, transparent 70%)', pointerEvents: 'none',
+          background: 'radial-gradient(circle, rgba(232,142,0,0.09) 0%, transparent 70%)', pointerEvents: 'none',
+        }} />
+        {/* Orb púrpura izquierda */}
+        <div style={{
+          position: 'absolute', left: -60, bottom: -20, width: 180, height: 180, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', pointerEvents: 'none',
         }} />
 
         {/* User info */}
@@ -451,7 +485,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
                   {initial}
                 </div>
             }
-            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: '#22C55E', border: '2px solid #080808' }} />
+            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: '#22C55E', border: '2px solid #050508', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
           </div>
 
           <div>
@@ -466,9 +500,9 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 10 }}>
-          <StatCard icon="⭐" label="Puntos" value="—" sub="BA Local" />
-          <StatCard icon="🏆" label="Ranking" value="—" sub="posición" />
-          <StatCard icon="⚡" label="W / L" value="—" sub="online" />
+          <StatCard icon="⭐" label="Puntos" value="—" sub="BA Local" accent="#FF8C00" />
+          <StatCard icon="🏆" label="Ranking" value="—" sub="posición" accent="#F59E0B" />
+          <StatCard icon="⚡" label="W / L" value="—" sub="online" accent="#22C55E" />
         </div>
       </div>
 
@@ -508,7 +542,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
               icon: '🏅', from: '#431407', to: '#1c0a00', border: '1px solid rgba(251,146,60,0.15)',
             },
           ].map(c => (
-            <div key={c.name} style={{
+            <div key={c.name} className="gamer-card" style={{
               background: `linear-gradient(135deg,${c.from},${c.to})`,
               border: c.border, borderRadius: 20, padding: '16px',
               display: 'flex', gap: 14, alignItems: 'flex-start',
@@ -535,16 +569,16 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           {[
-            { icon: '📊', title: 'Sistema de puntos en vivo', sub: 'Ranking actualizado después de cada torneo' },
-            { icon: '⚡', title: 'Matchmaking online', sub: 'Encontrá rivales de tu nivel en segundos' },
-            { icon: '📚', title: 'Guías por personaje', sub: 'Combos, neutrales y matchups' },
+            { icon: '📊', title: 'Sistema de puntos en vivo', sub: 'Ranking actualizado después de cada torneo', accent: '#FF8C00' },
+            { icon: '⚡', title: 'Matchmaking online', sub: 'Encontrá rivales de tu nivel en segundos', accent: '#38BDF8' },
+            { icon: '📚', title: 'Guías por personaje', sub: 'Combos, neutrales y matchups', accent: '#A855F7' },
           ].map(f => (
             <div key={f.title} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: `${f.accent}12`, border: `1px solid ${f.accent}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                 {f.icon}
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{f.title}</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{f.title}</p>
                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{f.sub}</p>
               </div>
             </div>
