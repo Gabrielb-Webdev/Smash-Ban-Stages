@@ -570,7 +570,7 @@ function TabTips() {
             onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#141414'; }}
           >
             <img
-              src={`/images/characters/${encodeURIComponent(c)}.png`}
+              src={`/images/characters/${encodeURIComponent(c.replace(/\.$/, ''))}.png`}
               alt={c}
               style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0, borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}
             />
