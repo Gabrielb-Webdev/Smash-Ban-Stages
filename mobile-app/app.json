@@ -7,7 +7,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "icon": "./assets/afk-icon.png",
-    "splash": { "backgroundColor": "#000000", "resizeMode": "contain" },
+    "splash": { "image": "./assets/afk-icon.png", "backgroundColor": "#000000", "resizeMode": "contain" },
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.afksmash.mobile",
