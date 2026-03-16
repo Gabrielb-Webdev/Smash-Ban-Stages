@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { getStoredUser } from '../src/utils/auth';
+import { getStoredUser, logout } from '../src/utils/auth';
 
 /* ─── PLATAFORMAS ─────────────────────────────── */
 const PLATFORMS = [
@@ -37,6 +37,7 @@ export default function HomePage() {
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tab, setTab]         = useState('inicio');
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -109,18 +110,75 @@ export default function HomePage() {
           </div>
 
           {/* Right side */}
-          <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-              <Svg size={18} sw={1.8}>{ICO.bell}</Svg>
+          <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => setShowMenu(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 500, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
+              {user.avatar
+                ? <img src={user.avatar} alt={displayName} style={{ width: 36, height: 36, borderRadius: '50%', border: showMenu ? '2px solid #FF8C00' : '2px solid rgba(232,142,0,0.4)', objectFit: 'cover', transition: 'border 0.15s' }} />
+                : <div style={{ width: 36, height: 36, borderRadius: '50%', background: showMenu ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#fff', transition: 'all 0.15s' }}>
+                    {initial}
+                  </div>
+              }
             </button>
-            {user.avatar
-              ? <img src={user.avatar} alt={displayName} style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(232,142,0,0.4)', objectFit: 'cover' }} />
-              : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#E88E00' }}>
-                  {initial}
-                </div>
-            }
           </div>
         </header>
+
+        {/* ── PROFILE MENU OVERLAY ── */}
+        {showMenu && (
+          <>
+            <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} />
+            <div style={{
+              position: 'fixed', top: 66, right: 'max(calc(50% - 240px + 14px), 14px)',
+              zIndex: 46, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 18, padding: 6, minWidth: 220,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+              animation: 'fadeUp 0.15s ease',
+            }}>
+              {/* User info */}
+              <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                {user.avatar
+                  ? <img src={user.avatar} alt={displayName} style={{ width: 42, height: 42, borderRadius: 13, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.4)' }} />
+                  : <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: '#fff' }}>{initial}</div>
+                }
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</p>
+                  {user.slug && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>@{user.slug}</p>}
+                </div>
+              </div>
+              {/* Menu items */}
+              {[{icon:'🎮', label:'Mi perfil', sub:'Start.GG', action: () => { setShowMenu(false); }},
+                {icon:'⚙️', label:'Configuración', sub:'Preferencias', action: () => { setShowMenu(false); }},
+              ].map(item => (
+                <button key={item.label} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: 18, width: 28, textAlign: 'center' }}>{item.icon}</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fff' }}>{item.label}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{item.sub}</p>
+                  </div>
+                </button>
+              ))}
+              {/* Logout */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4, paddingTop: 4 }}>
+                <button onClick={() => { logout(); setShowMenu(false); window.location.href = '/login'; }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#ef4444' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: 18, width: 28, textAlign: 'center' }}>🚪</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Cerrar sesión</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(239,68,68,0.6)' }}>Salir de la cuenta</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ── CONTENT ── */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
@@ -404,51 +462,38 @@ function TabRankings() {
             <Tag color="#EAB308">Próximamente</Tag>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[1, 2, 3, 4, 5].map(pos => {
-              const medals = ['🥇', '🥈', '🥉'];
-              return (
-                <div key={pos} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  background: pos === 1 ? 'linear-gradient(135deg,rgba(234,179,8,0.08),rgba(234,179,8,0.02))' : '#141414',
-                  border: `1px solid ${pos === 1 ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                  borderRadius: 14, padding: '12px 16px',
-                }}>
-                  <span style={{ fontSize: pos <= 3 ? 22 : 14, fontWeight: 900, color: 'rgba(255,255,255,0.2)', width: 26, textAlign: 'center', flexShrink: 0 }}>
-                    {pos <= 3 ? medals[pos - 1] : pos}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div className="shimmer" style={{ height: 12, width: 100, borderRadius: 6, marginBottom: 6 }} />
-                    <div className="shimmer" style={{ height: 9, width: 60, borderRadius: 5 }} />
-                  </div>
-                  <div className="shimmer" style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0 }} />
+          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
+            <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'BA Local' : 'Nacional'}</p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán automáticamente después de cada torneo registrado en Start.GG</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {['🥇 1er lugar', '🥈 2do lugar', '🥉 3er lugar', '4° lugar', '5° lugar'].map((label, i) => (
+                <div key={i} style={{ background: i === 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, padding: '8px 14px' }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: i === 0 ? '#EAB308' : 'rgba(255,255,255,0.3)' }}>{label}</p>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <div style={{ marginTop: 20, display: 'inline-flex', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 10, padding: '7px 16px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
+            </div>
           </div>
         </>
       ) : (
         <>
           <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Tu rendimiento por personaje</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-            {[
-              { t: 'S', a: '#FBBF24', b: '#F59E0B' },
-              { t: 'A', a: '#34D399', b: '#10B981' },
-              { t: 'B', a: '#60A5FA', b: '#3B82F6' },
-              { t: 'C', a: '#9CA3AF', b: '#6B7280' },
-            ].map(({ t, a, b }) => (
-              <div key={t} style={{
-                background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: 16, padding: '20px 12px', textAlign: 'center', opacity: 0.4,
-              }}>
-                <p style={{ margin: '0 0 6px', fontSize: 36, fontWeight: 900, background: `linear-gradient(135deg,${a},${b})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t}</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Clase {t}</p>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: '#141414', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 18, padding: '28px 20px', textAlign: 'center' }}>
-            <span style={{ fontSize: 32 }}>🎭</span>
-            <p style={{ margin: '10px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Jugá partidas para ver tu ranking por personaje</p>
+          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '32px 20px', textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
+              {[{ t:'S', a:'#FBBF24', b:'#F59E0B' }, { t:'A', a:'#34D399', b:'#10B981' }, { t:'B', a:'#60A5FA', b:'#3B82F6' }, { t:'C', a:'#9CA3AF', b:'#6B7280' }].map(({ t, a, b }) => (
+                <div key={t} style={{ width: 52, height: 52, borderRadius: 14, background: '#111', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 26, fontWeight: 900, background: `linear-gradient(135deg,${a},${b})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 15, color: '#fff' }}>Ranking por personaje</p>
+            <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Jugá partidas online para acumular victorias con tu main y subir de clase</p>
+            <div style={{ display: 'inline-flex', background: 'rgba(232,142,0,0.06)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 10, padding: '7px 16px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
+            </div>
           </div>
         </>
       )}
@@ -532,35 +577,85 @@ const CHARS = [
 
 function TabTips() {
   const [selected, setSelected] = useState(null);
+  const [query, setQuery] = useState('');
 
-  if (selected) return (
-    <div style={{ padding: '24px 18px' }}>
-      <button onClick={() => setSelected(null)} style={{
-        display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00',
-        fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer',
-        padding: '4px 0', marginBottom: 20,
-      }}>
-        <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
-      </button>
-      <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: '#fff' }}>{selected}</h2>
-      <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Tips de la comunidad</p>
-      <div style={{ background: '#141414', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
-        <span style={{ fontSize: 40 }}>💡</span>
-        <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavía para <span style={{ color: '#fff' }}>{selected}</span></p>
-        <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar</p>
-        <div style={{ display: 'inline-flex', background: 'rgba(232,142,0,0.08)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 10, padding: '8px 16px' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,140,0,0.5)' }}>+ Subir tip — Próximamente</span>
+  if (selected) {
+    const imgSrc = `/images/characters/${encodeURIComponent(selected.replace(/\.$/, ''))}.png`;
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <button onClick={() => setSelected(null)} style={{
+          display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00',
+          fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer',
+          padding: '4px 0', marginBottom: 20,
+        }}>
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
+        </button>
+
+        {/* Character hero */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: 16 }}>
+          <img src={imgSrc} alt={selected} style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 14, background: 'rgba(255,255,255,0.03)', flexShrink: 0 }} />
+          <div>
+            <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{selected}</h2>
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Super Smash Bros. Ultimate</p>
+            <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '4px 10px' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>0 tips de la comunidad</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Empty state */}
+        <div style={{ background: '#141414', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
+          <span style={{ fontSize: 40 }}>💡</span>
+          <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavía</p>
+          <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
+          <div style={{ display: 'inline-flex', background: 'rgba(232,142,0,0.08)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 10, padding: '8px 16px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,140,0,0.5)' }}>+ Subir tip — Próximamente</span>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  const filtered = query.trim()
+    ? CHARS.filter(c => c.toLowerCase().includes(query.toLowerCase()))
+    : CHARS;
 
   return (
     <div style={{ padding: '24px 18px' }}>
       <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Tips</h1>
-      <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí un personaje</p>
+      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí un personaje · {CHARS.length} disponibles</p>
+
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar personaje..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          style={{
+            width: '100%', background: '#141414', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14, padding: '11px 14px 11px 40px', fontSize: 14, color: '#fff',
+            outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+        {query && (
+          <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <span style={{ fontSize: 32 }}>🔍</span>
+          <p style={{ margin: '10px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin resultados para "{query}"</p>
+        </div>
+      ) : (
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {CHARS.map((c) => (
+        {filtered.map((c) => (
           <button key={c} onClick={() => setSelected(c)} style={{
             background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
             borderRadius: 16, padding: '10px 12px', textAlign: 'left',
@@ -582,6 +677,7 @@ function TabTips() {
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }
