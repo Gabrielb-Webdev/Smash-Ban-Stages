@@ -8,10 +8,7 @@ import {
   TextInput,
   Linking,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
-
-var SCREEN = Dimensions.get('screen');
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
@@ -28,7 +25,7 @@ export default function App() {
   const [customId, setCustomId] = useState('');
 
   return (
-    <View style={[styles.safe, { width: SCREEN.width, height: SCREEN.height }]}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={false} />
       <ScrollView contentContainerStyle={styles.scroll}>
 
