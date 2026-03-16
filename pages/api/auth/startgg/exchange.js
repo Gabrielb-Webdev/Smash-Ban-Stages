@@ -9,6 +9,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!START_GG_CLIENT_SECRET) {
+    console.error('START_GG_CLIENT_SECRET no está configurado en las variables de entorno');
+    return res.status(500).json({ error: 'Server misconfigured: missing client secret' });
+  }
+
   const { code, redirectUri } = req.body;
 
   if (!code || !redirectUri) {
@@ -16,7 +21,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Exchange authorization code for access token
     const tokenResponse = await fetch('https://api.start.gg/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -32,7 +36,9 @@ export default async function handler(req, res) {
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange code for token');
+      const errBody = await tokenResponse.text();
+      console.error('Start.gg token error:', tokenResponse.status, errBody);
+      return res.status(500).json({ error: 'Failed to exchange code for token', detail: errBody });
     }
 
     const tokenData = await tokenResponse.json();
