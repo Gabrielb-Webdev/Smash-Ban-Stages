@@ -41,7 +41,7 @@ export default function AuthCallback() {
         }
 
         if (!data.isAdmin) {
-          router.replace('/login?error=no_access');
+          router.replace('/home');
           return;
         }
 

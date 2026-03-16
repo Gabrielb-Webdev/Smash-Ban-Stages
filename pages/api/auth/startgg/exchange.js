@@ -79,7 +79,9 @@ export default async function handler(req, res) {
 
     const user = userData.data.currentUser;
     const avatar = user.images?.find((img) => img.type === 'profile')?.url;
-    const isAdmin = ADMIN_SLUGS.length === 0 || ADMIN_SLUGS.includes(user.slug);
+    // Start.gg devuelve slug como "user/ead8fa65" — normalizamos a solo "ead8fa65"
+    const slugNormalized = user.slug?.replace(/^user\//, '');
+    const isAdmin = ADMIN_SLUGS.length === 0 || ADMIN_SLUGS.includes(slugNormalized) || ADMIN_SLUGS.includes(user.slug);
 
     res.status(200).json({
       access_token: tokenData.access_token,
