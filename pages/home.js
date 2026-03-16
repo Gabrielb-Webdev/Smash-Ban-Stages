@@ -432,7 +432,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
 ═══════════════════════════════════════════════════ */
 function TabRankings() {
   const [mode, setMode] = useState('ba');
-  const MODES = [{ id: 'ba', label: 'BA Local' }, { id: 'inc', label: 'Nacional' }, { id: 'char', label: 'Personaje' }];
+  const MODES = [{ id: 'ba', label: 'BA Local' }, { id: 'inc', label: 'INC' }, { id: 'char', label: 'Personaje' }];
 
   return (
     <div style={{ padding: '24px 18px' }}>
@@ -464,7 +464,7 @@ function TabRankings() {
 
           <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
-            <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'BA Local' : 'Nacional'}</p>
+            <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'BA Local' : 'Smash INC'}</p>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán automáticamente después de cada torneo registrado en Start.GG</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
               {['🥇 1er lugar', '🥈 2do lugar', '🥉 3er lugar', '4° lugar', '5° lugar'].map((label, i) => (
