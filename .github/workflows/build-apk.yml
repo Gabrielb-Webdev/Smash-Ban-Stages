@@ -45,7 +45,7 @@ jobs:
 
       - name: Bundle JavaScript (empaquetar JS en APK)
         working-directory: mobile-app
-        run: npx expo export:embed --platform android --entry-file App.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/ --dev false
+        run: npx expo export:embed --platform android --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/ --dev false
 
       - name: Build APK
         working-directory: mobile-app/android
