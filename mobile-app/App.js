@@ -1,4 +1,4 @@
-﻿// v1.0.5
+﻿// v1.0.6
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, StatusBar, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
