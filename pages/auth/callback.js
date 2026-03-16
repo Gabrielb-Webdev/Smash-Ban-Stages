@@ -34,7 +34,11 @@ export default function AuthCallback() {
     })
       .then(r => r.json())
       .then(data => {
-        if (data.error) throw new Error(data.error);
+        if (data.error) {
+          const detail = data.detail ? encodeURIComponent(data.detail) : '';
+          router.replace('/login?error=' + encodeURIComponent(data.error) + (detail ? '&detail=' + detail : ''));
+          return;
+        }
 
         if (!data.isAdmin) {
           router.replace('/login?error=no_access');
@@ -44,8 +48,8 @@ export default function AuthCallback() {
         localStorage.setItem('afk_user', JSON.stringify(data));
         router.replace('/admin/afk-multi');
       })
-      .catch(() => {
-        router.replace('/login?error=auth_failed');
+      .catch((e) => {
+        router.replace('/login?error=' + encodeURIComponent(e.message || 'auth_failed'));
       });
   }, [router.isReady, router.query]);
 

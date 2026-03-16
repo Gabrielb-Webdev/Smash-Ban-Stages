@@ -55,6 +55,13 @@ export default function Login() {
               Error al autenticar. Intentá de nuevo.
             </div>
           )}
+          {error && error !== 'auth_failed' && error !== 'no_access' && (
+            <div className="bg-red-900/40 border border-red-700 rounded-lg p-4 mb-6 text-red-300 text-xs text-left break-all">
+              <div className="font-bold mb-1">Error de diagnóstico:</div>
+              <div>{decodeURIComponent(error)}</div>
+              {detail && <div className="mt-2 opacity-70">{decodeURIComponent(detail)}</div>}
+            </div>
+          )}
 
           <button
             onClick={handleLogin}
