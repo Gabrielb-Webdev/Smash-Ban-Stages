@@ -11,7 +11,8 @@
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.afksmash.mobile",
-      "permissions": ["INTERNET"],
+      "versionCode": 10,
+      "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES"],
       "adaptiveIcon": { "foregroundImage": "./assets/afk-icon.png", "backgroundColor": "#000000" }
     },
     "owner": "gabriel_sin_h",

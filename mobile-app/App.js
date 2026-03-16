@@ -1,16 +1,18 @@
-﻿// v1.0.9
-import React, { useState, useEffect } from 'react';
+﻿// v1.0.10
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar,
   ActivityIndicator, Image, Modal, Pressable, BackHandler, Linking, ScrollView,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
-var CURRENT_VERSION = '1.0.9';
+var CURRENT_VERSION = '1.0.10';
 var SESSION_KEY = 'afk_session_v2';
 var ADMIN_HOME = BASE_URL + '/admin/afk-multi';
 var SB = StatusBar.currentHeight || 24;
@@ -26,8 +28,11 @@ export default function App() {
   var [showSettings, setShowSettings] = useState(false);
   var [updateInfo, setUpdateInfo] = useState(null);
   var [checkingUpdate, setCheckingUpdate] = useState(false);
+  var [downloadProgress, setDownloadProgress] = useState(null);
+  var [downloadError, setDownloadError] = useState(null);
   var [webUrl, setWebUrl] = useState(null);
   var [webKey, setWebKey] = useState(0);
+  var downloadRef = useRef(null);
 
   // Restaurar sesión al iniciar
   useEffect(function () {
@@ -132,6 +137,42 @@ export default function App() {
     setDropdownOpen(false);
     setWebUrl(newUrl);
     setWebKey(function (k) { return k + 1; });
+  }
+
+  function downloadAndInstall() {
+    if (!updateInfo || !updateInfo.downloadUrl) return;
+    setDownloadProgress(0);
+    setDownloadError(null);
+    var localUri = FileSystem.cacheDirectory + 'afk-smash-update.apk';
+    var dl = FileSystem.createDownloadResumable(
+      updateInfo.downloadUrl,
+      localUri,
+      {},
+      function (progress) {
+        var pct = progress.totalBytesExpectedToWrite > 0
+          ? progress.totalBytesWritten / progress.totalBytesExpectedToWrite : 0;
+        setDownloadProgress(pct);
+      }
+    );
+    downloadRef.current = dl;
+    dl.downloadAsync()
+      .then(function (result) {
+        setDownloadProgress(null);
+        downloadRef.current = null;
+        return FileSystem.getContentUriAsync(result.uri);
+      })
+      .then(function (contentUri) {
+        return IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          data: contentUri,
+          flags: 1,
+          type: 'application/vnd.android.package-archive',
+        });
+      })
+      .catch(function () {
+        setDownloadProgress(null);
+        downloadRef.current = null;
+        setDownloadError('No se pudo descargar. Intentá de nuevo.');
+      });
   }
 
   // ── Carga inicial ──────────────────────────────────────────
@@ -302,14 +343,23 @@ export default function App() {
               {updateInfo ? (
                 <>
                   <View style={styles.updateBanner}>
-                    <Text style={styles.updateBannerText}>Nueva versión: v{updateInfo.latestVersion}</Text>
+                    <Text style={styles.updateBannerText}>🆕 Nueva versión: v{updateInfo.latestVersion}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.settingsUpdateBtn}
-                    onPress={function () { Linking.openURL(updateInfo.downloadUrl); }}
-                  >
-                    <Text style={styles.settingsUpdateBtnText}>⬇ Descargar actualización</Text>
-                  </TouchableOpacity>
+                  {downloadProgress !== null ? (
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View style={[styles.progressFill, { width: Math.round(downloadProgress * 100) + '%' }]} />
+                      </View>
+                      <Text style={styles.progressText}>Descargando... {Math.round(downloadProgress * 100)}%</Text>
+                    </View>
+                  ) : (
+                    <>
+                      {downloadError ? <Text style={styles.downloadError}>{downloadError}</Text> : null}
+                      <TouchableOpacity style={styles.settingsUpdateBtn} onPress={downloadAndInstall}>
+                        <Text style={styles.settingsUpdateBtnText}>⬇ Actualizar ahora</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </>
               ) : (
                 <View style={styles.settingsRow}>
@@ -524,6 +574,11 @@ var styles = StyleSheet.create({
     borderRadius: 10, paddingVertical: 12, alignItems: 'center',
   },
   settingsUpdateBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  progressContainer: { padding: 14, gap: 8 },
+  progressBar: { height: 6, backgroundColor: '#2a2a2a', borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#E88E00', borderRadius: 3 },
+  progressText: { color: '#9ca3af', fontSize: 12, textAlign: 'center' },
+  downloadError: { color: '#f87171', fontSize: 12, textAlign: 'center', paddingHorizontal: 14, paddingTop: 8 },
   settingsLogoutBtn: {
     marginHorizontal: 16, marginTop: 16, backgroundColor: '#1a0a0a',
     borderRadius: 12, paddingVertical: 14, alignItems: 'center',

@@ -61,3 +61,19 @@ jobs:
           name: afk-smash-debug
           path: mobile-app/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
+
+      - name: Leer versión de app.json
+        id: appver
+        working-directory: mobile-app
+        run: echo "VERSION=$(node -p "require('./app.json').expo.version")" >> $GITHUB_OUTPUT
+
+      - name: Renombrar APK para release
+        run: cp mobile-app/android/app/build/outputs/apk/debug/app-debug.apk afk-smash.apk
+
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.appver.outputs.VERSION }}
+          name: AFK Smash v${{ steps.appver.outputs.VERSION }}
+          files: afk-smash.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
