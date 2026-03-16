@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,6 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
-
-SplashScreen.preventAutoHideAsync();
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
@@ -27,10 +24,6 @@ const SETUPS = [
 
 export default function App() {
   const [customId, setCustomId] = useState('');
-
-  useEffect(function() {
-    SplashScreen.hideAsync();
-  }, []);
 
   return (
     <View style={styles.safe}>
