@@ -20,6 +20,12 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [editFormat, setEditFormat] = useState('BO3');
   const [lastJsonUpdate, setLastJsonUpdate] = useState('');
 
+  // Notificaciones de setup
+  const [notifPlayer, setNotifPlayer] = useState('');
+  const [notifSetup, setNotifSetup] = useState('Setup 1');
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifSent, setNotifSent] = useState(null); // null | 'ok' | 'error'
+
   // Configuración de torneos con temas
   const tournaments = {
     'cordoba': { 
@@ -389,6 +395,35 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
+  };
+
+  const handleSendNotif = async () => {
+    if (!notifPlayer.trim()) return;
+    setNotifSending(true);
+    setNotifSent(null);
+    try {
+      const r = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetName: notifPlayer.trim(),
+          setup: notifSetup,
+          sentBy: 'Admin',
+          tournamentId: selectedTournament,
+        }),
+      });
+      if (r.ok) {
+        setNotifSent('ok');
+        setNotifPlayer('');
+        setTimeout(() => setNotifSent(null), 3000);
+      } else {
+        setNotifSent('error');
+      }
+    } catch {
+      setNotifSent('error');
+    } finally {
+      setNotifSending(false);
+    }
   };
 
   const getControlLink = (type) => {
@@ -768,6 +803,70 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* ── Llamar Jugadores ── */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20">
+              <h3 className="text-2xl font-bold text-white mb-2">📢 Llamar Jugador</h3>
+              <p className="text-white/50 text-sm mb-4">Notificá al jugador que es su turno y en qué setup debe presentarse</p>
+
+              {/* Quick fill desde sesión activa */}
+              {currentSession && (
+                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                  <span className="text-white/40 text-xs mr-1">Jugadores activos:</span>
+                  {[currentSession.player1?.name, currentSession.player2?.name].filter(Boolean).map(name => (
+                    <button key={name} onClick={() => setNotifPlayer(name)}
+                      className="px-3 py-1 bg-orange-600/20 border border-orange-500/40 text-orange-400 text-sm font-semibold rounded-lg hover:bg-orange-600/30 transition-all">
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Input nombre del jugador */}
+              <div className="mb-4">
+                <label className="block text-white/70 text-sm font-semibold mb-2">Nombre del jugador</label>
+                <input
+                  type="text"
+                  value={notifPlayer}
+                  onChange={e => setNotifPlayer(e.target.value.slice(0, 100))}
+                  placeholder="Ej: Gabi"
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              {/* Setup selector */}
+              <div className="mb-5">
+                <label className="block text-white/70 text-sm font-semibold mb-2">Setup</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Setup 1', 'Setup 2', 'Setup 3', 'Setup 4', 'Stream', 'Setup libre'].map(s => (
+                    <button key={s} onClick={() => setNotifSetup(s)}
+                      className={`py-2 px-3 rounded-lg text-sm font-semibold transition-all border ${
+                        notifSetup === s
+                          ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg border-orange-500'
+                          : 'bg-white/10 text-white/60 hover:bg-white/20 border-white/10'
+                      }`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botón enviar */}
+              <button
+                onClick={handleSendNotif}
+                disabled={notifSending || !notifPlayer.trim()}
+                className={`w-full py-3 font-bold text-lg rounded-lg transition-all ${
+                  notifSending || !notifPlayer.trim()
+                    ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:shadow-xl hover:scale-105'
+                }`}
+              >
+                {notifSending ? '⏳ Enviando...' : notifSent === 'ok' ? '✅ ¡Llamado enviado!' : '📢 Llamar al setup'}
+              </button>
+              {notifSent === 'error' && (
+                <p className="text-red-400 text-sm mt-2 text-center">Error al enviar. Intentá de nuevo.</p>
+              )}
             </div>
 
             {/* Información de estado cuando NO está PLAYING */}

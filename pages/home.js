@@ -38,6 +38,9 @@ export default function HomePage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [tab, setTab]         = useState('inicio');
   const [showMenu, setShowMenu] = useState(false);
+  const [notifs, setNotifs]       = useState([]);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [notifToast, setNotifToast] = useState(null);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -60,6 +63,34 @@ export default function HomePage() {
     setIsAdmin(!!stored.isAdmin);
   }, []);
 
+  // Polling de notificaciones
+  useEffect(() => {
+    if (!user) return;
+    const name = user.name || (user.slug || '').replace(/^user\//, '') || 'Usuario';
+
+    const fetchNotifs = async () => {
+      try {
+        const r = await fetch(`/api/notifications/inbox?name=${encodeURIComponent(name)}`);
+        if (!r.ok) return;
+        const data = await r.json();
+        if (!Array.isArray(data)) return;
+        setNotifs(prev => {
+          const prevIds = new Set(prev.map(n => n.id));
+          const newUnread = data.filter(n => !prevIds.has(n.id) && !n.readAt);
+          if (newUnread.length > 0) {
+            setNotifToast(newUnread[newUnread.length - 1]);
+            setTimeout(() => setNotifToast(null), 6000);
+          }
+          return data;
+        });
+      } catch {}
+    };
+
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 15000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#080808' }}>
       <div style={{ width: 32, height: 32, border: '2px solid #E88E00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -69,6 +100,18 @@ export default function HomePage() {
 
   const displayName = user.name || (user.slug || '').replace(/^user\//, '') || 'Usuario';
   const initial = displayName[0]?.toUpperCase() || '?';
+  const unreadCount = notifs.filter(n => !n.readAt).length;
+
+  const dismissNotif = async (id) => {
+    try {
+      await fetch('/api/notifications/send', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+    } catch {}
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+  };
 
   return (
     <>
@@ -84,6 +127,7 @@ export default function HomePage() {
           @keyframes spin   { to { transform: rotate(360deg) } }
           .shimmer { background: linear-gradient(90deg,#1a1a1a 25%,#242424 50%,#1a1a1a 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           @keyframes shimmer { to { background-position: -200% 0 } }
+          @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
         `}</style>
       </Head>
 
@@ -111,6 +155,20 @@ export default function HomePage() {
 
           {/* Right side */}
           <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+
+            {/* Campana de notificaciones */}
+            <button
+              onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
+              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center' }}
+            >
+              <Svg size={22} sw={1.8}>{ICO.bell}</Svg>
+              {unreadCount > 0 && (
+                <div style={{ position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #080808', padding: '0 2px' }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </div>
+              )}
+            </button>
+
             <button
               onClick={() => setShowMenu(v => !v)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}
@@ -178,6 +236,73 @@ export default function HomePage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ── NOTIFICATION DRAWER ── */}
+        {showNotifs && (
+          <>
+            <div onClick={() => setShowNotifs(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+            <div style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 'max(0px, calc(50% - 240px))',
+              right: 'max(0px, calc(50% - 240px))',
+              zIndex: 46,
+              background: '#121212',
+              borderRadius: '24px 24px 0 0',
+              padding: '20px 18px 48px',
+              boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+              animation: 'slideUp 0.22s ease',
+              maxHeight: '80dvh',
+              overflowY: 'auto',
+            }}>
+              {/* Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 20px' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Notificaciones</h2>
+                {unreadCount > 0 && (
+                  <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '4px 10px' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#EF4444' }}>{unreadCount} {unreadCount === 1 ? 'nueva' : 'nuevas'}</span>
+                  </div>
+                )}
+              </div>
+              {notifs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ fontSize: 40 }}>🔔</div>
+                  <p style={{ margin: '12px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin notificaciones</p>
+                  <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Te avisamos acá cuando sea tu turno</p>
+                </div>
+              ) : (
+                [...notifs].reverse().map(n => (
+                  <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} />
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── NOTIF TOAST ── */}
+        {notifToast && (
+          <div style={{
+            position: 'fixed', top: 76,
+            left: 'max(16px, calc(50% - 224px))',
+            right: 'max(16px, calc(50% - 224px))',
+            zIndex: 100,
+            background: '#1c1c1c',
+            border: '1px solid rgba(232,142,0,0.35)',
+            borderRadius: 20,
+            padding: '14px 16px',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            animation: 'fadeUp 0.2s ease',
+          }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(232,142,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🎮</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>¡Es tu turno!</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notifToast.setup} — {notifToast.sentBy}</p>
+            </div>
+            <button onClick={() => setNotifToast(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+          </div>
         )}
 
         {/* ── CONTENT ── */}
@@ -423,6 +548,46 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── NOTIF CARD ─────────────────────────────────── */
+function NotifCard({ notif, onDismiss }) {
+  const isRead = !!notif.readAt;
+  const t = new Date(notif.sentAt);
+  const timeStr = t.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div style={{
+      background: isRead ? '#141414' : 'rgba(232,142,0,0.06)',
+      border: `1px solid ${isRead ? 'rgba(255,255,255,0.05)' : 'rgba(232,142,0,0.22)'}`,
+      borderRadius: 16, padding: '14px 16px', marginBottom: 10,
+      display: 'flex', gap: 14, alignItems: 'flex-start',
+    }}>
+      <div style={{ width: 44, height: 44, borderRadius: 14, background: isRead ? 'rgba(255,255,255,0.04)' : 'rgba(232,142,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+        🎮
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: '0 0 3px', fontSize: 14, fontWeight: 800, color: isRead ? 'rgba(255,255,255,0.45)' : '#fff' }}>
+          {notif.setup}
+        </p>
+        <p style={{ margin: '0 0 6px', fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+          {notif.message}
+        </p>
+        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+          {timeStr} · {notif.sentBy}
+        </p>
+      </div>
+      {!isRead && (
+        <button onClick={() => onDismiss(notif.id)} style={{
+          flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8, padding: '5px 10px', color: 'rgba(255,255,255,0.5)',
+          fontSize: 11, cursor: 'pointer', fontWeight: 600,
+        }}>
+          Leído
+        </button>
+      )}
     </div>
   );
 }
