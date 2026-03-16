@@ -9,7 +9,7 @@ const REDIRECT_URI = process.env.NEXT_PUBLIC_BASE_URL
 
 export default function Login() {
   const router = useRouter();
-  const { error } = router.query;
+  const { error, detail } = router.query;
 
   useEffect(() => {
     try {
