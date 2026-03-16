@@ -1,13 +1,27 @@
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AdminPanel from '../../src/components/AdminPanel';
 import Link from 'next/link';
+import { getStoredUser, logout } from '../../src/utils/auth';
 
 export default function CommunityAdmin() {
   const router = useRouter();
   const { community } = router.query;
+  const [authUser, setAuthUser] = useState(null);
+  const [checking, setChecking] = useState(true);
 
   const validCommunities = ['cordoba', 'afk', 'mendoza'];
+
+  // Auth guard
+  useEffect(() => {
+    const stored = getStoredUser();
+    if (!stored || !stored.isAdmin) {
+      router.replace('/login');
+      return;
+    }
+    setAuthUser(stored.user);
+    setChecking(false);
+  }, []);
 
   // Redirigir rutas especiales que tienen su propia página
   useEffect(() => {
@@ -16,11 +30,11 @@ export default function CommunityAdmin() {
     }
   }, [community]);
 
-  // Loading mientras el router resuelve
-  if (!community) {
+  // Loading mientras el router resuelve o chequea auth
+  if (checking || !community) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Cargando...</div>
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

@@ -1,8 +1,8 @@
 // API Route para autenticación con start.gg
-import { NextApiRequest, NextApiResponse } from 'next';
 
-const START_GG_CLIENT_ID = process.env.START_GG_CLIENT_ID;
+const START_GG_CLIENT_ID = process.env.START_GG_CLIENT_ID || '435';
 const START_GG_CLIENT_SECRET = process.env.START_GG_CLIENT_SECRET;
+const ADMIN_SLUGS = (process.env.ADMIN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -74,12 +74,14 @@ export default async function handler(req, res) {
 
     const user = userData.data.currentUser;
     const avatar = user.images?.find((img) => img.type === 'profile')?.url;
+    const isAdmin = ADMIN_SLUGS.length === 0 || ADMIN_SLUGS.includes(user.slug);
 
     res.status(200).json({
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       expires_in: tokenData.expires_in,
       token_type: tokenData.token_type,
+      isAdmin,
       user: {
         id: user.id,
         name: user.name,
