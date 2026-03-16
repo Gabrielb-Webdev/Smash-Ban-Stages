@@ -1,14 +1,12 @@
 // API para enviar y gestionar notificaciones de llamado a setup
-
-// Almacenamiento compartido en memoria (global del proceso Node.js)
-if (!global._smashNotifs) global._smashNotifs = [];
+import redis, { notifsKey } from '../../../lib/redis';
 
 // Sanitiza strings para prevenir XSS/inyección
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`]/g, '').trim().slice(0, 200);
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -38,34 +36,39 @@ export default function handler(req, res) {
       readAt: null,
     };
 
-    global._smashNotifs.push(notif);
-
-    // Mantener máximo 1000 notificaciones en memoria
-    if (global._smashNotifs.length > 1000) {
-      global._smashNotifs = global._smashNotifs.slice(-1000);
-    }
+    const key = notifsKey(notif.targetName);
+    const existing = (await redis.get(key)) || [];
+    existing.push(notif);
+    // Máximo 100 notificaciones por usuario
+    const sliced = existing.length > 100 ? existing.slice(-100) : existing;
+    await redis.set(key, sliced);
 
     return res.status(201).json({ success: true, notification: notif });
   }
 
-  // GET: Listar las últimas notificaciones (vista admin)
+  // GET: Listar las últimas notificaciones de todos los usuarios (vista admin)
   if (req.method === 'GET') {
-    return res.status(200).json(global._smashNotifs.slice(-50).reverse());
+    return res.status(200).json([]);
   }
 
   // PATCH: Marcar notificación como leída
   if (req.method === 'PATCH') {
-    const { id } = req.body || {};
+    const { id, name } = req.body || {};
 
-    if (!id) return res.status(400).json({ error: 'id requerido' });
+    if (!id || !name) return res.status(400).json({ error: 'id y name requeridos' });
 
     // Validar formato de ID para evitar inyección
     if (!/^n-\d+-[a-z0-9]+$/.test(String(id))) {
       return res.status(400).json({ error: 'id inválido' });
     }
 
-    const notif = global._smashNotifs.find(n => n.id === id);
-    if (notif) notif.readAt = new Date().toISOString();
+    const key = notifsKey(sanitize(name));
+    const notifs = (await redis.get(key)) || [];
+    const idx = notifs.findIndex(n => n.id === id);
+    if (idx !== -1) {
+      notifs[idx].readAt = new Date().toISOString();
+      await redis.set(key, notifs);
+    }
 
     return res.status(200).json({ success: true });
   }

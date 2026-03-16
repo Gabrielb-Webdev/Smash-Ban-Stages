@@ -1,6 +1,6 @@
-// API para tips por personaje — almacenamiento en memoria global
+// API para tips por personaje — almacenamiento en Upstash Redis
 
-if (!global._smashTips) global._smashTips = {};
+import redis, { tipsKey, tipsIndexKey } from '../../../lib/redis';
 
 // ── Firmas mágicas de archivos permitidos (OWASP secure file upload) ────
 const ALLOWED_SIGNATURES = [
@@ -64,7 +64,7 @@ export const config = {
   api: { bodyParser: { sizeLimit: '45mb' } },
 };
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -81,7 +81,7 @@ export default function handler(req, res) {
 
   // ── GET: obtener tips para un personaje ─────────────
   if (req.method === 'GET') {
-    const tips = global._smashTips[char] || [];
+    const tips = (await redis.get(tipsKey(char))) || [];
     return res.status(200).json(tips);
   }
 
@@ -123,8 +123,6 @@ export default function handler(req, res) {
       }
     }
 
-    if (!global._smashTips[char]) global._smashTips[char] = [];
-
     const tip = {
       id: `tip-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       char,
@@ -138,12 +136,12 @@ export default function handler(req, res) {
       createdAt: new Date().toISOString(),
     };
 
-    global._smashTips[char].push(tip);
-
-    // Máximo 200 tips por personaje
-    if (global._smashTips[char].length > 200) {
-      global._smashTips[char] = global._smashTips[char].slice(-200);
-    }
+    const tips_post = (await redis.get(tipsKey(char))) || [];
+    tips_post.push(tip);
+    const sliced_post = tips_post.length > 200 ? tips_post.slice(-200) : tips_post;
+    await redis.set(tipsKey(char), sliced_post);
+    const index = (await redis.get(tipsIndexKey)) || [];
+    if (!index.includes(char)) { index.push(char); await redis.set(tipsIndexKey, index); }
 
     return res.status(201).json({ success: true, tip: { ...tip, mediaData: undefined } });
   }
@@ -153,14 +151,13 @@ export default function handler(req, res) {
     const { tipId, userId, userName, text, mediaData: newMediaData, removeMedia, videoUrl } = req.body || {};
     if (!tipId || !userId) return res.status(400).json({ error: 'tipId y userId requeridos' });
 
-    if (!global._smashTips[char]) return res.status(404).json({ error: 'Tip no encontrado' });
-    const idx = global._smashTips[char].findIndex(t => t.id === String(sanitize(tipId).slice(0,80)));
-    if (idx === -1) return res.status(404).json({ error: 'Tip no encontrado' });
+    const tips_patch = (await redis.get(tipsKey(char))) || [];
+    const idx_patch = tips_patch.findIndex(t => t.id === String(sanitize(tipId).slice(0,80)));
+    if (idx_patch === -1) return res.status(404).json({ error: 'Tip no encontrado' });
 
-    const existing = global._smashTips[char][idx];
+    const existing = tips_patch[idx_patch];
     const cleanUserId = sanitize(userId).slice(0, 80);
     const cleanUserName = userName ? sanitize(userName).slice(0, 50) : null;
-    // Permitir si coincide authorId, o si el tip no tiene authorId y el nombre coincide
     const ownsById   = existing.authorId && existing.authorId === cleanUserId;
     const ownsByName = !existing.authorId && cleanUserName &&
       existing.author && existing.author.trim().toLowerCase() === cleanUserName.trim().toLowerCase();
@@ -187,7 +184,7 @@ export default function handler(req, res) {
       } catch { return res.status(422).json({ error: 'URL de video inválida' }); }
     }
 
-    global._smashTips[char][idx] = {
+    tips_patch[idx_patch] = {
       ...existing,
       text: cleanText,
       mediaData: removeMedia ? null : (newMediaData || existing.mediaData),
@@ -196,8 +193,9 @@ export default function handler(req, res) {
       videoUrl: videoUrl !== undefined ? (videoUrl || null) : existing.videoUrl,
       updatedAt: new Date().toISOString(),
     };
+    await redis.set(tipsKey(char), tips_patch);
 
-    const updated = global._smashTips[char][idx];
+    const updated = tips_patch[idx_patch];
     return res.status(200).json({ success: true, tip: { ...updated, mediaData: undefined } });
   }
 
@@ -206,11 +204,11 @@ export default function handler(req, res) {
     const { tipId, userId, userName } = req.body || {};
     if (!tipId || !userId) return res.status(400).json({ error: 'tipId y userId requeridos' });
 
-    if (!global._smashTips[char]) return res.status(404).json({ error: 'Tip no encontrado' });
-    const idx = global._smashTips[char].findIndex(t => t.id === String(sanitize(tipId).slice(0,80)));
-    if (idx === -1) return res.status(404).json({ error: 'Tip no encontrado' });
+    const tips_del = (await redis.get(tipsKey(char))) || [];
+    const idx_del = tips_del.findIndex(t => t.id === String(sanitize(tipId).slice(0,80)));
+    if (idx_del === -1) return res.status(404).json({ error: 'Tip no encontrado' });
 
-    const tip = global._smashTips[char][idx];
+    const tip = tips_del[idx_del];
     const cleanUserId   = sanitize(userId).slice(0, 80);
     const cleanUserName = userName ? sanitize(userName).slice(0, 50) : null;
     const ownsById   = tip.authorId && tip.authorId === cleanUserId;
@@ -220,7 +218,8 @@ export default function handler(req, res) {
       return res.status(403).json({ error: 'No tenés permiso para eliminar este tip' });
     }
 
-    global._smashTips[char].splice(idx, 1);
+    tips_del.splice(idx_del, 1);
+    await redis.set(tipsKey(char), tips_del);
     return res.status(200).json({ success: true });
   }
 

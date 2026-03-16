@@ -107,7 +107,7 @@ export default function HomePage() {
       await fetch('/api/notifications/send', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, name: displayName }),
       });
     } catch {}
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));

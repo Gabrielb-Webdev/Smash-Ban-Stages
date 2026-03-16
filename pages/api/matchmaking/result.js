@@ -1,10 +1,12 @@
-// API para reportar el resultado de un match de matchmaking
+// API para reportar el resultado de un match de matchmaking — Upstash Redis
+
+import redis, { mmMatchKey } from '../../../lib/redis';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -20,14 +22,12 @@ export default function handler(req, res) {
     return res.status(400).json({ error: 'matchId, reportingUserId y claimedWinnerId son requeridos' });
   }
 
-  if (!global._mmMatches) return res.status(404).json({ error: 'Match no encontrado' });
-
   // Validar formato de matchId (solo patrón conocido)
   if (!/^mm-\d+-[a-z0-9]+$/.test(String(matchId))) {
     return res.status(400).json({ error: 'matchId inválido' });
   }
 
-  const match = global._mmMatches[matchId];
+  const match = await redis.get(mmMatchKey(matchId));
   if (!match) return res.status(404).json({ error: 'Match no encontrado' });
 
   const cleanReporter = sanitize(reportingUserId);
@@ -59,9 +59,8 @@ export default function handler(req, res) {
   if (match.reports.length === 2) {
     const [r1, r2] = match.reports;
     if (r1.claimedWinnerId === r2.claimedWinnerId) {
-      // Resultado consensuado
-      match.status  = 'finished';
-      match.result  = {
+      match.status = 'finished';
+      match.result = {
         winnerId: r1.claimedWinnerId,
         winnerName: match.player1.userId === r1.claimedWinnerId
           ? match.player1.userName
@@ -69,14 +68,13 @@ export default function handler(req, res) {
         decidedAt: new Date().toISOString(),
       };
     } else {
-      // Conflicto — requiere revisión
       match.status = 'disputed';
     }
   } else {
     match.status = 'pending_result';
   }
 
-  global._mmMatches[matchId] = match;
+  await redis.set(mmMatchKey(matchId), match);
 
   return res.status(200).json({
     success: true,
