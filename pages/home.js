@@ -1158,113 +1158,372 @@ function TabTips() {
 /* ═══════════════════════════════════════════════════
    TAB — MATCH
 ═══════════════════════════════════════════════════ */
+const STAGE_EMOJI = {
+  'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '🗡️',
+  'Pokémon Stadium 2': '⚡', 'Town & City': '🏙️', 'Smashville': '🏡',
+  'Hollow Bastion': '🏰', 'Kalos Pokémon League': '🔷',
+};
+
+function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; }
+
 function TabMatch() {
-  const [plat, setPlat] = useState(null);
+  const [plat, setPlat]           = useState(null);
+  const [connInfo, setConnInfo]   = useState('');
+  const [mmStatus, setMmStatus]   = useState(null);
+  const [polling, setPolling]     = useState(false);
+  const [joining, setJoining]     = useState(false);
+  const [joinError, setJoinError] = useState(null);
+  const [reported, setReported]   = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError]     = useState(null);
+  const [elapsed, setElapsed]     = useState(0);
+
   const p = PLATFORMS.find(x => x.id === plat);
 
+  const stored   = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
+  const userId   = stored?.user?.id || stored?.user?.slug;
+  const userName = stored?.user?.name || 'Jugador';
+
+  // ── Polling de estado ─────────────────────────────
+  useEffect(() => {
+    if (!polling || !userId || !plat) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const r = await fetch(`/api/matchmaking/queue?userId=${encodeURIComponent(userId)}&platform=${plat}`);
+        if (!r.ok || !active) return;
+        const data = await r.json();
+        setMmStatus(data);
+        if (data.status === 'finished') setPolling(false);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 3000);
+    return () => { active = false; clearInterval(iv); };
+  }, [polling, userId, plat]);
+
+  // ── Contador de tiempo en cola ────────────────────
+  useEffect(() => {
+    if (!polling || mmStatus?.status !== 'waiting') { setElapsed(0); return; }
+    const t = setInterval(() => setElapsed(e => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [polling, mmStatus?.status]);
+
+  // ── Acciones ──────────────────────────────────────
+  const joinQueue = async () => {
+    if (!connInfo.trim()) {
+      setJoinError(plat === 'switch' ? 'Ingresá tu código de amigo de Switch (SW-XXXX-XXXX-XXXX)' : 'Ingresá tu Peer ID de Parsec');
+      return;
+    }
+    setJoining(true); setJoinError(null);
+    const body = { userId, userName, platform: plat };
+    if (plat === 'switch') body.switchCode = connInfo.trim();
+    else body.parsecId = connInfo.trim();
+    try {
+      const r = await fetch('/api/matchmaking/queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) { setJoinError(data.error || 'Error al unirse'); return; }
+      setMmStatus(data);
+      setPolling(true);
+    } catch { setJoinError('Error de conexión'); }
+    finally { setJoining(false); }
+  };
+
+  const cancelQueue = async () => {
+    setPolling(false);
+    try {
+      await fetch('/api/matchmaking/queue', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, platform: plat }),
+      });
+    } catch {}
+    setMmStatus(null); setElapsed(0);
+  };
+
+  const reportResult = async (winnerId) => {
+    const matchId = mmStatus?.match?.id;
+    if (!matchId) return;
+    setReportLoading(true); setReportError(null);
+    try {
+      const r = await fetch('/api/matchmaking/result', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, reportingUserId: userId, claimedWinnerId: winnerId }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setReportError(data.error || 'Error al reportar'); return; }
+      setReported(true);
+      setMmStatus(prev => ({ ...prev, match: { ...prev.match, status: data.matchStatus, result: data.result } }));
+      if (data.matchStatus !== 'finished') setPolling(true);
+    } catch { setReportError('Error de conexión'); }
+    finally { setReportLoading(false); }
+  };
+
+  const resetAll = () => {
+    setPlat(null); setConnInfo(''); setMmStatus(null);
+    setPolling(false); setJoining(false); setJoinError(null);
+    setReported(false); setReportError(null); setElapsed(0);
+  };
+
+  const matchData = mmStatus?.match;
+  const matchStatus = matchData?.status || mmStatus?.status;
+
+  // ════════════════════════════════════════════════════
+  // RENDER — Selección de plataforma
+  // ════════════════════════════════════════════════════
+  if (!plat) return (
+    <div style={{ padding: '24px 18px' }}>
+      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Matchmaking</h1>
+      <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí tu plataforma para jugar</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        {PLATFORMS.map(px => (
+          <button key={px.id} onClick={() => setPlat(px.id)} style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            background: `linear-gradient(135deg,${px.from}1a,${px.to}0d)`,
+            border: `1px solid ${px.from}40`, borderRadius: 20, padding: '16px', cursor: 'pointer',
+            textAlign: 'left', transition: 'all 0.15s',
+          }}>
+            <div style={{ width: 50, height: 50, borderRadius: 16, background: `linear-gradient(135deg,${px.from},${px.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0, boxShadow: `0 6px 16px ${px.from}35` }}>{px.icon}</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 15, color: '#fff' }}>{px.label}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{px.id === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
+            </div>
+            <Svg size={18} sw={2} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </Svg>
+          </button>
+        ))}
+      </div>
+
+      <SectionTitle>¿Cómo funciona?</SectionTitle>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[
+          ['🔍', 'Buscás partida', 'Te unís a la cola y te emparejamos automáticamente'],
+          ['🗺️', 'Escenario aleatorio', 'Mapa competitivo elegido al azar entre los 8 legales'],
+          ['📜', 'Reglas estándar', 'Stock 3, tiempo 7 min, sin objetos'],
+          ['📤', 'Reportás el resultado', 'Ambos confirman quién ganó'],
+        ].map(([icon, t, d], idx, arr) => (
+          <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 11, background: '#141414', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{icon}</div>
+              {idx < arr.length - 1 && <div style={{ width: 1, flex: 1, minHeight: 12, background: 'rgba(255,255,255,0.05)', marginTop: 4 }} />}
+            </div>
+            <div style={{ paddingBottom: 12 }}>
+              <p style={{ margin: '4px 0 2px', fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{t}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.45 }}>{d}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ════════════════════════════════════════════════════
+  // RENDER — Estado FINISHED
+  // ════════════════════════════════════════════════════
+  if (matchStatus === 'finished' && matchData?.result) {
+    const iWon = matchData.result.winnerId === userId;
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Volver al inicio
+        </button>
+        <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: `1px solid ${iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: 24, marginBottom: 16 }}>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
+          <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? '¡Ganaste!' : 'Perdiste'}</p>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? `Derrotaste a ${matchData.opponent.name}` : `${matchData.opponent.name} ganó esta vez`}</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '8px 14px' }}>
+            <span style={{ fontSize: 16 }}>{STAGE_EMOJI[matchData.stage] || '🗺️'}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{matchData.stage}</span>
+          </div>
+        </div>
+        <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: `linear-gradient(135deg,${p.from},${p.to})`, color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+          {p.icon} Jugar otra vez
+        </button>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER — Match activo (matched / pending_result / disputed)
+  // ════════════════════════════════════════════════════
+  if ((matchStatus === 'matched' || matchStatus === 'active' || matchStatus === 'pending_result' || matchStatus === 'disputed') && matchData) {
+    const connLabel = plat === 'switch' ? 'Código de amigo' : 'Peer ID de Parsec';
+    const connValue = plat === 'switch' ? matchData.opponent.switchCode : matchData.opponent.parsecId;
+
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        {/* Header rival encontrado */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: `linear-gradient(135deg,${p.from},${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p.icon}</div>
+          <div>
+            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>¡Rival encontrado!</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p.label}</p>
+          </div>
+        </div>
+
+        {/* Card rival */}
+        <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px', marginBottom: 12 }}>
+          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
+          <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{matchData.opponent.name}</p>
+        </div>
+
+        {/* Stage card */}
+        <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 34 }}>{STAGE_EMOJI[matchData.stage] || '🗺️'}</span>
+          <div>
+            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: 'rgba(255,165,0,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario elegido</p>
+            <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#FF8C00' }}>{matchData.stage}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Stock 3 · 7 min · Sin objetos</p>
+          </div>
+        </div>
+
+        {/* Datos de conexión del rival */}
+        {connValue && (
+          <div style={{ background: '#141414', border: `1px solid ${p.from}30`, borderRadius: 20, padding: '14px 16px', marginBottom: 18 }}>
+            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{connLabel} del rival</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace', letterSpacing: 1, flex: 1 }}>{connValue}</p>
+              <button onClick={() => { if (navigator.clipboard) navigator.clipboard.writeText(connValue); }}
+                style={{ background: `${p.from}22`, border: `1px solid ${p.from}40`, borderRadius: 10, padding: '7px 12px', color: p.from, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                Copiar
+              </button>
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+              {plat === 'switch' ? '👉 Mandá la solicitud de amistad en Nintendo Switch' : '👉 Conectate al Peer ID de tu rival en Parsec'}
+            </p>
+          </div>
+        )}
+
+        {/* Reporte de resultado */}
+        {matchStatus === 'disputed' ? (
+          <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>⚠️ Resultado en disputa</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Reportaron resultados distintos. Contactá a un admin para resolver.</p>
+          </div>
+        ) : reported ? (
+          <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 18, padding: '16px', textAlign: 'center' }}>
+            <div style={{ width: 28, height: 28, border: '2px solid #818CF8', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 10px' }} />
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando el reporte del rival...</p>
+          </div>
+        ) : (
+          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó la partida?</p>
+            {reportError && <p style={{ margin: '0 0 10px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => reportResult(userId)} disabled={reportLoading}
+                style={{ padding: '13px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.08))', border: '1px solid rgba(52,211,153,0.3)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>
+                🏆 Yo gané
+              </button>
+              <button onClick={() => reportResult(matchData.opponent.userId)} disabled={reportLoading}
+                style={{ padding: '13px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>
+                💀 Perdí
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER — En cola (waiting)
+  // ════════════════════════════════════════════════════
+  if (mmStatus?.status === 'waiting') return (
+    <div style={{ padding: '24px 18px' }}>
+      <button onClick={cancelQueue} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
+        <Svg size={18} sw={2}>{ICO.back}</Svg> Cancelar búsqueda
+      </button>
+
+      <div style={{ background: `linear-gradient(135deg,${p.from}15,${p.to}08)`, border: `1px solid ${p.from}30`, borderRadius: 24, padding: '36px 24px', textAlign: 'center', marginBottom: 16 }}>
+        {/* Spinner pulsante */}
+        <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 22px' }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${p.from}30` }} />
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${p.from}`, borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
+          <div style={{ position: 'absolute', inset: '16px', background: `linear-gradient(135deg,${p.from},${p.to})`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p.icon}</div>
+        </div>
+
+        <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Buscando rival...</p>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{p.label} · {fmtElapsed(elapsed)} esperando</p>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#fff' }}>#{mmStatus.position}</p>
+            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Posición</p>
+          </div>
+          <div style={{ width: 1, background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#fff' }}>{mmStatus.queueSize}</p>
+            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>En cola</p>
+          </div>
+        </div>
+      </div>
+
+      <button onClick={cancelQueue} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+        Cancelar
+      </button>
+    </div>
+  );
+
+  // ════════════════════════════════════════════════════
+  // RENDER — Formulario de ingreso (idle / default)
+  // ════════════════════════════════════════════════════
   return (
     <div style={{ padding: '24px 18px' }}>
-      {plat && (
-        <button onClick={() => setPlat(null)} style={{
-          display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00',
-          fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer',
-          padding: '4px 0', marginBottom: 20,
-        }}>
-          <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
-        </button>
-      )}
+      <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 20 }}>
+        <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
+      </button>
 
-      {!plat ? (
-        <>
-          <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Matchmaking</h1>
-          <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí tu plataforma para jugar</p>
+      {/* Platform header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+        <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg,${p.from},${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: `0 6px 18px ${p.from}40` }}>{p.icon}</div>
+        <div>
+          <h1 style={{ margin: '0 0 3px', fontSize: 22, fontWeight: 900, color: '#fff' }}>{p.label}</h1>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{plat === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
+        </div>
+      </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-            {PLATFORMS.map(px => (
-              <button key={px.id} onClick={() => setPlat(px.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                background: `linear-gradient(135deg,${px.from}1a,${px.to}0d)`,
-                border: `1px solid ${px.from}30`, borderRadius: 20, padding: '16px', cursor: 'pointer',
-                textAlign: 'left', transition: 'all 0.15s',
-              }}>
-                <div style={{ width: 50, height: 50, borderRadius: 16, background: `linear-gradient(135deg,${px.from},${px.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0, boxShadow: `0 6px 16px ${px.from}35` }}>
-                  {px.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 15, color: '#fff' }}>{px.label}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{px.id === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
-                </div>
-                <Tag color="#EAB308">Pronto</Tag>
-              </button>
-            ))}
-          </div>
+      {/* Input conexión */}
+      <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '18px', marginBottom: 14 }}>
+        <p style={{ margin: '0 0 14px', fontWeight: 800, fontSize: 14, color: '#fff' }}>
+          {plat === 'switch' ? '🎮 Tu código de amigo de Nintendo Switch' : '🖥️ Tu Peer ID de Parsec'}
+        </p>
+        <input
+          type="text"
+          value={connInfo}
+          onChange={e => { setConnInfo(e.target.value); setJoinError(null); }}
+          onKeyDown={e => { if (e.key === 'Enter') joinQueue(); }}
+          placeholder={plat === 'switch' ? 'SW-XXXX-XXXX-XXXX' : 'Tu Peer ID (ej: 123456789)'}
+          style={{
+            width: '100%', background: '#1a1a1a', border: `1px solid ${joinError ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: 14, padding: '12px 14px', fontSize: 15, color: '#fff',
+            outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace', letterSpacing: plat === 'switch' ? 2 : 0,
+          }}
+        />
+        {joinError && <p style={{ margin: '8px 0 0', fontSize: 12, color: '#EF4444' }}>{joinError}</p>}
+        <p style={{ margin: '8px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>
+          {plat === 'switch'
+            ? 'Encontralo en Nintendo Switch → Perfil → Código de amigo. Ej: SW-1234-5678-9012'
+            : 'Tu Peer ID está en la pantalla principal de Parsec, arriba a la izquierda.'}
+        </p>
+      </div>
 
-          <SectionTitle>¿Cómo funciona?</SectionTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-            {[
-              ['🔍', 'Buscás partida', 'Te emparejamos con jugadores de nivel similar'],
-              ['🗺️', 'Escenario aleatorio', 'Mapa competitivo elegido al azar'],
-              ['📜', 'Reglas estándar', 'Stock 3, tiempo 7 min, sin objetos'],
-              ['📤', 'Reportás el resultado', 'Ambos suben quién ganó'],
-              ['📈', 'Puntos', 'Ganás o perdés según tu nivel y el del rival'],
-            ].map(([icon, t, d], idx) => (
-              <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 11, background: '#141414', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                    {icon}
-                  </div>
-                  {idx < 4 && <div style={{ width: 1, flex: 1, minHeight: 12, background: 'rgba(255,255,255,0.05)', marginTop: 4 }} />}
-                </div>
-                <div style={{ paddingBottom: 12 }}>
-                  <p style={{ margin: '4px 0 2px', fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{t}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.45 }}>{d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      <button onClick={joinQueue} disabled={joining}
+        style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: joining ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg,${p.from},${p.to})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: joining ? 'not-allowed' : 'pointer', boxShadow: joining ? 'none' : `0 6px 20px ${p.from}35` }}>
+        {joining ? 'Buscando...' : '🔍 Buscar partida'}
+      </button>
 
-          <SectionTitle>Rankings separados por plataforma</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {PLATFORMS.map(px => (
-              <div key={px.id} style={{
-                background: `linear-gradient(135deg,${px.from}1a,${px.to}0d)`,
-                border: `1px solid ${px.from}25`, borderRadius: 18, padding: '18px 12px', textAlign: 'center',
-              }}>
-                <span style={{ fontSize: 28 }}>{px.icon}</span>
-                <p style={{ margin: '8px 0 2px', fontWeight: 800, fontSize: 13, color: '#fff' }}>{px.label}</p>
-                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Ranking independiente</p>
-              </div>
-            ))}
+      {/* Info reglas */}
+      <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
+        {[['⚔️', 'Stock 3'], ['⏱️', '7 min'], ['🚫', 'Sin items']].map(([icon, label]) => (
+          <div key={label} style={{ flex: 1, textAlign: 'center', background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '10px 4px' }}>
+            <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
+            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{label}</p>
           </div>
-        </>
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg,${p.from},${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: `0 6px 18px ${p.from}40` }}>
-              {p.icon}
-            </div>
-            <div>
-              <h1 style={{ margin: '0 0 3px', fontSize: 22, fontWeight: 900, color: '#fff' }}>{p.label}</h1>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Ranking propio · {p.id === 'parsec' ? 'Emulador PC' : 'Nintendo Switch'}</p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-            {[['⭐', 'Puntos', '—'], ['🏆', 'Ranking', '—'], ['⚡', 'W / L', '—']].map(([icon, label, val]) => (
-              <StatCard key={label} icon={icon} label={label} value={val} />
-            ))}
-          </div>
-
-          <div style={{
-            background: `linear-gradient(135deg,${p.from}1a,${p.to}0a)`,
-            border: `1px solid ${p.from}30`, borderRadius: 20, padding: '36px 24px', textAlign: 'center',
-          }}>
-            <span style={{ fontSize: 44 }}>{p.icon}</span>
-            <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Matchmaking en desarrollo</p>
-            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Pronto podés buscar rivales y acumular puntos en el ranking de {p.label}</p>
-          </div>
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

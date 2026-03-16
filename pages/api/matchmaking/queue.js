@@ -123,7 +123,7 @@ function safeMatch(m, requestingUserId) {
     reports: m.reports,
     createdAt: m.createdAt,
     self: { name: self.userName, parsecId: self.parsecId, switchCode: self.switchCode },
-    opponent: { name: opponent.userName, parsecId: opponent.parsecId, switchCode: opponent.switchCode },
+    opponent: { name: opponent.userName, userId: opponent.userId, parsecId: opponent.parsecId, switchCode: opponent.switchCode },
     selfIsP1: isP1,
   };
 }
