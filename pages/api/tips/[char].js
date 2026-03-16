@@ -66,7 +66,7 @@ export const config = {
 
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
@@ -87,7 +87,7 @@ export default function handler(req, res) {
 
   // ── POST: subir nuevo tip ────────────────────────────
   if (req.method === 'POST') {
-    const { author, text, mediaData, videoUrl } = req.body || {};
+    const { authorId, author, text, mediaData, videoUrl } = req.body || {};
 
     // Validar texto
     const cleanText = text ? sanitize(text) : '';
@@ -128,6 +128,7 @@ export default function handler(req, res) {
     const tip = {
       id: `tip-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       char,
+      authorId: authorId ? sanitize(authorId).slice(0, 80) : null,
       author: author ? sanitize(author).slice(0, 50) : 'Anónimo',
       text: cleanText,
       mediaData: mediaData || null,         // base64 o null
@@ -145,6 +146,71 @@ export default function handler(req, res) {
     }
 
     return res.status(201).json({ success: true, tip: { ...tip, mediaData: undefined } });
+  }
+
+  // ── PATCH: editar tip propio ─────────────────────────
+  if (req.method === 'PATCH') {
+    const { tipId, userId, text, mediaData: newMediaData, removeMedia, videoUrl } = req.body || {};
+    if (!tipId || !userId) return res.status(400).json({ error: 'tipId y userId requeridos' });
+
+    if (!global._smashTips[char]) return res.status(404).json({ error: 'Tip no encontrado' });
+    const idx = global._smashTips[char].findIndex(t => t.id === String(sanitize(tipId).slice(0,80)));
+    if (idx === -1) return res.status(404).json({ error: 'Tip no encontrado' });
+
+    const existing = global._smashTips[char][idx];
+    if (existing.authorId !== sanitize(userId).slice(0, 80)) {
+      return res.status(403).json({ error: 'No tenés permiso para editar este tip' });
+    }
+
+    const cleanText = text !== undefined ? sanitize(text) : existing.text;
+
+    let fileInfo = null;
+    if (newMediaData) {
+      const result = validateFile(newMediaData);
+      if (result?.error) return res.status(422).json({ error: result.error });
+      fileInfo = result;
+    }
+
+    if (videoUrl) {
+      const allowedHosts = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitter.com', 'x.com'];
+      try {
+        const parsed = new URL(videoUrl);
+        if (!allowedHosts.some(h => parsed.hostname.endsWith(h))) {
+          return res.status(422).json({ error: 'URL de video no permitida. Usá YouTube o Vimeo.' });
+        }
+      } catch { return res.status(422).json({ error: 'URL de video inválida' }); }
+    }
+
+    global._smashTips[char][idx] = {
+      ...existing,
+      text: cleanText,
+      mediaData: removeMedia ? null : (newMediaData || existing.mediaData),
+      mediaType: removeMedia ? null : (fileInfo?.mime || existing.mediaType),
+      mediaIsVideo: removeMedia ? false : (fileInfo?.isVideo ?? existing.mediaIsVideo),
+      videoUrl: videoUrl !== undefined ? (videoUrl || null) : existing.videoUrl,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updated = global._smashTips[char][idx];
+    return res.status(200).json({ success: true, tip: { ...updated, mediaData: undefined } });
+  }
+
+  // ── DELETE: eliminar tip propio ──────────────────────
+  if (req.method === 'DELETE') {
+    const { tipId, userId } = req.body || {};
+    if (!tipId || !userId) return res.status(400).json({ error: 'tipId y userId requeridos' });
+
+    if (!global._smashTips[char]) return res.status(404).json({ error: 'Tip no encontrado' });
+    const idx = global._smashTips[char].findIndex(t => t.id === String(sanitize(tipId).slice(0,80)));
+    if (idx === -1) return res.status(404).json({ error: 'Tip no encontrado' });
+
+    const tip = global._smashTips[char][idx];
+    if (tip.authorId !== sanitize(userId).slice(0, 80)) {
+      return res.status(403).json({ error: 'No tenés permiso para eliminar este tip' });
+    }
+
+    global._smashTips[char].splice(idx, 1);
+    return res.status(200).json({ success: true });
   }
 
   res.status(405).json({ error: 'Method not allowed' });

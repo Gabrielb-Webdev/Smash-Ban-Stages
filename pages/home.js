@@ -744,7 +744,114 @@ const CHARS = [
 ];
 
 /* ─── TIP CARD ───────────────────────────────────── */
-function TipCard({ tip }) {
+function TipCard({ tip, currentUserId, onDelete, onEdit }) {
+  const [editing, setEditing]             = useState(false);
+  const [editText, setEditText]           = useState('');
+  const [editNewMedia, setEditNewMedia]   = useState(null);    // base64 nuevo archivo
+  const [editNewMediaName, setEditNewMediaName] = useState('');
+  const [editRemoveMedia, setEditRemoveMedia] = useState(false);
+  const [editVideoUrl, setEditVideoUrl]   = useState('');
+  const [saving, setSaving]               = useState(false);
+  const [editError, setEditError]         = useState(null);
+
+  const isOwner = !!(currentUserId && tip.authorId && currentUserId === tip.authorId);
+
+  const openEdit = () => {
+    setEditText(tip.text || '');
+    setEditNewMedia(null); setEditNewMediaName(''); setEditRemoveMedia(false);
+    setEditVideoUrl(tip.videoUrl || ''); setEditError(null);
+    setEditing(true);
+  };
+
+  const handleEditFile = (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const allowed = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm'];
+    if (!allowed.includes(file.type)) { setEditError('Tipo no permitido'); return; }
+    const limitMB = file.type.startsWith('video') ? 40 : 5;
+    if (file.size > limitMB * 1024 * 1024) { setEditError(`Máximo ${limitMB} MB`); return; }
+    const reader = new FileReader();
+    reader.onload = ev => { setEditNewMedia(ev.target.result); setEditNewMediaName(file.name); setEditRemoveMedia(false); setEditError(null); };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveEdit = async () => {
+    setSaving(true); setEditError(null);
+    const body = { tipId: tip.id, userId: currentUserId, text: editText.trim(), videoUrl: editVideoUrl.trim() || undefined };
+    if (editRemoveMedia) body.removeMedia = true;
+    else if (editNewMedia) body.mediaData = editNewMedia;
+    try {
+      const r = await fetch(`/api/tips/${encodeURIComponent(tip.char)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) { setEditError(data.error || 'Error al guardar'); return; }
+      const updated = {
+        ...tip, text: editText.trim(), videoUrl: editVideoUrl.trim() || null, updatedAt: data.tip?.updatedAt,
+        mediaData: editRemoveMedia ? null : (editNewMedia || tip.mediaData),
+        mediaType: editRemoveMedia ? null : (data.tip?.mediaType || tip.mediaType),
+        mediaIsVideo: editRemoveMedia ? false : (data.tip?.mediaIsVideo ?? tip.mediaIsVideo),
+      };
+      onEdit(updated); setEditing(false);
+    } catch { setEditError('Error de conexión'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('¿Eliminar este tip?')) return;
+    try {
+      const r = await fetch(`/api/tips/${encodeURIComponent(tip.char)}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipId: tip.id, userId: currentUserId }),
+      });
+      if (r.ok) onDelete(tip.id);
+    } catch {}
+  };
+
+  // Vista en modo edición
+  if (editing) {
+    const previewMedia = editRemoveMedia ? null : (editNewMedia || tip.mediaData);
+    const previewIsVideo = editRemoveMedia ? false : (editNewMedia ? editNewMedia.startsWith('data:video') : tip.mediaIsVideo);
+    return (
+      <div style={{ background: '#141414', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
+        <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(232,142,0,0.07)' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#FF8C00' }}>✏️ Editando tip</span>
+        </div>
+        {previewMedia && (
+          previewIsVideo
+            ? <video src={previewMedia} controls style={{ width: '100%', maxHeight: 200, background: '#000', display: 'block' }} />
+            : <img src={previewMedia} alt="preview" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />
+        )}
+        <div style={{ padding: '12px 14px' }}>
+          <textarea value={editText} onChange={e => setEditText(e.target.value)} maxLength={2000} rows={3}
+            style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+          <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '7px 10px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
+              📷 {editNewMediaName || 'Cambiar foto/video'}
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" onChange={handleEditFile} style={{ display: 'none' }} />
+            </label>
+            {(editNewMedia || tip.mediaData) && !editRemoveMedia && (
+              <button onClick={() => { setEditRemoveMedia(true); setEditNewMedia(null); }}
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '7px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>✕ Quitar media</button>
+            )}
+          </div>
+          <input type="url" value={editVideoUrl} onChange={e => setEditVideoUrl(e.target.value)} placeholder="Link de YouTube / Vimeo..."
+            style={{ marginTop: 8, width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '9px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+          {editError && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#EF4444' }}>{editError}</p>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button onClick={handleSaveEdit} disabled={saving}
+              style={{ flex: 1, padding: '10px', borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', background: saving ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff' }}>
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+            <button onClick={() => { setEditing(false); setEditError(null); }}
+              style={{ padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
       {tip.mediaData && !tip.mediaIsVideo && (
@@ -763,9 +870,19 @@ function TipCard({ tip }) {
       {tip.text && (
         <p style={{ margin: 0, padding: '12px 14px', fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{tip.text}</p>
       )}
-      <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>@{tip.author}</span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{new Date(tip.createdAt).toLocaleDateString('es-AR')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {isOwner && (
+            <>
+              <button onClick={openEdit} title="Editar"
+                style={{ background: 'none', border: 'none', color: 'rgba(255,200,0,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>✏️</button>
+              <button onClick={handleDelete} title="Eliminar"
+                style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>🗑️</button>
+            </>
+          )}
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{new Date(tip.createdAt).toLocaleDateString('es-AR')}</span>
+        </div>
       </div>
     </div>
   );
@@ -783,7 +900,23 @@ function TabTips() {
   const [tipVideoUrl, setTipVideoUrl] = useState('');
   const [submitting, setSubmitting]   = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
+  const [tipCounts, setTipCounts]     = useState({});
 
+  // Obtener userId y nombre del usuario logueado
+  const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
+  const currentUserId = stored?.user?.id || stored?.user?.slug || null;
+  const currentUserName = stored?.user?.name || 'Anónimo';
+
+  // Cargar contadores cuando se muestra la lista
+  useEffect(() => {
+    if (selected) return;
+    fetch('/api/tips/counts')
+      .then(r => r.json())
+      .then(d => { if (d && typeof d === 'object') setTipCounts(d); })
+      .catch(() => {});
+  }, [selected]);
+
+  // Cargar tips del personaje seleccionado
   useEffect(() => {
     if (!selected) return;
     setLoadingTips(true);
@@ -811,8 +944,6 @@ function TabTips() {
   };
 
   const submitTip = async () => {
-    const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
-    const author = stored?.user?.name || 'Anónimo';
     if (!tipText.trim() && !tipMediaData && !tipVideoUrl.trim()) {
       setSubmitResult({ error: 'Ingresá texto, foto o un link de video' }); return;
     }
@@ -821,18 +952,28 @@ function TabTips() {
       const r = await fetch(`/api/tips/${encodeURIComponent(selected)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author, text: tipText.trim(), mediaData: tipMediaData || undefined, videoUrl: tipVideoUrl.trim() || undefined }),
+        body: JSON.stringify({ authorId: currentUserId, author: currentUserName, text: tipText.trim(), mediaData: tipMediaData || undefined, videoUrl: tipVideoUrl.trim() || undefined }),
       });
       const data = await r.json();
       if (!r.ok) { setSubmitResult({ error: data.error || 'Error al enviar' }); return; }
-      const newTip = { ...data.tip, mediaData: tipMediaData };
+      const newTip = { ...data.tip, authorId: currentUserId, mediaData: tipMediaData };
       setTips(prev => [...prev, newTip]);
+      setTipCounts(prev => ({ ...prev, [selected]: (prev[selected] || 0) + 1 }));
       setTipText(''); setTipMediaData(null); setTipMediaName(''); setTipVideoUrl('');
       setShowForm(false);
       setSubmitResult({ ok: true });
       setTimeout(() => setSubmitResult(null), 3000);
     } catch { setSubmitResult({ error: 'Error de conexión' }); }
     finally { setSubmitting(false); }
+  };
+
+  const handleDeleteTip = (tipId) => {
+    setTips(prev => prev.filter(t => t.id !== tipId));
+    setTipCounts(prev => ({ ...prev, [selected]: Math.max(0, (prev[selected] || 1) - 1) }));
+  };
+
+  const handleEditTip = (updated) => {
+    setTips(prev => prev.map(t => t.id === updated.id ? updated : t));
   };
 
   if (selected) {
@@ -940,7 +1081,7 @@ function TabTips() {
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
           </div>
         ) : (
-          [...tips].reverse().map(t => <TipCard key={t.id} tip={t} />)
+          [...tips].reverse().map(t => <TipCard key={t.id} tip={t} currentUserId={currentUserId} onDelete={handleDeleteTip} onEdit={handleEditTip} />)
         )}
       </div>
     );
@@ -1002,7 +1143,9 @@ function TabTips() {
               />
               <div style={{ overflow: 'hidden' }}>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</p>
-                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>0 tips</p>
+                <p style={{ margin: 0, fontSize: 10, color: tipCounts[c] ? 'rgba(232,142,0,0.7)' : 'rgba(255,255,255,0.2)', marginTop: 2 }}>
+                  {tipCounts[c] ? `${tipCounts[c]} tip${tipCounts[c] !== 1 ? 's' : ''}` : '0 tips'}
+                </p>
               </div>
             </button>
           ))}
