@@ -3,13 +3,15 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   ScrollView,
   TextInput,
   Linking,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
+
+var SCREEN = Dimensions.get('screen');
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
 
@@ -26,8 +28,8 @@ export default function App() {
   const [customId, setCustomId] = useState('');
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+    <View style={[styles.safe, { width: SCREEN.width, height: SCREEN.height }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={false} />
       <ScrollView contentContainerStyle={styles.scroll}>
 
         <Text style={styles.title}>AFK Smash</Text>
@@ -74,18 +76,23 @@ export default function App() {
         </TouchableOpacity>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 var styles = StyleSheet.create({
   safe: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#0a0a0a',
   },
   scroll: {
+    flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 48,
     paddingBottom: 32,
   },
   title: {
