@@ -1,7 +1,7 @@
-﻿// v1.0.8
+﻿// v1.0.9
 import React, { useState, useEffect } from 'react';
 import {
-  StyleSheet, View, Text, TouchableOpacity, TextInput, StatusBar,
+  StyleSheet, View, Text, TouchableOpacity, StatusBar,
   ActivityIndicator, Image, Modal, Pressable, BackHandler, Linking, ScrollView,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -10,21 +10,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
-var CURRENT_VERSION = '1.0.8';
+var CURRENT_VERSION = '1.0.9';
 var SESSION_KEY = 'afk_session_v2';
-
-var SETUPS = [
-  { id: 'afk-setup1', label: 'Setup 1', color: '#7C3AED' },
-  { id: 'afk-setup2', label: 'Setup 2', color: '#2563EB' },
-  { id: 'afk-setup3', label: 'Setup 3', color: '#059669' },
-  { id: 'afk-setup4', label: 'Setup 4', color: '#D97706' },
-  { id: 'afk-setup5', label: 'Setup 5', color: '#DB2777' },
-];
+var ADMIN_HOME = BASE_URL + '/admin/afk-multi';
+var SB = StatusBar.currentHeight || 24;
 
 export default function App() {
   var [sessionLoading, setSessionLoading] = useState(true);
-  var [url, setUrl] = useState(null);
-  var [customId, setCustomId] = useState('');
   var [user, setUser] = useState(null);
   var [isAdmin, setIsAdmin] = useState(false);
   var [authLoading, setAuthLoading] = useState(false);
@@ -34,46 +26,47 @@ export default function App() {
   var [showSettings, setShowSettings] = useState(false);
   var [updateInfo, setUpdateInfo] = useState(null);
   var [checkingUpdate, setCheckingUpdate] = useState(false);
+  var [webUrl, setWebUrl] = useState(null);
+  var [webKey, setWebKey] = useState(0);
 
-  // Restaurar sesión guardada al iniciar
+  // Restaurar sesión al iniciar
   useEffect(function () {
     AsyncStorage.getItem(SESSION_KEY)
       .then(function (stored) {
         if (stored) {
-          var session = JSON.parse(stored);
-          if (session && session.user) {
-            setUser(session.user);
-            setIsAdmin(!!session.isAdmin);
-          }
+          try {
+            var session = JSON.parse(stored);
+            if (session && session.user) {
+              setUser(session.user);
+              setIsAdmin(!!session.isAdmin);
+              if (session.isAdmin) setWebUrl(ADMIN_HOME);
+            }
+          } catch (e) {}
         }
         setSessionLoading(false);
       })
-      .catch(function () {
-        setSessionLoading(false);
-      });
+      .catch(function () { setSessionLoading(false); });
     checkForUpdate();
   }, []);
 
-  // Botón atrás de Android
+  // Botón atrás Android
   useEffect(function () {
     function onBack() {
       if (showSettings) { setShowSettings(false); return true; }
       if (dropdownOpen) { setDropdownOpen(false); return true; }
-      if (url) { setUrl(null); return true; }
       if (showOAuth) { setShowOAuth(false); return true; }
+      if (webUrl && !isAdmin) { setWebUrl(null); return true; }
       return false;
     }
     var sub = BackHandler.addEventListener('hardwareBackPress', onBack);
     return function () { sub.remove(); };
-  }, [url, showOAuth, dropdownOpen, showSettings]);
+  }, [showSettings, dropdownOpen, showOAuth, webUrl, isAdmin]);
 
   function checkForUpdate() {
     fetch(BASE_URL + '/api/app-version')
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) {
-          setUpdateInfo(data);
-        }
+        if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) setUpdateInfo(data);
       })
       .catch(function () {});
   }
@@ -96,11 +89,7 @@ export default function App() {
     var navUrl = navState.url || '';
     if (!navUrl.startsWith(REDIRECT_URI)) return true;
     var match = navUrl.match(/[?&]code=([^&]+)/);
-    if (!match) {
-      setShowOAuth(false);
-      setAuthError('Error al autenticar con Start.gg');
-      return false;
-    }
+    if (!match) { setShowOAuth(false); setAuthError('Error al autenticar'); return false; }
     setShowOAuth(false);
     exchangeCode(match[1]);
     return false;
@@ -122,6 +111,10 @@ export default function App() {
         saveSession(session);
         setUser(data.user);
         setIsAdmin(!!data.isAdmin);
+        if (data.isAdmin) {
+          setWebUrl(ADMIN_HOME);
+          setWebKey(function (k) { return k + 1; });
+        }
       })
       .catch(function () {
         setAuthLoading(false);
@@ -131,18 +124,21 @@ export default function App() {
 
   function handleLogout() {
     AsyncStorage.removeItem(SESSION_KEY).catch(function () {});
-    setUser(null);
-    setIsAdmin(false);
+    setUser(null); setIsAdmin(false);
+    setDropdownOpen(false); setWebUrl(null); setShowSettings(false);
+  }
+
+  function navigateTo(newUrl) {
     setDropdownOpen(false);
-    setUrl(null);
-    setShowSettings(false);
+    setWebUrl(newUrl);
+    setWebKey(function (k) { return k + 1; });
   }
 
   // ── Carga inicial ──────────────────────────────────────────
   if (sessionLoading) {
     return (
       <View style={[styles.full, styles.center]}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <Text style={styles.loadingTitle}>AFK Smash</Text>
         <ActivityIndicator color="#E88E00" size="large" style={{ marginTop: 24 }} />
       </View>
@@ -153,14 +149,15 @@ export default function App() {
   if (showOAuth) {
     return (
       <View style={styles.full}>
-        <StatusBar barStyle="light-content" backgroundColor="#111" />
-        <View style={styles.oauthBar}>
-          <TouchableOpacity onPress={function () { setShowOAuth(false); }} style={styles.backBtn}>
+        <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+        <View style={[styles.oauthBar, { paddingTop: SB + 12 }]}>
+          <TouchableOpacity onPress={function () { setShowOAuth(false); }}>
             <Text style={styles.backText}>← Cancelar</Text>
           </TouchableOpacity>
           <Text style={styles.barLabel}>Iniciando sesión...</Text>
         </View>
         <WebView
+          key="oauth"
           style={styles.webview}
           source={{ uri: getOAuthUrl() }}
           javaScriptEnabled={true}
@@ -172,26 +169,11 @@ export default function App() {
     );
   }
 
-  // ── WebView de contenido (sin barra — usar botón atrás de Android) ──
-  if (url) {
-    return (
-      <View style={styles.full}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <WebView
-          style={styles.webview}
-          source={{ uri: url }}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-        />
-      </View>
-    );
-  }
-
   // ── Login ──────────────────────────────────────────────────
   if (!user) {
     return (
-      <View style={styles.full}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <View style={[styles.full, styles.center]}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.loginScreen}>
           <Text style={styles.title}>AFK Smash</Text>
           <Text style={styles.sub}>BIENVENIDO</Text>
@@ -207,7 +189,10 @@ export default function App() {
                   <Text style={styles.errorText}>{authError}</Text>
                 </View>
               )}
-              <TouchableOpacity style={styles.loginBtn} onPress={function () { setAuthError(null); setShowOAuth(true); }}>
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPress={function () { setAuthError(null); setShowOAuth(true); }}
+              >
                 <Text style={styles.loginBtnText}>Ingresar con Start.gg</Text>
               </TouchableOpacity>
               <Text style={styles.loginHint}>Iniciá sesión para acceder. Solo se pide una vez.</Text>
@@ -218,16 +203,23 @@ export default function App() {
     );
   }
 
-  // ── Componentes compartidos tras login ─────────────────────
+  // ── Shared UI (dropdown + settings + floating button) ─────
 
-  var dropdownModal = (
-    <Modal transparent visible={dropdownOpen} animationType="fade" onRequestClose={function () { setDropdownOpen(false); }}>
+  var DropdownModal = (
+    <Modal
+      transparent
+      visible={dropdownOpen}
+      animationType="fade"
+      onRequestClose={function () { setDropdownOpen(false); }}
+    >
       <Pressable style={styles.modalOverlay} onPress={function () { setDropdownOpen(false); }}>
-        <View style={styles.dropdown}>
+        <View style={[styles.dropdown, { top: SB + 60 }]}>
           <View style={styles.dropdownUser}>
             {user.avatar
               ? <Image source={{ uri: user.avatar }} style={styles.dropdownAvatar} />
-              : <View style={[styles.dropdownAvatar, styles.avatarFallback]}><Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text></View>
+              : <View style={[styles.dropdownAvatar, styles.avatarFallback]}>
+                  <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
+                </View>
             }
             <View style={{ flex: 1 }}>
               <Text style={styles.dropdownName}>{user.name}</Text>
@@ -236,16 +228,19 @@ export default function App() {
           </View>
           <View style={styles.dropdownDivider} />
           {isAdmin && (
-            <TouchableOpacity style={styles.dropdownItem} onPress={function () { setDropdownOpen(false); setUrl(BASE_URL + '/admin/afk-multi'); }}>
+            <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(ADMIN_HOME); }}>
               <Text style={styles.dropdownItemIcon}>🎮</Text>
               <Text style={styles.dropdownItemText}>Panel Admin</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.dropdownItem} onPress={function () { setDropdownOpen(false); setUrl(BASE_URL + '/home'); }}>
+          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/home'); }}>
             <Text style={styles.dropdownItemIcon}>🏠</Text>
             <Text style={styles.dropdownItemText}>Home</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.dropdownItem} onPress={function () { setDropdownOpen(false); setShowSettings(true); }}>
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={function () { setDropdownOpen(false); setShowSettings(true); }}
+          >
             <Text style={styles.dropdownItemIcon}>⚙️</Text>
             <Text style={styles.dropdownItemText}>Configuración</Text>
             {updateInfo && <View style={styles.updateDot} />}
@@ -260,8 +255,13 @@ export default function App() {
     </Modal>
   );
 
-  var settingsModal = (
-    <Modal transparent visible={showSettings} animationType="slide" onRequestClose={function () { setShowSettings(false); }}>
+  var SettingsModal = (
+    <Modal
+      transparent
+      visible={showSettings}
+      animationType="slide"
+      onRequestClose={function () { setShowSettings(false); }}
+    >
       <View style={styles.settingsOverlay}>
         <View style={styles.settingsSheet}>
           <View style={styles.settingsHeader}>
@@ -276,7 +276,9 @@ export default function App() {
               <View style={styles.settingsUserRow}>
                 {user.avatar
                   ? <Image source={{ uri: user.avatar }} style={styles.settingsAvatar} />
-                  : <View style={[styles.settingsAvatar, styles.avatarFallback]}><Text style={[styles.avatarInitial, { fontSize: 20 }]}>{user.name ? user.name[0].toUpperCase() : '?'}</Text></View>
+                  : <View style={[styles.settingsAvatar, styles.avatarFallback]}>
+                      <Text style={[styles.avatarInitial, { fontSize: 20 }]}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
+                    </View>
                 }
                 <View>
                   <Text style={styles.settingsUserName}>{user.name}</Text>
@@ -323,11 +325,8 @@ export default function App() {
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                       setCheckingUpdate(false);
-                      if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) {
-                        setUpdateInfo(data);
-                      } else {
-                        setUpdateInfo(null);
-                      }
+                      if (data.latestVersion && data.latestVersion !== CURRENT_VERSION) setUpdateInfo(data);
+                      else setUpdateInfo(null);
                     })
                     .catch(function () { setCheckingUpdate(false); });
                 }}
@@ -345,77 +344,70 @@ export default function App() {
     </Modal>
   );
 
-  var profileHeader = (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>AFK Smash</Text>
-      <TouchableOpacity style={styles.profileBtn} onPress={function () { setDropdownOpen(true); }}>
-        {user.avatar
-          ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          : <View style={styles.avatarFallback}><Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text></View>
-        }
-        {updateInfo && <View style={styles.headerUpdateDot} />}
-        <Text style={styles.chevron}>▾</Text>
-      </TouchableOpacity>
-    </View>
+  // Botón de perfil flotante (sobre WebViews)
+  var FloatingProfileBtn = (
+    <TouchableOpacity
+      style={[styles.floatingProfileBtn, { top: SB + 8 }]}
+      onPress={function () { setDropdownOpen(true); }}
+    >
+      {user.avatar
+        ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
+        : <View style={[styles.avatar, styles.avatarFallback]}>
+            <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
+          </View>
+      }
+      {updateInfo && <View style={styles.profileUpdateDot} />}
+      <Text style={styles.chevron}>▾</Text>
+    </TouchableOpacity>
   );
 
-  // ── Pantalla home (no-admin) ───────────────────────────────
-  if (!isAdmin) {
+  // ── WebView (admin siempre, no-admin cuando navega) ────────
+  if (isAdmin || webUrl) {
     return (
       <View style={styles.full}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        {dropdownModal}
-        {settingsModal}
-        {profileHeader}
-        <View style={styles.homeContent}>
-          <Text style={styles.title}>AFK Smash</Text>
-          <Text style={styles.homeComingSoon}>Próximamente</Text>
-        </View>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        {DropdownModal}
+        {SettingsModal}
+        {/* Spacer sólido del alto de la barra de estado */}
+        <View style={{ height: SB, backgroundColor: '#0a0a0a' }} />
+        <WebView
+          key={webKey}
+          style={styles.webview}
+          source={{ uri: webUrl || ADMIN_HOME }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+        />
+        {FloatingProfileBtn}
       </View>
     );
   }
 
-  // ── Selector de setups (admin) ─────────────────────────────
+  // ── Home nativo (no-admin sin webUrl) ──────────────────────
   return (
     <View style={styles.full}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      {dropdownModal}
-      {settingsModal}
-      {profileHeader}
-      <ScrollView style={styles.selectorScroll} contentContainerStyle={styles.selector}>
-        <Text style={styles.sub}>SELECCIONA TU SETUP</Text>
-        {SETUPS.map(function (s) {
-          return (
-            <TouchableOpacity
-              key={s.id}
-              style={[styles.btn, { borderColor: s.color }]}
-              onPress={function () { setUrl(BASE_URL + '/tablet/' + s.id); }}
-            >
-              <Text style={styles.btnText}>{s.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-        <View style={styles.customRow}>
-          <TextInput
-            style={styles.input}
-            value={customId}
-            onChangeText={setCustomId}
-            placeholder="ID personalizado (ej: cordoba)"
-            placeholderTextColor="#555"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            style={[styles.btn, { borderColor: '#E88E00', opacity: customId.trim() ? 1 : 0.4 }]}
-            onPress={function () {
-              var id = customId.trim();
-              if (id) setUrl(BASE_URL + '/tablet/' + id);
-            }}
-          >
-            <Text style={styles.btnText}>Conectar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      {DropdownModal}
+      {SettingsModal}
+      <View style={[styles.nativeHeader, { paddingTop: SB + 12 }]}>
+        <Text style={styles.headerTitle}>AFK Smash</Text>
+        <TouchableOpacity
+          style={styles.headerProfileBtn}
+          onPress={function () { setDropdownOpen(true); }}
+        >
+          {user.avatar
+            ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            : <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
+              </View>
+          }
+          {updateInfo && <View style={styles.profileUpdateDot} />}
+          <Text style={styles.chevron}>▾</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.homeContent}>
+        <Text style={styles.title}>AFK Smash</Text>
+        <Text style={styles.homeComingSoon}>Próximamente</Text>
+      </View>
     </View>
   );
 }
@@ -427,17 +419,15 @@ var styles = StyleSheet.create({
   webview: { flex: 1, backgroundColor: '#0a0a0a' },
   // OAuth bar
   oauthBar: {
-    backgroundColor: '#111', paddingHorizontal: 16, paddingVertical: 12, paddingTop: 40,
-    borderBottomWidth: 1, borderBottomColor: '#222', flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  backBtn: {},
   backText: { color: '#E88E00', fontSize: 15, fontWeight: '700' },
   barLabel: { color: '#666', fontSize: 12 },
   // Login
-  loginScreen: { flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
+  loginScreen: { width: '100%', paddingHorizontal: 24, alignItems: 'center' },
   title: { fontSize: 32, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  sub: { fontSize: 11, fontWeight: '700', color: '#E88E00', textAlign: 'center', letterSpacing: 4, marginBottom: 20 },
+  sub: { fontSize: 11, fontWeight: '700', color: '#E88E00', textAlign: 'center', letterSpacing: 4, marginBottom: 28 },
   loadingBox: { alignItems: 'center', marginTop: 32 },
   loadingText: { color: '#888', marginTop: 12, fontSize: 14 },
   errorBox: {
@@ -451,26 +441,39 @@ var styles = StyleSheet.create({
   },
   loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
   loginHint: { color: '#444', fontSize: 12, textAlign: 'center', marginTop: 16, lineHeight: 18 },
-  // Header
-  header: {
+  // Native header (no-admin home)
+  nativeHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 48, paddingBottom: 14,
+    paddingHorizontal: 16, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  profileBtn: {
+  headerProfileBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#111', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 10,
+    backgroundColor: '#111', borderRadius: 20,
+    paddingVertical: 5, paddingHorizontal: 10,
     borderWidth: 1, borderColor: '#333',
   },
+  // Floating profile button (over WebView)
+  floatingProfileBtn: {
+    position: 'absolute', right: 12, zIndex: 100,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(17,17,17,0.85)', borderRadius: 20,
+    paddingVertical: 5, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: 'rgba(80,80,80,0.6)',
+  },
   avatar: { width: 28, height: 28, borderRadius: 14 },
-  avatarFallback: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' },
+  avatarFallback: { backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  chevron: { color: '#888', fontSize: 11 },
-  headerUpdateDot: { position: 'absolute', top: 4, right: 28, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E88E00' },
+  chevron: { color: '#aaa', fontSize: 11 },
+  profileUpdateDot: {
+    position: 'absolute', top: 2, right: 24,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#E88E00',
+  },
   // Dropdown
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'flex-end', paddingTop: 95, paddingRight: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   dropdown: {
+    position: 'absolute', right: 12,
     backgroundColor: '#161616', borderRadius: 14, borderWidth: 1, borderColor: '#2a2a2a',
     width: 210, overflow: 'hidden', elevation: 10,
   },
@@ -483,7 +486,7 @@ var styles = StyleSheet.create({
   dropdownItemIcon: { fontSize: 16 },
   dropdownItemText: { color: '#d1d5db', fontSize: 14, flex: 1 },
   updateDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E88E00' },
-  // Settings sheet
+  // Settings
   settingsOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   settingsSheet: { backgroundColor: '#111', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%', paddingBottom: 32 },
   settingsHeader: {
@@ -492,30 +495,40 @@ var styles = StyleSheet.create({
   },
   settingsTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   settingsClose: { fontSize: 17, color: '#666', padding: 4 },
-  settingsSectionTitle: { fontSize: 10, fontWeight: '700', color: '#4b5563', letterSpacing: 2, marginTop: 20, marginBottom: 8, paddingHorizontal: 20 },
-  settingsCard: { backgroundColor: '#161616', marginHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#222', overflow: 'hidden' },
+  settingsSectionTitle: {
+    fontSize: 10, fontWeight: '700', color: '#4b5563',
+    letterSpacing: 2, marginTop: 20, marginBottom: 8, paddingHorizontal: 20,
+  },
+  settingsCard: {
+    backgroundColor: '#161616', marginHorizontal: 16,
+    borderRadius: 12, borderWidth: 1, borderColor: '#222', overflow: 'hidden',
+  },
   settingsUserRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   settingsAvatar: { width: 48, height: 48, borderRadius: 24 },
   settingsUserName: { fontSize: 15, fontWeight: '700', color: '#fff' },
   settingsUserRole: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  settingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#1f1f1f' },
+  settingsRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderTopWidth: 1, borderTopColor: '#1f1f1f',
+  },
   settingsRowLabel: { color: '#9ca3af', fontSize: 14 },
   settingsRowValue: { color: '#e5e7eb', fontSize: 14, fontWeight: '600' },
   settingsLinkBtn: { paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#1f1f1f' },
   settingsLinkText: { color: '#E88E00', fontSize: 14 },
   updateBanner: { backgroundColor: '#1f1200', marginHorizontal: 14, marginTop: 8, borderRadius: 8, padding: 10 },
   updateBannerText: { color: '#fbbf24', fontSize: 13, textAlign: 'center' },
-  settingsUpdateBtn: { backgroundColor: '#E88E00', marginHorizontal: 14, marginTop: 8, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  settingsUpdateBtn: {
+    backgroundColor: '#E88E00', marginHorizontal: 14, marginTop: 8,
+    borderRadius: 10, paddingVertical: 12, alignItems: 'center',
+  },
   settingsUpdateBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  settingsLogoutBtn: { marginHorizontal: 16, marginTop: 16, backgroundColor: '#1a0a0a', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#3f1111' },
+  settingsLogoutBtn: {
+    marginHorizontal: 16, marginTop: 16, backgroundColor: '#1a0a0a',
+    borderRadius: 12, paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: '#3f1111',
+  },
   settingsLogoutText: { color: '#f87171', fontSize: 15, fontWeight: '600' },
-  // Selector
-  selectorScroll: { flex: 1 },
-  selector: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
-  btn: { backgroundColor: '#111', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, marginBottom: 10, borderWidth: 2, alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  customRow: { marginTop: 8, marginBottom: 8 },
-  input: { backgroundColor: '#1a1a1a', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: '#333', marginBottom: 10 },
   // Home no-admin
   homeContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   homeComingSoon: { color: '#6b7280', fontSize: 14, marginTop: 8 },
