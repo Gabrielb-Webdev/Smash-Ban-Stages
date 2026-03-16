@@ -152,10 +152,9 @@ function BottomNav({ tab, setTab }) {
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 480, zIndex: 50,
-      background: 'rgba(10,10,10,0.97)',
-      backdropFilter: 'blur(24px)',
-      borderTop: '1px solid rgba(255,255,255,0.06)',
+      background: '#0a0a0a',
       display: 'flex',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
       {items.map(item => {
         const active = tab === item.id;
@@ -165,29 +164,31 @@ function BottomNav({ tab, setTab }) {
             onClick={() => setTab(item.id)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 4, paddingTop: 10, paddingBottom: 14,
+              justifyContent: 'center', gap: 5,
+              paddingTop: 12, paddingBottom: 12,
               border: 'none', background: 'transparent', cursor: 'pointer',
-              position: 'relative', transition: 'color 0.15s ease',
-              color: active ? '#FF8C00' : 'rgba(255,255,255,0.22)',
+              position: 'relative',
+              color: active ? '#ffffff' : 'rgba(255,255,255,0.28)',
+              transition: 'color 0.2s ease',
             }}
           >
-            {/* Active indicator bar at top */}
-            <span style={{
-              position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-              width: active ? 28 : 0, height: 2,
-              background: 'linear-gradient(90deg,#FF8C00,#E85D00)',
-              borderRadius: '0 0 4px 4px',
-              transition: 'width 0.2s ease',
-              boxShadow: active ? '0 0 8px rgba(255,140,0,0.6)' : 'none',
-            }} />
+            {/* Pill glow detrás del icono activo */}
+            {active && (
+              <span style={{
+                position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+                width: 40, height: 32, borderRadius: 12,
+                background: 'rgba(255,255,255,0.07)',
+                pointerEvents: 'none',
+              }} />
+            )}
 
-            <Svg size={22} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
+            <Svg size={24} sw={active ? 2 : 1.5}>{item.icon}</Svg>
 
             <span style={{
-              fontSize: 9, fontWeight: active ? 700 : 500,
-              letterSpacing: '0.04em',
-              opacity: active ? 1 : 0.5,
-              transition: 'opacity 0.15s',
+              fontSize: 10, fontWeight: active ? 700 : 400,
+              letterSpacing: active ? '0.01em' : '0.03em',
+              lineHeight: 1,
+              transition: 'all 0.2s',
             }}>
               {item.label}
             </span>
