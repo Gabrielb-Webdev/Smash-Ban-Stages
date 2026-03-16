@@ -2,7 +2,7 @@
   "expo": {
     "name": "AFK Smash",
     "slug": "afk-smash-mobile",
-    "version": "1.0.0",
+    "version": "1.0.10",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,

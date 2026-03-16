@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       isAdmin,
       user: {
         id: user.id,
-        name: user.player?.gamerTag || user.name || slugNormalized,
+        name: user.name || user.player?.gamerTag || slugNormalized,
         slug: slugNormalized,
         avatar,
       },
