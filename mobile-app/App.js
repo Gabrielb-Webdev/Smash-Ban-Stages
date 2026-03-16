@@ -3,12 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
+  SafeAreaView,
   StatusBar,
   ScrollView,
   TextInput,
   Linking,
   StyleSheet,
-  Platform,
 } from 'react-native';
 
 const BASE_URL = 'https://smash-ban-stages.vercel.app';
@@ -26,7 +26,7 @@ export default function App() {
   const [customId, setCustomId] = useState('');
 
   return (
-    <View style={styles.safe}>
+    <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <ScrollView contentContainerStyle={styles.scroll}>
 
@@ -74,7 +74,7 @@ export default function App() {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -82,7 +82,6 @@ var styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#0a0a0a',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   scroll: {
     paddingHorizontal: 16,
