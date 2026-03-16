@@ -263,7 +263,7 @@ export default function App() {
                 </View>
             }
             <View style={{ flex: 1 }}>
-              <Text style={styles.dropdownName}>{user.name}</Text>
+              <Text style={styles.dropdownName}>{user.name || user.slug || 'Usuario'}</Text>
               <Text style={styles.dropdownRole}>{isAdmin ? 'Administrador' : 'Usuario'}</Text>
             </View>
           </View>
