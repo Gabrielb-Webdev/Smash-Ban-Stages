@@ -57,7 +57,6 @@ export default async function handler(req, res) {
               id
               name
               slug
-              email
               images {
                 type
                 url
@@ -92,7 +91,6 @@ export default async function handler(req, res) {
         id: user.id,
         name: user.name,
         slug: user.slug,
-        email: user.email,
         avatar,
       },
     });
