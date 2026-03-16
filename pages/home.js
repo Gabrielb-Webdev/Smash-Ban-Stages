@@ -744,7 +744,7 @@ const CHARS = [
 ];
 
 /* ─── TIP CARD ───────────────────────────────────── */
-function TipCard({ tip, currentUserId, onDelete, onEdit }) {
+function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
   const [editing, setEditing]             = useState(false);
   const [editText, setEditText]           = useState('');
   const [editNewMedia, setEditNewMedia]   = useState(null);    // base64 nuevo archivo
@@ -754,7 +754,12 @@ function TipCard({ tip, currentUserId, onDelete, onEdit }) {
   const [saving, setSaving]               = useState(false);
   const [editError, setEditError]         = useState(null);
 
-  const isOwner = !!(currentUserId && tip.authorId && currentUserId === tip.authorId);
+  // Tips viejos sin authorId: fallback por nombre de autor
+  const isOwner = !!(currentUserId && (
+    (tip.authorId && tip.authorId === currentUserId) ||
+    (!tip.authorId && currentUserName && tip.author &&
+      tip.author.trim().toLowerCase() === currentUserName.trim().toLowerCase())
+  ));
 
   const openEdit = () => {
     setEditText(tip.text || '');
@@ -776,7 +781,7 @@ function TipCard({ tip, currentUserId, onDelete, onEdit }) {
 
   const handleSaveEdit = async () => {
     setSaving(true); setEditError(null);
-    const body = { tipId: tip.id, userId: currentUserId, text: editText.trim(), videoUrl: editVideoUrl.trim() || undefined };
+    const body = { tipId: tip.id, userId: currentUserId, userName: currentUserName, text: editText.trim(), videoUrl: editVideoUrl.trim() || undefined };
     if (editRemoveMedia) body.removeMedia = true;
     else if (editNewMedia) body.mediaData = editNewMedia;
     try {
@@ -801,7 +806,7 @@ function TipCard({ tip, currentUserId, onDelete, onEdit }) {
     try {
       const r = await fetch(`/api/tips/${encodeURIComponent(tip.char)}`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipId: tip.id, userId: currentUserId }),
+        body: JSON.stringify({ tipId: tip.id, userId: currentUserId, userName: currentUserName }),
       });
       if (r.ok) onDelete(tip.id);
     } catch {}
@@ -1081,7 +1086,7 @@ function TabTips() {
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
           </div>
         ) : (
-          [...tips].reverse().map(t => <TipCard key={t.id} tip={t} currentUserId={currentUserId} onDelete={handleDeleteTip} onEdit={handleEditTip} />)
+          [...tips].reverse().map(t => <TipCard key={t.id} tip={t} currentUserId={currentUserId} currentUserName={currentUserName} onDelete={handleDeleteTip} onEdit={handleEditTip} />)
         )}
       </div>
     );

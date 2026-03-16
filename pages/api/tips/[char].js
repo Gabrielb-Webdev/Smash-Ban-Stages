@@ -150,7 +150,7 @@ export default function handler(req, res) {
 
   // ── PATCH: editar tip propio ─────────────────────────
   if (req.method === 'PATCH') {
-    const { tipId, userId, text, mediaData: newMediaData, removeMedia, videoUrl } = req.body || {};
+    const { tipId, userId, userName, text, mediaData: newMediaData, removeMedia, videoUrl } = req.body || {};
     if (!tipId || !userId) return res.status(400).json({ error: 'tipId y userId requeridos' });
 
     if (!global._smashTips[char]) return res.status(404).json({ error: 'Tip no encontrado' });
@@ -158,7 +158,13 @@ export default function handler(req, res) {
     if (idx === -1) return res.status(404).json({ error: 'Tip no encontrado' });
 
     const existing = global._smashTips[char][idx];
-    if (existing.authorId !== sanitize(userId).slice(0, 80)) {
+    const cleanUserId = sanitize(userId).slice(0, 80);
+    const cleanUserName = userName ? sanitize(userName).slice(0, 50) : null;
+    // Permitir si coincide authorId, o si el tip no tiene authorId y el nombre coincide
+    const ownsById   = existing.authorId && existing.authorId === cleanUserId;
+    const ownsByName = !existing.authorId && cleanUserName &&
+      existing.author && existing.author.trim().toLowerCase() === cleanUserName.trim().toLowerCase();
+    if (!ownsById && !ownsByName) {
       return res.status(403).json({ error: 'No tenés permiso para editar este tip' });
     }
 
@@ -197,7 +203,7 @@ export default function handler(req, res) {
 
   // ── DELETE: eliminar tip propio ──────────────────────
   if (req.method === 'DELETE') {
-    const { tipId, userId } = req.body || {};
+    const { tipId, userId, userName } = req.body || {};
     if (!tipId || !userId) return res.status(400).json({ error: 'tipId y userId requeridos' });
 
     if (!global._smashTips[char]) return res.status(404).json({ error: 'Tip no encontrado' });
@@ -205,7 +211,12 @@ export default function handler(req, res) {
     if (idx === -1) return res.status(404).json({ error: 'Tip no encontrado' });
 
     const tip = global._smashTips[char][idx];
-    if (tip.authorId !== sanitize(userId).slice(0, 80)) {
+    const cleanUserId   = sanitize(userId).slice(0, 80);
+    const cleanUserName = userName ? sanitize(userName).slice(0, 50) : null;
+    const ownsById   = tip.authorId && tip.authorId === cleanUserId;
+    const ownsByName = !tip.authorId && cleanUserName &&
+      tip.author && tip.author.trim().toLowerCase() === cleanUserName.trim().toLowerCase();
+    if (!ownsById && !ownsByName) {
       return res.status(403).json({ error: 'No tenés permiso para eliminar este tip' });
     }
 
