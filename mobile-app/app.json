@@ -5,6 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "backgroundColor": "#0a0a0a",
     "icon": "./assets/afk-icon.png",
     "assetBundlePatterns": ["**/*"],
     "android": {
@@ -19,9 +21,9 @@
         {
           "android": {
             "kotlinVersion": "1.9.25",
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "minSdkVersion": 23
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
           }
         }
       ]
