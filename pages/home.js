@@ -154,9 +154,9 @@ export default function HomePage() {
           </div>
 
           {/* Right side */}
-          <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 
-            {/* Campana de notificaciones */}
+            {/* Campana — fuera del div oculto en la app mobile */}
             <button
               onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
               style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center' }}
@@ -169,6 +169,8 @@ export default function HomePage() {
               )}
             </button>
 
+            {/* Perfil — oculto en la app mobile vía #app-profile-header */}
+            <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center' }}>
             <button
               onClick={() => setShowMenu(v => !v)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}
@@ -181,6 +183,7 @@ export default function HomePage() {
                   </div>
               }
             </button>
+            </div>
           </div>
         </header>
 
@@ -740,15 +743,103 @@ const CHARS = [
   'Wii Fit Trainer','Wolf','Yoshi','Young Link','Zelda','Zero Suit Samus',
 ];
 
+/* ─── TIP CARD ───────────────────────────────────── */
+function TipCard({ tip }) {
+  return (
+    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
+      {tip.mediaData && !tip.mediaIsVideo && (
+        <img src={tip.mediaData} alt="tip" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }} />
+      )}
+      {tip.mediaData && tip.mediaIsVideo && (
+        <video src={tip.mediaData} controls style={{ width: '100%', maxHeight: 240, background: '#000', display: 'block' }} />
+      )}
+      {tip.videoUrl && (
+        <a href={tip.videoUrl} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(255,0,0,0.08)', borderBottom: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none' }}>
+          <span style={{ fontSize: 20 }}>▶️</span>
+          <span style={{ fontSize: 12, color: '#FF8C00', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Ver video</span>
+        </a>
+      )}
+      {tip.text && (
+        <p style={{ margin: 0, padding: '12px 14px', fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{tip.text}</p>
+      )}
+      <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>@{tip.author}</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{new Date(tip.createdAt).toLocaleDateString('es-AR')}</span>
+      </div>
+    </div>
+  );
+}
+
 function TabTips() {
-  const [selected, setSelected] = useState(null);
-  const [query, setQuery] = useState('');
+  const [selected, setSelected]       = useState(null);
+  const [query, setQuery]             = useState('');
+  const [tips, setTips]               = useState([]);
+  const [loadingTips, setLoadingTips] = useState(false);
+  const [showForm, setShowForm]       = useState(false);
+  const [tipText, setTipText]         = useState('');
+  const [tipMediaData, setTipMediaData] = useState(null);
+  const [tipMediaName, setTipMediaName] = useState('');
+  const [tipVideoUrl, setTipVideoUrl] = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+
+  useEffect(() => {
+    if (!selected) return;
+    setLoadingTips(true);
+    fetch(`/api/tips/${encodeURIComponent(selected)}`)
+      .then(r => r.json())
+      .then(d => setTips(Array.isArray(d) ? d : []))
+      .catch(() => setTips([]))
+      .finally(() => setLoadingTips(false));
+  }, [selected]);
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm'];
+    if (!allowed.includes(file.type)) {
+      setSubmitResult({ error: 'Tipo no permitido. Usá JPG, PNG, GIF, WebP, MP4 o WebM' }); return;
+    }
+    const limitMB = file.type.startsWith('video') ? 40 : 5;
+    if (file.size > limitMB * 1024 * 1024) {
+      setSubmitResult({ error: `Máximo ${limitMB} MB para este tipo de archivo` }); return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => { setTipMediaData(ev.target.result); setTipMediaName(file.name); setSubmitResult(null); };
+    reader.readAsDataURL(file);
+  };
+
+  const submitTip = async () => {
+    const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
+    const author = stored?.user?.name || 'Anónimo';
+    if (!tipText.trim() && !tipMediaData && !tipVideoUrl.trim()) {
+      setSubmitResult({ error: 'Ingresá texto, foto o un link de video' }); return;
+    }
+    setSubmitting(true); setSubmitResult(null);
+    try {
+      const r = await fetch(`/api/tips/${encodeURIComponent(selected)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author, text: tipText.trim(), mediaData: tipMediaData || undefined, videoUrl: tipVideoUrl.trim() || undefined }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setSubmitResult({ error: data.error || 'Error al enviar' }); return; }
+      const newTip = { ...data.tip, mediaData: tipMediaData };
+      setTips(prev => [...prev, newTip]);
+      setTipText(''); setTipMediaData(null); setTipMediaName(''); setTipVideoUrl('');
+      setShowForm(false);
+      setSubmitResult({ ok: true });
+      setTimeout(() => setSubmitResult(null), 3000);
+    } catch { setSubmitResult({ error: 'Error de conexión' }); }
+    finally { setSubmitting(false); }
+  };
 
   if (selected) {
     const imgSrc = `/images/characters/${encodeURIComponent(selected.replace(/\.$/, ''))}.png`;
     return (
       <div style={{ padding: '24px 18px' }}>
-        <button onClick={() => setSelected(null)} style={{
+        <button onClick={() => { setSelected(null); setShowForm(false); setTips([]); setSubmitResult(null); }} style={{
           display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00',
           fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer',
           padding: '4px 0', marginBottom: 20,
@@ -757,26 +848,100 @@ function TabTips() {
         </button>
 
         {/* Character hero */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: 16 }}>
           <img src={imgSrc} alt={selected} style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 14, background: 'rgba(255,255,255,0.03)', flexShrink: 0 }} />
           <div>
             <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{selected}</h2>
             <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Super Smash Bros. Ultimate</p>
             <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '4px 10px' }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>0 tips de la comunidad</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{tips.length} tip{tips.length !== 1 ? 's' : ''} de la comunidad</span>
             </div>
           </div>
         </div>
 
-        {/* Empty state */}
-        <div style={{ background: '#141414', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
-          <span style={{ fontSize: 40 }}>💡</span>
-          <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavía</p>
-          <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
-          <div style={{ display: 'inline-flex', background: 'rgba(232,142,0,0.08)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 10, padding: '8px 16px' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,140,0,0.5)' }}>+ Subir tip — Próximamente</span>
+        {/* Botón subir tip */}
+        <button onClick={() => { setShowForm(v => !v); setSubmitResult(null); }} style={{
+          width: '100%', marginBottom: 14, padding: '12px 16px', borderRadius: 14,
+          background: showForm ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,rgba(232,142,0,0.15),rgba(232,142,0,0.06))',
+          border: `1px solid ${showForm ? 'rgba(255,255,255,0.08)' : 'rgba(232,142,0,0.3)'}`,
+          color: '#FF8C00', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          {showForm ? '✕ Cancelar' : '+ Subir tip'}
+        </button>
+
+        {/* Formulario */}
+        {showForm && (
+          <div style={{ background: '#141414', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: 16, marginBottom: 14 }}>
+            <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 14, color: '#fff' }}>Nuevo tip — {selected}</p>
+
+            <textarea
+              value={tipText}
+              onChange={e => setTipText(e.target.value)}
+              placeholder="Contá tu tip, combo o estrategia..."
+              maxLength={2000}
+              rows={4}
+              style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+            />
+
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                📷 {tipMediaName || 'Foto / Video'}
+                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" onChange={handleFile} style={{ display: 'none' }} />
+              </label>
+              {tipMediaData && (
+                <button onClick={() => { setTipMediaData(null); setTipMediaName(''); }} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '8px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>✕ Quitar</button>
+              )}
+            </div>
+
+            {tipMediaData && (
+              <div style={{ marginTop: 10, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {tipMediaData.startsWith('data:video') ? (
+                  <video src={tipMediaData} controls style={{ width: '100%', maxHeight: 180, background: '#000' }} />
+                ) : (
+                  <img src={tipMediaData} alt="preview" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }} />
+                )}
+              </div>
+            )}
+
+            <input
+              type="url"
+              value={tipVideoUrl}
+              onChange={e => setTipVideoUrl(e.target.value)}
+              placeholder="O pegá un link de YouTube / Vimeo..."
+              style={{ marginTop: 10, width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+            />
+
+            {submitResult?.error && (
+              <p style={{ margin: '8px 0 0', fontSize: 12, color: '#EF4444' }}>{submitResult.error}</p>
+            )}
+
+            <button onClick={submitTip} disabled={submitting}
+              style={{ marginTop: 12, width: '100%', padding: '12px', borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', background: submitting ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff' }}>
+              {submitting ? 'Enviando...' : 'Publicar tip'}
+            </button>
           </div>
-        </div>
+        )}
+
+        {submitResult?.ok && (
+          <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 14, padding: '10px 14px', marginBottom: 14, textAlign: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399' }}>✅ Tip publicado</span>
+          </div>
+        )}
+
+        {loadingTips ? (
+          <div style={{ padding: '30px 0', textAlign: 'center' }}>
+            <div style={{ width: 28, height: 28, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+          </div>
+        ) : tips.length === 0 ? (
+          <div style={{ background: '#141414', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
+            <span style={{ fontSize: 40 }}>💡</span>
+            <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavía</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
+          </div>
+        ) : (
+          [...tips].reverse().map(t => <TipCard key={t.id} tip={t} />)
+        )}
       </div>
     );
   }
@@ -819,29 +984,29 @@ function TabTips() {
           <p style={{ margin: '10px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin resultados para "{query}"</p>
         </div>
       ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {filtered.map((c) => (
-          <button key={c} onClick={() => setSelected(c)} style={{
-            background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
-            borderRadius: 16, padding: '10px 12px', textAlign: 'left',
-            cursor: 'pointer', transition: 'all 0.15s',
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}
-            onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(232,142,0,0.3)'; e.currentTarget.style.background = 'rgba(232,142,0,0.06)'; }}
-            onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#141414'; }}
-          >
-            <img
-              src={`/images/characters/${encodeURIComponent(c.replace(/\.$/, ''))}.png`}
-              alt={c}
-              style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0, borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}
-            />
-            <div style={{ overflow: 'hidden' }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</p>
-              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>0 tips</p>
-            </div>
-          </button>
-        ))}
-      </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {filtered.map((c) => (
+            <button key={c} onClick={() => setSelected(c)} style={{
+              background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: 16, padding: '10px 12px', textAlign: 'left',
+              cursor: 'pointer', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}
+              onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(232,142,0,0.3)'; e.currentTarget.style.background = 'rgba(232,142,0,0.06)'; }}
+              onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#141414'; }}
+            >
+              <img
+                src={`/images/characters/${encodeURIComponent(c.replace(/\.$/, ''))}.png`}
+                alt={c}
+                style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0, borderRadius: 8, background: 'rgba(255,255,255,0.03)' }}
+              />
+              <div style={{ overflow: 'hidden' }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</p>
+                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>0 tips</p>
+              </div>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
