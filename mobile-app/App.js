@@ -14,7 +14,7 @@ var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
 var CURRENT_VERSION = '1.0.10';
 var SESSION_KEY = 'afk_session_v2';
-var ADMIN_HOME = BASE_URL + '/admin/afk-multi';
+var ADMIN_HOME = BASE_URL + '/';
 var SB = StatusBar.currentHeight || 24;
 
 export default function App() {
