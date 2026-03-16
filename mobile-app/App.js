@@ -1,6 +1,6 @@
-﻿// v1.0.6
+﻿// v1.0.7
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, StatusBar, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, Image, Modal, Pressable } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
@@ -22,6 +22,7 @@ export default function App() {
   var [authLoading, setAuthLoading] = useState(false);
   var [authError, setAuthError] = useState(null);
   var [showOAuth, setShowOAuth] = useState(false);
+  var [dropdownOpen, setDropdownOpen] = useState(false);
 
   function getOAuthUrl() {
     var params = new URLSearchParams({
@@ -152,8 +153,49 @@ export default function App() {
   return (
     <View style={styles.full}>
       <StatusBar barStyle="light-content" backgroundColor="#000" translucent={false} />
+
+      {/* Header con perfil */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>AFK Smash</Text>
+        <TouchableOpacity style={styles.profileBtn} onPress={function () { setDropdownOpen(true); }}>
+          {user.avatar
+            ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            : <View style={styles.avatarFallback}><Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text></View>
+          }
+          <Text style={styles.chevron}>▾</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Dropdown modal */}
+      <Modal transparent visible={dropdownOpen} animationType="fade" onRequestClose={function () { setDropdownOpen(false); }}>
+        <Pressable style={styles.modalOverlay} onPress={function () { setDropdownOpen(false); }}>
+          <View style={styles.dropdown}>
+            <View style={styles.dropdownUser}>
+              {user.avatar
+                ? <Image source={{ uri: user.avatar }} style={styles.dropdownAvatar} />
+                : <View style={[styles.dropdownAvatar, styles.avatarFallback]}><Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text></View>
+              }
+              <Text style={styles.dropdownName}>{user.name}</Text>
+            </View>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity style={styles.dropdownItem} onPress={function () { setDropdownOpen(false); setUrl(BASE_URL + '/admin/afk-multi'); }}>
+              <Text style={styles.dropdownItemIcon}>🎮</Text>
+              <Text style={styles.dropdownItemText}>Panel Admin</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dropdownItem} onPress={function () { setDropdownOpen(false); setUrl(BASE_URL + '/home'); }}>
+              <Text style={styles.dropdownItemIcon}>🏠</Text>
+              <Text style={styles.dropdownItemText}>Home</Text>
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity style={styles.dropdownItem} onPress={function () { setDropdownOpen(false); setUser(null); }}>
+              <Text style={styles.dropdownItemIcon}>🚪</Text>
+              <Text style={[styles.dropdownItemText, styles.dropdownLogout]}>Salir</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+
       <View style={styles.selector}>
-        <Text style={styles.title}>AFK Smash</Text>
         <Text style={styles.sub}>SELECCIONA TU SETUP</Text>
         {SETUPS.map(function (s) {
           return (
@@ -186,18 +228,6 @@ export default function App() {
             <Text style={styles.btnText}>Conectar</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.adminBtn}
-          onPress={function () { setUrl(BASE_URL + '/admin/afk-multi'); }}
-        >
-          <Text style={styles.adminText}>Panel Admin</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={function () { setUser(null); }}
-        >
-          <Text style={styles.logoutText}>Cerrar sesión ({user.name})</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -205,6 +235,7 @@ export default function App() {
 
 var styles = StyleSheet.create({
   full: { flex: 1, backgroundColor: '#0a0a0a' },
+  // Barra OAuth / WebView
   bar: {
     backgroundColor: '#111', paddingHorizontal: 16, paddingVertical: 12, paddingTop: 40,
     borderBottomWidth: 1, borderBottomColor: '#222', flexDirection: 'row',
@@ -214,6 +245,7 @@ var styles = StyleSheet.create({
   backText: { color: '#E88E00', fontSize: 15, fontWeight: '700' },
   barUser: { color: '#888', fontSize: 12 },
   webview: { flex: 1, backgroundColor: '#0a0a0a' },
+  // Login
   loginScreen: { flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
   loadingBox: { alignItems: 'center', marginTop: 32 },
   loadingText: { color: '#888', marginTop: 12, fontSize: 14 },
@@ -228,9 +260,33 @@ var styles = StyleSheet.create({
   },
   loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
   loginHint: { color: '#444', fontSize: 12, textAlign: 'center', marginTop: 16, lineHeight: 18 },
-  selector: { flex: 1, paddingHorizontal: 16, paddingTop: 48, paddingBottom: 32 },
+  // Header selector
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 48, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+  },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+  profileBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#111', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderColor: '#333' },
+  avatar: { width: 28, height: 28, borderRadius: 14 },
+  avatarFallback: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  chevron: { color: '#888', fontSize: 11 },
+  // Dropdown modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'flex-end', paddingTop: 90, paddingRight: 12 },
+  dropdown: { backgroundColor: '#161616', borderRadius: 14, borderWidth: 1, borderColor: '#2a2a2a', width: 200, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  dropdownUser: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
+  dropdownAvatar: { width: 32, height: 32, borderRadius: 16 },
+  dropdownName: { color: '#ccc', fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  dropdownDivider: { height: 1, backgroundColor: '#222' },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 10 },
+  dropdownItemIcon: { fontSize: 16 },
+  dropdownItemText: { color: '#d1d5db', fontSize: 14 },
+  dropdownLogout: { color: '#f87171' },
+  // Selector
+  selector: { flex: 1, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 32 },
   title: { fontSize: 32, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  sub: { fontSize: 11, fontWeight: '700', color: '#E88E00', textAlign: 'center', letterSpacing: 4, marginBottom: 28 },
+  sub: { fontSize: 11, fontWeight: '700', color: '#E88E00', textAlign: 'center', letterSpacing: 4, marginBottom: 20 },
   btn: {
     backgroundColor: '#111', borderRadius: 12, paddingVertical: 16,
     paddingHorizontal: 20, marginBottom: 10, borderWidth: 2, alignItems: 'center',
@@ -242,11 +298,4 @@ var styles = StyleSheet.create({
     paddingHorizontal: 14, color: '#fff', fontSize: 14,
     borderWidth: 1, borderColor: '#333', marginBottom: 10,
   },
-  adminBtn: {
-    marginTop: 16, backgroundColor: '#1a1a2e', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#7C3AED',
-  },
-  adminText: { color: '#a78bfa', fontSize: 14, fontWeight: '700' },
-  logoutBtn: { marginTop: 10, paddingVertical: 10, alignItems: 'center' },
-  logoutText: { color: '#444', fontSize: 12 },
 });
