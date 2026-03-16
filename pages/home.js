@@ -41,7 +41,21 @@ export default function HomePage() {
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored) { router.replace('/login'); return; }
-    setUser(stored.user);
+
+    // Detectar sesión desactualizada: el nombre es un slug hexadecimal (ej: "ead8fa65")
+    // o coincide con el slug. En ese caso forzamos re-login para obtener datos frescos.
+    const u = stored.user;
+    const nameIsStale = !u?.name
+      || u.name === u?.slug
+      || /^[0-9a-f]{6,16}$/i.test(u.name);
+
+    if (nameIsStale) {
+      if (typeof window !== 'undefined') localStorage.removeItem('afk_user');
+      router.replace('/login');
+      return;
+    }
+
+    setUser(u);
     setIsAdmin(!!stored.isAdmin);
   }, []);
 
