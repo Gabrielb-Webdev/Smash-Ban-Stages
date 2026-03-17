@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
-import { calcRank, RANKS, TIER_ICONS } from '../lib/ranks';
+import { RANKS, TIER_ICONS } from '../lib/ranks';
 
 /* ─── PLATAFORMAS ─────────────────────────────── */
 const PLATFORMS = [
@@ -481,7 +481,10 @@ function RankBadge({ rankName }) {
 
 function RankedPlayerRow({ position, player }) {
   const isSmasher = player.rank === 'Smasher';
+  const rankObj   = RANKS.find(r => r.name === player.rank) || RANKS[0];
   const posIcon   = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : null;
+  const rpts      = player.rankPoints || 0;
+  const pct       = isSmasher ? null : Math.min(100, rpts);
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -499,7 +502,15 @@ function RankedPlayerRow({ position, player }) {
         <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: isSmasher ? '#FF8C00' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {player.userName}
         </p>
-        <RankBadge rankName={player.rank} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <RankBadge rankName={player.rank} />
+          {isSmasher && <span style={{ fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{rpts} RP</span>}
+        </div>
+        {!isSmasher && (
+          <div style={{ marginTop: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 4, overflow: 'hidden' }}>
+            <div style={{ width: `${pct}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.35s' }} />
+          </div>
+        )}
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 800, color: '#fff' }}>
@@ -507,7 +518,9 @@ function RankedPlayerRow({ position, player }) {
           <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 3px' }}>·</span>
           <span style={{ color: '#EF4444' }}>{player.losses || 0}L</span>
         </p>
-        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{player.rankedPoints || 0} RP</p>
+        {!isSmasher && (
+          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rpts}/100 RP</p>
+        )}
       </div>
     </div>
   );
@@ -598,26 +611,37 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
             const rankName = s?.rank || 'Plástico 1';
             const wins     = s?.wins   || 0;
             const losses   = s?.losses || 0;
-            const pts      = s?.rankedPoints || 0;
+            const pts      = s?.rankPoints || 0;
+            const isSmasher = rankName === 'Smasher';
+            const rankObj  = RANKS.find(r => r.name === rankName) || RANKS[0];
             const platLabel = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
             const platColor = plat === 'switch' ? '#DC2626' : '#7C3AED';
             return (
               <div key={plat} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)',
               }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
-                  <RankBadge rankName={rankName} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
+                    <RankBadge rankName={rankName} />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                      <span style={{ color: '#22C55E' }}>{wins}W</span>
+                      <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
+                      <span style={{ color: '#EF4444' }}>{losses}L</span>
+                    </p>
+                    {isSmasher
+                      ? <p style={{ margin: 0, fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{pts} RP</p>
+                      : <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts}/100 RP</p>
+                    }
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
-                    <span style={{ color: '#22C55E' }}>{wins}W</span>
-                    <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
-                    <span style={{ color: '#EF4444' }}>{losses}L</span>
-                  </p>
-                  <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts} RP</p>
-                </div>
+                {!isSmasher && (
+                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.4s' }} />
+                  </div>
+                )}
               </div>
             );
           })}

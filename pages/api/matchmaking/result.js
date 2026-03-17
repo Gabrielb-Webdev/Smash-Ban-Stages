@@ -1,7 +1,7 @@
 // API para reportar el resultado de un match de matchmaking — Upstash Redis
 
 import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey } from '../../../lib/redis';
-import { calcRank, WIN_POINTS, LOSS_POINTS } from '../../../lib/ranks';
+import { applyWin, applyLoss, leaderboardScore, getRankIndex } from '../../../lib/ranks';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
@@ -89,29 +89,25 @@ export default async function handler(req, res) {
     const wKey   = rankedStatsKey(String(winnerId), platform);
     const wStats = (await redis.get(wKey)) || {
       userId: winnerId, userName: winnerName, platform,
-      wins: 0, losses: 0, rankedPoints: 0,
+      wins: 0, losses: 0, rank: 'Plástico 1', rankIndex: 0, rankPoints: 0,
     };
-    wStats.userName     = winnerName;
-    wStats.wins         = (wStats.wins   || 0) + 1;
-    wStats.rankedPoints = Math.max(0, (wStats.rankedPoints || 0) + WIN_POINTS);
-    wStats.rank         = calcRank(wStats.rankedPoints).name;
-    wStats.updatedAt    = new Date().toISOString();
+    wStats.userName = winnerName;
+    applyWin(wStats);
+    wStats.updatedAt = new Date().toISOString();
     await redis.set(wKey, wStats);
-    await redis.zadd(rankedBoardKey(platform), { score: wStats.rankedPoints, member: String(winnerId) });
+    await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(wStats), member: String(winnerId) });
 
     // ── Perdedor ─────────────────────────────────────
     const lKey   = rankedStatsKey(String(loserId), platform);
     const lStats = (await redis.get(lKey)) || {
       userId: loserId, userName: loserName, platform,
-      wins: 0, losses: 0, rankedPoints: 0,
+      wins: 0, losses: 0, rank: 'Plástico 1', rankIndex: 0, rankPoints: 0,
     };
-    lStats.userName     = loserName;
-    lStats.losses       = (lStats.losses || 0) + 1;
-    lStats.rankedPoints = Math.max(0, (lStats.rankedPoints || 0) - LOSS_POINTS);
-    lStats.rank         = calcRank(lStats.rankedPoints).name;
-    lStats.updatedAt    = new Date().toISOString();
+    lStats.userName = loserName;
+    applyLoss(lStats);
+    lStats.updatedAt = new Date().toISOString();
     await redis.set(lKey, lStats);
-    await redis.zadd(rankedBoardKey(platform), { score: lStats.rankedPoints, member: String(loserId) });
+    await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(lStats), member: String(loserId) });
   }
 
   return res.status(200).json({

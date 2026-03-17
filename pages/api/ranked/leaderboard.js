@@ -32,7 +32,11 @@ export default async function handler(req, res) {
 
   const leaderboard = statsArray
     .filter(Boolean)
-    .sort((a, b) => (b.rankedPoints || 0) - (a.rankedPoints || 0));
+    .sort((a, b) => {
+      const sa = (a.rankIndex || 0) * 100 + (a.rankPoints || 0);
+      const sb = (b.rankIndex || 0) * 100 + (b.rankPoints || 0);
+      return sb - sa;
+    });
 
   return res.status(200).json(leaderboard);
 }
