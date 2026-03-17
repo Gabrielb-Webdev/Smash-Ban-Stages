@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
+import { APP_VERSION } from '../lib/version';
 
 /* ─── PLATAFORMAS ─────────────────────────────── */
 const PLATFORMS = [
@@ -168,6 +169,7 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>AFK</span>
               <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>SMASH</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', marginLeft: 5, alignSelf: 'center' }}>v{APP_VERSION}</span>
             </div>
           </div>
 

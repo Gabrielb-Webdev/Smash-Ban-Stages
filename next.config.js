@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: require('./lib/version.js').APP_VERSION,
+  },
   reactStrictMode: true,
   // Force cache invalidation
   generateBuildId: async () => {

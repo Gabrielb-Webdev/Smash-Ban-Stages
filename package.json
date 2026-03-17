@@ -1,6 +1,6 @@
 {
   "name": "smash-stage-ban-system",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sistema de baneos para torneos de Super Smash Bros Ultimate",
   "scripts": {
     "dev": "next dev",
