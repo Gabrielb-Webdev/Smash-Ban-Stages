@@ -347,59 +347,91 @@ export default function HomePage() {
 
 /* ─── BOTTOM NAV ────────────────────────────────── */
 function BottomNav({ tab, setTab }) {
-  const items = [
-    { id: 'inicio',   label: 'Inicio',    icon: ICO.home     },
-    { id: 'rankings', label: 'Rankings',  icon: ICO.trophy   },
-    { id: 'torneos',  label: 'Torneos',   icon: ICO.calendar },
-    { id: 'tips',     label: 'Tips',      icon: ICO.bulb     },
-    { id: 'match',    label: 'Match',     icon: ICO.bolt     },
+  const leftItems = [
+    { id: 'inicio',   label: 'Inicio',   icon: ICO.home   },
+    { id: 'rankings', label: 'Rankings', icon: ICO.trophy },
   ];
+  const rightItems = [
+    { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar },
+    { id: 'tips',     label: 'Tips',     icon: ICO.bulb     },
+  ];
+  const matchActive = tab === 'match';
 
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 480, zIndex: 50,
-      background: '#08080b',
-      borderTop: '1px solid rgba(255,255,255,0.07)',
-      display: 'flex',
+      background: 'linear-gradient(180deg, #0c1826 0%, #080f18 100%)',
+      borderTop: '1px solid rgba(30,80,140,0.35)',
+      display: 'flex', alignItems: 'flex-end',
+      height: 60,
+      overflow: 'visible',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
-      {items.map(item => {
+      {/* Tabs izquierdos */}
+      {leftItems.map(item => {
         const active = tab === item.id;
         return (
-          <button
-            key={item.id}
-            onClick={() => setTab(item.id)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 6,
-              padding: '10px 2px 11px',
-              border: 'none', background: 'transparent', cursor: 'pointer',
-              position: 'relative',
-              color: active ? '#FF8C00' : 'rgba(255,255,255,0.3)',
-              transition: 'color 0.15s ease',
-            }}
-          >
-            {/* Línea activa arriba — estilo Valorant */}
-            <span style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '0 0 2px 2px',
-              background: active ? 'linear-gradient(90deg,#FF6000,#FF8C00,#FF6000)' : 'transparent',
-              boxShadow: active ? '0 0 8px rgba(255,140,0,0.7)' : 'none',
-              transition: 'background 0.15s, box-shadow 0.15s',
-            }} />
+          <button key={item.id} onClick={() => setTab(item.id)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', gap: 5,
+            padding: '8px 2px 12px',
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            color: active ? '#FF8C00' : 'rgba(255,255,255,0.28)',
+            transition: 'color 0.15s',
+          }}>
+            <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
+            <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
 
-            {/* Ícono */}
-            <Svg size={20} sw={active ? 2.2 : 1.5}>{item.icon}</Svg>
+      {/* MATCH — botón central elevado */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', height: '100%' }}>
+        <button
+          onClick={() => setTab('match')}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            width: 88,
+            height: 70,
+            background: matchActive
+              ? 'linear-gradient(170deg, #e84040 0%, #b01010 100%)'
+              : 'linear-gradient(170deg, #c92020 0%, #8c0e0e 100%)',
+            clipPath: 'polygon(14% 0%, 86% 0%, 100% 100%, 0% 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+            border: 'none', cursor: 'pointer',
+            color: '#fff',
+            filter: matchActive
+              ? 'drop-shadow(0 -4px 12px rgba(220,40,40,0.7))'
+              : 'drop-shadow(0 -2px 8px rgba(180,20,20,0.45))',
+            transition: 'filter 0.2s, background 0.2s',
+            paddingBottom: 6,
+          }}
+        >
+          <Svg size={20} sw={2.4}>{ICO.bolt}</Svg>
+          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', lineHeight: 1 }}>
+            MATCH
+          </span>
+        </button>
+      </div>
 
-            {/* Texto uppercase bold — Valorant style */}
-            <span style={{
-              fontSize: 9,
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              lineHeight: 1,
-              transition: 'color 0.15s',
-            }}>
+      {/* Tabs derechos */}
+      {rightItems.map(item => {
+        const active = tab === item.id;
+        return (
+          <button key={item.id} onClick={() => setTab(item.id)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', gap: 5,
+            padding: '8px 2px 12px',
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            color: active ? '#FF8C00' : 'rgba(255,255,255,0.28)',
+            transition: 'color 0.15s',
+          }}>
+            <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
+            <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
               {item.label}
             </span>
           </button>
