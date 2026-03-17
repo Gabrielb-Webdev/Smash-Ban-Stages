@@ -7,6 +7,13 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET;
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Verificar que las variables de entorno de Redis están disponibles
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return res.status(500).json({
+      error: 'Variables de entorno de Redis no configuradas. Verificá UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN en Vercel.',
+    });
+  }
+
   // Proteger con secreto opcional si está definido
   if (ADMIN_SECRET) {
     const auth = req.headers['x-admin-secret'] || req.body?.secret;
@@ -16,6 +23,7 @@ export default async function handler(req, res) {
   }
 
   const results = {};
+  try {
 
   // tips:index
   const tipsIndex = await redis.get(tipsIndexKey);
@@ -46,5 +54,9 @@ export default async function handler(req, res) {
     results.mmMatchIndex = `ya existe (${matchIndex.length} matches)`;
   }
 
-  return res.status(200).json({ success: true, results });
+    return res.status(200).json({ success: true, results });
+  } catch (err) {
+    console.error('[seed]', err);
+    return res.status(500).json({ error: err.message || 'Error interno al conectar con Redis' });
+  }
 }
