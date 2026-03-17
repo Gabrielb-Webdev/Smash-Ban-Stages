@@ -27,8 +27,8 @@ function safeMatch(m, requestingUserId) {
   return {
     id: m.id, platform: m.platform, stage: m.stage,
     status: m.status, result: m.result, reports: m.reports, createdAt: m.createdAt,
-    self:     { name: self.userName,     parsecId: self.parsecId,     switchCode: self.switchCode },
-    opponent: { name: opponent.userName, userId: opponent.userId, parsecId: opponent.parsecId, switchCode: opponent.switchCode },
+    self:     { name: self.userName },
+    opponent: { name: opponent.userName, userId: opponent.userId },
     selfIsP1: isP1,
   };
 }
@@ -108,15 +108,9 @@ export default async function handler(req, res) {
 
   // ── POST: unirse a la cola ────────────────────────────
   if (req.method === 'POST') {
-    const { userId, userName, platform, parsecId, switchCode } = req.body || {};
+    const { userId, userName, platform } = req.body || {};
     if (!userId || !userName || !['switch', 'parsec'].includes(platform)) {
       return res.status(400).json({ error: 'userId, userName y platform requeridos' });
-    }
-    if (platform === 'parsec' && !parsecId?.trim()) {
-      return res.status(400).json({ error: 'Ingresá tu Parsec Peer ID' });
-    }
-    if (platform === 'switch' && !switchCode?.trim()) {
-      return res.status(400).json({ error: 'Ingresá tu código de amigo de Nintendo Switch' });
     }
 
     const cleanUserId   = sanitize(userId);
@@ -127,8 +121,6 @@ export default async function handler(req, res) {
 
     const entry = {
       userId: cleanUserId, userName: cleanUserName, platform,
-      parsecId:   parsecId   ? sanitize(parsecId).slice(0, 80) : null,
-      switchCode: switchCode ? sanitize(switchCode).replace(/[^0-9\-SW]/gi, '').slice(0, 20) : null,
       joinedAt: new Date().toISOString(), matchId: null,
     };
 

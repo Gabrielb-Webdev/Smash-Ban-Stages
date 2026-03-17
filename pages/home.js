@@ -61,6 +61,14 @@ export default function HomePage() {
 
     setUser(u);
     setIsAdmin(!!stored.isAdmin);
+    // Guardar perfil del jugador en Redis
+    if (u.id) {
+      fetch('/api/players/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: u.id, name: u.name, slug: u.slug, avatar: u.avatar }),
+      }).catch(() => {});
+    }
   }, []);
 
   // Polling de notificaciones
@@ -790,7 +798,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
 
   // Tips viejos sin authorId: fallback por nombre de autor
   const isOwner = !!(currentUserId && (
-    (tip.authorId && tip.authorId === currentUserId) ||
+    (tip.authorId != null && String(tip.authorId) === String(currentUserId)) ||
     (!tip.authorId && currentUserName && tip.author &&
       tip.author.trim().toLowerCase() === currentUserName.trim().toLowerCase())
   ));
@@ -943,7 +951,8 @@ function TabTips() {
 
   // Obtener userId y nombre del usuario logueado
   const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
-  const currentUserId = stored?.user?.id || stored?.user?.slug || null;
+  const _rawUid = stored?.user?.id || stored?.user?.slug;
+  const currentUserId = _rawUid != null ? String(_rawUid) : null;
   const currentUserName = stored?.user?.name || 'Anónimo';
 
   // Cargar contadores cuando se muestra la lista
@@ -1207,7 +1216,6 @@ function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s %
 
 function TabMatch() {
   const [plat, setPlat]           = useState(null);
-  const [connInfo, setConnInfo]   = useState('');
   const [mmStatus, setMmStatus]   = useState(null);
   const [polling, setPolling]     = useState(false);
   const [joining, setJoining]     = useState(false);
@@ -1220,7 +1228,8 @@ function TabMatch() {
   const p = PLATFORMS.find(x => x.id === plat);
 
   const stored   = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
-  const userId   = stored?.user?.id || stored?.user?.slug;
+  const _rawUidMm = stored?.user?.id || stored?.user?.slug;
+  const userId   = _rawUidMm != null ? String(_rawUidMm) : undefined;
   const userName = stored?.user?.name || 'Jugador';
 
   // ── Polling de estado ─────────────────────────────
@@ -1250,14 +1259,8 @@ function TabMatch() {
 
   // ── Acciones ──────────────────────────────────────
   const joinQueue = async () => {
-    if (!connInfo.trim()) {
-      setJoinError(plat === 'switch' ? 'Ingresá tu código de amigo de Switch (SW-XXXX-XXXX-XXXX)' : 'Ingresá tu Peer ID de Parsec');
-      return;
-    }
     setJoining(true); setJoinError(null);
     const body = { userId, userName, platform: plat };
-    if (plat === 'switch') body.switchCode = connInfo.trim();
-    else body.parsecId = connInfo.trim();
     try {
       const r = await fetch('/api/matchmaking/queue', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -1300,7 +1303,7 @@ function TabMatch() {
   };
 
   const resetAll = () => {
-    setPlat(null); setConnInfo(''); setMmStatus(null);
+    setPlat(null); setMmStatus(null);
     setPolling(false); setJoining(false); setJoinError(null);
     setReported(false); setReportError(null); setElapsed(0);
   };
@@ -1389,9 +1392,6 @@ function TabMatch() {
   // RENDER — Match activo (matched / pending_result / disputed)
   // ════════════════════════════════════════════════════
   if ((matchStatus === 'matched' || matchStatus === 'active' || matchStatus === 'pending_result' || matchStatus === 'disputed') && matchData) {
-    const connLabel = plat === 'switch' ? 'Código de amigo' : 'Peer ID de Parsec';
-    const connValue = plat === 'switch' ? matchData.opponent.switchCode : matchData.opponent.parsecId;
-
     return (
       <div style={{ padding: '24px 18px' }}>
         {/* Header rival encontrado */}
@@ -1419,22 +1419,12 @@ function TabMatch() {
           </div>
         </div>
 
-        {/* Datos de conexión del rival */}
-        {connValue && (
-          <div style={{ background: '#141414', border: `1px solid ${p.from}30`, borderRadius: 20, padding: '14px 16px', marginBottom: 18 }}>
-            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{connLabel} del rival</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace', letterSpacing: 1, flex: 1 }}>{connValue}</p>
-              <button onClick={() => { if (navigator.clipboard) navigator.clipboard.writeText(connValue); }}
-                style={{ background: `${p.from}22`, border: `1px solid ${p.from}40`, borderRadius: 10, padding: '7px 12px', color: p.from, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                Copiar
-              </button>
-            </div>
-            <p style={{ margin: '6px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-              {plat === 'switch' ? '👉 Mandá la solicitud de amistad en Nintendo Switch' : '👉 Conectate al Peer ID de tu rival en Parsec'}
-            </p>
-          </div>
-        )}
+        {/* Coordinar conexión */}
+        <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 16, padding: '12px 16px', marginBottom: 18 }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+            {plat === 'switch' ? '🎮 Buscá a tu rival por su usuario en Nintendo Switch Online y añadilo como amigo.' : '🖥️ Coordiná con tu rival para conectarse en Parsec (por Discord u otro medio).'}
+          </p>
+        </div>
 
         {/* Reporte de resultado */}
         {matchStatus === 'disputed' ? (
@@ -1524,30 +1514,7 @@ function TabMatch() {
         </div>
       </div>
 
-      {/* Input conexión */}
-      <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '18px', marginBottom: 14 }}>
-        <p style={{ margin: '0 0 14px', fontWeight: 800, fontSize: 14, color: '#fff' }}>
-          {plat === 'switch' ? '🎮 Tu código de amigo de Nintendo Switch' : '🖥️ Tu Peer ID de Parsec'}
-        </p>
-        <input
-          type="text"
-          value={connInfo}
-          onChange={e => { setConnInfo(e.target.value); setJoinError(null); }}
-          onKeyDown={e => { if (e.key === 'Enter') joinQueue(); }}
-          placeholder={plat === 'switch' ? 'SW-XXXX-XXXX-XXXX' : 'Tu Peer ID (ej: 123456789)'}
-          style={{
-            width: '100%', background: '#1a1a1a', border: `1px solid ${joinError ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 14, padding: '12px 14px', fontSize: 15, color: '#fff',
-            outline: 'none', boxSizing: 'border-box', fontFamily: 'monospace', letterSpacing: plat === 'switch' ? 2 : 0,
-          }}
-        />
-        {joinError && <p style={{ margin: '8px 0 0', fontSize: 12, color: '#EF4444' }}>{joinError}</p>}
-        <p style={{ margin: '8px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>
-          {plat === 'switch'
-            ? 'Encontralo en Nintendo Switch → Perfil → Código de amigo. Ej: SW-1234-5678-9012'
-            : 'Tu Peer ID está en la pantalla principal de Parsec, arriba a la izquierda.'}
-        </p>
-      </div>
+      {joinError && <p style={{ margin: '0 0 10px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{joinError}</p>}
 
       <button onClick={joinQueue} disabled={joining}
         style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: joining ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg,${p.from},${p.to})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: joining ? 'not-allowed' : 'pointer', boxShadow: joining ? 'none' : `0 6px 20px ${p.from}35` }}>
