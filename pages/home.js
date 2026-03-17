@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { APP_VERSION } from '../lib/version';
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* ─── PLATAFORMAS ─────────────────────────────── */
 const PLATFORMS = [
