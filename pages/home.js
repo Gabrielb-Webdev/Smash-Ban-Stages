@@ -346,20 +346,19 @@ export default function HomePage() {
 /* ─── BOTTOM NAV ────────────────────────────────── */
 function BottomNav({ tab, setTab }) {
   const items = [
-    { id: 'inicio',   label: 'Inicio',    icon: ICO.home },
-    { id: 'rankings', label: 'Rankings',  icon: ICO.trophy },
+    { id: 'inicio',   label: 'Inicio',    icon: ICO.home     },
+    { id: 'rankings', label: 'Rankings',  icon: ICO.trophy   },
     { id: 'torneos',  label: 'Torneos',   icon: ICO.calendar },
-    { id: 'tips',     label: 'Tips',      icon: ICO.bulb },
-    { id: 'match',    label: 'Match',     icon: ICO.bolt },
+    { id: 'tips',     label: 'Tips',      icon: ICO.bulb     },
+    { id: 'match',    label: 'Match',     icon: ICO.bolt     },
   ];
 
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 480, zIndex: 50,
-      background: 'rgba(5,5,8,0.97)',
-      backdropFilter: 'blur(20px)',
-      borderTop: '1px solid rgba(232,142,0,0.12)',
+      background: '#08080b',
+      borderTop: '1px solid rgba(255,255,255,0.07)',
       display: 'flex',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
@@ -371,40 +370,33 @@ function BottomNav({ tab, setTab }) {
             onClick={() => setTab(item.id)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 5,
-              paddingTop: 12, paddingBottom: 12,
+              justifyContent: 'center', gap: 6,
+              padding: '10px 2px 11px',
               border: 'none', background: 'transparent', cursor: 'pointer',
               position: 'relative',
-              color: active ? '#FF8C00' : 'rgba(255,255,255,0.28)',
-              transition: 'color 0.2s ease',
+              color: active ? '#FF8C00' : 'rgba(255,255,255,0.3)',
+              transition: 'color 0.15s ease',
             }}
           >
-            {/* Indicador barra superior naranja con glow */}
-            {active && (
-              <span style={{
-                position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                width: 28, height: 2, borderRadius: 2,
-                background: 'linear-gradient(90deg,#FF8C00,#FF6000)',
-                boxShadow: '0 0 10px rgba(232,142,0,0.8)',
-              }} />
-            )}
-            {/* Pill glow detrás del icono activo */}
-            {active && (
-              <span style={{
-                position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-                width: 40, height: 32, borderRadius: 12,
-                background: 'rgba(232,142,0,0.08)',
-                pointerEvents: 'none',
-              }} />
-            )}
-
-            <Svg size={24} sw={active ? 2 : 1.5}>{item.icon}</Svg>
-
+            {/* Línea activa arriba — estilo Valorant */}
             <span style={{
-              fontSize: 10, fontWeight: active ? 700 : 400,
-              letterSpacing: active ? '0.01em' : '0.03em',
+              position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '0 0 2px 2px',
+              background: active ? 'linear-gradient(90deg,#FF6000,#FF8C00,#FF6000)' : 'transparent',
+              boxShadow: active ? '0 0 8px rgba(255,140,0,0.7)' : 'none',
+              transition: 'background 0.15s, box-shadow 0.15s',
+            }} />
+
+            {/* Ícono */}
+            <Svg size={20} sw={active ? 2.2 : 1.5}>{item.icon}</Svg>
+
+            {/* Texto uppercase bold — Valorant style */}
+            <span style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
               lineHeight: 1,
-              transition: 'all 0.2s',
+              transition: 'color 0.15s',
             }}>
               {item.label}
             </span>
