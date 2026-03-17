@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
+import { calcRank, RANKS, TIER_ICONS } from '../lib/ranks';
 
 /* ─── PLATAFORMAS ─────────────────────────────── */
 const PLATFORMS = [
@@ -461,9 +462,76 @@ function Tag({ children, color = '#FF8C00' }) {
 }
 
 /* ═══════════════════════════════════════════════════
+   COMPONENTES DE RANKED
+═══════════════════════════════════════════════════ */
+function RankBadge({ rankName }) {
+  const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+  const icon    = TIER_ICONS[rankObj.tier] || '🎮';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 9px', borderRadius: 20,
+      background: rankObj.bg, border: `1px solid ${rankObj.border}`,
+      fontSize: 11, fontWeight: 800, color: rankObj.color, whiteSpace: 'nowrap',
+    }}>
+      {icon} {rankObj.name}
+    </span>
+  );
+}
+
+function RankedPlayerRow({ position, player }) {
+  const isSmasher = player.rank === 'Smasher';
+  const posIcon   = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : null;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      background: isSmasher ? 'rgba(255,140,0,0.08)' : '#141414',
+      border: `1px solid ${isSmasher ? 'rgba(255,140,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
+      borderRadius: 14, padding: '12px 14px',
+    }}>
+      <div style={{ width: 26, textAlign: 'center', flexShrink: 0 }}>
+        {posIcon
+          ? <span style={{ fontSize: 17 }}>{posIcon}</span>
+          : <span style={{ fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.25)' }}>{position}</span>
+        }
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: isSmasher ? '#FF8C00' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {player.userName}
+        </p>
+        <RankBadge rankName={player.rank} />
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 800, color: '#fff' }}>
+          <span style={{ color: '#22C55E' }}>{player.wins || 0}W</span>
+          <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 3px' }}>·</span>
+          <span style={{ color: '#EF4444' }}>{player.losses || 0}L</span>
+        </p>
+        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{player.rankedPoints || 0} RP</p>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
    TAB — INICIO
 ═══════════════════════════════════════════════════ */
 function TabInicio({ user, isAdmin, router, displayName, initial }) {
+  const [rankedStats, setRankedStats] = useState(null);
+
+  useEffect(() => {
+    const uid = String(user?.id || user?.slug || '');
+    if (!uid) return;
+    fetch(`/api/players/stats?userId=${encodeURIComponent(uid)}`)
+      .then(r => r.json())
+      .then(d => setRankedStats(d))
+      .catch(() => {});
+  }, []);
+
+  const totalW    = (rankedStats?.switch?.wins   || 0) + (rankedStats?.parsec?.wins   || 0);
+  const totalL    = (rankedStats?.switch?.losses || 0) + (rankedStats?.parsec?.losses || 0);
+  const wlDisplay = (totalW + totalL) > 0 ? `${totalW}W/${totalL}L` : '—';
+
   return (
     <div>
       {/* Hero Banner */}
@@ -511,11 +579,49 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
         <div style={{ display: 'flex', gap: 10 }}>
           <StatCard icon="⭐" label="Puntos" value="—" sub="BA Local" accent="#FF8C00" />
           <StatCard icon="🏆" label="Ranking" value="—" sub="posición" accent="#F59E0B" />
-          <StatCard icon="⚡" label="W / L" value="—" sub="online" accent="#22C55E" />
+          <StatCard icon="⚡" label="W / L" value={wlDisplay} sub="ranked" accent="#22C55E" />
         </div>
       </div>
 
       <div style={{ padding: '0 18px 24px' }}>
+
+        {/* Ranked card */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(232,142,0,0.06), rgba(124,58,237,0.06))',
+          border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px', marginBottom: 20,
+        }}>
+          <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
+            ⚔️ RANKED ONLINE
+          </p>
+          {(['switch', 'parsec']).map(plat => {
+            const s        = rankedStats?.[plat];
+            const rankName = s?.rank || 'Plástico 1';
+            const wins     = s?.wins   || 0;
+            const losses   = s?.losses || 0;
+            const pts      = s?.rankedPoints || 0;
+            const platLabel = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
+            const platColor = plat === 'switch' ? '#DC2626' : '#7C3AED';
+            return (
+              <div key={plat} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
+                  <RankBadge rankName={rankName} />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                    <span style={{ color: '#22C55E' }}>{wins}W</span>
+                    <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
+                    <span style={{ color: '#EF4444' }}>{losses}L</span>
+                  </p>
+                  <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts} RP</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {/* Admin button */}
         {isAdmin && (
@@ -642,8 +748,26 @@ function NotifCard({ notif, onDismiss }) {
    TAB — RANKINGS
 ═══════════════════════════════════════════════════ */
 function TabRankings() {
-  const [mode, setMode] = useState('ba');
-  const MODES = [{ id: 'ba', label: 'BA Local' }, { id: 'inc', label: 'INC' }, { id: 'char', label: 'Personaje' }];
+  const [mode,        setMode]       = useState('ba');
+  const [rankPlat,    setRankPlat]   = useState('switch');
+  const [rankBoard,   setRankBoard]  = useState([]);
+  const [rankLoading, setRankLoading] = useState(false);
+
+  const MODES = [
+    { id: 'ba',     label: 'BA Local'  },
+    { id: 'inc',    label: 'INC'       },
+    { id: 'char',   label: 'Personaje' },
+    { id: 'ranked', label: 'Ranked'    },
+  ];
+
+  useEffect(() => {
+    if (mode !== 'ranked') return;
+    setRankLoading(true);
+    fetch(`/api/ranked/leaderboard?platform=${rankPlat}`)
+      .then(r => r.json())
+      .then(d => { setRankBoard(Array.isArray(d) ? d : []); setRankLoading(false); })
+      .catch(() => setRankLoading(false));
+  }, [mode, rankPlat]);
 
   return (
     <div style={{ padding: '24px 18px' }}>
@@ -655,7 +779,7 @@ function TabRankings() {
         {MODES.map(m => (
           <button key={m.id} onClick={() => setMode(m.id)}
             style={{
-              flex: 1, padding: '9px 4px', borderRadius: 10, fontWeight: 700, fontSize: 12,
+              flex: 1, padding: '9px 2px', borderRadius: 10, fontWeight: 700, fontSize: 11,
               border: 'none', cursor: 'pointer', transition: 'all 0.15s',
               background: mode === m.id ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'transparent',
               color: mode === m.id ? '#fff' : 'rgba(255,255,255,0.3)',
@@ -666,7 +790,56 @@ function TabRankings() {
         ))}
       </div>
 
-      {mode !== 'char' ? (
+      {mode === 'ranked' ? (
+        <>
+          {/* Sub-selector de plataforma */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
+              <button key={p.id} onClick={() => setRankPlat(p.id)} style={{
+                flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
+                cursor: 'pointer', transition: 'all 0.15s',
+                background: rankPlat === p.id ? 'rgba(232,142,0,0.1)' : '#141414',
+                border: `1px solid ${rankPlat === p.id ? 'rgba(232,142,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                color: rankPlat === p.id ? '#FF8C00' : 'rgba(255,255,255,0.35)',
+              }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {rankLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[1,2,3,4,5].map(i => (
+                <div key={i} style={{ background: '#141414', borderRadius: 14, padding: 14, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div className="shimmer" style={{ width: 28, height: 28, borderRadius: 8 }} />
+                  <div style={{ flex: 1 }}>
+                    <div className="shimmer" style={{ height: 12, width: '55%', borderRadius: 6, marginBottom: 7 }} />
+                    <div className="shimmer" style={{ height: 10, width: '30%', borderRadius: 5 }} />
+                  </div>
+                  <div className="shimmer" style={{ width: 50, height: 28, borderRadius: 8 }} />
+                </div>
+              ))}
+            </div>
+          ) : rankBoard.length === 0 ? (
+            <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
+              <span style={{ fontSize: 44 }}>⚔️</span>
+              <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas ranked aún</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Jugá partidas en la sección Match para aparecer en este ranking</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {rankBoard.some(p => p.rank === 'Smasher') && (
+                <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#FF8C00', letterSpacing: '0.08em' }}>
+                  👑 SMASHERS
+                </p>
+              )}
+              {rankBoard.map((p, i) => (
+                <RankedPlayerRow key={p.userId} position={i + 1} player={p} />
+              ))}
+            </div>
+          )}
+        </>
+      ) : mode !== 'char' ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{mode === 'ba' ? '📍 Buenos Aires' : '🇦🇷 Argentina'}</p>
