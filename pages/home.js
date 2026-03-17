@@ -173,8 +173,9 @@ export default function HomePage() {
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 
-            {/* Campana — fuera del div oculto en la app mobile */}
+            {/* Campana */}
             <button
+              id="app-bell-btn"
               onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
               style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', zIndex: 51 }}
             >
@@ -1223,6 +1224,19 @@ function TabMatch() {
   const [reported, setReported]   = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError]     = useState(null);
+  const [onlineCount, setOnlineCount]     = useState(null);
+
+  useEffect(() => {
+    const fetchOnline = () => {
+      fetch('/api/matchmaking/online')
+        .then(r => r.json())
+        .then(d => setOnlineCount(d?.total ?? 0))
+        .catch(() => {});
+    };
+    fetchOnline();
+    const iv = setInterval(fetchOnline, 15000);
+    return () => clearInterval(iv);
+  }, []);
   const [elapsed, setElapsed]     = useState(0);
 
   const p = PLATFORMS.find(x => x.id === plat);
@@ -1316,7 +1330,15 @@ function TabMatch() {
   // ════════════════════════════════════════════════════
   if (!plat) return (
     <div style={{ padding: '24px 18px' }}>
-      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Matchmaking</h1>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Matchmaking</h1>
+        {onlineCount !== null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: onlineCount > 0 ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${onlineCount > 0 ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 20, padding: '4px 10px 4px 8px' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: onlineCount > 0 ? '#34D399' : '#555', boxShadow: onlineCount > 0 ? '0 0 6px #34D399' : 'none', flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: onlineCount > 0 ? '#34D399' : 'rgba(255,255,255,0.3)' }}>{onlineCount} en cola</span>
+          </div>
+        )}
+      </div>
       <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí tu plataforma para jugar</p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
@@ -1332,6 +1354,11 @@ function TabMatch() {
               <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 15, color: '#fff' }}>{px.label}</p>
               <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{px.id === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
             </div>
+            {onlineCount !== null && onlineCount > 0 && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '3px 8px', flexShrink: 0 }}>
+                {onlineCount}
+              </div>
+            )}
             <Svg size={18} sw={2} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </Svg>

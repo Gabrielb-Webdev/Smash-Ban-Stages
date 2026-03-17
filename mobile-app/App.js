@@ -32,6 +32,8 @@ export default function App() {
   var [downloadError, setDownloadError] = useState(null);
   var [webUrl, setWebUrl] = useState(null);
   var [webKey, setWebKey] = useState(0);
+  var [showBell, setShowBell] = useState(false);
+  var webViewRef = useRef(null);
   var downloadRef = useRef(null);
 
   // Restaurar sesión al iniciar
@@ -396,19 +398,33 @@ export default function App() {
 
   // Botón de perfil flotante (sobre WebViews)
   var FloatingProfileBtn = (
-    <TouchableOpacity
-      style={[styles.floatingProfileBtn, { top: SB + 8 }]}
-      onPress={function () { setDropdownOpen(true); }}
-    >
-      {user.avatar
-        ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        : <View style={[styles.avatar, styles.avatarFallback]}>
-            <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
-          </View>
-      }
-      {updateInfo && <View style={styles.profileUpdateDot} />}
-      <Text style={styles.chevron}>▾</Text>
-    </TouchableOpacity>
+    <View style={[styles.floatingHeader, { top: SB + 8 }]}>
+      {/* Campana */}
+      <TouchableOpacity
+        style={styles.floatingBellBtn}
+        onPress={function () {
+          if (webViewRef.current) {
+            webViewRef.current.injectJavaScript("var b=document.getElementById('app-bell-btn');if(b)b.click();true;");
+          }
+        }}
+      >
+        <Text style={{ fontSize: 18 }}>🔔</Text>
+      </TouchableOpacity>
+      {/* Perfil */}
+      <TouchableOpacity
+        style={styles.floatingProfileBtn}
+        onPress={function () { setDropdownOpen(true); }}
+      >
+        {user.avatar
+          ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          : <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
+            </View>
+        }
+        {updateInfo && <View style={styles.profileUpdateDot} />}
+        <Text style={styles.chevron}>▾</Text>
+      </TouchableOpacity>
+    </View>
   );
 
   // ── WebView (admin siempre, no-admin cuando navega) ────────
@@ -422,11 +438,12 @@ export default function App() {
         <View style={{ height: SB, backgroundColor: '#0a0a0a' }} />
         <WebView
           key={webKey}
+          ref={webViewRef}
           style={styles.webview}
           source={{ uri: webUrl || ADMIN_HOME }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          injectedJavaScript={"var s=document.createElement('style');s.innerHTML='.fixed.top-0.right-0.z-50{display:none!important}#app-profile-header{display:none!important}';document.head.appendChild(s);true;"}
+          injectedJavaScript={"var s=document.createElement('style');s.innerHTML='.fixed.top-0.right-0.z-50{display:none!important}#app-profile-header{display:none!important}#app-bell-btn{display:none!important}';document.head.appendChild(s);true;"}
         />
         {FloatingProfileBtn}
       </View>
@@ -505,9 +522,17 @@ var styles = StyleSheet.create({
     paddingVertical: 5, paddingHorizontal: 10,
     borderWidth: 1, borderColor: '#333',
   },
+  floatingHeader: {
+    position: 'absolute', right: 12, zIndex: 100, flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  floatingBellBtn: {
+    backgroundColor: 'rgba(17,17,17,0.85)', borderRadius: 20,
+    paddingVertical: 7, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: 'rgba(80,80,80,0.6)',
+    alignItems: 'center', justifyContent: 'center',
+  },
   // Floating profile button (over WebView)
   floatingProfileBtn: {
-    position: 'absolute', right: 12, zIndex: 100,
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(17,17,17,0.85)', borderRadius: 20,
     paddingVertical: 5, paddingHorizontal: 10,
