@@ -118,6 +118,8 @@ export default function HomePage() {
         const r = await fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid));
         if (!r.ok || !active) return;
         const data = await r.json();
+        // Si estamos buscando ranked y room devuelve idle, seguir esperando
+        if (prev_status === 'searching' && data.status === 'idle') return;
         if (['idle', 'timeout', 'declined'].includes(data.status)) {
           if (active) setBgMM(null);
           return;
@@ -132,10 +134,11 @@ export default function HomePage() {
         } : prev);
       } catch {}
     };
+    const prev_status = bgMM?.status;
     poll();
     const iv = setInterval(poll, 3000);
     return () => { active = false; clearInterval(iv); };
-  }, [bgMM?.polling, user]);
+  }, [bgMM?.polling, bgMM?.status, user]);
 
   // Detectar sala activa al cargar la app (reconexión automática)
   useEffect(() => {
@@ -433,7 +436,7 @@ export default function HomePage() {
         {/* â”€â”€ CONTENT â”€â”€ */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
           {/* Banner sala activa (fuera del tab match) */}
-          {tab !== 'match' && bgMM && ['waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
+          {tab !== 'match' && bgMM && ['searching','waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
             <button
               onClick={() => setTab('match')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px', background: 'linear-gradient(90deg,rgba(124,58,237,0.18),rgba(255,140,0,0.12))', borderBottom: '1px solid rgba(124,58,237,0.3)', border: 'none', cursor: 'pointer', gap: 10 }}
@@ -441,7 +444,8 @@ export default function HomePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                  {bgMM.status === 'waiting'        ? 'Esperando rival\u2026'    :
+                  {bgMM.status === 'searching'      ? 'Buscando rival\u2026'    :
+                   bgMM.status === 'waiting'        ? 'Esperando rival\u2026'    :
                    bgMM.status === 'pending_accept' ? '\u00a1Match encontrado!'  :
                    bgMM.status === 'active'         ? '\u00a1Partida en juego!'  :
                    bgMM.status === 'pending_result' ? 'Report\u00e1 el resultado' :
@@ -2059,7 +2063,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const uid = userId || '';
   const uName = userName || 'Jugador';
 
-  // STAGE donde muestra chat del match activo
   const p = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
   const matchData = bgMM?.room;
   const matchStatus = bgMM?.status;
@@ -2095,7 +2098,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [matchData?.matchId, matchStatus]);
 
-  // Scroll chat al fondo
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
@@ -2121,18 +2123,34 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [reportStocks, setReportStocks]   = useState(1);
   const [matchRpDelta, setMatchRpDelta]   = useState(null);
 
-  // ═══ Estados de formulario HOST / JOIN (deben estar antes de cualquier return condicional) ═══
-  const [screen, setScreen]       = useState('select');    // select | host | join
-  const [hostPlat, setHostPlat]   = useState(null);
-  const [hostRoomId, setHostRoomId] = useState('');
-  const [hostPass, setHostPass]   = useState('');
-  const [joinCode, setJoinCode]   = useState('');
-  const [joinPass, setJoinPass]   = useState('');
-  const [joinPlat, setJoinPlat]   = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [formError, setFormError] = useState(null);
-  const [hostChar, setHostChar]   = useState(null);
-  const [joinChar, setJoinChar]   = useState(null);
+  // Estado de búsqueda
+  const [searchPlat, setSearchPlat]   = useState(null);
+  const [searchChar, setSearchChar]   = useState(null);
+  const [loading, setLoading]         = useState(false);
+  const [formError, setFormError]     = useState(null);
+  const [onlineCount, setOnlineCount] = useState(null);
+  const [searchElapsed, setSearchElapsed] = useState(0);
+
+  // Contador online
+  useEffect(() => {
+    const fetchOnline = () => {
+      fetch('/api/matchmaking/online')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setOnlineCount(d); })
+        .catch(() => {});
+    };
+    fetchOnline();
+    const iv = setInterval(fetchOnline, 10000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Timer de búsqueda
+  useEffect(() => {
+    if (matchStatus !== 'searching') { setSearchElapsed(0); return; }
+    setSearchElapsed(0);
+    const iv = setInterval(() => setSearchElapsed(s => s + 1), 1000);
+    return () => clearInterval(iv);
+  }, [matchStatus]);
 
   const reportResult = async (winnerId, stocks) => {
     if (!matchData?.matchId) return;
@@ -2165,6 +2183,37 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     setChatMessages([]); setChatInput('');
     setReported(false); setReportError(null);
     setReportStocks(1); setMatchRpDelta(null);
+    setSearchPlat(null); setSearchChar(null);
+  };
+
+  const startSearch = async (platform) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar }),
+      });
+      const data = await r.json();
+      if (r.status === 409) {
+        // Ya en cola o match activo
+        setFormError(data.error);
+        return;
+      }
+      if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
+      setBgMM({ status: 'searching', plat: platform, polling: true });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const cancelSearch = async () => {
+    try {
+      await fetch('/api/matchmaking/queue', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, platform: bgMM?.plat }),
+      });
+    } catch {}
+    setBgMM(null);
   };
 
   // ═══ RENDER: RESULTADO FINAL ═══════════════════════════════════════════
@@ -2180,13 +2229,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
           <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? '¡Ganaste!' : 'Perdiste'}</p>
           <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado 💪' : 'La próxima será'}</p>
-          {/* Stocks de ventaja */}
           {stocks && (
             <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
               {'❤️'.repeat(stocks)} {stocks} stock{stocks > 1 ? 's' : ''} de ventaja
             </p>
           )}
-          {/* Delta de RP */}
           {iWon && matchRpDelta != null && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)' }}>
               <span style={{ fontSize: 15, fontWeight: 900, color: '#34D399' }}>+{matchRpDelta} RP</span>
@@ -2212,7 +2259,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     const STAGE_EMOJI = { 'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '⚔️', 'Pokémon Stadium 2': '⚡', 'Town & City': '🏙️', 'Smashville': '🏘️', 'Hollow Bastion': '🏯', 'Kalos Pokémon League': '❄️' };
     return (
       <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '🎮'}</div>
           <div>
@@ -2221,13 +2267,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </div>
         </div>
 
-        {/* Rival */}
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
           <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
           <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
         </div>
 
-        {/* Escenario */}
         <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: 32 }}>{STAGE_EMOJI[stage] || '🗺️'}</span>
           <div>
@@ -2237,10 +2281,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </div>
         </div>
 
-        {/* Instrucción */}
         <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.12)', borderRadius: 14, padding: '10px 14px' }}>
           <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-            {bgMM?.plat === 'switch' ? '🎮 Buscá a tu rival en Nintendo Switch Online y añadilo.' : '🖥️ Coordiná la conexión en Parsec con tu rival.'}
+            {bgMM?.plat === 'switch' ? '🎮 Coordiná con tu rival quién crea la Arena en Nintendo Switch Online.' : '🖥️ Coordiná con tu rival quién hostea la sesión en Parsec.'}
           </p>
         </div>
 
@@ -2294,7 +2337,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         ) : (
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
             <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
-            {/* Selector de stocks (solo visible al reportar victoria propia) */}
             <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stocks que te quedaban</p>
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {[1,2,3].map(n => (
@@ -2314,7 +2356,33 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  // ═══ RENDER: BUSCANDO (waiting en sala propia) ══════════════════════════
+  // ═══ RENDER: BUSCANDO RANKED ═══════════════════════════════════════════
+  if (matchStatus === 'searching') {
+    const sp = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <div style={{ background: sp ? 'linear-gradient(135deg,' + sp.from + '15,' + sp.to + '08)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (sp?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: '16px', background: sp ? 'linear-gradient(135deg,' + sp.from + ',' + sp.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{sp?.icon || '⚡'}</div>
+          </div>
+          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Buscando rival…</p>
+          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || 'Ranked'}</p>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
+          <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'rgba(255,255,255,0.5)', fontVariantNumeric: 'tabular-nums' }}>
+            {Math.floor(searchElapsed / 60)}:{String(searchElapsed % 60).padStart(2, '0')}
+          </p>
+        </div>
+
+        <button onClick={cancelSearch} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+          Cancelar búsqueda
+        </button>
+      </div>
+    );
+  }
+
+  // ═══ RENDER: SALA WAITING (reconexión a sala anterior) ══════════════════
   if (matchStatus === 'waiting' && matchData) {
     const myCode = bgMM?.code || '????';
     return (
@@ -2323,7 +2391,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           await fetch('/api/matchmaking/room', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) });
           setBgMM(null);
         }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
-          <Svg size={18} sw={2}>{ICO.back}</Svg> Cancelar búsqueda
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Cancelar
         </button>
 
         <div style={{ background: p ? 'linear-gradient(135deg,' + p.from + '15,' + p.to + '08)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
@@ -2336,9 +2404,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
           <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Código de sala</p>
           <p style={{ margin: 0, fontSize: 36, fontWeight: 900, color: '#FF8C00', letterSpacing: 6 }}>{myCode}</p>
-          {matchData.password && (
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>🔒 Con contraseña</p>
-          )}
         </div>
 
         <button onClick={async () => {
@@ -2351,59 +2416,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  const createRoom = async () => {
-    if (!hostChar) { setFormError('Elegí tu personaje'); return; }
-    if (!hostPlat) { setFormError('Elegí una plataforma'); return; }
-    const roomIdClean = hostRoomId.trim().toUpperCase();
-    if (!roomIdClean) { setFormError('Ingresá un nombre/ID de sala'); return; }
-    if (roomIdClean.length < 2 || roomIdClean.length > 20) { setFormError('El ID de sala debe tener entre 2 y 20 caracteres'); return; }
-    setLoading(true); setFormError(null);
-    try {
-      const r = await fetch('/api/matchmaking/room', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass, customCode: roomIdClean, charId: hostChar }),
-      });
-      const data = await r.json();
-      if (r.status === 409 && data.room) {
-        // Ya tenía sala activa — reconectar silenciosamente
-        setBgMM({ status: data.status, code: data.code, room: data.room, plat: data.room?.platform || hostPlat, polling: true });
-        return;
-      }
-      if (!r.ok) { setFormError(data.error || 'Error al crear sala'); return; }
-      setBgMM({ status: data.status, code: data.code, room: data.room, plat: hostPlat, polling: true });
-    } catch { setFormError('Error de conexión'); }
-    finally { setLoading(false); }
-  };
-
-  const joinRoom = async () => {
-    if (!joinChar) { setFormError('Elegí tu personaje'); return; }
-    if (!joinCode.trim()) { setFormError('Ingresá el código de sala'); return; }
-    if (!joinPlat) { setFormError('Elegí tu plataforma'); return; }
-    setLoading(true); setFormError(null);
-    try {
-      const r = await fetch('/api/matchmaking/room', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, platform: joinPlat, code: joinCode.toUpperCase().trim(), password: joinPass, charId: joinChar }),
-      });
-      const data = await r.json();
-      if (!r.ok) { setFormError(data.error || 'Error al unirse'); return; }
-      setBgMM({ status: data.status, code: data.code, room: data.room, plat: joinPlat, timeLeft: data.timeLeft, polling: true });
-    } catch { setFormError('Error de conexión'); }
-    finally { setLoading(false); }
-  };
-
-  // ─ Pantalla: selección inicial ─
-  if (screen === 'select') return (
+  // ═══ RENDER: PANTALLA PRINCIPAL — Buscar Ranked ════════════════════════
+  return (
     <div style={{ padding: '24px 18px' }}>
-      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>Matchmaking</h1>
-      <p style={{ margin: '0 0 28px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>¿Cómo querés jugar?</p>
+      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>Ranked</h1>
+      <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Elegí tu personaje y buscá rival</p>
 
       {/* Banner de sala activa */}
       {bgMM && ['waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
-        <div
-          onClick={() => {}}
-          style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(135deg,rgba(124,58,237,0.14),rgba(255,140,0,0.08))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 18, padding: '14px 16px', marginBottom: 20, cursor: 'default' }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(135deg,rgba(124,58,237,0.14),rgba(255,140,0,0.08))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 18, padding: '14px 16px', marginBottom: 20, cursor: 'default' }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : bgMM.status === 'waiting' ? '#FF8C00' : '#FBBF24', flexShrink: 0, boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00'), animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
           <div style={{ flex: 1 }}>
             <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 14, color: '#fff' }}>
@@ -2413,31 +2434,55 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                bgMM.status === 'pending_result' ? 'Reportá el resultado' :
                                                    'Resultado en disputa'}
             </p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-              Código: <span style={{ fontWeight: 800, color: '#FF8C00', letterSpacing: 1 }}>{bgMM.code}</span>
-            </p>
           </div>
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={() => setScreen('host')} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 20, padding: '18px 16px', cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,#7C3AED,#3730A3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>🏠</div>
-          <div>
-            <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Hostear sala</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Creás la sala y compartís el código con tu rival</p>
-          </div>
-        </button>
-        <button onClick={() => setScreen('join')} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 20, padding: '18px 16px', cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>🚪</div>
-          <div>
-            <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Unirse a sala</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Ingresás el código que te pasó tu rival</p>
-          </div>
-        </button>
+
+      {/* Personaje */}
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
+      <div style={{ marginBottom: 24 }}>
+        <CharPicker selected={searchChar} onSelect={setSearchChar} platform={searchPlat} userId={uid} />
       </div>
+
+      {/* Contador online */}
+      {onlineCount && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '8px 14px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E' }} />
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+            {onlineCount.total} jugador{onlineCount.total !== 1 ? 'es' : ''} buscando
+            {onlineCount.switch > 0 ? ` · ${onlineCount.switch} Switch` : ''}
+            {onlineCount.parsec > 0 ? ` · ${onlineCount.parsec} Parsec` : ''}
+          </span>
+        </div>
+      )}
+
+      {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+      {/* Botones de búsqueda por plataforma */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {PLATFORMS.map(px => (
+          <button
+            key={px.id}
+            onClick={() => { setSearchPlat(px.id); startSearch(px.id); }}
+            disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
+          >
+            <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar en {px.label}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+                {px.id === 'switch' ? 'Ranked en Nintendo Switch Online' : 'Ranked en Parsec (PC)'}
+              </p>
+            </div>
+            <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+          </button>
+        ))}
+      </div>
+
+      {/* Cómo funciona */}
       <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
-        {[['🏠','Host crea la sala','Elige plataforma y opcionalmente contraseña'],['🔑','Comparte el código','4 letras — dale el código a tu rival'],['🚪','Rival se une','Ingresa el código (y contraseña si tiene)'],['✅','Ambos aceptan (15s)','Los dos deben confirmar antes del tiempo'],['⚔️','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
+        {[['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['💬','Coordiná en el chat','Decidan quién crea la sala/hostea'],['⚔️','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
           <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
             <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
             <div>
@@ -2447,112 +2492,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-
-  // ─ Pantalla: HOST ─
-  if (screen === 'host') return (
-    <div style={{ padding: '24px 18px' }}>
-      <button onClick={() => { setScreen('select'); setFormError(null); }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 22 }}>
-        <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
-      </button>
-      <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>Hostear sala</h2>
-      <p style={{ margin: '0 0 24px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Elegí la plataforma y creá la sala</p>
-
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Nombre / ID de sala</p>
-      <input
-        value={hostRoomId}
-        onChange={e => setHostRoomId(e.target.value.toUpperCase().replace(/[^A-Z0-9\-_]/g,'').slice(0, 20))}
-        placeholder="Ej: SALA-GABRIEL"
-        maxLength={20}
-        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '0.05em', outline: 'none', boxSizing: 'border-box', marginBottom: 20 }}
-      />
-
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
-      <div style={{ marginBottom: 20 }}>
-        <CharPicker selected={hostChar} onSelect={setHostChar} platform={hostPlat} userId={uid} />
-      </div>
-
-      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Plataforma</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-        {PLATFORMS.map(px => (
-          <button key={px.id} onClick={() => setHostPlat(px.id)} style={{ display: 'flex', alignItems: 'center', gap: 14, background: hostPlat === px.id ? 'linear-gradient(135deg,' + px.from + '22,' + px.to + '0d)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (hostPlat === px.id ? px.from + '60' : 'rgba(255,255,255,0.07)'), borderRadius: 16, padding: '14px', cursor: 'pointer', transition: 'all 0.15s' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{px.icon}</div>
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{px.label}</p>
-            </div>
-            {hostPlat === px.id && <span style={{ color: '#FF8C00', fontSize: 18 }}>✓</span>}
-          </button>
-        ))}
-      </div>
-
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Contraseña (opcional)</p>
-      <input
-        value={hostPass}
-        onChange={e => setHostPass(e.target.value)}
-        placeholder="Dejar vacío para sala abierta"
-        maxLength={30}
-        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 20 }}
-      />
-
-      {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
-
-      <button onClick={createRoom} disabled={loading} style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7C3AED,#3730A3)', color: '#fff', fontWeight: 900, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 6px 20px rgba(124,58,237,0.35)' }}>
-        {loading ? 'Creando…' : '🏠 Crear sala'}
-      </button>
-    </div>
-  );
-
-  // ─ Pantalla: JOIN ─
-  return (
-    <div style={{ padding: '24px 18px' }}>
-      <button onClick={() => { setScreen('select'); setFormError(null); }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 22 }}>
-        <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
-      </button>
-      <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>Unirse a sala</h2>
-      <p style={{ margin: '0 0 24px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Ingresá el código que te pasó tu rival</p>
-
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Código de sala</p>
-      <input
-        value={joinCode}
-        onChange={e => setJoinCode(e.target.value.toUpperCase().slice(0, 4))}
-        placeholder="Ej: AB3X"
-        maxLength={4}
-        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: 6, outline: 'none', boxSizing: 'border-box', marginBottom: 16, textAlign: 'center' }}
-      />
-
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Contraseña (si tiene)</p>
-      <input
-        value={joinPass}
-        onChange={e => setJoinPass(e.target.value)}
-        placeholder="Dejar vacío si no tiene"
-        maxLength={30}
-        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}
-      />
-
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
-      <div style={{ marginBottom: 20 }}>
-        <CharPicker selected={joinChar} onSelect={setJoinChar} platform={joinPlat} userId={uid} />
-      </div>
-
-      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu plataforma</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-        {PLATFORMS.map(px => (
-          <button key={px.id} onClick={() => setJoinPlat(px.id)} style={{ display: 'flex', alignItems: 'center', gap: 14, background: joinPlat === px.id ? 'linear-gradient(135deg,' + px.from + '22,' + px.to + '0d)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (joinPlat === px.id ? px.from + '60' : 'rgba(255,255,255,0.07)'), borderRadius: 16, padding: '14px', cursor: 'pointer', transition: 'all 0.15s' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{px.icon}</div>
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{px.label}</p>
-            </div>
-            {joinPlat === px.id && <span style={{ color: '#FF8C00', fontSize: 18 }}>✓</span>}
-          </button>
-        ))}
-      </div>
-
-      {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
-
-      <button onClick={joinRoom} disabled={loading} style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 900, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 6px 20px rgba(232,142,0,0.35)' }}>
-        {loading ? 'Uniéndose…' : '🚪 Unirse'}
-      </button>
     </div>
   );
 }

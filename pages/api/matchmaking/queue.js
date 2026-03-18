@@ -1,36 +1,23 @@
 // API de cola de matchmaking para Switch Online y Parsec — Upstash Redis
+// Cuando matchea 2 jugadores, crea una room con pending_accept para usar
+// el flujo de aceptación/partida existente de room.js
 
-import redis, { mmQueueKey, mmMatchKey } from '../../../lib/redis';
-
-const STAGES = [
-  'Battlefield', 'Final Destination', 'Small Battlefield',
-  'Pokémon Stadium 2', 'Town & City', 'Smashville',
-  'Hollow Bastion', 'Kalos Pokémon League',
-];
+import redis, { mmQueueKey } from '../../../lib/redis';
 
 const QUEUE_TTL_MS   = 10 * 60 * 1000;
-const MATCH_TTL_MS   = 60 * 60 * 1000;
-const MATCH_LIST_KEY = 'mm:matches:index';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
 }
 
-function randomStage() {
-  return STAGES[Math.floor(Math.random() * STAGES.length)];
-}
+function roomKey(code)   { return `mm:room:${code}`; }
+function userRoomKey(id) { return `mm:user:room:${id}`; }
 
-function safeMatch(m, requestingUserId) {
-  const isP1 = m.player1.userId === requestingUserId;
-  const self     = isP1 ? m.player1 : m.player2;
-  const opponent = isP1 ? m.player2 : m.player1;
-  return {
-    id: m.id, platform: m.platform, stage: m.stage,
-    status: m.status, result: m.result, reports: m.reports, createdAt: m.createdAt,
-    self:     { name: self.userName },
-    opponent: { name: opponent.userName, userId: opponent.userId },
-    selfIsP1: isP1,
-  };
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 4; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
 }
 
 async function pruneQueue(platform) {
@@ -41,54 +28,41 @@ async function pruneQueue(platform) {
   return fresh;
 }
 
-async function getPlayerStatus(userId, platform) {
-  const matchIds = (await redis.get(MATCH_LIST_KEY)) || [];
-  for (const mid of matchIds) {
-    const m = await redis.get(mmMatchKey(mid));
-    if (!m || m.platform !== platform) continue;
-    const isP1 = m.player1.userId === userId;
-    const isP2 = m.player2.userId === userId;
-    if (!isP1 && !isP2) continue;
-    if (Date.now() - new Date(m.createdAt).getTime() > MATCH_TTL_MS && m.status !== 'active') continue;
-    if (m.status === 'active' || m.status === 'pending_result' || m.status === 'disputed') {
-      return { status: 'matched', match: safeMatch(m, userId) };
-    }
-    if (m.status === 'finished') return { status: 'finished', match: safeMatch(m, userId) };
-  }
-
-  const queue = await pruneQueue(platform);
-  const idx = queue.findIndex(e => e.userId === userId);
-  if (idx !== -1) {
-    const entry = queue[idx];
-    if (entry.matchId) {
-      const m = await redis.get(mmMatchKey(entry.matchId));
-      if (m) {
-        await redis.set(mmQueueKey(platform), queue.filter(e => e.userId !== userId));
-        return { status: 'matched', match: safeMatch(m, userId) };
-      }
-    }
-    return { status: 'waiting', position: idx + 1, queueSize: queue.length, waitingSince: entry.joinedAt };
-  }
-  return { status: 'idle' };
-}
-
 async function tryMatch(platform) {
   const queue = (await redis.get(mmQueueKey(platform))) || [];
   if (queue.length < 2) return;
+
   const [p1, p2] = queue.splice(0, 2);
-  const match = {
-    id: `mm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    platform, stage: randomStage(), player1: p1, player2: p2,
-    status: 'active', reports: [], result: null, createdAt: new Date().toISOString(),
-  };
-  await redis.set(mmMatchKey(match.id), match);
-  const index = (await redis.get(MATCH_LIST_KEY)) || [];
-  index.push(match.id);
-  await redis.set(MATCH_LIST_KEY, index.length > 500 ? index.slice(-500) : index);
-  p1.matchId = match.id;
-  p2.matchId = match.id;
-  queue.push(p1, p2);
+  // Guardar la cola sin estos 2
   await redis.set(mmQueueKey(platform), queue);
+
+  // Generar código único
+  let code;
+  for (let i = 0; i < 10; i++) {
+    code = genCode();
+    if (!(await redis.get(roomKey(code)))) break;
+  }
+
+  const matchId = `mm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  // Crear room con pending_accept — el flow de room.js maneja el resto
+  const room = {
+    code,
+    platform,
+    host:  { userId: p1.userId, userName: p1.userName, charId: p1.charId || null },
+    guest: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null },
+    password: null,
+    status: 'pending_accept',
+    matchId,
+    stage: null,
+    acceptedBy: [],
+    pendingAcceptAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+
+  await redis.set(roomKey(code), room);
+  await redis.set(userRoomKey(p1.userId), code);
+  await redis.set(userRoomKey(p2.userId), code);
 }
 
 export default async function handler(req, res) {
@@ -97,38 +71,51 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  // ── GET: poll de estado ────────────────────────────────
+  // ── GET: check si el usuario está en cola ────────────────
   if (req.method === 'GET') {
     const { userId, platform } = req.query;
     if (!userId || !['switch', 'parsec'].includes(platform)) {
       return res.status(400).json({ error: 'userId y platform requeridos' });
     }
-    return res.status(200).json(await getPlayerStatus(sanitize(userId), platform));
+    const clean = sanitize(userId);
+    const queue = await pruneQueue(platform);
+    const entry = queue.find(e => e.userId === clean);
+    if (entry) {
+      return res.status(200).json({ status: 'waiting', position: queue.indexOf(entry) + 1, queueSize: queue.length });
+    }
+    return res.status(200).json({ status: 'idle' });
   }
 
   // ── POST: unirse a la cola ────────────────────────────
   if (req.method === 'POST') {
-    const { userId, userName, platform } = req.body || {};
+    const { userId, userName, platform, charId } = req.body || {};
     if (!userId || !userName || !['switch', 'parsec'].includes(platform)) {
       return res.status(400).json({ error: 'userId, userName y platform requeridos' });
     }
 
     const cleanUserId   = sanitize(userId);
     const cleanUserName = sanitize(userName);
-    const current = await getPlayerStatus(cleanUserId, platform);
-    if (current.status === 'waiting') return res.status(409).json({ error: 'Ya estás en cola', ...current });
-    if (current.status === 'matched' || current.status === 'active') return res.status(409).json({ error: 'Ya tenés un match activo', ...current });
+    const cleanCharId   = sanitize(charId || '');
+
+    // Check si ya está en cola
+    const queue = await pruneQueue(platform);
+    if (queue.find(e => e.userId === cleanUserId)) {
+      return res.status(409).json({ error: 'Ya estás en cola' });
+    }
 
     const entry = {
       userId: cleanUserId, userName: cleanUserName, platform,
-      joinedAt: new Date().toISOString(), matchId: null,
+      charId: cleanCharId || null,
+      joinedAt: new Date().toISOString(),
     };
 
-    const queue = (await redis.get(mmQueueKey(platform))) || [];
     queue.push(entry);
     await redis.set(mmQueueKey(platform), queue);
+
+    // Intentar matchear
     await tryMatch(platform);
-    return res.status(200).json(await getPlayerStatus(cleanUserId, platform));
+
+    return res.status(200).json({ status: 'searching' });
   }
 
   // ── DELETE: salir de la cola ──────────────────────────
