@@ -1,7 +1,7 @@
 // API para reportar el resultado de un match de matchmaking — Upstash Redis
 
 import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey } from '../../../lib/redis';
-import { applyWin, applyLoss, leaderboardScore, getRankIndex } from '../../../lib/ranks';
+import { applyWin, applyLoss, leaderboardScore, getRankIndex, calculatePlacementRank, PLACEMENT_MATCHES } from '../../../lib/ranks';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
@@ -90,9 +90,23 @@ export default async function handler(req, res) {
     const wStats = (await redis.get(wKey)) || {
       userId: winnerId, userName: winnerName, platform,
       wins: 0, losses: 0, rank: 'Plástico 1', rankIndex: 0, rankPoints: 0,
+      placementDone: false, placementWins: 0,
     };
     wStats.userName = winnerName;
-    applyWin(wStats);
+    const wTotal = (wStats.wins || 0) + (wStats.losses || 0);
+    if (!wStats.placementDone && wTotal < PLACEMENT_MATCHES) {
+      wStats.wins = (wStats.wins || 0) + 1;
+      wStats.placementWins = (wStats.placementWins || 0) + 1;
+      if (wStats.wins + (wStats.losses || 0) === PLACEMENT_MATCHES) {
+        const placed = calculatePlacementRank(wStats.placementWins);
+        wStats.rank = placed.name;
+        wStats.rankIndex = getRankIndex(placed.name);
+        wStats.rankPoints = 0;
+        wStats.placementDone = true;
+      }
+    } else {
+      applyWin(wStats);
+    }
     wStats.updatedAt = new Date().toISOString();
     await redis.set(wKey, wStats);
     await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(wStats), member: String(winnerId) });
@@ -102,9 +116,22 @@ export default async function handler(req, res) {
     const lStats = (await redis.get(lKey)) || {
       userId: loserId, userName: loserName, platform,
       wins: 0, losses: 0, rank: 'Plástico 1', rankIndex: 0, rankPoints: 0,
+      placementDone: false, placementWins: 0,
     };
     lStats.userName = loserName;
-    applyLoss(lStats);
+    const lTotal = (lStats.wins || 0) + (lStats.losses || 0);
+    if (!lStats.placementDone && lTotal < PLACEMENT_MATCHES) {
+      lStats.losses = (lStats.losses || 0) + 1;
+      if ((lStats.wins || 0) + lStats.losses === PLACEMENT_MATCHES) {
+        const placed = calculatePlacementRank(lStats.placementWins || 0);
+        lStats.rank = placed.name;
+        lStats.rankIndex = getRankIndex(placed.name);
+        lStats.rankPoints = 0;
+        lStats.placementDone = true;
+      }
+    } else {
+      applyLoss(lStats);
+    }
     lStats.updatedAt = new Date().toISOString();
     await redis.set(lKey, lStats);
     await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(lStats), member: String(loserId) });
