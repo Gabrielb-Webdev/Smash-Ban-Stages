@@ -15,10 +15,8 @@ export default function CommunityAdmin() {
   // Auth guard
   useEffect(() => {
     const stored = getStoredUser();
-    if (!stored || !stored.isAdmin) {
-      router.replace('/home');
-      return;
-    }
+    if (!stored) { router.replace('/login'); return; }
+    if (!stored.isAdmin) { router.replace('/home'); return; }
     setAuthUser(stored.user);
     setChecking(false);
   }, []);

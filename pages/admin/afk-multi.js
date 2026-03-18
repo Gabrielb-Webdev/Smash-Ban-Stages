@@ -13,10 +13,8 @@ export default function AfkMultiPage() {
 
   useEffect(() => {
     const stored = getStoredUser();
-    if (!stored || !stored.isAdmin) {
-      router.replace('/home');
-      return;
-    }
+    if (!stored) { router.replace('/login'); return; }
+    if (!stored.isAdmin) { router.replace('/home'); return; }
     setUser(stored.user);
     setChecking(false);
   }, []);

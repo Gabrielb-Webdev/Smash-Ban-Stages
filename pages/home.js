@@ -413,7 +413,7 @@ function BottomNav({ tab, setTab }) {
         >
           <Svg size={20} sw={2.4}>{ICO.bolt}</Svg>
           <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', lineHeight: 1 }}>
-            RANKED
+            MATCH
           </span>
         </button>
       </div>
@@ -570,7 +570,6 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
   const totalW    = (rankedStats?.switch?.wins   || 0) + (rankedStats?.parsec?.wins   || 0);
   const totalL    = (rankedStats?.switch?.losses || 0) + (rankedStats?.parsec?.losses || 0);
   const wlDisplay = (totalW + totalL) > 0 ? `${totalW}W/${totalL}L` : '—';
-  const hasRanked  = rankedStats !== null && (totalW + totalL) > 0;
 
   return (
     <div>
@@ -633,53 +632,38 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
             ⚔️ RANKED ONLINE
           </p>
-
-          {/* ── Split por plataforma (Switch Online / Parsec) ── */}
-          {['switch', 'parsec'].map(plat => {
-            const s         = rankedStats?.[plat];
-            const rankName  = s?.rank || null;
-            const wins      = s?.wins      || 0;
-            const losses    = s?.losses    || 0;
-            const pts       = s?.rankPoints || 0;
+          {(['switch', 'parsec']).map(plat => {
+            const s        = rankedStats?.[plat];
+            const rankName = s?.rank || 'Plástico 1';
+            const wins     = s?.wins   || 0;
+            const losses   = s?.losses || 0;
+            const pts      = s?.rankPoints || 0;
             const isSmasher = rankName === 'Smasher';
-            const rankObj   = RANKS.find(r => r.name === rankName) || RANKS[0];
+            const rankObj  = RANKS.find(r => r.name === rankName) || RANKS[0];
             const platLabel = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
             const platColor = plat === 'switch' ? '#DC2626' : '#7C3AED';
-            const platHasData = (wins + losses) > 0;
             return (
-              <div key={plat} style={{ padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: platHasData && !isSmasher ? 6 : 0 }}>
+              <div key={plat} style={{
+                padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
-                    {platHasData
-                      ? <RankBadge rankName={rankName} />
-                      : <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{
-                            width: 28, height: 28, borderRadius: '50%',
-                            background: 'radial-gradient(circle at 35% 35%, #2a3848, #141c28)',
-                            border: '2px solid rgba(255,255,255,0.07)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 13, color: 'rgba(255,255,255,0.3)', fontWeight: 900,
-                          }}>?</div>
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Unranked</span>
-                        </div>
+                    <RankBadge rankName={rankName} />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                      <span style={{ color: '#22C55E' }}>{wins}W</span>
+                      <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
+                      <span style={{ color: '#EF4444' }}>{losses}L</span>
+                    </p>
+                    {isSmasher
+                      ? <p style={{ margin: 0, fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{pts} RP</p>
+                      : <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts}/100 RP</p>
                     }
                   </div>
-                  {platHasData && (
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
-                        <span style={{ color: '#22C55E' }}>{wins}W</span>
-                        <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
-                        <span style={{ color: '#EF4444' }}>{losses}L</span>
-                      </p>
-                      {isSmasher
-                        ? <p style={{ margin: 0, fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{pts} RP</p>
-                        : <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts}/100 RP</p>
-                      }
-                    </div>
-                  )}
                 </div>
-                {platHasData && !isSmasher && (
+                {!isSmasher && (
                   <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
                     <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.4s' }} />
                   </div>
@@ -689,9 +673,9 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           })}
         </div>
 
-        {/* Admin button */}
+        {/* Admin button — solo visible para admins */}
         {isAdmin && (
-          <button onClick={() => router.push('/')} style={{
+          <button onClick={() => router.push('/admin/afk')} style={{
             width: '100%', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14,
             background: 'linear-gradient(135deg,rgba(232,142,0,0.12),rgba(232,80,0,0.06))',
             border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px',
