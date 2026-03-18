@@ -282,6 +282,12 @@ export default function App() {
               <Text style={styles.dropdownItemText}>Panel Admin</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/home'); }}>
+            <Text style={styles.dropdownItemIcon}>🏠</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dropdownItemText}>Home</Text>
+            </View>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/profile'); }}>
             <Text style={styles.dropdownItemIcon}>🎮</Text>
             <View style={{ flex: 1 }}>
