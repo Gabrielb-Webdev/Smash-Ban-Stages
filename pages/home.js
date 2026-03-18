@@ -624,53 +624,116 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
 
       <div style={{ padding: '0 18px 24px' }}>
 
-        {/* Ranked card */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(232,142,0,0.06), rgba(124,58,237,0.06))',
-          border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px', marginBottom: 20,
-        }}>
-          <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
+        {/* Ranked card — estilo Valorant */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>
             ⚔️ RANKED ONLINE
           </p>
+          <div style={{ display: 'flex', gap: 10 }}>
           {(['switch', 'parsec']).map(plat => {
-            const s        = rankedStats?.[plat];
-            const rankName = s?.rank || 'Plástico 1';
-            const wins     = s?.wins   || 0;
-            const losses   = s?.losses || 0;
-            const pts      = s?.rankPoints || 0;
+            const s         = rankedStats?.[plat];
+            const unranked  = !s || !s.rank;
+            const rankName  = s?.rank || '';
+            const wins      = s?.wins   || 0;
+            const losses    = s?.losses || 0;
+            const pts       = s?.rankPoints || 0;
             const isSmasher = rankName === 'Smasher';
-            const rankObj  = RANKS.find(r => r.name === rankName) || RANKS[0];
-            const platLabel = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
-            const platColor = plat === 'switch' ? '#DC2626' : '#7C3AED';
+            const rankObj   = RANKS.find(r => r.name === rankName);
+            const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+            const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
+            const platLabel = plat === 'switch' ? 'Switch Online' : 'Parsec';
+            const platColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
+
             return (
               <div key={plat} style={{
-                padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)',
+                flex: 1,
+                background: unranked
+                  ? 'rgba(255,255,255,0.03)'
+                  : `linear-gradient(160deg, ${rankColor}18 0%, rgba(0,0,0,0) 60%)`,
+                border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : rankColor + '35'}`,
+                borderRadius: 18,
+                padding: '16px 12px 14px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 0,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
-                    <RankBadge rankName={rankName} />
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
-                      <span style={{ color: '#22C55E' }}>{wins}W</span>
-                      <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
-                      <span style={{ color: '#EF4444' }}>{losses}L</span>
-                    </p>
-                    {isSmasher
-                      ? <p style={{ margin: 0, fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{pts} RP</p>
-                      : <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts}/100 RP</p>
-                    }
-                  </div>
-                </div>
-                {!isSmasher && (
-                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.4s' }} />
-                  </div>
+                {/* Plataforma label */}
+                <p style={{
+                  margin: '0 0 12px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
+                  textTransform: 'uppercase', color: platColor, alignSelf: 'flex-start',
+                }}>
+                  {platLabel}
+                </p>
+
+                {/* Ícono grande */}
+                {unranked ? (
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '2px solid rgba(255,255,255,0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 28, color: 'rgba(255,255,255,0.2)', fontWeight: 900,
+                    marginBottom: 10,
+                  }}>?</div>
+                ) : (
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: `${rankColor}18`,
+                    border: `2px solid ${rankColor}55`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 32, marginBottom: 10,
+                    boxShadow: `0 0 18px ${rankColor}30`,
+                  }}>{tierIcon}</div>
                 )}
+
+                {/* Nombre de rango */}
+                {unranked ? (
+                  <>
+                    <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>
+                      SIN RANGO
+                    </p>
+                    <p style={{ margin: '0 0 12px', fontSize: 10, color: 'rgba(255,255,255,0.18)', textAlign: 'center', lineHeight: 1.4 }}>
+                      Jugá partidas para rankear
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 900, color: rankColor, letterSpacing: '0.04em', textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.2 }}>
+                      {rankName}
+                    </p>
+                    {/* Rank Rating */}
+                    <div style={{ width: '100%', margin: '10px 0 6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                          {isSmasher ? 'RANK RATING' : 'RANK RATING'}
+                        </span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: rankColor }}>
+                          {isSmasher ? `${pts} RP` : `${pts}/100`}
+                        </span>
+                      </div>
+                      {!isSmasher && (
+                        <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${Math.min(100, pts)}%`, height: '100%',
+                            background: `linear-gradient(90deg, ${rankColor}cc, ${rankColor})`,
+                            borderRadius: 3, transition: 'width 0.5s ease',
+                            boxShadow: `0 0 6px ${rankColor}80`,
+                          }} />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* W / L */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#22C55E' }}>{wins}W</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>·</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#EF4444' }}>{losses}L</span>
+                </div>
               </div>
             );
           })}
+          </div>
         </div>
 
         {/* Admin button — solo visible para admins */}
