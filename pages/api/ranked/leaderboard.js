@@ -19,8 +19,8 @@ export default async function handler(req, res) {
     : 'switch';
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 50));
 
-  // zrevrange devuelve miembros del sorted set de mayor a menor score
-  const playerIds = await redis.zrevrange(rankedBoardKey(platform), 0, limit - 1);
+  // zrange con rev:true devuelve miembros del sorted set de mayor a menor score
+  const playerIds = await redis.zrange(rankedBoardKey(platform), 0, limit - 1, { rev: true });
 
   if (!playerIds || playerIds.length === 0) {
     return res.status(200).json([]);

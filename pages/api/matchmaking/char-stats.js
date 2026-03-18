@@ -32,8 +32,8 @@ export default async function handler(req, res) {
 
     const boardKey = charBoardKey(platform, charId);
 
-    // Top 50 por victorias (score desc) — solo IDs, sin withScores
-    const playerIds = await redis.zrevrange(boardKey, 0, 49);
+    // Top 50 por victorias (score desc)
+    const playerIds = await redis.zrange(boardKey, 0, 49, { rev: true });
 
     // Buscar stats de cada jugador en paralelo
     const statsArray = playerIds && playerIds.length > 0
