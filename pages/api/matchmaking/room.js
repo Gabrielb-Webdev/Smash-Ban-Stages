@@ -78,16 +78,17 @@ export default async function handler(req, res) {
 
   // POST: acciones
   if (req.method === 'POST') {
-    const { action, userId, userName, platform, password, code: inputCode, customCode } = req.body || {};
+    const { action, userId, userName, platform, password, code: inputCode, customCode, charId } = req.body || {};
     const cleanUserId   = sanitize(userId   || '');
     const cleanUserName = sanitize(userName || '');
+    const cleanCharId   = sanitize(charId   || '');
     if (!cleanUserId || !cleanUserName) {
       return res.status(400).json({ error: 'userId y userName requeridos' });
     }
 
     // ─── create ───────────────────────────────────────────
     if (action === 'create') {
-      if (!['switch', 'parsec'].includes(platform)) {
+      if (!['switch', 'parsec', 'tournament'].includes(platform)) {
         return res.status(400).json({ error: 'Plataforma inválida' });
       }
 
@@ -123,7 +124,7 @@ export default async function handler(req, res) {
 
       const room = {
         code, platform,
-        host:  { userId: cleanUserId, userName: cleanUserName },
+        host:  { userId: cleanUserId, userName: cleanUserName, charId: cleanCharId || null },
         guest: null,
         password: password ? sanitize(password).slice(0, 30) : null,
         status: 'waiting',
@@ -156,7 +157,7 @@ export default async function handler(req, res) {
       const existingMe = await getUserRoom(cleanUserId);
       if (existingMe) await cleanupRoom(existingMe.code, existingMe.room);
 
-      room.guest          = { userId: cleanUserId, userName: cleanUserName };
+      room.guest          = { userId: cleanUserId, userName: cleanUserName, charId: cleanCharId || null };
       room.status         = 'pending_accept';
       room.matchId        = `mm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       room.pendingAcceptAt = new Date().toISOString();
@@ -199,8 +200,8 @@ export default async function handler(req, res) {
           id:       room.matchId,
           platform: room.platform,
           stage:    room.stage,
-          player1:  { userId: room.host.userId,  userName: room.host.userName  },
-          player2:  { userId: room.guest.userId, userName: room.guest.userName },
+          player1:  { userId: room.host.userId,  userName: room.host.userName,  charId: room.host.charId  || null },
+          player2:  { userId: room.guest.userId, userName: room.guest.userName, charId: room.guest.charId || null },
           status:   'active',
           reports:  [],
           result:   null,

@@ -3,12 +3,14 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
+import { CHARACTERS, charImgPath } from '../lib/characters';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const PLATFORMS = [
-  { id: 'parsec', label: 'Parsec',        icon: '🖥️', from: '#7C3AED', to: '#3730A3' },
-  { id: 'switch', label: 'Switch Online', icon: '🎮', from: '#DC2626', to: '#9F1239' },
+  { id: 'parsec',     label: 'Parsec',         icon: '🖥️', from: '#7C3AED', to: '#3730A3' },
+  { id: 'switch',     label: 'Switch Online',  icon: '🎮', from: '#DC2626', to: '#9F1239' },
+  { id: 'tournament', label: 'Torneos',         icon: '🏆', from: '#D97706', to: '#92400E' },
 ];
 
 /* â”€â”€â”€ SVG HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1754,6 +1756,82 @@ const STAGE_EMOJI = {
 
 function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; }
 
+/* ─── CharPicker ─────────────────────────────────────────────────────────── */
+function CharPicker({ selected, onSelect, platform, userId }) {
+  const [search, setSearch] = useState('');
+  const [stats, setStats]   = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const filtered = CHARACTERS.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (!selected || !platform || !userId) { setStats(null); return; }
+    setLoadingStats(true);
+    fetch(
+      `/api/matchmaking/char-stats?platform=${encodeURIComponent(platform)}&charId=${encodeURIComponent(selected)}&userId=${encodeURIComponent(userId)}`
+    )
+      .then(r => r.json())
+      .then(d => setStats(d))
+      .catch(() => setStats(null))
+      .finally(() => setLoadingStats(false));
+  }, [selected, platform, userId]);
+
+  const char = CHARACTERS.find(c => c.id === selected);
+
+  return (
+    <div>
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Buscar personaje…"
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+      />
+      {char && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '8px 12px', background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 12 }}>
+          <img src={charImgPath(char.img)} alt={char.name} style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8 }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{char.name}</p>
+            {loadingStats && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cargando stats…</p>}
+            {!loadingStats && stats && stats.myStats && (
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                {stats.myStats.wins}V · {stats.myStats.losses}D · #{stats.myRank ?? '—'} ranking
+              </p>
+            )}
+            {!loadingStats && (!stats || !stats.myStats) && platform && (
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Sin partidas aún con este personaje</p>
+            )}
+          </div>
+          <button onClick={() => onSelect(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, maxHeight: 230, overflowY: 'auto' }}>
+        {filtered.map(c => (
+          <button
+            key={c.id}
+            onClick={() => onSelect(c.id)}
+            title={c.name}
+            style={{
+              background: selected === c.id ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.03)',
+              border: selected === c.id ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10,
+              padding: 4,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              aspectRatio: '1',
+            }}
+          >
+            <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const uid = userId || '';
   const uName = userName || 'Jugador';
@@ -2047,8 +2125,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [joinPlat, setJoinPlat]   = useState(null);
   const [loading, setLoading]     = useState(false);
   const [formError, setFormError] = useState(null);
+  const [hostChar, setHostChar]   = useState(null);
+  const [joinChar, setJoinChar]   = useState(null);
 
   const createRoom = async () => {
+    if (!hostChar) { setFormError('Elegí tu personaje'); return; }
     if (!hostPlat) { setFormError('Elegí una plataforma'); return; }
     const roomIdClean = hostRoomId.trim().toUpperCase();
     if (!roomIdClean) { setFormError('Ingresá un nombre/ID de sala'); return; }
@@ -2057,7 +2138,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     try {
       const r = await fetch('/api/matchmaking/room', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass, customCode: roomIdClean }),
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass, customCode: roomIdClean, charId: hostChar }),
       });
       const data = await r.json();
       if (r.status === 409 && data.room) {
@@ -2072,13 +2153,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   };
 
   const joinRoom = async () => {
+    if (!joinChar) { setFormError('Elegí tu personaje'); return; }
     if (!joinCode.trim()) { setFormError('Ingresá el código de sala'); return; }
     if (!joinPlat) { setFormError('Elegí tu plataforma'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/room', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, platform: joinPlat, code: joinCode.toUpperCase().trim(), password: joinPass }),
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, platform: joinPlat, code: joinCode.toUpperCase().trim(), password: joinPass, charId: joinChar }),
       });
       const data = await r.json();
       if (!r.ok) { setFormError(data.error || 'Error al unirse'); return; }
@@ -2141,6 +2223,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '0.05em', outline: 'none', boxSizing: 'border-box', marginBottom: 20 }}
       />
 
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
+      <div style={{ marginBottom: 20 }}>
+        <CharPicker selected={hostChar} onSelect={setHostChar} platform={hostPlat} userId={uid} />
+      </div>
+
       <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Plataforma</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
         {PLATFORMS.map(px => (
@@ -2197,6 +2284,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         maxLength={30}
         style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}
       />
+
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
+      <div style={{ marginBottom: 20 }}>
+        <CharPicker selected={joinChar} onSelect={setJoinChar} platform={joinPlat} userId={uid} />
+      </div>
 
       <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu plataforma</p>
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>

@@ -1,6 +1,6 @@
 // API para reportar el resultado de un match de matchmaking — Upstash Redis
 
-import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey, matchHistoryKey } from '../../../lib/redis';
+import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey, matchHistoryKey, charStatsKey, charBoardKey } from '../../../lib/redis';
 import {
   applyWinRP, applyLossRP,
   leaderboardScore, getRankIndex, calculatePlacementRank, PLACEMENT_MATCHES,
@@ -189,6 +189,8 @@ export default async function handler(req, res) {
     // Historial
     const matchEntry = {
       matchId, platform, winnerId, loserId, winnerName, loserName,
+      winnerCharId: match.player1.userId === winnerId ? match.player1.charId : match.player2.charId,
+      loserCharId:  match.player1.userId === loserId  ? match.player1.charId : match.player2.charId,
       stocksWon: finalStocks,
       rpDelta:   wRPDelta,
       mmrDelta:  wMMRDelta,
@@ -200,6 +202,30 @@ export default async function handler(req, res) {
     await redis.ltrim(wHistKey, 0, 49);
     await redis.lpush(lHistKey, matchEntry);
     await redis.ltrim(lHistKey, 0, 49);
+
+    // Stats por personaje
+    const winnerCharId = matchEntry.winnerCharId;
+    const loserCharId  = matchEntry.loserCharId;
+    if (winnerCharId) {
+      const wcKey   = charStatsKey(String(winnerId), platform, winnerCharId);
+      const wcStats = (await redis.get(wcKey)) || { userId: winnerId, userName: winnerName, charId: winnerCharId, platform, wins: 0, losses: 0 };
+      wcStats.userName = winnerName;
+      wcStats.wins = (wcStats.wins || 0) + 1;
+      await redis.set(wcKey, wcStats);
+      await redis.zadd(charBoardKey(platform, winnerCharId), { score: wcStats.wins, member: String(winnerId) });
+    }
+    if (loserCharId) {
+      const lcKey   = charStatsKey(String(loserId), platform, loserCharId);
+      const lcStats = (await redis.get(lcKey)) || { userId: loserId, userName: loserName, charId: loserCharId, platform, wins: 0, losses: 0 };
+      lcStats.userName = loserName;
+      lcStats.losses = (lcStats.losses || 0) + 1;
+      await redis.set(lcKey, lcStats);
+      // Si aún no tiene victorias, zadd con score 0 para que aparezca en el board
+      const existingScore = await redis.zscore(charBoardKey(platform, loserCharId), String(loserId));
+      if (existingScore == null) {
+        await redis.zadd(charBoardKey(platform, loserCharId), { score: 0, member: String(loserId) });
+      }
+    }
 
     // Limpiar sala de ambos jugadores
     await cleanupUserRoom(String(winnerId));
