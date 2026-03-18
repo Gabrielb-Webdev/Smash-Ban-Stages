@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────── */
+:root {
+  --bg:        #0B0B12;
+  --bg2:       #10101A;
+  --bg3:       #161620;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --accent:    #E88E00;
+  --accent2:   #7C3AED;
+  --text:      #F0F0F8;
+  --text2:     rgba(240,240,248,0.45);
+  --text3:     rgba(240,240,248,0.22);
+  --green:     #22C55E;
+  --red:       #EF4444;
+  --radius:    20px;
+  --radius-sm: 12px;
+}
+
 @font-face {
   font-family: 'Anton';
   src: url('/Font/Anton-Regular.ttf') format('truetype');
@@ -10,41 +28,51 @@
   font-display: swap;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
-* {
-  box-sizing: border-box;
-}
+::-webkit-scrollbar { width: 0; height: 0; }
 
-@keyframes scale-in {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
+/* ── Animations ────────────────────────────────── */
+@keyframes scale-in     { from { transform:scale(.8); opacity:0 } to { transform:scale(1); opacity:1 } }
+@keyframes fadeUp       { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+@keyframes slideUp      { from { transform:translateY(100%) } to { transform:translateY(0) } }
+@keyframes spin         { to { transform:rotate(360deg) } }
+@keyframes glow-pulse   { 0%,100%{box-shadow:0 0 12px rgba(232,142,0,.35)} 50%{box-shadow:0 0 28px rgba(232,142,0,.7)} }
+@keyframes shimmer      { to { background-position:-200% 0 } }
+@keyframes neon-scan    { 0%{opacity:.4} 50%{opacity:.8} 100%{opacity:.4} }
 
 @layer utilities {
-  .animate-scale-in {
-    animation: scale-in 0.2s ease-out;
-  }
+  .animate-scale-in { animation: scale-in 0.2s ease-out; }
+  .animate-fade-up  { animation: fadeUp  0.18s ease;     }
 }
 
-.overflow-hidden {
-  overflow: auto;
+/* ── Reusable utility classes ──────────────────── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
-
-.overflow-y-scroll {
-  overflow-y: visible;
+.card-sm {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
+.shimmer {
+  background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+.gamer-card { transition: border-color .2s, box-shadow .2s; }
+.gamer-card:hover { border-color: rgba(232,142,0,.35) !important; box-shadow: 0 0 20px rgba(232,142,0,.07) !important; }
+.btn-gamer:active { transform: scale(.97); }
+.tab-content { animation: fadeUp 0.18s ease; }

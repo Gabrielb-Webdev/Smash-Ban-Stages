@@ -88,41 +88,57 @@ export default function ProfilePage() {
     <>
       <Head>
         <title>{displayName} — AFK Smash</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <style>{`
+          * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+          body { background: #0B0B12; margin: 0; }
+          ::-webkit-scrollbar { display: none; }
+          @keyframes shimmer { to { background-position: -200% 0 } }
+          .shimmer { background: linear-gradient(90deg,#13131E 25%,#1E1E2E 50%,#13131E 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+        `}</style>
       </Head>
       <div style={{
-        minHeight: '100vh', background: '#050508', color: '#fff',
+        minHeight: '100vh', background: '#0B0B12', color: '#fff',
         fontFamily: "'Inter', -apple-system, sans-serif",
         maxWidth: 480, margin: '0 auto',
         paddingBottom: 32,
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 18px 0',
+          padding: '14px 18px 14px',
           display: 'flex', alignItems: 'center', gap: 12,
+          background: 'rgba(11,11,18,0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          position: 'sticky', top: 0, zIndex: 10,
         }}>
           <button onClick={() => router.back()} style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 12, width: 38, height: 38,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', color: '#fff', flexShrink: 0,
           }}>
             <Svg size={18} sw={2}>{ICO_BACK}</Svg>
           </button>
-          <p style={{ margin: 0, fontWeight: 800, fontSize: 16 }}>Mi Perfil</p>
+          <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#fff' }}>Mi Perfil</p>
         </div>
 
         {/* Hero */}
         <div style={{
-          padding: '24px 18px 28px',
-          background: 'linear-gradient(160deg, rgba(232,142,0,0.08) 0%, transparent 60%)',
+          padding: '28px 18px 24px',
+          background: 'linear-gradient(160deg, rgba(124,58,237,0.09) 0%, rgba(232,142,0,0.06) 50%, transparent 80%)',
           display: 'flex', gap: 16, alignItems: 'center',
+          position: 'relative', overflow: 'hidden',
         }}>
+          <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,142,0,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: -50, bottom: -30, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {user.avatar
               ? <img src={user.avatar} alt={displayName} style={{ width: 72, height: 72, borderRadius: 22, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.5)' }} />
               : <div style={{ width: 72, height: 72, borderRadius: 22, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, color: '#fff', boxShadow: '0 8px 20px rgba(232,142,0,0.3)' }}>{initial}</div>
             }
-            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '2px solid #050508', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
+            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '2px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px' }}>{displayName}</p>
@@ -145,7 +161,7 @@ export default function ProfilePage() {
               { label: 'W/R',       value: (totalW + totalL) > 0 ? Math.round(totalW * 100 / (totalW + totalL)) + '%' : '—', color: '#F59E0B' },
             ].map(s => (
               <div key={s.label} style={{
-                flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
                 borderRadius: 14, padding: '12px 8px', textAlign: 'center',
               }}>
                 <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: s.color }}>{loading ? '—' : s.value}</p>
@@ -171,7 +187,7 @@ export default function ProfilePage() {
               return (
                 <div key={plat} style={{
                   flex: 1,
-                  background: unranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(160deg, ${rankColor}15 0%, transparent 60%)`,
+                  background: unranked ? 'rgba(255,255,255,0.04)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(160deg, ${rankColor}15 0%, transparent 60%)`,
                   border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '30'}`,
                   borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 }}>
@@ -217,7 +233,7 @@ export default function ProfilePage() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
           ) : history.length === 0 ? (
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
               <p style={{ fontSize: 28, margin: '0 0 8px' }}>⚔️</p>
               <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
               <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jugá partidas ranked para ver tu historial</p>
@@ -266,10 +282,14 @@ export default function ProfilePage() {
 
           {/* Logout */}
           <button onClick={() => { logout(); window.location.href = '/login'; }} style={{
-            marginTop: 28, width: '100%', padding: '13px', borderRadius: 14,
-            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)',
+            marginTop: 28, width: '100%', padding: '14px', borderRadius: 16,
+            background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)',
             color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-          }}>
+            transition: 'background .15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
+          >
             Cerrar sesión
           </button>
         </div>

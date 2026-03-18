@@ -102,7 +102,7 @@ export default function HomePage() {
   }, [user]);
 
   if (!user) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#080808' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B0B12' }}>
       <div style={{ width: 32, height: 32, border: '2px solid #E88E00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
@@ -131,35 +131,34 @@ export default function HomePage() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-          body { background: #050508; margin: 0; }
+          body { background: #0B0B12; margin: 0; }
           ::-webkit-scrollbar { display: none; }
           .tab-content { animation: fadeUp 0.18s ease; }
-          @keyframes fadeUp  { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
-          @keyframes spin    { to { transform: rotate(360deg) } }
+          @keyframes fadeUp    { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+          @keyframes spin      { to { transform: rotate(360deg) } }
           @keyframes pulse-ring { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.12)} }
           @keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px rgba(232,142,0,0.35)} 50%{box-shadow:0 0 28px rgba(232,142,0,0.7)} }
-          @keyframes scan { 0%{background-position:0 0} 100%{background-position:0 100%} }
-          @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
-          @keyframes neon-flicker { 0%,19%,21%,23%,25%,54%,56%,100%{opacity:1} 20%,24%,55%{opacity:0.8} }
-          .shimmer { background: linear-gradient(90deg,#111116 25%,#1c1c22 50%,#111116 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-          @keyframes shimmer { to { background-position: -200% 0 } }
+          @keyframes slideUp   { from { transform: translateY(100%) } to { transform: translateY(0) } }
+          @keyframes shimmer   { to { background-position: -200% 0 } }
+          .shimmer { background: linear-gradient(90deg,#13131E 25%,#1E1E2E 50%,#13131E 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           .gamer-card { transition: border-color 0.2s, box-shadow 0.2s; }
-          .gamer-card:hover { border-color: rgba(232,142,0,0.4) !important; box-shadow: 0 0 20px rgba(232,142,0,0.08) !important; }
+          .gamer-card:hover { border-color: rgba(232,142,0,0.35) !important; box-shadow: 0 0 20px rgba(232,142,0,0.07) !important; }
           .btn-gamer:active { transform: scale(0.97); }
         `}</style>
       </Head>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: '#050508', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: '#0B0B12', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
         {/* ── TOP BAR ── */}
         <header style={{
           position: 'sticky', top: 0, zIndex: 50,
-          padding: '12px 18px 11px',
-          background: 'rgba(5,5,8,0.95)',
-          backdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(232,142,0,0.12)',
+          padding: '13px 18px 12px',
+          background: 'rgba(11,11,18,0.92)',
+          backdropFilter: 'blur(28px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(28px) saturate(1.4)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          boxShadow: '0 1px 0 rgba(232,142,0,0.08), 0 4px 20px rgba(0,0,0,0.6)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)',
         }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -184,7 +183,7 @@ export default function HomePage() {
             >
               <Svg size={22} sw={1.8}>{ICO.bell}</Svg>
               {unreadCount > 0 && (
-                <div style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: 'linear-gradient(135deg,#EF4444,#DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #050508', padding: '0 2px', boxShadow: '0 0 8px rgba(239,68,68,0.6)' }}>
+                <div style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: 'linear-gradient(135deg,#EF4444,#DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #0B0B12', padding: '0 2px', boxShadow: '0 0 8px rgba(239,68,68,0.6)' }}>
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </div>
               )}
@@ -214,7 +213,7 @@ export default function HomePage() {
             <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} />
             <div style={{
               position: 'fixed', top: 66, right: 'max(calc(50% - 240px + 14px), 14px)',
-              zIndex: 46, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
+              zIndex: 46, background: '#161620', border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 18, padding: 6, minWidth: 220,
               boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
               animation: 'fadeUp 0.15s ease',
@@ -272,7 +271,7 @@ export default function HomePage() {
               left: 'max(0px, calc(50% - 240px))',
               right: 'max(0px, calc(50% - 240px))',
               zIndex: 46,
-              background: '#121212',
+              background: '#0F0F18',
               borderRadius: '24px 24px 0 0',
               padding: '20px 18px 48px',
               boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
@@ -361,8 +360,10 @@ function BottomNav({ tab, setTab }) {
     <nav style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 480, zIndex: 50,
-      background: 'linear-gradient(180deg, #0c1826 0%, #080f18 100%)',
-      borderTop: '1px solid rgba(30,80,140,0.35)',
+      background: 'rgba(11,11,18,0.97)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      borderTop: '1px solid rgba(255,255,255,0.06)',
       display: 'flex', alignItems: 'flex-end',
       height: 60,
       overflow: 'visible',
@@ -514,7 +515,7 @@ function RankedPlayerRow({ position, player }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
-      background: isSmasher ? 'rgba(255,140,0,0.08)' : '#141414',
+      background: isSmasher ? 'rgba(255,140,0,0.08)' : '#10101A',
       border: `1px solid ${isSmasher ? 'rgba(255,140,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
       borderRadius: 14, padding: '12px 14px',
     }}>
@@ -599,7 +600,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
       <div style={{
         position: 'relative', overflow: 'hidden',
         padding: '28px 20px 24px',
-        background: 'linear-gradient(160deg, rgba(232,142,0,0.1) 0%, rgba(232,80,0,0.05) 40%, transparent 70%)',
+        background: 'linear-gradient(160deg, rgba(124,58,237,0.09) 0%, rgba(232,142,0,0.07) 50%, transparent 80%)',
       }}>
         <div style={{ position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,142,0,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', left: -60, bottom: -20, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -611,7 +612,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
               ? <img src={user.avatar} alt={displayName} style={{ width: 56, height: 56, borderRadius: 18, border: '2px solid rgba(232,142,0,0.5)', objectFit: 'cover' }} />
               : <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff' }}>{initial}</div>
             }
-            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: '#22C55E', border: '2px solid #050508', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
+            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: '#22C55E', border: '2px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, marginBottom: 2 }}>Bienvenido/a,</p>
@@ -691,7 +692,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 
         {/* ── Top Ranked ── */}
         <SectionTitle action="Ver todo" onAction={() => setTab('rankings')}>Top Ranked</SectionTitle>
-        <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 3, display: 'flex', gap: 3, marginBottom: 12 }}>
+        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 3, display: 'flex', gap: 3, marginBottom: 12 }}>
           {[{ id: 'switch', label: '🎮 Switch' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
             <button key={p.id} onClick={() => setTopPlat(p.id)} style={{
               flex: 1, padding: '8px 4px', borderRadius: 9, fontWeight: 700, fontSize: 11,
@@ -709,7 +710,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
             ))}
           </div>
         ) : topPlayers[topPlat].length === 0 ? (
-          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', marginBottom: 24 }}>
             <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Sin jugadores rankeados aún</p>
           </div>
         ) : (
@@ -752,7 +753,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
             ))}
           </div>
         ) : torneos.length === 0 ? (
-          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', marginBottom: 24 }}>
             <p style={{ margin: '0 0 4px', fontSize: 28 }}>🏆</p>
             <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Sin torneos próximos</p>
           </div>
@@ -809,7 +810,7 @@ function NotifCard({ notif, onDismiss }) {
 
   return (
     <div style={{
-      background: isRead ? '#141414' : 'rgba(232,142,0,0.06)',
+      background: isRead ? '#10101A' : 'rgba(232,142,0,0.06)',
       border: `1px solid ${isRead ? 'rgba(255,255,255,0.05)' : 'rgba(232,142,0,0.22)'}`,
       borderRadius: 16, padding: '14px 16px', marginBottom: 10,
       display: 'flex', gap: 14, alignItems: 'flex-start',
@@ -872,7 +873,7 @@ function TabRankings() {
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
 
       {/* Pill switcher */}
-      <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 22 }}>
+      <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 22 }}>
         {MODES.map(m => (
           <button key={m.id} onClick={() => setMode(m.id)}
             style={{
@@ -895,7 +896,7 @@ function TabRankings() {
               <button key={p.id} onClick={() => setRankPlat(p.id)} style={{
                 flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
                 cursor: 'pointer', transition: 'all 0.15s',
-                background: rankPlat === p.id ? 'rgba(232,142,0,0.1)' : '#141414',
+                background: rankPlat === p.id ? 'rgba(232,142,0,0.1)' : '#10101A',
                 border: `1px solid ${rankPlat === p.id ? 'rgba(232,142,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
                 color: rankPlat === p.id ? '#FF8C00' : 'rgba(255,255,255,0.35)',
               }}>
@@ -907,7 +908,7 @@ function TabRankings() {
           {rankLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[1,2,3,4,5].map(i => (
-                <div key={i} style={{ background: '#141414', borderRadius: 14, padding: 14, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div key={i} style={{ background: '#10101A', borderRadius: 14, padding: 14, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12, alignItems: 'center' }}>
                   <div className="shimmer" style={{ width: 28, height: 28, borderRadius: 8 }} />
                   <div style={{ flex: 1 }}>
                     <div className="shimmer" style={{ height: 12, width: '55%', borderRadius: 6, marginBottom: 7 }} />
@@ -918,7 +919,7 @@ function TabRankings() {
               ))}
             </div>
           ) : rankBoard.length === 0 ? (
-            <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
+            <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
               <span style={{ fontSize: 44 }}>⚔️</span>
               <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas ranked aún</p>
               <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Jugá partidas en la sección Match para aparecer en este ranking</p>
@@ -943,7 +944,7 @@ function TabRankings() {
             <Tag color="#EAB308">Próximamente</Tag>
           </div>
 
-          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
             <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'AFK' : 'Smash INC'}</p>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán automáticamente después de cada torneo registrado en Start.GG</p>
@@ -962,7 +963,7 @@ function TabRankings() {
       ) : (
         <>
           <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Tu rendimiento por personaje</p>
-          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '32px 20px', textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '32px 20px', textAlign: 'center', marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
               {[{ t:'S', a:'#FBBF24', b:'#F59E0B' }, { t:'A', a:'#34D399', b:'#10B981' }, { t:'B', a:'#60A5FA', b:'#3B82F6' }, { t:'C', a:'#9CA3AF', b:'#6B7280' }].map(({ t, a, b }) => (
                 <div key={t} style={{ width: 52, height: 52, borderRadius: 14, background: '#111', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1004,14 +1005,14 @@ function TabTorneos() {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1,2,3].map(i => (
-            <div key={i} style={{ background: '#141414', borderRadius: 18, padding: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div key={i} style={{ background: '#10101A', borderRadius: 18, padding: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
               <div className="shimmer" style={{ height: 14, width: '70%', borderRadius: 7, marginBottom: 10 }} />
               <div className="shimmer" style={{ height: 10, width: '40%', borderRadius: 5 }} />
             </div>
           ))}
         </div>
       ) : torneos.length === 0 ? (
-        <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
+        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
           <span style={{ fontSize: 44 }}>📋</span>
           <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin torneos activos</p>
           <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer acá automáticamente</p>
@@ -1020,7 +1021,7 @@ function TabTorneos() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {torneos.map((t, i) => (
             <div key={i} style={{
-              background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
+              background: '#10101A', border: '1px solid rgba(255,255,255,0.05)',
               borderRadius: 18, padding: '14px 16px',
               display: 'flex', alignItems: 'center', gap: 14,
             }}>
@@ -1130,7 +1131,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
     const previewMedia = editRemoveMedia ? null : (editNewMedia || tip.mediaData);
     const previewIsVideo = editRemoveMedia ? false : (editNewMedia ? editNewMedia.startsWith('data:video') : tip.mediaIsVideo);
     return (
-      <div style={{ background: '#141414', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
+      <div style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(232,142,0,0.07)' }}>
           <span style={{ fontSize: 12, fontWeight: 800, color: '#FF8C00' }}>✏️ Editando tip</span>
         </div>
@@ -1141,7 +1142,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
         )}
         <div style={{ padding: '12px 14px' }}>
           <textarea value={editText} onChange={e => setEditText(e.target.value)} maxLength={2000} rows={3}
-            style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+            style={{ width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '7px 10px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
               📷 {editNewMediaName || 'Cambiar foto/video'}
@@ -1153,7 +1154,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
             )}
           </div>
           <input type="url" value={editVideoUrl} onChange={e => setEditVideoUrl(e.target.value)} placeholder="Link de YouTube / Vimeo..."
-            style={{ marginTop: 8, width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '9px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+            style={{ marginTop: 8, width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '9px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
           {editError && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#EF4444' }}>{editError}</p>}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button onClick={handleSaveEdit} disabled={saving}
@@ -1171,7 +1172,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
   }
 
   return (
-    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
+    <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
       {tip.mediaData && !tip.mediaIsVideo && (
         <img src={tip.mediaData} alt="tip" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }} />
       )}
@@ -1308,7 +1309,7 @@ function TabTips() {
         </button>
 
         {/* Character hero */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: 16 }}>
           <img src={imgSrc} alt={selected} style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 14, background: 'rgba(255,255,255,0.03)', flexShrink: 0 }} />
           <div>
             <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{selected}</h2>
@@ -1332,7 +1333,7 @@ function TabTips() {
 
         {/* Formulario */}
         {showForm && (
-          <div style={{ background: '#141414', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: 16, marginBottom: 14 }}>
+          <div style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: 16, marginBottom: 14 }}>
             <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 14, color: '#fff' }}>Nuevo tip — {selected}</p>
 
             <textarea
@@ -1341,7 +1342,7 @@ function TabTips() {
               placeholder="Contá tu tip, combo o estrategia..."
               maxLength={2000}
               rows={4}
-              style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+              style={{ width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
             />
 
             <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1369,7 +1370,7 @@ function TabTips() {
               value={tipVideoUrl}
               onChange={e => setTipVideoUrl(e.target.value)}
               placeholder="O pegá un link de YouTube / Vimeo..."
-              style={{ marginTop: 10, width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+              style={{ marginTop: 10, width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
             />
 
             {submitResult?.error && (
@@ -1394,7 +1395,7 @@ function TabTips() {
             <div style={{ width: 28, height: 28, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
           </div>
         ) : tips.length === 0 ? (
-          <div style={{ background: '#141414', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ background: '#10101A', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
             <span style={{ fontSize: 40 }}>💡</span>
             <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavía</p>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
@@ -1428,7 +1429,7 @@ function TabTips() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           style={{
-            width: '100%', background: '#141414', border: '1px solid rgba(255,255,255,0.08)',
+            width: '100%', background: '#10101A', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 14, padding: '11px 14px 11px 40px', fontSize: 14, color: '#fff',
             outline: 'none', boxSizing: 'border-box',
           }}
@@ -1447,13 +1448,13 @@ function TabTips() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {filtered.map((c) => (
             <button key={c} onClick={() => setSelected(c)} style={{
-              background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
+              background: '#10101A', border: '1px solid rgba(255,255,255,0.05)',
               borderRadius: 16, padding: '10px 12px', textAlign: 'left',
               cursor: 'pointer', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', gap: 10,
             }}
               onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(232,142,0,0.3)'; e.currentTarget.style.background = 'rgba(232,142,0,0.06)'; }}
-              onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#141414'; }}
+              onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#10101A'; }}
             >
               <img
                 src={`/images/characters/${encodeURIComponent(c.replace(/\.$/, ''))}.png`}
@@ -1646,7 +1647,7 @@ function TabMatch() {
         ].map(([icon, t, d], idx, arr) => (
           <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 11, background: '#141414', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{icon}</div>
+              <div style={{ width: 36, height: 36, borderRadius: 11, background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{icon}</div>
               {idx < arr.length - 1 && <div style={{ width: 1, flex: 1, minHeight: 12, background: 'rgba(255,255,255,0.05)', marginTop: 4 }} />}
             </div>
             <div style={{ paddingBottom: 12 }}>
@@ -1701,7 +1702,7 @@ function TabMatch() {
         </div>
 
         {/* Card rival */}
-        <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px', marginBottom: 12 }}>
+        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px', marginBottom: 12 }}>
           <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
           <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{matchData.opponent.name}</p>
         </div>
@@ -1735,7 +1736,7 @@ function TabMatch() {
             <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando el reporte del rival...</p>
           </div>
         ) : (
-          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px' }}>
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px' }}>
             <p style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó la partida?</p>
             {reportError && <p style={{ margin: '0 0 10px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1821,7 +1822,7 @@ function TabMatch() {
       {/* Info reglas */}
       <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
         {[['⚔️', 'Stock 3'], ['⏱️', '7 min'], ['🚫', 'Sin items']].map(([icon, label]) => (
-          <div key={label} style={{ flex: 1, textAlign: 'center', background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '10px 4px' }}>
+          <div key={label} style={{ flex: 1, textAlign: 'center', background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '10px 4px' }}>
             <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
             <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{label}</p>
           </div>
