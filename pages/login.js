@@ -15,9 +15,11 @@ export default function Login() {
     try {
       const stored = localStorage.getItem('afk_user');
       if (stored) {
-        const user = JSON.parse(stored);
-        if (user?.isAdmin) {
+        const data = JSON.parse(stored);
+        if (data?.isAdmin) {
           router.replace('/admin/afk-multi');
+        } else if (data?.user) {
+          router.replace('/home');
         }
       }
     } catch {}
@@ -42,7 +44,7 @@ export default function Login() {
         <div className="text-center max-w-sm w-full">
           <div className="mb-8">
             <h1 className="text-5xl font-black text-white mb-2 tracking-tight">AFK Smash</h1>
-            <p className="text-gray-400 text-sm tracking-widest uppercase">Panel de administración</p>
+            <p className="text-gray-400 text-sm tracking-widest uppercase">Comunidad competitiva</p>
           </div>
 
           {error === 'no_access' && (
@@ -71,7 +73,7 @@ export default function Login() {
           </button>
 
           <p className="text-gray-600 text-xs mt-6">
-            Solo cuentas autorizadas pueden acceder al panel.
+            Iniciá sesión con tu cuenta de Start.gg para acceder a la plataforma.
           </p>
         </div>
       </div>

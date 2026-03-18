@@ -1,6 +1,6 @@
 // API para reportar el resultado de un match de matchmaking — Upstash Redis
 
-import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey } from '../../../lib/redis';
+import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey, matchHistoryKey } from '../../../lib/redis';
 import { applyWin, applyLoss, leaderboardScore, getRankIndex, calculatePlacementRank, PLACEMENT_MATCHES } from '../../../lib/ranks';
 
 function sanitize(s) {
@@ -135,6 +135,23 @@ export default async function handler(req, res) {
     lStats.updatedAt = new Date().toISOString();
     await redis.set(lKey, lStats);
     await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(lStats), member: String(loserId) });
+
+    // ── Historial de partidas ─────────────────────────
+    const matchEntry = {
+      matchId,
+      platform,
+      winnerId,
+      loserId,
+      winnerName,
+      loserName,
+      playedAt: new Date().toISOString(),
+    };
+    const wHistKey = matchHistoryKey(String(winnerId));
+    const lHistKey = matchHistoryKey(String(loserId));
+    await redis.lpush(wHistKey, matchEntry);
+    await redis.ltrim(wHistKey, 0, 49);
+    await redis.lpush(lHistKey, matchEntry);
+    await redis.ltrim(lHistKey, 0, 49);
   }
 
   return res.status(200).json({

@@ -231,7 +231,7 @@ export default function HomePage() {
                 </div>
               </div>
               {/* Menu items */}
-              {[{icon:'🎮', label:'Mi perfil', sub:'Start.GG', action: () => { setShowMenu(false); }},
+              {[{icon:'🎮', label:'Mi perfil', sub:'Start.GG', action: () => { setShowMenu(false); router.push('/profile'); }},
                 {icon:'⚙️', label:'Configuración', sub:'Preferencias', action: () => { setShowMenu(false); }},
               ].map(item => (
                 <button key={item.label} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}

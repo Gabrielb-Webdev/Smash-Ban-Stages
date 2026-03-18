@@ -40,13 +40,14 @@ export default function AuthCallback() {
           return;
         }
 
-        if (!data.isAdmin) {
-          router.replace('/home');
-          return;
-        }
-
+        // Guardar sesión para TODOS los usuarios (admin y no-admin)
         localStorage.setItem('afk_user', JSON.stringify(data));
-        router.replace('/admin/afk-multi');
+
+        if (data.isAdmin) {
+          router.replace('/admin/afk-multi');
+        } else {
+          router.replace('/home');
+        }
       })
       .catch((e) => {
         router.replace('/login?error=' + encodeURIComponent(e.message || 'auth_failed'));
