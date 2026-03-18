@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
@@ -1749,7 +1749,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput]       = useState('');
   const [chatSending, setChatSending]   = useState(false);
-  const chatBottomRef = React.useRef(null);
+  const chatBottomRef = useRef(null);
 
   // Polling de chat
   useEffect(() => {
