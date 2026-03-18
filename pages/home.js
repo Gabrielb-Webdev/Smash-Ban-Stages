@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
@@ -48,7 +48,7 @@ export default function HomePage() {
     const stored = getStoredUser();
     if (!stored) { router.replace('/login'); return; }
 
-    // Detectar sesiÃ³n desactualizada: el nombre es un slug hexadecimal (ej: "ead8fa65")
+    // Detectar sesión desactualizada: el nombre es un slug hexadecimal (ej: "ead8fa65")
     // o coincide con el slug. En ese caso forzamos re-login para obtener datos frescos.
     const u = stored.user;
     const nameIsStale = !u?.name
@@ -264,7 +264,7 @@ export default function HomePage() {
                 >
                   <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>ðŸšª</div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#EF4444' }}>Cerrar sesiÃ³n</p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#EF4444' }}>Cerrar sesión</p>
                     <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(239,68,68,0.45)' }}>Salir de la cuenta</p>
                   </div>
                 </button>
@@ -305,7 +305,7 @@ export default function HomePage() {
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{ fontSize: 40 }}>ðŸ””</div>
                   <p style={{ margin: '12px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin notificaciones</p>
-                  <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Te avisamos acÃ¡ cuando sea tu turno</p>
+                  <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Te avisamos acá cuando sea tu turno</p>
                 </div>
               ) : (
                 [...notifs].reverse().map(n => (
@@ -402,7 +402,7 @@ function BottomNav({ tab, setTab }) {
         );
       })}
 
-      {/* MATCH â€” botÃ³n central elevado */}
+      {/* MATCH â€” botón central elevado */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', height: '100%' }}>
         <button
           onClick={() => setTab('match')}
@@ -556,7 +556,7 @@ function RankedPlayerRow({ position, player }) {
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 800, color: '#fff' }}>
           <span style={{ color: '#22C55E' }}>{player.wins || 0}W</span>
-          <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 3px' }}>Â·</span>
+          <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 3px' }}>·</span>
           <span style={{ color: '#EF4444' }}>{player.losses || 0}L</span>
         </p>
         {!isSmasher && (
@@ -584,10 +584,10 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
   const featuredTorneo = torneos[0] || null;
 
   const QUICK = [
-    { icon: 'âš¡', label: 'Match',    action: () => setTab('match')    },
-    { icon: 'ðŸ†', label: 'Torneos',  action: () => setTab('torneos')  },
-    { icon: 'ðŸ“Š', label: 'Rankings', action: () => setTab('rankings') },
-    { icon: 'ðŸ’¡', label: 'Tips',     action: () => setTab('tips')     },
+    { icon: '⚡', label: 'Match',    action: () => setTab('match')    },
+    { icon: '🏆', label: 'Torneos',  action: () => setTab('torneos')  },
+    { icon: '📊', label: 'Rankings', action: () => setTab('rankings') },
+    { icon: '💡', label: 'Tips',     action: () => setTab('tips')     },
   ];
 
   return (
@@ -609,7 +609,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
           </div>
         </div>
         <button onClick={() => router.push('/profile')} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 99, padding: '7px 16px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>
-          Ver perfil â†’
+          Ver perfil →
         </button>
       </div>
 
@@ -639,7 +639,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.5)', borderRadius: 99, padding: '4px 13px', marginBottom: 13 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#A78BFA', boxShadow: '0 0 6px #A78BFA' }} />
                 <span style={{ fontSize: 10, fontWeight: 800, color: '#C4B5FD', letterSpacing: '0.08em' }}>
-                  {featuredTorneo ? 'PRÃ“XIMO TORNEO' : 'TEMPORADA ACTIVA'}
+                  {featuredTorneo ? 'PRÓXIMO TORNEO' : 'TEMPORADA ACTIVA'}
                 </span>
               </div>
               <p style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.1, textShadow: '0 0 24px rgba(167,139,250,0.55)' }}>
@@ -648,7 +648,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
               <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
                 {featuredTorneo
                   ? (featuredTorneo.date || featuredTorneo.startAt || 'Fecha por confirmar')
-                  : 'Ranked Â· Buenos Aires Â· Smash Ultimate'}
+                  : 'Ranked · Buenos Aires · Smash Ultimate'}
               </p>
               <button onClick={() => setTab(featuredTorneo ? 'torneos' : 'match')} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -656,7 +656,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
                 borderRadius: 99, padding: '9px 20px', color: '#C4B5FD',
                 fontWeight: 800, fontSize: 12, cursor: 'pointer',
               }}>
-                {featuredTorneo ? 'Ver torneo' : 'Jugar ahora'} <span>â†’</span>
+                {featuredTorneo ? 'Ver torneo' : 'Jugar ahora'} <span>→</span>
               </button>
             </div>
           )}
@@ -694,8 +694,8 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
         }}>
           <div style={{ position: 'absolute', right: -28, top: -28, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
           <div>
-            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>âš¡ Buscar Partida</p>
-            <p style={{ margin: '5px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>JugÃ¡ ranked ahora mismo</p>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>⚡ Buscar Partida</p>
+            <p style={{ margin: '5px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Jugá ranked ahora mismo</p>
           </div>
           <div style={{ width: 46, height: 46, borderRadius: 99, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Svg size={20} sw={2.5}>{ICO.chevron}</Svg>
@@ -710,9 +710,9 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
             border: '1px solid rgba(232,142,0,0.2)', borderRadius: 24, padding: '15px 18px',
             cursor: 'pointer', textAlign: 'left',
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: 15, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 14px rgba(232,142,0,0.4)', flexShrink: 0 }}>ðŸŽ›ï¸</div>
+            <div style={{ width: 44, height: 44, borderRadius: 15, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 14px rgba(232,142,0,0.4)', flexShrink: 0 }}>🎛️</div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontWeight: 800, color: '#FF8C00', fontSize: 14 }}>Panel de AdministraciÃ³n</p>
+              <p style={{ margin: 0, fontWeight: 800, color: '#FF8C00', fontSize: 14 }}>Panel de Administración</p>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Gestionar torneos y setups</p>
             </div>
             <Svg size={16} sw={2}>{ICO.chevron}</Svg>
@@ -726,8 +726,8 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            { name: 'Smash AFK', region: 'Buenos Aires', tag: 'LOCAL', tagColor: '#38BDF8', desc: 'Torneos semanales, ranking local y espacio de prÃ¡ctica competitiva.', icon: 'ðŸ—ºï¸', from: 'rgba(12,74,110,0.55)', to: 'rgba(2,12,40,0.92)', glow: 'rgba(56,189,248,0.14)' },
-            { name: 'Smash INC', region: 'Nacional Â· Argentina', tag: 'NACIONAL', tagColor: '#FB923C', desc: 'Circuito nacional con ranking y torneos interregionales.', icon: 'ðŸ…', from: 'rgba(67,20,7,0.55)', to: 'rgba(28,10,0,0.92)', glow: 'rgba(251,146,60,0.12)' },
+            { name: 'Smash AFK', region: 'Buenos Aires', tag: 'LOCAL', tagColor: '#38BDF8', desc: 'Torneos semanales, ranking local y espacio de práctica competitiva.', icon: '🗺️', from: 'rgba(12,74,110,0.55)', to: 'rgba(2,12,40,0.92)', glow: 'rgba(56,189,248,0.14)' },
+            { name: 'Smash INC', region: 'Nacional · Argentina', tag: 'NACIONAL', tagColor: '#FB923C', desc: 'Circuito nacional con ranking y torneos interregionales.', icon: '🏅', from: 'rgba(67,20,7,0.55)', to: 'rgba(28,10,0,0.92)', glow: 'rgba(251,146,60,0.12)' },
           ].map(c => (
             <div key={c.name} style={{
               background: `linear-gradient(135deg,${c.from},${c.to})`,
@@ -777,7 +777,7 @@ function NotifCard({ notif, onDismiss }) {
           {notif.message}
         </p>
         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
-          {timeStr} Â· {notif.sentBy}
+          {timeStr} · {notif.sentBy}
         </p>
       </div>
       {!isRead && (
@@ -873,7 +873,7 @@ function TabRankings() {
             <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
               <span style={{ fontSize: 44 }}>âš”ï¸</span>
               <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas ranked aÃºn</p>
-              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>JugÃ¡ partidas en la secciÃ³n Match para aparecer en este ranking</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Jugá partidas en la sección Match para aparecer en este ranking</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -892,13 +892,13 @@ function TabRankings() {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{mode === 'ba' ? 'ðŸ“ Buenos Aires' : 'ðŸ‡¦ðŸ‡· Argentina'}</p>
-            <Tag color="#EAB308">PrÃ³ximamente</Tag>
+            <Tag color="#EAB308">Próximamente</Tag>
           </div>
 
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 14 }}>ðŸ†</div>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
             <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'AFK' : 'Smash INC'}</p>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarÃ¡n automÃ¡ticamente despuÃ©s de cada torneo registrado en Start.GG</p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán automáticamente despuÃ©s de cada torneo registrado en Start.GG</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
               {['ðŸ¥‡ 1er lugar', 'ðŸ¥ˆ 2do lugar', 'ðŸ¥‰ 3er lugar', '4Â° lugar', '5Â° lugar'].map((label, i) => (
                 <div key={i} style={{ background: i === 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, padding: '8px 14px' }}>
@@ -907,7 +907,7 @@ function TabRankings() {
               ))}
             </div>
             <div style={{ marginTop: 20, display: 'inline-flex', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 10, padding: '7px 16px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>PrÃ³ximamente</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
             </div>
           </div>
         </>
@@ -923,9 +923,9 @@ function TabRankings() {
               ))}
             </div>
             <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 15, color: '#fff' }}>Ranking por personaje</p>
-            <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>JugÃ¡ partidas online para acumular victorias con tu main y subir de clase</p>
+            <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Jugá partidas online para acumular victorias con tu main y subir de clase</p>
             <div style={{ display: 'inline-flex', background: 'rgba(232,142,0,0.06)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 10, padding: '7px 16px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.6)', letterSpacing: '0.05em' }}>PrÃ³ximamente</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
             </div>
           </div>
         </>
@@ -966,7 +966,7 @@ function TabTorneos() {
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
           <span style={{ fontSize: 44 }}>ðŸ“‹</span>
           <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin torneos activos</p>
-          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer acÃ¡ automÃ¡ticamente</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer acá automáticamente</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -976,7 +976,7 @@ function TabTorneos() {
               borderRadius: 18, padding: '14px 16px',
               display: 'flex', alignItems: 'center', gap: 14,
             }}>
-              <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.2),rgba(232,80,0,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>ðŸ†</div>
+              <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.2),rgba(232,80,0,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
               <div style={{ flex: 1 }}>
                 <p style={{ margin: '0 0 3px', fontWeight: 700, fontSize: 14, color: '#fff' }}>{t.name || t.tournamentName || 'Torneo'}</p>
                 <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.date || t.startAt || 'Fecha por confirmar'}</p>
@@ -1038,7 +1038,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
     const allowed = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm'];
     if (!allowed.includes(file.type)) { setEditError('Tipo no permitido'); return; }
     const limitMB = file.type.startsWith('video') ? 40 : 5;
-    if (file.size > limitMB * 1024 * 1024) { setEditError(`MÃ¡ximo ${limitMB} MB`); return; }
+    if (file.size > limitMB * 1024 * 1024) { setEditError(`Máximo ${limitMB} MB`); return; }
     const reader = new FileReader();
     reader.onload = ev => { setEditNewMedia(ev.target.result); setEditNewMediaName(file.name); setEditRemoveMedia(false); setEditError(null); };
     reader.readAsDataURL(file);
@@ -1062,7 +1062,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
         mediaIsVideo: editRemoveMedia ? false : (data.tip?.mediaIsVideo ?? tip.mediaIsVideo),
       };
       onEdit(updated); setEditing(false);
-    } catch { setEditError('Error de conexiÃ³n'); }
+    } catch { setEditError('Error de conexión'); }
     finally { setSaving(false); }
   };
 
@@ -1077,7 +1077,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
     } catch {}
   };
 
-  // Vista en modo ediciÃ³n
+  // Vista en modo edición
   if (editing) {
     const previewMedia = editRemoveMedia ? null : (editNewMedia || tip.mediaData);
     const previewIsVideo = editRemoveMedia ? false : (editNewMedia ? editNewMedia.startsWith('data:video') : tip.mediaIsVideo);
@@ -1176,7 +1176,7 @@ function TabTips() {
   const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
   const _rawUid = stored?.user?.id || stored?.user?.slug;
   const currentUserId = _rawUid != null ? String(_rawUid) : null;
-  const currentUserName = stored?.user?.name || 'AnÃ³nimo';
+  const currentUserName = stored?.user?.name || 'Anónimo';
 
   // Cargar contadores cuando se muestra la lista
   useEffect(() => {
@@ -1203,11 +1203,11 @@ function TabTips() {
     if (!file) return;
     const allowed = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm'];
     if (!allowed.includes(file.type)) {
-      setSubmitResult({ error: 'Tipo no permitido. UsÃ¡ JPG, PNG, GIF, WebP, MP4 o WebM' }); return;
+      setSubmitResult({ error: 'Tipo no permitido. Usá JPG, PNG, GIF, WebP, MP4 o WebM' }); return;
     }
     const limitMB = file.type.startsWith('video') ? 40 : 5;
     if (file.size > limitMB * 1024 * 1024) {
-      setSubmitResult({ error: `MÃ¡ximo ${limitMB} MB para este tipo de archivo` }); return;
+      setSubmitResult({ error: `Máximo ${limitMB} MB para este tipo de archivo` }); return;
     }
     const reader = new FileReader();
     reader.onload = ev => { setTipMediaData(ev.target.result); setTipMediaName(file.name); setSubmitResult(null); };
@@ -1216,7 +1216,7 @@ function TabTips() {
 
   const submitTip = async () => {
     if (!tipText.trim() && !tipMediaData && !tipVideoUrl.trim()) {
-      setSubmitResult({ error: 'IngresÃ¡ texto, foto o un link de video' }); return;
+      setSubmitResult({ error: 'Ingresá texto, foto o un link de video' }); return;
     }
     setSubmitting(true); setSubmitResult(null);
     try {
@@ -1234,7 +1234,7 @@ function TabTips() {
       setShowForm(false);
       setSubmitResult({ ok: true });
       setTimeout(() => setSubmitResult(null), 3000);
-    } catch { setSubmitResult({ error: 'Error de conexiÃ³n' }); }
+    } catch { setSubmitResult({ error: 'Error de conexión' }); }
     finally { setSubmitting(false); }
   };
 
@@ -1271,7 +1271,7 @@ function TabTips() {
           </div>
         </div>
 
-        {/* BotÃ³n subir tip */}
+        {/* Botón subir tip */}
         <button onClick={() => { setShowForm(v => !v); setSubmitResult(null); }} style={{
           width: '100%', marginBottom: 14, padding: '12px 16px', borderRadius: 14,
           background: showForm ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,rgba(232,142,0,0.15),rgba(232,142,0,0.06))',
@@ -1290,7 +1290,7 @@ function TabTips() {
             <textarea
               value={tipText}
               onChange={e => setTipText(e.target.value)}
-              placeholder="ContÃ¡ tu tip, combo o estrategia..."
+              placeholder="Contá tu tip, combo o estrategia..."
               maxLength={2000}
               rows={4}
               style={{ width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
@@ -1320,7 +1320,7 @@ function TabTips() {
               type="url"
               value={tipVideoUrl}
               onChange={e => setTipVideoUrl(e.target.value)}
-              placeholder="O pegÃ¡ un link de YouTube / Vimeo..."
+              placeholder="O pegá un link de YouTube / Vimeo..."
               style={{ marginTop: 10, width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
             />
 
@@ -1347,7 +1347,7 @@ function TabTips() {
           </div>
         ) : tips.length === 0 ? (
           <div style={{ background: '#10101A', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
-            <span style={{ fontSize: 40 }}>ðŸ’¡</span>
+            <span style={{ fontSize: 40 }}>💡</span>
             <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavÃ­a</p>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>SÃ© el primero en colaborar con la comunidad</p>
           </div>
@@ -1365,7 +1365,7 @@ function TabTips() {
   return (
     <div style={{ padding: '24px 18px' }}>
       <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Tips</h1>
-      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>ElegÃ­ un personaje Â· {CHARS.length} disponibles</p>
+      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>ElegÃ­ un personaje · {CHARS.length} disponibles</p>
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 16 }}>
@@ -1431,7 +1431,7 @@ function TabTips() {
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const STAGE_EMOJI = {
   'Battlefield': 'âš”ï¸', 'Final Destination': 'ðŸŒŒ', 'Small Battlefield': 'ðŸ—¡ï¸',
-  'PokÃ©mon Stadium 2': 'âš¡', 'Town & City': 'ðŸ™ï¸', 'Smashville': 'ðŸ¡',
+  'PokÃ©mon Stadium 2': '⚡', 'Town & City': 'ðŸ™ï¸', 'Smashville': 'ðŸ¡',
   'Hollow Bastion': 'ðŸ°', 'Kalos PokÃ©mon League': 'ðŸ”·',
 };
 
@@ -1505,7 +1505,7 @@ function TabMatch() {
       if (!r.ok) { setJoinError(data.error || 'Error al unirse'); return; }
       setMmStatus(data);
       setPolling(true);
-    } catch { setJoinError('Error de conexiÃ³n'); }
+    } catch { setJoinError('Error de conexión'); }
     finally { setJoining(false); }
   };
 
@@ -1534,7 +1534,7 @@ function TabMatch() {
       setReported(true);
       setMmStatus(prev => ({ ...prev, match: { ...prev.match, status: data.matchStatus, result: data.result } }));
       if (data.matchStatus !== 'finished') setPolling(true);
-    } catch { setReportError('Error de conexiÃ³n'); }
+    } catch { setReportError('Error de conexión'); }
     finally { setReportLoading(false); }
   };
 
@@ -1548,7 +1548,7 @@ function TabMatch() {
   const matchStatus = matchData?.status || mmStatus?.status;
 
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDER â€” SelecciÃ³n de plataforma
+  // RENDER â€” Selección de plataforma
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (!plat) return (
     <div style={{ padding: '24px 18px' }}>
@@ -1574,7 +1574,7 @@ function TabMatch() {
             <div style={{ width: 50, height: 50, borderRadius: 16, background: `linear-gradient(135deg,${px.from},${px.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0, boxShadow: `0 6px 16px ${px.from}35` }}>{px.icon}</div>
             <div style={{ flex: 1 }}>
               <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 15, color: '#fff' }}>{px.label}</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{px.id === 'parsec' ? 'Emulador Â· Rollback netcode' : 'Nintendo Switch Online'}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{px.id === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
             </div>
             {onlineCount !== null && onlineCount > 0 && (
               <div style={{ fontSize: 11, fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '3px 8px', flexShrink: 0 }}>
@@ -1588,13 +1588,13 @@ function TabMatch() {
         ))}
       </div>
 
-      <SectionTitle>Â¿CÃ³mo funciona?</SectionTitle>
+      <SectionTitle>Â¿Cómo funciona?</SectionTitle>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[
-          ['ðŸ”', 'BuscÃ¡s partida', 'Te unÃ­s a la cola y te emparejamos automÃ¡ticamente'],
-          ['ðŸ—ºï¸', 'Escenario aleatorio', 'Mapa competitivo elegido al azar entre los 8 legales'],
-          ['ðŸ“œ', 'Reglas estÃ¡ndar', 'Stock 3, tiempo 7 min, sin objetos'],
-          ['ðŸ“¤', 'ReportÃ¡s el resultado', 'Ambos confirman quiÃ©n ganÃ³'],
+          ['ðŸ”', 'Buscás partida', 'Te unÃ­s a la cola y te emparejamos automáticamente'],
+          ['🗺️', 'Escenario aleatorio', 'Mapa competitivo elegido al azar entre los 8 legales'],
+          ['ðŸ“œ', 'Reglas estándar', 'Stock 3, tiempo 7 min, sin objetos'],
+          ['ðŸ“¤', 'Reportás el resultado', 'Ambos confirman quiÃ©n ganó'],
         ].map(([icon, t, d], idx, arr) => (
           <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1622,11 +1622,11 @@ function TabMatch() {
           <Svg size={18} sw={2}>{ICO.back}</Svg> Volver al inicio
         </button>
         <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: `1px solid ${iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: 24, marginBottom: 16 }}>
-          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? 'ðŸ†' : 'ðŸ’€'}</div>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : 'ðŸ’€'}</div>
           <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? 'Â¡Ganaste!' : 'Perdiste'}</p>
-          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? `Derrotaste a ${matchData.opponent.name}` : `${matchData.opponent.name} ganÃ³ esta vez`}</p>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? `Derrotaste a ${matchData.opponent.name}` : `${matchData.opponent.name} ganó esta vez`}</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '8px 14px' }}>
-            <span style={{ fontSize: 16 }}>{STAGE_EMOJI[matchData.stage] || 'ðŸ—ºï¸'}</span>
+            <span style={{ fontSize: 16 }}>{STAGE_EMOJI[matchData.stage] || '🗺️'}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{matchData.stage}</span>
           </div>
         </div>
@@ -1660,18 +1660,18 @@ function TabMatch() {
 
         {/* Stage card */}
         <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 34 }}>{STAGE_EMOJI[matchData.stage] || 'ðŸ—ºï¸'}</span>
+          <span style={{ fontSize: 34 }}>{STAGE_EMOJI[matchData.stage] || '🗺️'}</span>
           <div>
             <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: 'rgba(255,165,0,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario elegido</p>
             <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#FF8C00' }}>{matchData.stage}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Stock 3 Â· 7 min Â· Sin objetos</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Stock 3 · 7 min · Sin objetos</p>
           </div>
         </div>
 
-        {/* Coordinar conexiÃ³n */}
+        {/* Coordinar conexión */}
         <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 16, padding: '12px 16px', marginBottom: 18 }}>
           <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-            {plat === 'switch' ? 'ðŸŽ® BuscÃ¡ a tu rival por su usuario en Nintendo Switch Online y aÃ±adilo como amigo.' : 'ðŸ–¥ï¸ CoordinÃ¡ con tu rival para conectarse en Parsec (por Discord u otro medio).'}
+            {plat === 'switch' ? 'ðŸŽ® Buscá a tu rival por su usuario en Nintendo Switch Online y aÃ±adilo como amigo.' : 'ðŸ–¥ï¸ Coordiná con tu rival para conectarse en Parsec (por Discord u otro medio).'}
           </p>
         </div>
 
@@ -1679,7 +1679,7 @@ function TabMatch() {
         {matchStatus === 'disputed' ? (
           <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>âš ï¸ Resultado en disputa</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Reportaron resultados distintos. ContactÃ¡ a un admin para resolver.</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Reportaron resultados distintos. Contactá a un admin para resolver.</p>
           </div>
         ) : reported ? (
           <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 18, padding: '16px', textAlign: 'center' }}>
@@ -1688,12 +1688,12 @@ function TabMatch() {
           </div>
         ) : (
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px' }}>
-            <p style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: '#fff' }}>Â¿QuiÃ©n ganÃ³ la partida?</p>
+            <p style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: '#fff' }}>Â¿QuiÃ©n ganó la partida?</p>
             {reportError && <p style={{ margin: '0 0 10px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button onClick={() => reportResult(userId)} disabled={reportLoading}
                 style={{ padding: '13px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.08))', border: '1px solid rgba(52,211,153,0.3)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>
-                ðŸ† Yo ganÃ©
+                🏆 Yo ganÃ©
               </button>
               <button onClick={() => reportResult(matchData.opponent.userId)} disabled={reportLoading}
                 style={{ padding: '13px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>
@@ -1724,12 +1724,12 @@ function TabMatch() {
         </div>
 
         <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Buscando rival...</p>
-        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{p.label} Â· {fmtElapsed(elapsed)} esperando</p>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{p.label} · {fmtElapsed(elapsed)} esperando</p>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
           <div style={{ textAlign: 'center' }}>
             <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#fff' }}>#{mmStatus.position}</p>
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>PosiciÃ³n</p>
+            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Posición</p>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.08)' }} />
           <div style={{ textAlign: 'center' }}>
@@ -1759,7 +1759,7 @@ function TabMatch() {
         <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg,${p.from},${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: `0 6px 18px ${p.from}40` }}>{p.icon}</div>
         <div>
           <h1 style={{ margin: '0 0 3px', fontSize: 22, fontWeight: 900, color: '#fff' }}>{p.label}</h1>
-          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{plat === 'parsec' ? 'Emulador Â· Rollback netcode' : 'Nintendo Switch Online'}</p>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{plat === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
         </div>
       </div>
 
