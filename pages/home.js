@@ -8,9 +8,8 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const PLATFORMS = [
-  { id: 'parsec',     label: 'Parsec',         icon: '🖥️', from: '#7C3AED', to: '#3730A3' },
-  { id: 'switch',     label: 'Switch Online',  icon: '🎮', from: '#DC2626', to: '#9F1239' },
-  { id: 'tournament', label: 'Torneos',         icon: '🏆', from: '#D97706', to: '#92400E' },
+  { id: 'parsec',  label: 'Parsec',        icon: '🖥️', from: '#7C3AED', to: '#3730A3' },
+  { id: 'switch',  label: 'Switch Online', icon: '🎮', from: '#DC2626', to: '#9F1239' },
 ];
 
 /* â”€â”€â”€ SVG HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1758,21 +1757,35 @@ function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s %
 
 /* ─── CharPicker ─────────────────────────────────────────────────────────── */
 function CharPicker({ selected, onSelect, platform, userId }) {
-  const [search, setSearch] = useState('');
-  const [stats, setStats]   = useState(null);
+  // ─ Estado persistido: personajes usados recientemente ─
+  const [recentIds, setRecentIds] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(localStorage.getItem('afk_recent_chars') || '[]'); } catch { return []; }
+  });
+
+  // ─ Estado interno del picker ─
+  const [expanded, setExpanded]         = useState(!selected);
+  const [search, setSearch]             = useState('');
+  const [stats, setStats]               = useState(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  const filtered = CHARACTERS.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Cuando se selecciona un personaje: guardar en recientes y colapsar
+  useEffect(() => {
+    if (!selected) return;
+    setRecentIds(prev => {
+      const next = [selected, ...prev.filter(id => id !== selected)].slice(0, 6);
+      try { localStorage.setItem('afk_recent_chars', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setExpanded(false);
+  }, [selected]);
 
+  // Cargar stats cuando se tiene personaje + plataforma
   useEffect(() => {
     if (!selected || !platform || !userId) { setStats(null); return; }
     setLoadingStats(true);
-    fetch(
-      `/api/matchmaking/char-stats?platform=${encodeURIComponent(platform)}&charId=${encodeURIComponent(selected)}&userId=${encodeURIComponent(userId)}`
-    )
-      .then(r => r.json())
+    fetch(`/api/matchmaking/char-stats?platform=${encodeURIComponent(platform)}&charId=${encodeURIComponent(selected)}&userId=${encodeURIComponent(userId)}`)
+      .then(r => r.ok ? r.json() : null)
       .then(d => setStats(d))
       .catch(() => setStats(null))
       .finally(() => setLoadingStats(false));
@@ -1780,33 +1793,73 @@ function CharPicker({ selected, onSelect, platform, userId }) {
 
   const char = CHARACTERS.find(c => c.id === selected);
 
+  // ── Vista colapsada (personaje ya elegido) ──────────────────────────────
+  if (char && !expanded) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.28)', borderRadius: 14 }}>
+        <img src={charImgPath(char.img)} alt={char.name} style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontWeight: 900, fontSize: 15, color: '#fff' }}>{char.name}</p>
+          {loadingStats && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cargando stats…</p>}
+          {!loadingStats && stats?.myStats && (
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+              {stats.myStats.wins}V · {stats.myStats.losses}D · #{stats.myRank ?? '—'} ranking
+            </p>
+          )}
+          {!loadingStats && !stats?.myStats && platform && (
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Sin partidas aún con este personaje</p>
+          )}
+        </div>
+        <button
+          onClick={() => { setExpanded(true); setSearch(''); }}
+          style={{ flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 12px', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+        >
+          Cambiar
+        </button>
+      </div>
+    );
+  }
+
+  // ── Vista expandida (picker) ────────────────────────────────────────────
+  const recents = recentIds.map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean);
+  const filtered = CHARACTERS.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <div>
+      {/* Personajes recientes */}
+      {recents.length > 0 && !search && (
+        <div style={{ marginBottom: 10 }}>
+          <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos jugados</p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {recents.map(c => (
+              <button
+                key={c.id}
+                onClick={() => onSelect(c.id)}
+                title={c.name}
+                style={{
+                  background: selected === c.id ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: selected === c.id ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10, padding: 4, cursor: 'pointer',
+                  width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Búsqueda */}
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Buscar personaje…"
-        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
       />
-      {char && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '8px 12px', background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 12 }}>
-          <img src={charImgPath(char.img)} alt={char.name} style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8 }} />
-          <div style={{ flex: 1 }}>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{char.name}</p>
-            {loadingStats && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cargando stats…</p>}
-            {!loadingStats && stats && stats.myStats && (
-              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-                {stats.myStats.wins}V · {stats.myStats.losses}D · #{stats.myRank ?? '—'} ranking
-              </p>
-            )}
-            {!loadingStats && (!stats || !stats.myStats) && platform && (
-              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Sin partidas aún con este personaje</p>
-            )}
-          </div>
-          <button onClick={() => onSelect(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
-        </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, maxHeight: 230, overflowY: 'auto' }}>
+
+      {/* Grilla */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
         {filtered.map(c => (
           <button
             key={c.id}
@@ -1815,19 +1868,24 @@ function CharPicker({ selected, onSelect, platform, userId }) {
             style={{
               background: selected === c.id ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.03)',
               border: selected === c.id ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 10,
-              padding: 4,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              aspectRatio: '1',
+              borderRadius: 10, padding: 4, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1',
             }}
           >
             <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
           </button>
         ))}
       </div>
+
+      {/* Botón cancelar cambio (si ya hay uno seleccionado) */}
+      {char && (
+        <button
+          onClick={() => setExpanded(false)}
+          style={{ marginTop: 8, width: '100%', padding: '8px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer' }}
+        >
+          Cancelar
+        </button>
+      )}
     </div>
   );
 }

@@ -31,26 +31,27 @@ export default async function handler(req, res) {
 
   const boardKey = charBoardKey(platform, charId);
 
-  // Top 50 por victorias (score desc)
-  const topIds = await redis.zrevrange(boardKey, 0, 49, { withScores: true });
+  // Top 50 por victorias (score desc) — solo IDs, sin withScores
+  const playerIds = await redis.zrevrange(boardKey, 0, 49);
 
-  // Construir lista desde [id, score, id, score, ...]
-  const leaderboard = [];
-  for (let i = 0; i < topIds.length; i += 2) {
-    const uid   = topIds[i];
-    const score = Number(topIds[i + 1]);
-    const stats = await redis.get(charStatsKey(String(uid), platform, charId));
-    leaderboard.push({
+  // Buscar stats de cada jugador en paralelo
+  const statsArray = playerIds && playerIds.length > 0
+    ? await Promise.all(playerIds.map(id => redis.get(charStatsKey(String(id), platform, charId))))
+    : [];
+
+  const leaderboard = (playerIds || []).map((uid, i) => {
+    const s = statsArray[i];
+    const wins   = s?.wins   || 0;
+    const losses = s?.losses || 0;
+    return {
       userId:   uid,
-      userName: stats?.userName || uid,
-      wins:     stats?.wins  || 0,
-      losses:   stats?.losses || 0,
-      games:    (stats?.wins || 0) + (stats?.losses || 0),
-      winRate:  stats && (stats.wins + stats.losses) > 0
-                  ? Math.round(stats.wins / (stats.wins + stats.losses) * 100)
-                  : 0,
-    });
-  }
+      userName: s?.userName || uid,
+      wins,
+      losses,
+      games:   wins + losses,
+      winRate: (wins + losses) > 0 ? Math.round(wins / (wins + losses) * 100) : 0,
+    };
+  });
 
   // Posición y stats del usuario solicitante
   let myStats   = null;
