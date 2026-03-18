@@ -152,16 +152,31 @@ export default function HomePage() {
         {/* ── TOP BAR ── */}
         <header style={{
           position: 'sticky', top: 0, zIndex: 50,
-          padding: '13px 18px 12px',
+          padding: '10px 16px',
           background: 'rgba(11,11,18,0.92)',
           backdropFilter: 'blur(28px) saturate(1.4)',
           WebkitBackdropFilter: 'blur(28px) saturate(1.4)',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
           boxShadow: '0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)',
         }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Left — Avatar / menú de perfil (oculto en mobile vía #app-profile-header) */}
+          <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowMenu(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+            >
+              {user.avatar
+                ? <img src={user.avatar} alt={displayName} style={{ width: 36, height: 36, borderRadius: '50%', border: showMenu ? '2px solid #FF8C00' : '2px solid rgba(232,142,0,0.35)', objectFit: 'cover', transition: 'border 0.15s', boxShadow: showMenu ? '0 0 12px rgba(232,142,0,0.5)' : 'none' }} />
+                : <div style={{ width: 36, height: 36, borderRadius: '50%', background: showMenu ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,142,0,0.08))', border: `2px solid ${showMenu ? '#FF8C00' : 'rgba(232,142,0,0.35)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#fff', transition: 'all 0.15s', boxShadow: showMenu ? '0 0 12px rgba(232,142,0,0.5)' : 'none' }}>
+                    {initial}
+                  </div>
+              }
+            </button>
+          </div>
+
+          {/* Center — Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, boxShadow: '0 0 16px rgba(232,142,0,0.55), 0 4px 12px rgba(0,0,0,0.4)', animation: 'glow-pulse 3s ease-in-out infinite' }}>
               🎮
             </div>
@@ -172,10 +187,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-
-            {/* Campana */}
+          {/* Right — Campana */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <button
               id="app-bell-btn"
               onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
@@ -188,22 +201,6 @@ export default function HomePage() {
                 </div>
               )}
             </button>
-
-            {/* Perfil — oculto en la app mobile vía #app-profile-header */}
-            <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center' }}>
-            <button
-              onClick={() => setShowMenu(v => !v)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 500, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
-              {user.avatar
-                ? <img src={user.avatar} alt={displayName} style={{ width: 36, height: 36, borderRadius: '50%', border: showMenu ? '2px solid #FF8C00' : '2px solid rgba(232,142,0,0.4)', objectFit: 'cover', transition: 'border 0.15s' }} />
-                : <div style={{ width: 36, height: 36, borderRadius: '50%', background: showMenu ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#fff', transition: 'all 0.15s' }}>
-                    {initial}
-                  </div>
-              }
-            </button>
-            </div>
           </div>
         </header>
 
