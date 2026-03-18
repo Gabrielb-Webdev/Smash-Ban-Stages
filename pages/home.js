@@ -981,11 +981,13 @@ function TabPerfil({ user }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRanks, setShowRanks]       = useState(false);
+  const [friendTab, setFriendTab]       = useState('list');
   const [friends, setFriends]           = useState([]);
   const [friendSearch, setFriendSearch] = useState('');
   const [friendResults, setFriendResults] = useState([]);
   const [friendSearching, setFriendSearching] = useState(false);
   const [friendAdding, setFriendAdding] = useState(null);
+  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, offline: false });
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
   const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
@@ -1104,7 +1106,7 @@ function TabPerfil({ user }) {
             const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
             const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
             return (
-              <div key={plat} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'transform 0.15s', position: 'relative' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>{platLabel(plat)}</p>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: unranked ? 'rgba(255,255,255,0.05)' : inPlace ? 'rgba(255,140,0,0.1)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(255,255,255,0.1)' : inPlace ? 'rgba(255,140,0,0.3)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
                   {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : inPlace ? '⚔️' : tierIcon}
@@ -1132,114 +1134,262 @@ function TabPerfil({ user }) {
           })}
         </div>
 
-        {/* ═══ AMIGOS ═══ */}
+        {/* ═══ AMIGOS — Estilo Valorant ═══ */}
         {uid && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-              <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#8B5CF6,#7C3AED)', flexShrink: 0 }} />
-              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Amigos</p>
+          <div style={{ marginBottom: 24, background: '#0D0D15', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#fff', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Lista de amigos</p>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{friends.length}</span>
             </div>
 
-            {/* Buscar y agregar */}
-            <div style={{ marginBottom: 12, position: 'relative' }}>
-              <input
-                value={friendSearch}
-                onChange={e => setFriendSearch(e.target.value)}
-                placeholder="🔍 Buscar jugador para agregar…"
-                maxLength={50}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-              />
-              {friendResults.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, marginTop: 4, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-                  {friendResults.map(p => {
-                    const alreadyFriend = friends.find(f => f.userId === p.userId);
-                    return (
-                      <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.userName}</p>
-                        {alreadyFriend ? (
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Ya es amigo</span>
-                        ) : (
-                          <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                            {friendAdding === p.userId ? '…' : '+ Agregar'}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+            {/* Tab switcher */}
+            <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => setFriendTab('list')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
+                <span style={{ fontSize: 16, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.3)' }}>☰</span>
+              </button>
+              <button onClick={() => setFriendTab('add')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
+                <span style={{ fontSize: 16, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.3)' }}>👤+</span>
+              </button>
+            </div>
+
+            {friendTab === 'list' ? (
+              <div>
+                {/* Search dentro de amigos */}
+                <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>🔍</span>
+                    <input
+                      value={friendSearch}
+                      onChange={e => { setFriendSearch(e.target.value); setFriendTab('add'); }}
+                      placeholder="Buscar amigo…"
+                      maxLength={50}
+                      style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Lista de amigos */}
-            {friends.length === 0 ? (
-              <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '20px 16px', textAlign: 'center' }}>
-                <p style={{ margin: '0 0 4px', fontSize: 16 }}>👥</p>
-                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>Agregá amigos para ver su estado</p>
+                {friends.length === 0 ? (
+                  <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>👥</p>
+                    <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin amigos aún</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Tocá 👤+ para buscar y agregar jugadores</p>
+                  </div>
+                ) : (
+                  <div>
+                    {/* Grupo: En partida */}
+                    {(() => {
+                      const inMatch = friends.filter(f => f.online === 'in_match');
+                      if (inMatch.length === 0) return null;
+                      return (
+                        <div>
+                          <button onClick={() => setFriendCollapsed(p => ({ ...p, in_match: !p.in_match }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'rgba(52,211,153,0.04)', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 12, color: '#34D399' }}>⚔️</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: '#34D399', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>En partida ({inMatch.length})</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed.in_match ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
+                          </button>
+                          {!friendCollapsed.in_match && inMatch.map(f => (
+                            <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#34D399,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, position: 'relative' }}>
+                                {(f.userName || '?').charAt(0).toUpperCase()}
+                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: '#34D399', border: '2px solid #0D0D15' }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+                                  <span style={{ fontSize: 10, color: '#34D399', fontWeight: 600 }}>En partida</span>
+                                  {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Unranked</span>}
+                                </div>
+                              </div>
+                              <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Grupo: Buscando */}
+                    {(() => {
+                      const searching = friends.filter(f => f.online === 'searching');
+                      if (searching.length === 0) return null;
+                      return (
+                        <div>
+                          <button onClick={() => setFriendCollapsed(p => ({ ...p, searching: !p.searching }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'rgba(251,191,36,0.04)', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 12, color: '#FBBF24' }}>🔍</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBF24', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>Buscando ({searching.length})</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed.searching ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
+                          </button>
+                          {!friendCollapsed.searching && searching.map(f => (
+                            <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#D97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, position: 'relative' }}>
+                                {(f.userName || '?').charAt(0).toUpperCase()}
+                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: '#FBBF24', border: '2px solid #0D0D15' }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+                                  <span style={{ fontSize: 10, color: '#FBBF24', fontWeight: 600 }}>Buscando…</span>
+                                  {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Unranked</span>}
+                                </div>
+                              </div>
+                              <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Grupo: Desconectado */}
+                    {(() => {
+                      const offline = friends.filter(f => f.online !== 'in_match' && f.online !== 'searching');
+                      if (offline.length === 0) return null;
+                      return (
+                        <div>
+                          <button onClick={() => setFriendCollapsed(p => ({ ...p, offline: !p.offline }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>💤</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>Desconectado ({offline.length})</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', transform: friendCollapsed.offline ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
+                          </button>
+                          {!friendCollapsed.offline && offline.map(f => (
+                            <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: 0.6 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.3)', flexShrink: 0, position: 'relative' }}>
+                                {(f.userName || '?').charAt(0).toUpperCase()}
+                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '2px solid #0D0D15' }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+                                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>Desconectado</span>
+                                  {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.15)' }}>Unranked</span>}
+                                </div>
+                              </div>
+                              <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.4)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {friends.map(f => {
-                  const statusColor = f.online === 'in_match' ? '#34D399' : f.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)';
-                  const statusText = f.online === 'in_match' ? 'En partida' : f.online === 'searching' ? 'Buscando…' : 'Desconectado';
-                  return (
-                    <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 14px' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, boxShadow: f.online !== 'offline' ? '0 0 5px ' + statusColor : 'none', flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                          <span style={{ fontSize: 10, color: statusColor }}>{statusText}</span>
-                          {f.placementDone && f.rank && <RankBadge rankName={f.rank} />}
-                          {!f.placementDone && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Unranked</span>}
-                        </div>
-                      </div>
-                      <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+              /* Tab: Agregar amigo */
+              <div>
+                <div style={{ padding: '12px' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '10px 12px' }}>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>👤+</span>
+                      <input
+                        value={friendSearch}
+                        onChange={e => setFriendSearch(e.target.value)}
+                        placeholder="Nombre de jugador…"
+                        maxLength={50}
+                        style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }}
+                      />
                     </div>
-                  );
-                })}
+                    {friendSearch.length >= 2 && (
+                      <button onClick={() => { setFriendSearch(''); setFriendResults([]); }} style={{ padding: '0 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>✕</button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resultados de búsqueda */}
+                {friendSearching ? (
+                  <div style={{ padding: '20px 16px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Buscando…</p>
+                  </div>
+                ) : friendResults.length > 0 ? (
+                  <div>
+                    {friendResults.map(p => {
+                      const alreadyFriend = friends.find(f => f.userId === p.userId);
+                      return (
+                        <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
+                            {(p.userName || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.userName}</p>
+                          {alreadyFriend ? (
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', padding: '4px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>Ya agregado</span>
+                          ) : (
+                            <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                              {friendAdding === p.userId ? '…' : '+ Agregar'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : friendSearch.length >= 2 ? (
+                  <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No se encontraron jugadores</p>
+                  </div>
+                ) : (
+                  <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Escribí un nombre para buscar</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.15)' }}>Mínimo 2 caracteres</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* ═══ VER RANGOS ═══ */}
-        <div style={{ marginBottom: 24 }}>
-          <button onClick={() => setShowRanks(!showRanks)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18 }}>🏅</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Ver todos los rangos</span>
-            </div>
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transition: 'transform 0.2s', transform: showRanks ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
-          </button>
-          {showRanks && (
-            <div style={{ marginTop: 8, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 14px' }}>
-              {['Smasher','Diamante','Platino','Oro','Plata','Bronce','Hierro','Madera','Plástico'].map(tier => {
-                const tierRanks = RANKS.filter(r => r.tier === tier);
-                const icon = TIER_ICONS[tier] || '🎮';
-                return (
-                  <div key={tier} style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                      <span style={{ fontSize: 16 }}>{icon}</span>
-                      <span style={{ fontSize: 12, fontWeight: 900, color: tierRanks[0]?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier}</span>
+        {/* ═══ MODAL RANGOS ═══ */}
+        {showRanks && (
+          <div onClick={() => setShowRanks(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, maxHeight: '80vh', overflowY: 'auto', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+              {/* Modal header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#12121E', borderRadius: '20px 20px 0 0', zIndex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>🏅</span>
+                  <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Todos los rangos</p>
+                </div>
+                <button onClick={() => setShowRanks(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              </div>
+              {/* Ranks list */}
+              <div style={{ padding: '16px 18px' }}>
+                {['Smasher','Diamante','Platino','Oro','Plata','Bronce','Hierro','Madera','Plástico'].map(tier => {
+                  const tierRanks = RANKS.filter(r => r.tier === tier);
+                  const icon = TIER_ICONS[tier] || '🎮';
+                  return (
+                    <div key={tier} style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 20 }}>{icon}</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: tierRanks[0]?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {tierRanks.map(r => (
+                          <span key={r.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 10, background: r.bg, border: '1px solid ' + r.border, fontSize: 11, fontWeight: 800, color: r.color }}>
+                            {icon} {r.name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {tierRanks.map(r => (
-                        <span key={r.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 10, background: r.bg, border: '1px solid ' + r.border, fontSize: 10, fontWeight: 800, color: r.color }}>
-                          {icon} {r.name}
-                        </span>
-                      ))}
-                    </div>
+                  );
+                })}
+                {/* Unranked */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 20 }}>❓</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sin rango</span>
                   </div>
-                );
-              })}
-              <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>¿Cómo funciona?</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.5 }}>
-                  Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Ganá +20 RP por victoria, perdé -10 RP por derrota. Al llegar a 100 RP ascendés al siguiente rango. ¡Llegá a Smasher para ser el mejor!
-                </p>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)' }}>
+                      ❓ Unranked
+                    </span>
+                  </div>
+                </div>
+                {/* Explicación */}
+                <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>¿Cómo funciona?</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                    Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Ganá +20 RP por victoria, perdé -10 RP por derrota. Al llegar a 100 RP ascendés al siguiente rango. ¡Llegá a Smasher para ser el mejor!
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
