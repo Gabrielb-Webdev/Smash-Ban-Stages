@@ -11,13 +11,17 @@ export default async function handler(req, res) {
   const now = Date.now();
   let total = 0;
   const counts = {};
+  const players = [];
 
   for (const plat of ['switch', 'parsec']) {
     const queue = (await redis.get(mmQueueKey(plat))) || [];
     const active = queue.filter(e => now - new Date(e.joinedAt).getTime() < QUEUE_TTL_MS);
     counts[plat] = active.length;
     total += active.length;
+    for (const e of active) {
+      players.push({ userId: e.userId, userName: e.userName, platform: plat });
+    }
   }
 
-  return res.status(200).json({ total, ...counts });
+  return res.status(200).json({ total, ...counts, players });
 }
