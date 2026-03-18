@@ -14,7 +14,7 @@ export default function AfkMultiPage() {
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored || !stored.isAdmin) {
-      router.replace('/login');
+      router.replace('/home');
       return;
     }
     setUser(stored.user);

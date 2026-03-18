@@ -16,7 +16,7 @@ export default function CommunityAdmin() {
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored || !stored.isAdmin) {
-      router.replace('/login');
+      router.replace('/home');
       return;
     }
     setAuthUser(stored.user);
