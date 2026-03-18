@@ -31,6 +31,7 @@ const ICO = {
   chevron:   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />,
   back:      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />,
   settings:  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />,
+  user:      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />,
 };
 
 /* â”€â”€â”€ ROOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -38,7 +39,7 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab]         = useState('inicio');
+  const [tab, setTab]         = useState('rankings');
   const [showMenu, setShowMenu] = useState(false);
   const [notifs, setNotifs]       = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -305,21 +306,23 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Mi perfil */}
+              {/* Panel de Admin */}
+              {isAdmin && (
               <div style={{ padding: '8px 10px 4px' }}>
-                <button onClick={() => { setShowMenu(false); router.push('/profile'); }}
+                <button onClick={() => { setShowMenu(false); router.push('/admin/setup'); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🎮</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🎛️</div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>Mi perfil</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Estadísticas e historial</p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#FF8C00' }}>Panel de Admin</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(232,142,0,0.45)' }}>Gestionar torneos y setups</p>
                   </div>
                   <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
                 </button>
               </div>
+              )}
 
               {/* Logout */}
               <div style={{ padding: '4px 10px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
@@ -408,11 +411,11 @@ export default function HomePage() {
 
         {/* â”€â”€ CONTENT â”€â”€ */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
-          {tab === 'inicio'   && <TabInicio   user={user} isAdmin={isAdmin} router={router} displayName={displayName} initial={initial} setTab={setTab} />}
           {tab === 'rankings' && <TabRankings />}
           {tab === 'torneos'  && <TabTorneos  />}
           {tab === 'tips'     && <TabTips     />}
           {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} />}
+          {tab === 'perfil'   && <TabPerfil user={user} />}
         </main>
 
         {/* â”€â”€ BOTTOM NAV â”€â”€ */}
@@ -498,12 +501,12 @@ export default function HomePage() {
 /* â”€â”€â”€ BOTTOM NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function BottomNav({ tab, setTab, bgMMStatus }) {
   const leftItems = [
-    { id: 'inicio',   label: 'Inicio',   icon: ICO.home   },
-    { id: 'rankings', label: 'Rankings', icon: ICO.trophy },
+    { id: 'rankings', label: 'Rankings', icon: ICO.trophy   },
+    { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar },
   ];
   const rightItems = [
-    { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar },
-    { id: 'tips',     label: 'Tips',     icon: ICO.bulb     },
+    { id: 'tips',   label: 'Tips',   icon: ICO.bulb },
+    { id: 'perfil', label: 'Perfil', icon: ICO.user },
   ];
   const matchActive = tab === 'match';
 
