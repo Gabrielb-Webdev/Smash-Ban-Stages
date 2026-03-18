@@ -1,4 +1,4 @@
-﻿// v1.0.10
+﻿// v1.1.0
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar,
@@ -12,7 +12,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
-var CURRENT_VERSION = '1.0.10';
+var CURRENT_VERSION = '1.1.0';
 var SESSION_KEY = 'afk_session_v2';
 var ADMIN_HOME = BASE_URL + '/';
 var SB = StatusBar.currentHeight || 24;
@@ -66,7 +66,7 @@ export default function App() {
       if (showSettings) { setShowSettings(false); return true; }
       if (dropdownOpen) { setDropdownOpen(false); return true; }
       if (showOAuth) { setShowOAuth(false); return true; }
-      if (webUrl && !isAdmin) { setWebUrl(null); return true; }
+      if (webViewRef.current) { webViewRef.current.goBack(); return true; }
       return false;
     }
     var sub = BackHandler.addEventListener('hardwareBackPress', onBack);
@@ -448,55 +448,43 @@ export default function App() {
     </View>
   );
 
-  // ── WebView (admin siempre, no-admin cuando navega) ────────
-  if (isAdmin || webUrl) {
-    return (
-      <View style={styles.full}>
-        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        {DropdownModal}
-        {SettingsModal}
-        {/* Spacer sólido del alto de la barra de estado */}
-        <View style={{ height: SB, backgroundColor: '#0a0a0a' }} />
-        <WebView
-          key={webKey}
-          ref={webViewRef}
-          style={styles.webview}
-          source={{ uri: webUrl || ADMIN_HOME }}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          injectedJavaScript={"var s=document.createElement('style');s.innerHTML='.fixed.top-0.right-0.z-50{display:none!important}#app-profile-header{display:none!important}#app-bell-btn{display:none!important}';document.head.appendChild(s);true;"}
-        />
-        {FloatingProfileBtn}
-      </View>
-    );
-  }
+  // Inyectar sesión en localStorage del WebView para que la web reconozca al usuario
+  var sessionPayload = JSON.stringify({ user: user, isAdmin: isAdmin });
+  var injectedJS = [
+    // Inyectar sesión
+    "try{localStorage.setItem('afk_user'," + JSON.stringify(sessionPayload) + ");}catch(e){}",
+    // Ocultar controles duplicados del header web (la app tiene sus propios botones)
+    "var s=document.createElement('style');s.innerHTML='#app-profile-header{display:none!important}#app-bell-btn{display:none!important}';document.head.appendChild(s);",
+    "true;",
+  ].join('');
 
-  // ── Home nativo (no-admin sin webUrl) ──────────────────────
+  // ── WebView para todos los usuarios autenticados ────────
   return (
     <View style={styles.full}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       {DropdownModal}
       {SettingsModal}
-      <View style={[styles.nativeHeader, { paddingTop: SB + 12 }]}>
-        <Text style={styles.headerTitle}>AFK Smash</Text>
-        <TouchableOpacity
-          style={styles.headerProfileBtn}
-          onPress={function () { setDropdownOpen(true); }}
-        >
-          {user.avatar
-            ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            : <View style={[styles.avatar, styles.avatarFallback]}>
-                <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
-              </View>
+      {/* Spacer sólido del alto de la barra de estado */}
+      <View style={{ height: SB, backgroundColor: '#0a0a0a' }} />
+      <WebView
+        key={webKey}
+        ref={webViewRef}
+        style={styles.webview}
+        source={{ uri: webUrl || (BASE_URL + '/home') }}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        injectedJavaScript={injectedJS}
+        onNavigationStateChange={function (ns) {
+          // Evitar que navegue al login de la web (la app maneja auth)
+          if (ns.url && ns.url.includes('/login')) {
+            webViewRef.current && webViewRef.current.injectJavaScript(
+              "try{localStorage.setItem('afk_user'," + JSON.stringify(sessionPayload) + ");}catch(e){}" +
+              "window.location.replace('" + BASE_URL + "/home');true;"
+            );
           }
-          {updateInfo && <View style={styles.profileUpdateDot} />}
-          <Text style={styles.chevron}>▾</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.homeContent}>
-        <Text style={styles.title}>AFK Smash</Text>
-        <Text style={styles.homeComingSoon}>Próximamente</Text>
-      </View>
+        }}
+      />
+      {FloatingProfileBtn}
     </View>
   );
 }

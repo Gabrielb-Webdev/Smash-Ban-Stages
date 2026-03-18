@@ -2,7 +2,7 @@
   "expo": {
     "name": "AFK Smash",
     "slug": "afk-smash-mobile",
-    "version": "1.0.10",
+    "version": "1.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -11,7 +11,7 @@
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.afksmash.mobile",
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES"],
       "adaptiveIcon": { "foregroundImage": "./assets/afk-icon.png", "backgroundColor": "#000000" }
     },
