@@ -46,7 +46,11 @@ export default function App() {
             if (session && session.user) {
               setUser(session.user);
               setIsAdmin(!!session.isAdmin);
-              if (session.isAdmin) setWebUrl(ADMIN_HOME);
+              if (session.isAdmin) {
+                setWebUrl(ADMIN_HOME);
+              } else {
+                setWebUrl(BASE_URL + '/home');
+              }
             }
           } catch (e) {}
         }
@@ -120,8 +124,10 @@ export default function App() {
         setIsAdmin(!!data.isAdmin);
         if (data.isAdmin) {
           setWebUrl(ADMIN_HOME);
-          setWebKey(function (k) { return k + 1; });
+        } else {
+          setWebUrl(BASE_URL + '/home');
         }
+        setWebKey(function (k) { return k + 1; });
       })
       .catch(function () {
         setAuthLoading(false);
