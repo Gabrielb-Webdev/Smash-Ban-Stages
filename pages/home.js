@@ -411,6 +411,24 @@ export default function HomePage() {
 
         {/* â”€â”€ CONTENT â”€â”€ */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+          {/* Banner sala activa (fuera del tab match) */}
+          {tab !== 'match' && bgMM && ['waiting','active','pending_result','disputed'].includes(bgMM.status) && (
+            <button
+              onClick={() => setTab('match')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px', background: 'linear-gradient(90deg,rgba(124,58,237,0.18),rgba(255,140,0,0.12))', borderBottom: '1px solid rgba(124,58,237,0.3)', border: 'none', cursor: 'pointer', gap: 10 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                  {bgMM.status === 'waiting'        ? 'Esperando rival\u2026'    :
+                   bgMM.status === 'active'         ? '\u00a1Partida en juego!'  :
+                   bgMM.status === 'pending_result' ? 'Report\u00e1 el resultado' :
+                                                      'Resultado en disputa'}
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: '#FF8C00', fontWeight: 800 }}>Ir \u2192</span>
+            </button>
+          )}
           {tab === 'rankings' && <TabRankings />}
           {tab === 'torneos'  && <TabTorneos  />}
           {tab === 'tips'     && <TabTips     />}
@@ -1799,18 +1817,26 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [reported, setReported]           = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError]     = useState(null);
+  const [reportStocks, setReportStocks]   = useState(1);
+  const [matchRpDelta, setMatchRpDelta]   = useState(null);
 
-  const reportResult = async (winnerId) => {
+  const reportResult = async (winnerId, stocks) => {
     if (!matchData?.matchId) return;
     setReportLoading(true); setReportError(null);
     try {
       const r = await fetch('/api/matchmaking/result', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: winnerId }),
+        body: JSON.stringify({
+          matchId: matchData.matchId,
+          reportingUserId: uid,
+          claimedWinnerId: winnerId,
+          stocksWon: stocks ?? 1,
+        }),
       });
       const data = await r.json();
       if (!r.ok) { setReportError(data.error || 'Error al reportar'); return; }
       setReported(true);
+      if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
       setBgMM(prev => prev ? {
         ...prev,
         room: { ...prev.room, status: data.matchStatus, result: data.result },
@@ -1822,12 +1848,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   const resetAll = () => {
     setBgMM(null);
-    setChatMessages([]); setChatInput(''); setReported(false); setReportError(null);
+    setChatMessages([]); setChatInput('');
+    setReported(false); setReportError(null);
+    setReportStocks(1); setMatchRpDelta(null);
   };
 
   // ═══ RENDER: RESULTADO FINAL ═══════════════════════════════════════════
   if (matchStatus === 'finished' && matchData?.result) {
     const iWon = matchData.result.winnerId === uid;
+    const stocks = matchData.result.stocksWon;
     return (
       <div style={{ padding: '24px 18px' }}>
         <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
@@ -1836,7 +1865,24 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: '1px solid ' + (iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'), borderRadius: 24, marginBottom: 16 }}>
           <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
           <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? '¡Ganaste!' : 'Perdiste'}</p>
-          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado 💪' : 'La próxima será'}</p>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado 💪' : 'La próxima será'}</p>
+          {/* Stocks de ventaja */}
+          {stocks && (
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+              {'❤️'.repeat(stocks)} {stocks} stock{stocks > 1 ? 's' : ''} de ventaja
+            </p>
+          )}
+          {/* Delta de RP */}
+          {iWon && matchRpDelta != null && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)' }}>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#34D399' }}>+{matchRpDelta} RP</span>
+            </div>
+          )}
+          {!iWon && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>-10 RP</span>
+            </div>
+          )}
         </div>
         <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
           Jugar otra vez
@@ -1933,11 +1979,20 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </div>
         ) : (
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
-            <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
+            <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
+            {/* Selector de stocks (solo visible al reportar victoria propia) */}
+            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stocks que te quedaban</p>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              {[1,2,3].map(n => (
+                <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', color: reportStocks === n ? '#FF8C00' : 'rgba(255,255,255,0.4)', fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.15s' }}>
+                  {'❤️'.repeat(n)}
+                </button>
+              ))}
+            </div>
             {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button onClick={() => reportResult(uid)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>🏆 Yo gané</button>
-              <button onClick={() => reportResult(uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>💀 Perdí</button>
+              <button onClick={() => reportResult(uid, reportStocks)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>🏆 Yo gané</button>
+              <button onClick={() => reportResult(uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId, 1)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>💀 Perdí</button>
             </div>
           </div>
         )}
@@ -2005,6 +2060,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass, customCode: roomIdClean }),
       });
       const data = await r.json();
+      if (r.status === 409 && data.room) {
+        // Ya tenía sala activa — reconectar silenciosamente
+        setBgMM({ status: data.status, code: data.code, room: data.room, plat: data.room?.platform || hostPlat, polling: true });
+        return;
+      }
       if (!r.ok) { setFormError(data.error || 'Error al crear sala'); return; }
       setBgMM({ status: data.status, code: data.code, room: data.room, plat: hostPlat, polling: true });
     } catch { setFormError('Error de conexión'); }
