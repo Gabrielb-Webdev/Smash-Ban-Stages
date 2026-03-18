@@ -632,7 +632,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           <div style={{ display: 'flex', gap: 10 }}>
           {(['switch', 'parsec']).map(plat => {
             const s         = rankedStats?.[plat];
-            const unranked  = !s || !s.rank;
+            const unranked  = !s || !s.rank || ((s.wins || 0) + (s.losses || 0) === 0);
             const rankName  = s?.rank || '';
             const wins      = s?.wins   || 0;
             const losses    = s?.losses || 0;
