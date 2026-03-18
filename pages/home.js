@@ -980,14 +980,70 @@ function TabPerfil({ user }) {
   const [stats, setStats]     = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRanks, setShowRanks]       = useState(false);
+  const [friends, setFriends]           = useState([]);
+  const [friendSearch, setFriendSearch] = useState('');
+  const [friendResults, setFriendResults] = useState([]);
+  const [friendSearching, setFriendSearching] = useState(false);
+  const [friendAdding, setFriendAdding] = useState(null);
+
+  const uid   = user ? String(user?.id || user?.slug || '') : '';
+  const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
+
   useEffect(() => {
     if (!user) return;
-    const uid = encodeURIComponent(String(user.id || user.slug || ''));
+    const uidEnc = encodeURIComponent(String(user.id || user.slug || ''));
     Promise.all([
-      fetch('/api/players/stats?userId=' + uid).then(r => r.json()).catch(() => null),
-      fetch('/api/players/history?userId=' + uid + '&limit=30').then(r => r.json()).catch(() => []),
+      fetch('/api/players/stats?userId=' + uidEnc).then(r => r.json()).catch(() => null),
+      fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []),
     ]).then(([s, h]) => { setStats(s); setHistory(Array.isArray(h) ? h : []); setLoading(false); });
   }, [user?.id]);
+
+  // Fetch friends
+  useEffect(() => {
+    if (!uid) return;
+    fetch('/api/friends?userId=' + encodeURIComponent(uid))
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setFriends(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [uid]);
+
+  // Search players for adding friends
+  useEffect(() => {
+    if (friendSearch.length < 2) { setFriendResults([]); return; }
+    setFriendSearching(true);
+    const t = setTimeout(() => {
+      fetch('/api/players/search?q=' + encodeURIComponent(friendSearch))
+        .then(r => r.ok ? r.json() : [])
+        .then(d => { setFriendResults(Array.isArray(d) ? d.filter(p => p.userId !== uid) : []); setFriendSearching(false); })
+        .catch(() => setFriendSearching(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [friendSearch, uid]);
+
+  const addFriend = async (friendId, friendName) => {
+    setFriendAdding(friendId);
+    try {
+      await fetch('/api/friends', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName }),
+      });
+      setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]);
+      setFriendSearch(''); setFriendResults([]);
+    } catch {}
+    setFriendAdding(null);
+  };
+
+  const removeFriend = async (friendId) => {
+    try {
+      await fetch('/api/friends', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, friendId }),
+      });
+      setFriends(prev => prev.filter(f => f.userId !== friendId));
+    } catch {}
+  };
+
   if (!user) return null;
   const displayName = user.name || user.slug || 'Jugador';
   const initial     = displayName.charAt(0).toUpperCase();
@@ -1075,6 +1131,116 @@ function TabPerfil({ user }) {
             );
           })}
         </div>
+
+        {/* ═══ AMIGOS ═══ */}
+        {uid && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+              <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#8B5CF6,#7C3AED)', flexShrink: 0 }} />
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Amigos</p>
+            </div>
+
+            {/* Buscar y agregar */}
+            <div style={{ marginBottom: 12, position: 'relative' }}>
+              <input
+                value={friendSearch}
+                onChange={e => setFriendSearch(e.target.value)}
+                placeholder="🔍 Buscar jugador para agregar…"
+                maxLength={50}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+              />
+              {friendResults.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, marginTop: 4, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                  {friendResults.map(p => {
+                    const alreadyFriend = friends.find(f => f.userId === p.userId);
+                    return (
+                      <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.userName}</p>
+                        {alreadyFriend ? (
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Ya es amigo</span>
+                        ) : (
+                          <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                            {friendAdding === p.userId ? '…' : '+ Agregar'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Lista de amigos */}
+            {friends.length === 0 ? (
+              <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '20px 16px', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 16 }}>👥</p>
+                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>Agregá amigos para ver su estado</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {friends.map(f => {
+                  const statusColor = f.online === 'in_match' ? '#34D399' : f.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)';
+                  const statusText = f.online === 'in_match' ? 'En partida' : f.online === 'searching' ? 'Buscando…' : 'Desconectado';
+                  return (
+                    <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 14px' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, boxShadow: f.online !== 'offline' ? '0 0 5px ' + statusColor : 'none', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <span style={{ fontSize: 10, color: statusColor }}>{statusText}</span>
+                          {f.placementDone && f.rank && <RankBadge rankName={f.rank} />}
+                          {!f.placementDone && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Unranked</span>}
+                        </div>
+                      </div>
+                      <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ VER RANGOS ═══ */}
+        <div style={{ marginBottom: 24 }}>
+          <button onClick={() => setShowRanks(!showRanks)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18 }}>🏅</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Ver todos los rangos</span>
+            </div>
+            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transition: 'transform 0.2s', transform: showRanks ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+          </button>
+          {showRanks && (
+            <div style={{ marginTop: 8, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 14px' }}>
+              {['Smasher','Diamante','Platino','Oro','Plata','Bronce','Hierro','Madera','Plástico'].map(tier => {
+                const tierRanks = RANKS.filter(r => r.tier === tier);
+                const icon = TIER_ICONS[tier] || '🎮';
+                return (
+                  <div key={tier} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <span style={{ fontSize: 16 }}>{icon}</span>
+                      <span style={{ fontSize: 12, fontWeight: 900, color: tierRanks[0]?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {tierRanks.map(r => (
+                        <span key={r.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 10, background: r.bg, border: '1px solid ' + r.border, fontSize: 10, fontWeight: 800, color: r.color }}>
+                          {icon} {r.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>¿Cómo funciona?</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.5 }}>
+                  Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Ganá +20 RP por victoria, perdé -10 RP por derrota. Al llegar a 100 RP ascendés al siguiente rango. ¡Llegá a Smasher para ser el mejor!
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
           <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial de partidas</p>
@@ -1170,16 +1336,7 @@ function TabRankings({ user }) {
   const [charLoading, setCharLoading] = useState(false);
 
   // Secciones del ranked
-  const [showRanks, setShowRanks]       = useState(false);
   const [onlinePlayers, setOnlinePlayers] = useState([]);
-  const [friends, setFriends]           = useState([]);
-  const [friendSearch, setFriendSearch] = useState('');
-  const [friendResults, setFriendResults] = useState([]);
-  const [friendSearching, setFriendSearching] = useState(false);
-  const [friendAdding, setFriendAdding] = useState(null);
-
-  const uid = user ? String(user?.id || user?.slug || '') : '';
-  const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
 
   // Fetch online players
   useEffect(() => {
@@ -1193,51 +1350,6 @@ function TabRankings({ user }) {
     const iv = setInterval(fetchOnline, 10000);
     return () => clearInterval(iv);
   }, [mode]);
-
-  // Fetch friends
-  useEffect(() => {
-    if (mode !== 'ranked' || !uid) return;
-    fetch('/api/friends?userId=' + encodeURIComponent(uid))
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setFriends(Array.isArray(d) ? d : []))
-      .catch(() => {});
-  }, [mode, uid]);
-
-  // Search players for adding friends
-  useEffect(() => {
-    if (friendSearch.length < 2) { setFriendResults([]); return; }
-    setFriendSearching(true);
-    const t = setTimeout(() => {
-      fetch('/api/players/search?q=' + encodeURIComponent(friendSearch))
-        .then(r => r.ok ? r.json() : [])
-        .then(d => { setFriendResults(Array.isArray(d) ? d.filter(p => p.userId !== uid) : []); setFriendSearching(false); })
-        .catch(() => setFriendSearching(false));
-    }, 400);
-    return () => clearTimeout(t);
-  }, [friendSearch, uid]);
-
-  const addFriend = async (friendId, friendName) => {
-    setFriendAdding(friendId);
-    try {
-      await fetch('/api/friends', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName }),
-      });
-      setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]);
-      setFriendSearch(''); setFriendResults([]);
-    } catch {}
-    setFriendAdding(null);
-  };
-
-  const removeFriend = async (friendId) => {
-    try {
-      await fetch('/api/friends', {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, friendId }),
-      });
-      setFriends(prev => prev.filter(f => f.userId !== friendId));
-    } catch {}
-  };
 
   const MODES = [
     { id: 'ba',     label: 'AFK'  },
@@ -1356,112 +1468,6 @@ function TabRankings({ user }) {
                     </span>
                   </div>
                 ))}
-              </div>
-            )}
-          </div>
-
-          {/* ═══ AMIGOS ═══ */}
-          {uid && (
-            <div style={{ marginTop: 28 }}>
-              <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👥 Amigos</p>
-
-              {/* Buscar y agregar */}
-              <div style={{ marginBottom: 12, position: 'relative' }}>
-                <input
-                  value={friendSearch}
-                  onChange={e => setFriendSearch(e.target.value)}
-                  placeholder="🔍 Buscar jugador para agregar…"
-                  maxLength={50}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                />
-                {friendResults.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, marginTop: 4, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-                    {friendResults.map(p => {
-                      const alreadyFriend = friends.find(f => f.userId === p.userId);
-                      return (
-                        <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.userName}</p>
-                          {alreadyFriend ? (
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Ya es amigo</span>
-                          ) : (
-                            <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                              {friendAdding === p.userId ? '…' : '+ Agregar'}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Lista de amigos */}
-              {friends.length === 0 ? (
-                <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '20px 16px', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 16 }}>👥</p>
-                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>Agregá amigos para ver su estado</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {friends.map(f => {
-                    const statusColor = f.online === 'in_match' ? '#34D399' : f.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)';
-                    const statusText = f.online === 'in_match' ? 'En partida' : f.online === 'searching' ? 'Buscando…' : 'Desconectado';
-                    return (
-                      <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 14px' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, boxShadow: f.online !== 'offline' ? '0 0 5px ' + statusColor : 'none', flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                            <span style={{ fontSize: 10, color: statusColor }}>{statusText}</span>
-                            {f.placementDone && f.rank && <RankBadge rankName={f.rank} />}
-                            {!f.placementDone && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Unranked</span>}
-                          </div>
-                        </div>
-                        <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ═══ VER RANGOS ═══ */}
-          <div style={{ marginTop: 28 }}>
-            <button onClick={() => setShowRanks(!showRanks)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18 }}>🏅</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Ver todos los rangos</span>
-              </div>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transition: 'transform 0.2s', transform: showRanks ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
-            </button>
-            {showRanks && (
-              <div style={{ marginTop: 8, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 14px' }}>
-                {['Smasher','Diamante','Platino','Oro','Plata','Bronce','Hierro','Madera','Plástico'].map(tier => {
-                  const tierRanks = RANKS.filter(r => r.tier === tier);
-                  const icon = TIER_ICONS[tier] || '🎮';
-                  return (
-                    <div key={tier} style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                        <span style={{ fontSize: 16 }}>{icon}</span>
-                        <span style={{ fontSize: 12, fontWeight: 900, color: tierRanks[0]?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {tierRanks.map(r => (
-                          <span key={r.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 10, background: r.bg, border: '1px solid ' + r.border, fontSize: 10, fontWeight: 800, color: r.color }}>
-                            {icon} {r.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>¿Cómo funciona?</p>
-                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.5 }}>
-                    Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Ganá +20 RP por victoria, perdé -10 RP por derrota. Al llegar a 100 RP ascendés al siguiente rango. ¡Llegá a Smasher para ser el mejor!
-                  </p>
-                </div>
               </div>
             )}
           </div>
