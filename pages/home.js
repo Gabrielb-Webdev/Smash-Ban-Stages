@@ -137,6 +137,26 @@ export default function HomePage() {
     return () => { active = false; clearInterval(iv); };
   }, [bgMM?.polling, user]);
 
+  // Detectar sala activa al cargar la app (reconexión automática)
+  useEffect(() => {
+    if (!user || bgMM) return;
+    const uid = String(user?.id || user?.slug || '');
+    if (!uid) return;
+    fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid))
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || ['idle', 'timeout', 'declined'].includes(data.status)) return;
+        setBgMM({
+          status: data.status,
+          code: data.code,
+          room: data.room,
+          plat: data.room?.platform,
+          polling: true,
+        });
+      })
+      .catch(() => {});
+  }, [user]);
+
   // Countdown local para la pantalla de aceptación
   useEffect(() => {
     if (bgMM?.status !== 'pending_accept') return;
@@ -413,7 +433,7 @@ export default function HomePage() {
         {/* â”€â”€ CONTENT â”€â”€ */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
           {/* Banner sala activa (fuera del tab match) */}
-          {tab !== 'match' && bgMM && ['waiting','active','pending_result','disputed'].includes(bgMM.status) && (
+          {tab !== 'match' && bgMM && ['waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
             <button
               onClick={() => setTab('match')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px', background: 'linear-gradient(90deg,rgba(124,58,237,0.18),rgba(255,140,0,0.12))', borderBottom: '1px solid rgba(124,58,237,0.3)', border: 'none', cursor: 'pointer', gap: 10 }}
@@ -422,6 +442,7 @@ export default function HomePage() {
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
                   {bgMM.status === 'waiting'        ? 'Esperando rival\u2026'    :
+                   bgMM.status === 'pending_accept' ? '\u00a1Match encontrado!'  :
                    bgMM.status === 'active'         ? '\u00a1Partida en juego!'  :
                    bgMM.status === 'pending_result' ? 'Report\u00e1 el resultado' :
                                                       'Resultado en disputa'}
@@ -2338,6 +2359,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     <div style={{ padding: '24px 18px' }}>
       <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>Matchmaking</h1>
       <p style={{ margin: '0 0 28px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>¿Cómo querés jugar?</p>
+
+      {/* Banner de sala activa */}
+      {bgMM && ['waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
+        <div
+          onClick={() => {}}
+          style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(135deg,rgba(124,58,237,0.14),rgba(255,140,0,0.08))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 18, padding: '14px 16px', marginBottom: 20, cursor: 'default' }}
+        >
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : bgMM.status === 'waiting' ? '#FF8C00' : '#FBBF24', flexShrink: 0, boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00'), animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 14, color: '#fff' }}>
+              {bgMM.status === 'waiting'        ? 'Sala activa — esperando rival' :
+               bgMM.status === 'pending_accept' ? '¡Match encontrado!' :
+               bgMM.status === 'active'         ? '¡Partida en juego!' :
+               bgMM.status === 'pending_result' ? 'Reportá el resultado' :
+                                                   'Resultado en disputa'}
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+              Código: <span style={{ fontWeight: 800, color: '#FF8C00', letterSpacing: 1 }}>{bgMM.code}</span>
+            </p>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button onClick={() => setScreen('host')} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 20, padding: '18px 16px', cursor: 'pointer', textAlign: 'left' }}>
           <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,#7C3AED,#3730A3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>🏠</div>
