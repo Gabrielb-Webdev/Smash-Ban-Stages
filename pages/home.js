@@ -1985,6 +1985,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   // ═══ RENDER: SELECCIÓN HOST / JOIN ══════════════════════════════════════
   const [screen, setScreen]       = useState('select');    // select | host | join
   const [hostPlat, setHostPlat]   = useState(null);
+  const [hostRoomId, setHostRoomId] = useState('');
   const [hostPass, setHostPass]   = useState('');
   const [joinCode, setJoinCode]   = useState('');
   const [joinPass, setJoinPass]   = useState('');
@@ -1994,11 +1995,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   const createRoom = async () => {
     if (!hostPlat) { setFormError('Elegí una plataforma'); return; }
+    const roomIdClean = hostRoomId.trim().toUpperCase();
+    if (!roomIdClean) { setFormError('Ingresá un nombre/ID de sala'); return; }
+    if (roomIdClean.length < 2 || roomIdClean.length > 20) { setFormError('El ID de sala debe tener entre 2 y 20 caracteres'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/room', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass }),
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass, customCode: roomIdClean }),
       });
       const data = await r.json();
       if (!r.ok) { setFormError(data.error || 'Error al crear sala'); return; }
@@ -2067,6 +2071,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       </button>
       <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>Hostear sala</h2>
       <p style={{ margin: '0 0 24px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Elegí la plataforma y creá la sala</p>
+
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Nombre / ID de sala</p>
+      <input
+        value={hostRoomId}
+        onChange={e => setHostRoomId(e.target.value.toUpperCase().replace(/[^A-Z0-9\-_]/g,'').slice(0, 20))}
+        placeholder="Ej: SALA-GABRIEL"
+        maxLength={20}
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '0.05em', outline: 'none', boxSizing: 'border-box', marginBottom: 20 }}
+      />
 
       <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Plataforma</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>

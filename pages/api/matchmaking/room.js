@@ -78,7 +78,7 @@ export default async function handler(req, res) {
 
   // POST: acciones
   if (req.method === 'POST') {
-    const { action, userId, userName, platform, password, code: inputCode } = req.body || {};
+    const { action, userId, userName, platform, password, code: inputCode, customCode } = req.body || {};
     const cleanUserId   = sanitize(userId   || '');
     const cleanUserName = sanitize(userName || '');
     if (!cleanUserId || !cleanUserName) {
@@ -102,9 +102,23 @@ export default async function handler(req, res) {
       }
 
       let code;
-      for (let i = 0; i < 10; i++) {
-        code = genCode();
-        if (!(await redis.get(roomKey(code)))) break;
+      if (customCode) {
+        // Código personalizado del host
+        const sanitizedCode = sanitize(customCode).toUpperCase().replace(/[^A-Z0-9\-_]/g, '').slice(0, 20);
+        if (!sanitizedCode || sanitizedCode.length < 2) {
+          return res.status(400).json({ error: 'C\u00f3digo de sala inv\u00e1lido' });
+        }
+        // Verificar que no exista ya
+        const taken = await redis.get(roomKey(sanitizedCode));
+        if (taken) {
+          return res.status(409).json({ error: 'Ese nombre de sala ya est\u00e1 en uso, eleg\u00ed otro' });
+        }
+        code = sanitizedCode;
+      } else {
+        for (let i = 0; i < 10; i++) {
+          code = genCode();
+          if (!(await redis.get(roomKey(code)))) break;
+        }
       }
 
       const room = {
