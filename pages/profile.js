@@ -153,6 +153,10 @@ export default function ProfilePage() {
         <div style={{ padding: '0 18px' }}>
 
           {/* Stats globales */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+          </div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
             {[
               { label: 'Victorias', value: totalW, color: '#22C55E' },
@@ -171,7 +175,10 @@ export default function ProfilePage() {
           </div>
 
           {/* Rangos por plataforma */}
-          <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>⚔️ RANKED</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
+          </div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
             {(['switch', 'parsec']).map(plat => {
               const s        = stats?.[plat];
@@ -229,7 +236,10 @@ export default function ProfilePage() {
           </div>
 
           {/* Historial */}
-          <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>📋 HISTORIAL DE PARTIDAS</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial de partidas</p>
+          </div>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
           ) : history.length === 0 ? (

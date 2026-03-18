@@ -376,8 +376,9 @@ function BottomNav({ tab, setTab }) {
             padding: '8px 2px 12px',
             border: 'none', background: 'transparent', cursor: 'pointer',
             color: active ? '#FF8C00' : 'rgba(255,255,255,0.28)',
-            transition: 'color 0.15s',
+            transition: 'color 0.15s', position: 'relative',
           }}>
+            {active && <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 22, height: 3, borderRadius: 2, background: 'linear-gradient(90deg,#FF8C00,#E85D00)', boxShadow: '0 0 8px rgba(232,142,0,0.6)' }} />}
             <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
             <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
               {item.label}
@@ -426,8 +427,9 @@ function BottomNav({ tab, setTab }) {
             padding: '8px 2px 12px',
             border: 'none', background: 'transparent', cursor: 'pointer',
             color: active ? '#FF8C00' : 'rgba(255,255,255,0.28)',
-            transition: 'color 0.15s',
+            transition: 'color 0.15s', position: 'relative',
           }}>
+            {active && <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 22, height: 3, borderRadius: 2, background: 'linear-gradient(90deg,#FF8C00,#E85D00)', boxShadow: '0 0 8px rgba(232,142,0,0.6)' }} />}
             <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
             <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
               {item.label}
@@ -963,7 +965,7 @@ function TabRankings() {
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '32px 20px', textAlign: 'center', marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
               {[{ t:'S', a:'#FBBF24', b:'#F59E0B' }, { t:'A', a:'#34D399', b:'#10B981' }, { t:'B', a:'#60A5FA', b:'#3B82F6' }, { t:'C', a:'#9CA3AF', b:'#6B7280' }].map(({ t, a, b }) => (
-                <div key={t} style={{ width: 52, height: 52, borderRadius: 14, background: '#111', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div key={t} style={{ width: 52, height: 52, borderRadius: 14, background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ fontSize: 26, fontWeight: 900, background: `linear-gradient(135deg,${a},${b})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t}</span>
                 </div>
               ))}
