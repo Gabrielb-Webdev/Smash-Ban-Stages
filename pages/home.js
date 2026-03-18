@@ -149,6 +149,10 @@ export default function HomePage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data || ['idle', 'timeout', 'declined'].includes(data.status)) return;
+        if (data.status === 'searching') {
+          setBgMM({ status: 'searching', plat: data.platform, polling: true });
+          return;
+        }
         setBgMM({
           status: data.status,
           code: data.code,
