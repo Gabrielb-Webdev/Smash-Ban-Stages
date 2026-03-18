@@ -450,10 +450,14 @@ export default function App() {
 
   // Inyectar sesión en localStorage del WebView para que la web reconozca al usuario
   var sessionPayload = JSON.stringify({ user: user, isAdmin: isAdmin });
-  var injectedJS = [
-    // Inyectar sesión
+
+  // Se inyecta ANTES de que cargue el JS de la página para que home.js
+  // encuentre la sesión en localStorage inmediatamente al montar
+  var injectedBeforeLoad = "try{localStorage.setItem('afk_user'," + JSON.stringify(sessionPayload) + ");}catch(e){}true;";
+
+  // Después de cargar: ocultar controles duplicados del header web
+  var injectedAfterLoad = [
     "try{localStorage.setItem('afk_user'," + JSON.stringify(sessionPayload) + ");}catch(e){}",
-    // Ocultar controles duplicados del header web (la app tiene sus propios botones)
     "var s=document.createElement('style');s.innerHTML='#app-profile-header{display:none!important}#app-bell-btn{display:none!important}';document.head.appendChild(s);",
     "true;",
   ].join('');
@@ -473,7 +477,8 @@ export default function App() {
         source={{ uri: webUrl || (BASE_URL + '/home') }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
-        injectedJavaScript={injectedJS}
+        injectedJavaScriptBeforeContentLoaded={injectedBeforeLoad}
+        injectedJavaScript={injectedAfterLoad}
         onNavigationStateChange={function (ns) {
           // Evitar que navegue al login de la web (la app maneja auth)
           if (ns.url && ns.url.includes('/login')) {

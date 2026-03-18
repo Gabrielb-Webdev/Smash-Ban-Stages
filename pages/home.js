@@ -1887,7 +1887,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
   // ─ Estado persistido: personajes usados recientemente ─
   const [recentIds, setRecentIds] = useState([]);
 
-  // Cargar recientes desde Redis al montar (o desde localStorage como fallback)
+  // Cargar recientes desde Redis al montar (o migrar desde localStorage)
   useEffect(() => {
     if (!userId) return;
     fetch(`/api/matchmaking/recent-chars?userId=${encodeURIComponent(userId)}`)
@@ -1895,8 +1895,22 @@ function CharPicker({ selected, onSelect, platform, userId }) {
       .then(ids => {
         if (ids && ids.length) {
           setRecentIds(ids);
+          // Sincronizar localStorage con lo que tiene Redis
+          try { localStorage.setItem('afk_recent_chars', JSON.stringify(ids)); } catch {}
         } else if (typeof window !== 'undefined') {
-          try { setRecentIds(JSON.parse(localStorage.getItem('afk_recent_chars') || '[]')); } catch {}
+          // Redis vacío → migrar localStorage a Redis
+          try {
+            const local = JSON.parse(localStorage.getItem('afk_recent_chars') || '[]');
+            if (local.length) {
+              setRecentIds(local);
+              // Subir todo el array a Redis de una vez
+              fetch('/api/matchmaking/recent-chars', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, chars: local }),
+              }).catch(() => {});
+            }
+          } catch {}
         }
       })
       .catch(() => {
