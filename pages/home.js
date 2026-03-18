@@ -675,7 +675,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 
         {/* ── Admin button ── */}
         {isAdmin && (
-          <button onClick={() => router.push('/admin/afk')} style={{
+          <button onClick={() => router.push('/')} style={{
             width: '100%', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14,
             background: 'linear-gradient(135deg,rgba(232,142,0,0.12),rgba(232,80,0,0.06))',
             border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px',
