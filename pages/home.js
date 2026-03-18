@@ -1119,6 +1119,11 @@ function TabRankings() {
   const [rankPlat,    setRankPlat]   = useState('switch');
   const [rankBoard,   setRankBoard]  = useState([]);
   const [rankLoading, setRankLoading] = useState(false);
+  const [charPlat,    setCharPlat]   = useState('switch');
+  const [charSearch,  setCharSearch] = useState('');
+  const [charSel,     setCharSel]    = useState(null);
+  const [charBoard,   setCharBoard]  = useState([]);
+  const [charLoading, setCharLoading] = useState(false);
 
   const MODES = [
     { id: 'ba',     label: 'AFK'  },
@@ -1135,6 +1140,16 @@ function TabRankings() {
       .then(d => { setRankBoard(Array.isArray(d) ? d : []); setRankLoading(false); })
       .catch(() => setRankLoading(false));
   }, [mode, rankPlat]);
+
+  useEffect(() => {
+    if (mode !== 'char' || !charSel) return;
+    setCharLoading(true);
+    setCharBoard([]);
+    fetch(`/api/matchmaking/char-stats?platform=${charPlat}&charId=${charSel}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setCharBoard(d?.leaderboard || []); setCharLoading(false); })
+      .catch(() => setCharLoading(false));
+  }, [mode, charPlat, charSel]);
 
   return (
     <div style={{ padding: '24px 18px' }}>
@@ -1231,21 +1246,112 @@ function TabRankings() {
         </>
       ) : (
         <>
-          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Tu rendimiento por personaje</p>
-          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '32px 20px', textAlign: 'center', marginBottom: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
-              {[{ t:'S', a:'#FBBF24', b:'#F59E0B' }, { t:'A', a:'#34D399', b:'#10B981' }, { t:'B', a:'#60A5FA', b:'#3B82F6' }, { t:'C', a:'#9CA3AF', b:'#6B7280' }].map(({ t, a, b }) => (
-                <div key={t} style={{ width: 52, height: 52, borderRadius: 14, background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 26, fontWeight: 900, background: `linear-gradient(135deg,${a},${b})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t}</span>
-                </div>
-              ))}
-            </div>
-            <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 15, color: '#fff' }}>Ranking por personaje</p>
-            <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Jugá partidas online para acumular victorias con tu main y subir de clase</p>
-            <div style={{ display: 'inline-flex', background: 'rgba(232,142,0,0.06)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 10, padding: '7px 16px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
-            </div>
+          {/* Selector de plataforma */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
+              <button key={p.id} onClick={() => { setCharPlat(p.id); setCharSel(null); }} style={{
+                flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
+                cursor: 'pointer', transition: 'all 0.15s',
+                background: charPlat === p.id ? 'rgba(232,142,0,0.1)' : '#10101A',
+                border: `1px solid ${charPlat === p.id ? 'rgba(232,142,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                color: charPlat === p.id ? '#FF8C00' : 'rgba(255,255,255,0.35)',
+              }}>{p.label}</button>
+            ))}
           </div>
+
+          {!charSel ? (
+            <>
+              {/* Búsqueda + grid */}
+              <input
+                placeholder="🔍 Buscar personaje…"
+                value={charSearch}
+                onChange={e => setCharSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none',
+                  marginBottom: 14, boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                {CHARACTERS.filter(c => c.name.toLowerCase().includes(charSearch.toLowerCase())).map(c => (
+                  <button key={c.id} onClick={() => setCharSel(c.id)} style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 12, padding: 4, cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4,
+                  }}>
+                    <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', borderRadius: 8 }} />
+                    <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{c.name}</p>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Cabecera del personaje */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <button onClick={() => setCharSel(null)} style={{
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10, padding: '7px 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 13,
+                }}>← Volver</button>
+                {(() => { const c = CHARACTERS.find(x => x.id === charSel); return c ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <img src={charImgPath(c.img)} alt={c.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }} />
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#fff' }}>{c.name}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{charPlat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec'}</p>
+                    </div>
+                  </div>
+                ) : null; })()}
+              </div>
+
+              {/* Leaderboard */}
+              {charLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} style={{ background: '#10101A', borderRadius: 14, padding: 14, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div className="shimmer" style={{ width: 28, height: 28, borderRadius: 8 }} />
+                      <div style={{ flex: 1 }}>
+                        <div className="shimmer" style={{ height: 12, width: '55%', borderRadius: 6, marginBottom: 7 }} />
+                        <div className="shimmer" style={{ height: 10, width: '30%', borderRadius: 5 }} />
+                      </div>
+                      <div className="shimmer" style={{ width: 50, height: 28, borderRadius: 8 }} />
+                    </div>
+                  ))}
+                </div>
+              ) : charBoard.length === 0 ? (
+                <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
+                  <span style={{ fontSize: 44 }}>🎮</span>
+                  <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas todavía</p>
+                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Nadie jugó ranked con este personaje en esta plataforma aún</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {charBoard.map((p, i) => {
+                    const medals = ['🥇','🥈','🥉'];
+                    const winRate = Math.round((p.winRate ?? 0) * 100);
+                    return (
+                      <div key={p.userId} style={{
+                        background: i < 3 ? `rgba(255,255,255,0.04)` : '#10101A',
+                        border: `1px solid ${i === 0 ? 'rgba(255,215,0,0.18)' : i === 1 ? 'rgba(192,192,192,0.14)' : i === 2 ? 'rgba(205,127,50,0.14)' : 'rgba(255,255,255,0.05)'}`,
+                        borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
+                      }}>
+                        <span style={{ fontSize: i < 3 ? 20 : 13, fontWeight: 800, color: 'rgba(255,255,255,0.3)', width: 24, textAlign: 'center', flexShrink: 0 }}>
+                          {i < 3 ? medals[i] : `#${i+1}`}
+                        </span>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#fff', flex: 1 }}>{p.userName}</p>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.wins}V {p.losses}D</span>
+                          <div style={{ background: winRate >= 60 ? 'rgba(52,211,153,0.15)' : winRate >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winRate >= 60 ? 'rgba(52,211,153,0.3)' : winRate >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '3px 8px' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: winRate >= 60 ? '#34D399' : winRate >= 40 ? '#FBBF24' : '#F87171' }}>{winRate}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
     </div>
@@ -1956,6 +2062,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [reportStocks, setReportStocks]   = useState(1);
   const [matchRpDelta, setMatchRpDelta]   = useState(null);
 
+  // ═══ Estados de formulario HOST / JOIN (deben estar antes de cualquier return condicional) ═══
+  const [screen, setScreen]       = useState('select');    // select | host | join
+  const [hostPlat, setHostPlat]   = useState(null);
+  const [hostRoomId, setHostRoomId] = useState('');
+  const [hostPass, setHostPass]   = useState('');
+  const [joinCode, setJoinCode]   = useState('');
+  const [joinPass, setJoinPass]   = useState('');
+  const [joinPlat, setJoinPlat]   = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [hostChar, setHostChar]   = useState(null);
+  const [joinChar, setJoinChar]   = useState(null);
+
   const reportResult = async (winnerId, stocks) => {
     if (!matchData?.matchId) return;
     setReportLoading(true); setReportError(null);
@@ -2173,19 +2292,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  // ═══ RENDER: SELECCIÓN HOST / JOIN ══════════════════════════════════════
-  const [screen, setScreen]       = useState('select');    // select | host | join
-  const [hostPlat, setHostPlat]   = useState(null);
-  const [hostRoomId, setHostRoomId] = useState('');
-  const [hostPass, setHostPass]   = useState('');
-  const [joinCode, setJoinCode]   = useState('');
-  const [joinPass, setJoinPass]   = useState('');
-  const [joinPlat, setJoinPlat]   = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [formError, setFormError] = useState(null);
-  const [hostChar, setHostChar]   = useState(null);
-  const [joinChar, setJoinChar]   = useState(null);
-
   const createRoom = async () => {
     if (!hostChar) { setFormError('Elegí tu personaje'); return; }
     if (!hostPlat) { setFormError('Elegí una plataforma'); return; }
@@ -2349,11 +2455,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       </div>
 
       <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu plataforma</p>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
         {PLATFORMS.map(px => (
-          <button key={px.id} onClick={() => setJoinPlat(px.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: joinPlat === px.id ? 'linear-gradient(135deg,' + px.from + '22,' + px.to + '0d)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (joinPlat === px.id ? px.from + '60' : 'rgba(255,255,255,0.07)'), borderRadius: 14, padding: '12px 8px', cursor: 'pointer' }}>
-            <span style={{ fontSize: 22 }}>{px.icon}</span>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: joinPlat === px.id ? '#fff' : 'rgba(255,255,255,0.4)' }}>{px.label}</p>
+          <button key={px.id} onClick={() => setJoinPlat(px.id)} style={{ display: 'flex', alignItems: 'center', gap: 14, background: joinPlat === px.id ? 'linear-gradient(135deg,' + px.from + '22,' + px.to + '0d)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (joinPlat === px.id ? px.from + '60' : 'rgba(255,255,255,0.07)'), borderRadius: 16, padding: '14px', cursor: 'pointer', transition: 'all 0.15s' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{px.icon}</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{px.label}</p>
+            </div>
+            {joinPlat === px.id && <span style={{ color: '#FF8C00', fontSize: 18 }}>✓</span>}
           </button>
         ))}
       </div>
