@@ -413,7 +413,7 @@ function BottomNav({ tab, setTab }) {
         >
           <Svg size={20} sw={2.4}>{ICO.bolt}</Svg>
           <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', lineHeight: 1 }}>
-            MATCH
+            RANKED
           </span>
         </button>
       </div>
@@ -570,6 +570,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
   const totalW    = (rankedStats?.switch?.wins   || 0) + (rankedStats?.parsec?.wins   || 0);
   const totalL    = (rankedStats?.switch?.losses || 0) + (rankedStats?.parsec?.losses || 0);
   const wlDisplay = (totalW + totalL) > 0 ? `${totalW}W/${totalL}L` : '—';
+  const hasRanked  = rankedStats !== null && (totalW + totalL) > 0;
 
   return (
     <div>
@@ -632,45 +633,69 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
             ⚔️ RANKED ONLINE
           </p>
-          {(['switch', 'parsec']).map(plat => {
-            const s        = rankedStats?.[plat];
-            const rankName = s?.rank || 'Plástico 1';
-            const wins     = s?.wins   || 0;
-            const losses   = s?.losses || 0;
-            const pts      = s?.rankPoints || 0;
-            const isSmasher = rankName === 'Smasher';
-            const rankObj  = RANKS.find(r => r.name === rankName) || RANKS[0];
-            const platLabel = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
-            const platColor = plat === 'switch' ? '#DC2626' : '#7C3AED';
-            return (
-              <div key={plat} style={{
-                padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)',
+
+          {!hasRanked ? (
+            /* ── Estado sin rango ── */
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '18px 0 10px', gap: 0 }}>
+              <p style={{ margin: '0 0 14px', fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>UNRANKED</p>
+              <div style={{
+                width: 76, height: 76, borderRadius: '50%',
+                background: 'radial-gradient(circle at 35% 35%, #2a3848, #141c28)',
+                border: '3px solid rgba(255,255,255,0.07)',
+                boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
-                    <RankBadge rankName={rankName} />
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
-                      <span style={{ color: '#22C55E' }}>{wins}W</span>
-                      <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
-                      <span style={{ color: '#EF4444' }}>{losses}L</span>
-                    </p>
-                    {isSmasher
-                      ? <p style={{ margin: 0, fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{pts} RP</p>
-                      : <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts}/100 RP</p>
-                    }
-                  </div>
-                </div>
-                {!isSmasher && (
-                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.4s' }} />
-                  </div>
-                )}
+                <span style={{ fontSize: 34, fontWeight: 900, color: 'rgba(255,255,255,0.35)', lineHeight: 1, userSelect: 'none' }}>?</span>
               </div>
-            );
-          })}
+              <p style={{ margin: '14px 0 0', fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>UNRANKED</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Jugá partidas ranked para obtener tu rango</p>
+            </div>
+          ) : (
+            /* ── Split por plataforma ── */
+            ['switch', 'parsec'].map(plat => {
+              const s         = rankedStats?.[plat];
+              const rankName  = s?.rank || 'Plástico 1';
+              const wins      = s?.wins      || 0;
+              const losses    = s?.losses    || 0;
+              const pts       = s?.rankPoints || 0;
+              const isSmasher = rankName === 'Smasher';
+              const rankObj   = RANKS.find(r => r.name === rankName) || RANKS[0];
+              const platLabel = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
+              const platColor = plat === 'switch' ? '#DC2626' : '#7C3AED';
+              const platHasData = (s?.wins || 0) + (s?.losses || 0) > 0;
+              return (
+                <div key={plat} style={{ padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: platColor }}>{platLabel}</p>
+                      {platHasData
+                        ? <RankBadge rankName={rankName} />
+                        : <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontWeight: 700, letterSpacing: '0.1em' }}>SIN PARTIDAS</span>
+                      }
+                    </div>
+                    {platHasData && (
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                          <span style={{ color: '#22C55E' }}>{wins}W</span>
+                          <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
+                          <span style={{ color: '#EF4444' }}>{losses}L</span>
+                        </p>
+                        {isSmasher
+                          ? <p style={{ margin: 0, fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{pts} RP</p>
+                          : <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pts}/100 RP</p>
+                        }
+                      </div>
+                    )}
+                  </div>
+                  {platHasData && !isSmasher && (
+                    <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.4s' }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Admin button */}
