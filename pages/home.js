@@ -331,7 +331,7 @@ export default function HomePage() {
 
         {/* ── CONTENT ── */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
-          {tab === 'inicio'   && <TabInicio   user={user} isAdmin={isAdmin} router={router} displayName={displayName} initial={initial} />}
+          {tab === 'inicio'   && <TabInicio   user={user} isAdmin={isAdmin} router={router} displayName={displayName} initial={initial} setTab={setTab} />}
           {tab === 'rankings' && <TabRankings />}
           {tab === 'torneos'  && <TabTorneos  />}
           {tab === 'tips'     && <TabTips     />}
@@ -555,58 +555,67 @@ function RankedPlayerRow({ position, player }) {
 /* ═══════════════════════════════════════════════════
    TAB — INICIO
 ═══════════════════════════════════════════════════ */
-function TabInicio({ user, isAdmin, router, displayName, initial }) {
+function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
   const [rankedStats, setRankedStats] = useState(null);
+  const [topPlayers, setTopPlayers]   = useState({ switch: [], parsec: [] });
+  const [torneos, setTorneos]         = useState([]);
+  const [topPlat, setTopPlat]         = useState('switch');
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     const uid = String(user?.id || user?.slug || '');
-    if (!uid) return;
-    fetch(`/api/players/stats?userId=${encodeURIComponent(uid)}`)
-      .then(r => r.json())
-      .then(d => setRankedStats(d))
-      .catch(() => {});
+    setLoadingData(true);
+    Promise.all([
+      uid ? fetch(`/api/players/stats?userId=${encodeURIComponent(uid)}`).then(r => r.json()).catch(() => null) : Promise.resolve(null),
+      fetch('/api/ranked/leaderboard?platform=switch').then(r => r.json()).catch(() => []),
+      fetch('/api/ranked/leaderboard?platform=parsec').then(r => r.json()).catch(() => []),
+      fetch('/api/tournaments').then(r => r.json()).catch(() => []),
+    ]).then(([stats, sw, ps, tc]) => {
+      setRankedStats(stats);
+      setTopPlayers({
+        switch: Array.isArray(sw) ? sw.slice(0, 3) : [],
+        parsec: Array.isArray(ps) ? ps.slice(0, 3) : [],
+      });
+      setTorneos(Array.isArray(tc) ? tc.slice(0, 3) : []);
+      setLoadingData(false);
+    });
   }, []);
 
-  const totalW    = (rankedStats?.switch?.wins   || 0) + (rankedStats?.parsec?.wins   || 0);
-  const totalL    = (rankedStats?.switch?.losses || 0) + (rankedStats?.parsec?.losses || 0);
-  const wlDisplay = (totalW + totalL) > 0 ? `${totalW}W/${totalL}L` : '—';
+  const totalW = (rankedStats?.switch?.wins   || 0) + (rankedStats?.parsec?.wins   || 0);
+  const totalL = (rankedStats?.switch?.losses || 0) + (rankedStats?.parsec?.losses || 0);
+
+  // Mejor rango entre plataformas
+  const swIdx      = RANKS.findIndex(r => r.name === rankedStats?.switch?.rank);
+  const psIdx      = RANKS.findIndex(r => r.name === rankedStats?.parsec?.rank);
+  const bestRankName = (swIdx !== -1 || psIdx !== -1)
+    ? (swIdx >= psIdx ? rankedStats?.switch?.rank : rankedStats?.parsec?.rank) || ''
+    : '';
+  const bestRankObj  = RANKS.find(r => r.name === bestRankName);
+  const bestTierIcon = bestRankObj ? (TIER_ICONS[bestRankObj.tier] || '🎮') : null;
 
   return (
     <div>
-      {/* Hero Banner */}
+      {/* ── Hero Banner ── */}
       <div style={{
         position: 'relative', overflow: 'hidden',
-        padding: '28px 20px 32px',
+        padding: '28px 20px 24px',
         background: 'linear-gradient(160deg, rgba(232,142,0,0.1) 0%, rgba(232,80,0,0.05) 40%, transparent 70%)',
-        backgroundImage: 'linear-gradient(rgba(232,142,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232,142,0,0.04) 1px, transparent 1px)',
-        backgroundSize: '100% 32px, 32px 100%',
       }}>
-        {/* Orb naranja derecha */}
-        <div style={{
-          position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(232,142,0,0.09) 0%, transparent 70%)', pointerEvents: 'none',
-        }} />
-        {/* Orb púrpura izquierda */}
-        <div style={{
-          position: 'absolute', left: -60, bottom: -20, width: 180, height: 180, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', pointerEvents: 'none',
-        }} />
+        <div style={{ position: 'absolute', right: -40, top: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,142,0,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: -60, bottom: -20, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        {/* User info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
+        {/* User row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, position: 'relative' }}>
           <div style={{ position: 'relative' }}>
             {user.avatar
               ? <img src={user.avatar} alt={displayName} style={{ width: 56, height: 56, borderRadius: 18, border: '2px solid rgba(232,142,0,0.5)', objectFit: 'cover' }} />
-              : <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', boxShadow: '0 8px 20px rgba(232,142,0,0.3)' }}>
-                  {initial}
-                </div>
+              : <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff' }}>{initial}</div>
             }
             <div style={{ position: 'absolute', bottom: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: '#22C55E', border: '2px solid #050508', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
           </div>
-
           <div>
-            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, marginBottom: 2 }}>Hola,</p>
-            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.1 }}>{displayName}</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, marginBottom: 2 }}>Bienvenido/a,</p>
+            <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.4px', lineHeight: 1.1 }}>{displayName}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5 }}>
               <Tag color="#FF8C00">AFK Smash</Tag>
               <Tag color="#6366F1">Buenos Aires</Tag>
@@ -614,163 +623,56 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           </div>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <StatCard icon="⭐" label="Puntos" value="—" sub="AFK" accent="#FF8C00" />
-          <StatCard icon="🏆" label="Ranking" value="—" sub="posición" accent="#F59E0B" />
-          <StatCard icon="⚡" label="W / L" value={wlDisplay} sub="ranked" accent="#22C55E" />
+        {/* Stats + mejor rango */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+          {/* W / L */}
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '14px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, position: 'relative', overflow: 'hidden' }}>
+            <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,#22C55E55,transparent)' }} />
+            <span style={{ fontSize: 20, fontWeight: 900, color: '#22C55E', lineHeight: 1 }}>{rankedStats ? `${totalW}W` : '—'}</span>
+            {rankedStats && <span style={{ fontSize: 20, fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{totalL}L</span>}
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', marginTop: 4 }}>PARTIDAS</span>
+          </div>
+          {/* Mejor rango */}
+          <div style={{ flex: 2, background: bestRankObj ? `linear-gradient(135deg, ${bestRankObj.color}18, rgba(0,0,0,0) 70%)` : 'rgba(255,255,255,0.025)', border: `1px solid ${bestRankObj ? bestRankObj.color + '30' : 'rgba(255,255,255,0.06)'}`, borderRadius: 16, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: bestRankObj ? `${bestRankObj.color}18` : 'rgba(255,255,255,0.05)', border: `2px solid ${bestRankObj ? bestRankObj.color + '40' : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: bestRankObj ? `0 0 16px ${bestRankObj.color}30` : 'none' }}>
+              {bestTierIcon || '?'}
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>MEJOR RANGO</p>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: bestRankObj ? bestRankObj.color : 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.1 }}>
+                {bestRankName || 'UNRANKED'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style={{ padding: '0 18px 24px' }}>
+      <div style={{ padding: '20px 18px 24px' }}>
 
-        {/* Ranked card — estilo Valorant */}
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>
-            ⚔️ RANKED ONLINE
-          </p>
-          <div style={{ display: 'flex', gap: 10 }}>
-          {(['switch', 'parsec']).map(plat => {
-            const s           = rankedStats?.[plat];
-            const totalGames  = (s?.wins || 0) + (s?.losses || 0);
-            const inPlacement = !s?.placementDone && totalGames > 0 && totalGames < 5;
-            const unranked    = !s || (!s.placementDone && totalGames === 0);
-            const rankName    = s?.rank || '';
-            const wins        = s?.wins   || 0;
-            const losses      = s?.losses || 0;
-            const pts         = s?.rankPoints || 0;
-            const isSmasher   = rankName === 'Smasher';
-            const rankObj     = RANKS.find(r => r.name === rankName);
-            const tierIcon    = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
-            const rankColor   = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-            const platLabel   = plat === 'switch' ? 'Switch Online' : 'Parsec';
-            const platColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
-            const cardBg      = inPlacement
-              ? 'rgba(255,140,0,0.04)'
-              : unranked
-                ? 'rgba(255,255,255,0.03)'
-                : `linear-gradient(160deg, ${rankColor}18 0%, rgba(0,0,0,0) 60%)`;
-            const cardBorder  = inPlacement
-              ? 'rgba(255,140,0,0.25)'
-              : unranked
-                ? 'rgba(255,255,255,0.07)'
-                : rankColor + '35';
-
-            return (
-              <div key={plat} style={{
-                flex: 1,
-                background: cardBg,
-                border: `1px solid ${cardBorder}`,
-                borderRadius: 18,
-                padding: '16px 12px 14px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: 0,
-              }}>
-                {/* Plataforma label */}
-                <p style={{
-                  margin: '0 0 12px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
-                  textTransform: 'uppercase', color: platColor, alignSelf: 'flex-start',
-                }}>
-                  {platLabel}
-                </p>
-
-                {/* Ícono / estado */}
-                {(unranked || inPlacement) ? (
-                  <div style={{
-                    width: 64, height: 64, borderRadius: '50%',
-                    background: inPlacement ? 'rgba(255,140,0,0.08)' : 'rgba(255,255,255,0.05)',
-                    border: `2px solid ${inPlacement ? 'rgba(255,140,0,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: inPlacement ? 22 : 28,
-                    color: inPlacement ? '#FF8C00' : 'rgba(255,255,255,0.2)',
-                    fontWeight: 900, marginBottom: 10,
-                  }}>{inPlacement ? '⚔️' : '?'}</div>
-                ) : (
-                  <div style={{
-                    width: 64, height: 64, borderRadius: '50%',
-                    background: `${rankColor}18`,
-                    border: `2px solid ${rankColor}55`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 32, marginBottom: 10,
-                    boxShadow: `0 0 18px ${rankColor}30`,
-                  }}>{tierIcon}</div>
-                )}
-
-                {/* Nombre de rango / estado */}
-                {unranked ? (
-                  <>
-                    <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>
-                      UNRANKED
-                    </p>
-                    <p style={{ margin: '0 0 12px', fontSize: 10, color: 'rgba(255,255,255,0.18)', textAlign: 'center', lineHeight: 1.4 }}>
-                      Jugá partidas para rankear
-                    </p>
-                  </>
-                ) : inPlacement ? (
-                  <>
-                    <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 900, color: '#FF8C00', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>
-                      CLASIFICATORIA
-                    </p>
-                    {/* Barra de progreso de partidas */}
-                    <div style={{ width: '100%', margin: '8px 0 4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PARTIDAS</span>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{totalGames}/5</span>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 6, overflow: 'hidden', display: 'flex', gap: 2 }}>
-                        {[0,1,2,3,4].map(i => (
-                          <div key={i} style={{
-                            flex: 1, height: '100%', borderRadius: 2,
-                            background: i < totalGames ? '#FF8C00' : 'rgba(255,255,255,0.06)',
-                            transition: 'background 0.3s',
-                          }} />
-                        ))}
-                      </div>
-                    </div>
-                    <p style={{ margin: '0 0 8px', fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
-                      {5 - totalGames} partida{5 - totalGames !== 1 ? 's' : ''} restante{5 - totalGames !== 1 ? 's' : ''}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 900, color: rankColor, letterSpacing: '0.04em', textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.2 }}>
-                      {rankName}
-                    </p>
-                    {/* Rank Rating */}
-                    <div style={{ width: '100%', margin: '10px 0 6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>RANK RATING</span>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: rankColor }}>
-                          {isSmasher ? `${pts} RP` : `${pts}/100`}
-                        </span>
-                      </div>
-                      {!isSmasher && (
-                        <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                          <div style={{
-                            width: `${Math.min(100, pts)}%`, height: '100%',
-                            background: `linear-gradient(90deg, ${rankColor}cc, ${rankColor})`,
-                            borderRadius: 3, transition: 'width 0.5s ease',
-                            boxShadow: `0 0 6px ${rankColor}80`,
-                          }} />
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* W / L */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: '#22C55E' }}>{wins}W</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>·</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: '#EF4444' }}>{losses}L</span>
-                </div>
-              </div>
-            );
-          })}
+        {/* ── Quick Match CTA ── */}
+        <button
+          onClick={() => setTab('match')}
+          className="btn-gamer"
+          style={{
+            width: '100%', marginBottom: 24, padding: '18px 20px',
+            background: 'linear-gradient(135deg, #c92020 0%, #7a0808 100%)',
+            border: '1px solid rgba(220,40,40,0.35)',
+            borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer', boxShadow: '0 8px 28px rgba(180,0,0,0.35)',
+            position: 'relative', overflow: 'hidden', textAlign: 'left',
+          }}
+        >
+          <div style={{ position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+          <div>
+            <p style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>⚡ Buscar Partida</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Jugá ranked ahora mismo</p>
           </div>
-        </div>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Svg size={22} sw={2.5}>{ICO.chevron}</Svg>
+          </div>
+        </button>
 
-        {/* Admin button — solo visible para admins */}
+        {/* ── Admin button ── */}
         {isAdmin && (
           <button onClick={() => router.push('/admin/afk')} style={{
             width: '100%', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14,
@@ -778,9 +680,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
             border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px',
             cursor: 'pointer', textAlign: 'left',
           }}>
-            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 12px rgba(232,142,0,0.35)', flexShrink: 0 }}>
-              🎛️
-            </div>
+            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 12px rgba(232,142,0,0.35)', flexShrink: 0 }}>🎛️</div>
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontWeight: 800, color: '#FF8C00', fontSize: 14 }}>Panel de Administración</p>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Gestionar torneos y setups</p>
@@ -789,29 +689,102 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
           </button>
         )}
 
-        {/* Comunidades */}
-        <SectionTitle>Comunidades</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-          {[
-            {
-              name: 'Smash AFK', region: 'Buenos Aires', tag: 'LOCAL', tagColor: '#38BDF8',
-              desc: 'Torneos semanales, ranking local y espacio de práctica competitiva.',
-              icon: '🗺️', from: '#0C4A6E', to: '#0f172a', border: '1px solid rgba(56,189,248,0.15)',
-            },
-            {
-              name: 'Smash INC', region: 'Nacional · Argentina', tag: 'NACIONAL', tagColor: '#FB923C',
-              desc: 'Circuito nacional con ranking y torneos interregionales.',
-              icon: '🏅', from: '#431407', to: '#1c0a00', border: '1px solid rgba(251,146,60,0.15)',
-            },
-          ].map(c => (
-            <div key={c.name} className="gamer-card" style={{
-              background: `linear-gradient(135deg,${c.from},${c.to})`,
-              border: c.border, borderRadius: 20, padding: '16px',
-              display: 'flex', gap: 14, alignItems: 'flex-start',
-            }}>
-              <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-                {c.icon}
+        {/* ── Top Ranked ── */}
+        <SectionTitle action="Ver todo" onAction={() => setTab('rankings')}>Top Ranked</SectionTitle>
+        <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 3, display: 'flex', gap: 3, marginBottom: 12 }}>
+          {[{ id: 'switch', label: '🎮 Switch' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
+            <button key={p.id} onClick={() => setTopPlat(p.id)} style={{
+              flex: 1, padding: '8px 4px', borderRadius: 9, fontWeight: 700, fontSize: 11,
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+              background: topPlat === p.id ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'transparent',
+              color: topPlat === p.id ? '#fff' : 'rgba(255,255,255,0.3)',
+              boxShadow: topPlat === p.id ? '0 3px 10px rgba(232,142,0,0.3)' : 'none',
+            }}>{p.label}</button>
+          ))}
+        </div>
+        {loadingData ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+            {[1,2,3].map(i => (
+              <div key={i} className="shimmer" style={{ height: 62, borderRadius: 14, border: '1px solid rgba(255,255,255,0.04)' }} />
+            ))}
+          </div>
+        ) : topPlayers[topPlat].length === 0 ? (
+          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', marginBottom: 24 }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Sin jugadores rankeados aún</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+            {topPlayers[topPlat].map((p, i) => {
+              const posIcon  = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+              const rankObj  = RANKS.find(r => r.name === p.rank) || RANKS[0];
+              const isSmasher = p.rank === 'Smasher';
+              return (
+                <div key={p.userId} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  background: isSmasher ? 'rgba(255,140,0,0.08)' : 'rgba(255,255,255,0.025)',
+                  border: `1px solid ${isSmasher ? 'rgba(255,140,0,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 14, padding: '12px 14px',
+                }}>
+                  <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 }}>{posIcon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: isSmasher ? '#FF8C00' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.userName}</p>
+                    <div style={{ marginTop: 3 }}><RankBadge rankName={p.rank} /></div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800 }}>
+                      <span style={{ color: '#22C55E' }}>{p.wins || 0}W</span>
+                      <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>·</span>
+                      <span style={{ color: '#EF4444' }}>{p.losses || 0}L</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Torneos ── */}
+        <SectionTitle action="Ver todos" onAction={() => setTab('torneos')}>Torneos</SectionTitle>
+        {loadingData ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+            {[1,2].map(i => (
+              <div key={i} className="shimmer" style={{ height: 66, borderRadius: 16, border: '1px solid rgba(255,255,255,0.04)' }} />
+            ))}
+          </div>
+        ) : torneos.length === 0 ? (
+          <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '24px 20px', textAlign: 'center', marginBottom: 24 }}>
+            <p style={{ margin: '0 0 4px', fontSize: 28 }}>🏆</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Sin torneos próximos</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+            {torneos.map((t, i) => (
+              <div key={i} style={{
+                background: 'linear-gradient(135deg, rgba(232,142,0,0.07), rgba(0,0,0,0) 70%)',
+                border: '1px solid rgba(232,142,0,0.15)',
+                borderRadius: 16, padding: '13px 16px',
+                display: 'flex', alignItems: 'center', gap: 14,
+              }}>
+                <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(232,142,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 3px', fontWeight: 700, fontSize: 14, color: '#fff' }}>{t.name || t.tournamentName || 'Torneo'}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.date || t.startAt || 'Fecha por confirmar'}</p>
+                </div>
+                <Svg size={16} sw={2}>{ICO.chevron}</Svg>
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Comunidades ── */}
+        <SectionTitle>Comunidades</SectionTitle>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            { name: 'Smash AFK', region: 'Buenos Aires', tag: 'LOCAL', tagColor: '#38BDF8', desc: 'Torneos semanales, ranking local y espacio de práctica competitiva.', icon: '🗺️', from: '#0C4A6E', to: '#0f172a', border: '1px solid rgba(56,189,248,0.15)' },
+            { name: 'Smash INC', region: 'Nacional · Argentina', tag: 'NACIONAL', tagColor: '#FB923C', desc: 'Circuito nacional con ranking y torneos interregionales.', icon: '🏅', from: '#431407', to: '#1c0a00', border: '1px solid rgba(251,146,60,0.15)' },
+          ].map(c => (
+            <div key={c.name} className="gamer-card" style={{ background: `linear-gradient(135deg,${c.from},${c.to})`, border: c.border, borderRadius: 20, padding: '16px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{c.icon}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                   <span style={{ fontWeight: 800, fontSize: 15, color: '#fff' }}>{c.name}</span>
@@ -819,29 +792,6 @@ function TabInicio({ user, isAdmin, router, displayName, initial }) {
                 </div>
                 <p style={{ margin: '0 0 6px', fontSize: 11, color: c.tagColor, fontWeight: 600 }}>{c.region}</p>
                 <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>{c.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Próximamente */}
-        <SectionTitle>Próximamente</SectionTitle>
-        <div style={{
-          background: '#141414', border: '1px solid rgba(255,255,255,0.05)',
-          borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
-        }}>
-          {[
-            { icon: '📊', title: 'Sistema de puntos en vivo', sub: 'Ranking actualizado después de cada torneo', accent: '#FF8C00' },
-            { icon: '⚡', title: 'Matchmaking online', sub: 'Encontrá rivales de tu nivel en segundos', accent: '#38BDF8' },
-            { icon: '📚', title: 'Guías por personaje', sub: 'Combos, neutrales y matchups', accent: '#A855F7' },
-          ].map(f => (
-            <div key={f.title} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 12, background: `${f.accent}12`, border: `1px solid ${f.accent}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                {f.icon}
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{f.title}</p>
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{f.sub}</p>
               </div>
             </div>
           ))}
