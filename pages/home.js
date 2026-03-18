@@ -330,7 +330,7 @@ export default function HomePage() {
               {/* Panel de Admin */}
               {isAdmin && (
               <div style={{ padding: '8px 10px 4px' }}>
-                <button onClick={() => { setShowMenu(false); router.push('/admin/setup'); }}
+                <button onClick={() => { setShowMenu(false); router.push('/admin/afk-multi'); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -1885,10 +1885,26 @@ function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s %
 /* ─── CharPicker ─────────────────────────────────────────────────────────── */
 function CharPicker({ selected, onSelect, platform, userId }) {
   // ─ Estado persistido: personajes usados recientemente ─
-  const [recentIds, setRecentIds] = useState(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(localStorage.getItem('afk_recent_chars') || '[]'); } catch { return []; }
-  });
+  const [recentIds, setRecentIds] = useState([]);
+
+  // Cargar recientes desde Redis al montar (o desde localStorage como fallback)
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/matchmaking/recent-chars?userId=${encodeURIComponent(userId)}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(ids => {
+        if (ids && ids.length) {
+          setRecentIds(ids);
+        } else if (typeof window !== 'undefined') {
+          try { setRecentIds(JSON.parse(localStorage.getItem('afk_recent_chars') || '[]')); } catch {}
+        }
+      })
+      .catch(() => {
+        if (typeof window !== 'undefined') {
+          try { setRecentIds(JSON.parse(localStorage.getItem('afk_recent_chars') || '[]')); } catch {}
+        }
+      });
+  }, [userId]);
 
   // ─ Estado interno del picker ─
   const [expanded, setExpanded]         = useState(!selected);
@@ -1901,6 +1917,14 @@ function CharPicker({ selected, onSelect, platform, userId }) {
     if (!selected) return;
     setRecentIds(prev => {
       const next = [selected, ...prev.filter(id => id !== selected)].slice(0, 6);
+      // Guardar en Redis (y localStorage como cache local)
+      if (userId) {
+        fetch('/api/matchmaking/recent-chars', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, charId: selected }),
+        }).catch(() => {});
+      }
       try { localStorage.setItem('afk_recent_chars', JSON.stringify(next)); } catch {}
       return next;
     });
