@@ -714,11 +714,13 @@ function RankBadge({ rankName }) {
 }
 
 function RankedPlayerRow({ position, player }) {
-  const isSmasher = player.rank === 'Smasher';
-  const rankObj   = RANKS.find(r => r.name === player.rank) || RANKS[0];
-  const posIcon   = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : null;
-  const rpts      = player.rankPoints || 0;
-  const pct       = isSmasher ? null : Math.min(100, rpts);
+  const isSmasher  = player.rank === 'Smasher';
+  const rankObj    = RANKS.find(r => r.name === player.rank) || RANKS[0];
+  const posIcon    = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : null;
+  const rpts       = player.rankPoints || 0;
+  const pct        = isSmasher ? null : Math.min(100, rpts);
+  const inPlacement = !player.placementDone;
+  const played      = (player.wins || 0) + (player.losses || 0);
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -737,10 +739,23 @@ function RankedPlayerRow({ position, player }) {
           {player.userName}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <RankBadge rankName={player.rank} />
-          {isSmasher && <span style={{ fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{rpts} RP</span>}
+          {inPlacement ? (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 9px', borderRadius: 20,
+              background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)',
+              fontSize: 11, fontWeight: 800, color: '#FBBF24', whiteSpace: 'nowrap',
+            }}>
+              ⏳ Posicionamiento {played}/5
+            </span>
+          ) : (
+            <>
+              <RankBadge rankName={player.rank} />
+              {isSmasher && <span style={{ fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{rpts} RP</span>}
+            </>
+          )}
         </div>
-        {!isSmasher && (
+        {!inPlacement && !isSmasher && (
           <div style={{ marginTop: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 4, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.35s' }} />
           </div>
@@ -752,7 +767,7 @@ function RankedPlayerRow({ position, player }) {
           <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 3px' }}>·</span>
           <span style={{ color: '#EF4444' }}>{player.losses || 0}L</span>
         </p>
-        {!isSmasher && (
+        {!inPlacement && !isSmasher && (
           <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rpts}/100 RP</p>
         )}
       </div>
