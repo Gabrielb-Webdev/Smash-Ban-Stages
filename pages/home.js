@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
@@ -1468,6 +1468,21 @@ function TabMatch() {
   const userId   = _rawUidMm != null ? String(_rawUidMm) : undefined;
   const userName = stored?.user?.name || 'Jugador';
 
+  // Consultar estado existente al elegir plataforma
+  useEffect(() => {
+    if (!plat || !userId) return;
+    fetch("/api/matchmaking/queue?userId=" + encodeURIComponent(userId) + "&platform=" + plat)
+      .then(r => r.json())
+      .then(data => {
+        if (data.status && data.status !== 'idle') {
+          setMmStatus(data);
+          if (data.status !== 'finished') setPolling(true);
+        }
+      })
+      .catch(() => {});
+  }, [plat]);
+
+
   // â”€â”€ Polling de estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!polling || !userId || !plat) return;
@@ -1502,7 +1517,16 @@ function TabMatch() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       const data = await r.json();
-      if (!r.ok) { setJoinError(data.error || 'Error al unirse'); return; }
+      if (!r.ok) {
+        // Si el servidor devuelve match o cola activa, mostrarlo directamente
+        if (data.status === 'matched' || data.status === 'waiting') {
+          setMmStatus(data);
+          setPolling(true);
+        } else {
+          setJoinError(data.error || 'Error al unirse');
+        }
+        return;
+      }
       setMmStatus(data);
       setPolling(true);
     } catch { setJoinError('Error de conexión'); }
