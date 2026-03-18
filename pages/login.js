@@ -41,7 +41,7 @@ export default function Login() {
         <title>AFK Smash — Iniciar sesión</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           body { background: #0B0B12; }
           @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
           @keyframes glow  { 0%,100%{opacity:.5} 50%{opacity:1} }
@@ -52,7 +52,7 @@ export default function Login() {
         minHeight: '100dvh', background: '#0B0B12', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
         padding: '24px 20px', position: 'relative', overflow: 'hidden',
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Outfit', sans-serif",
       }}>
         {/* Orbs de fondo */}
         <div style={{ position:'absolute', top:'-15%', left:'-10%', width:420, height:420, borderRadius:'50%', background:'radial-gradient(circle, rgba(124,58,237,0.13) 0%, transparent 70%)', pointerEvents:'none' }} />
