@@ -272,7 +272,7 @@ export default function App() {
             }
             <View style={{ flex: 1 }}>
               <Text style={styles.dropdownName}>{user.name || user.slug || 'Usuario'}</Text>
-              <Text style={styles.dropdownRole}>{isAdmin ? 'Administrador' : 'Usuario'}</Text>
+              {user.slug && <Text style={styles.dropdownRole}>@{user.slug}</Text>}
             </View>
           </View>
           <View style={styles.dropdownDivider} />
@@ -282,22 +282,31 @@ export default function App() {
               <Text style={styles.dropdownItemText}>Panel Admin</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/home'); }}>
-            <Text style={styles.dropdownItemIcon}>🏠</Text>
-            <Text style={styles.dropdownItemText}>Home</Text>
+          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/profile'); }}>
+            <Text style={styles.dropdownItemIcon}>🎮</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dropdownItemText}>Mi perfil</Text>
+              <Text style={styles.dropdownItemSub}>Start.GG</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.dropdownItem}
             onPress={function () { setDropdownOpen(false); setShowSettings(true); }}
           >
             <Text style={styles.dropdownItemIcon}>⚙️</Text>
-            <Text style={styles.dropdownItemText}>Configuración</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dropdownItemText}>Configuración</Text>
+              <Text style={styles.dropdownItemSub}>Preferencias</Text>
+            </View>
             {updateInfo && <View style={styles.updateDot} />}
           </TouchableOpacity>
           <View style={styles.dropdownDivider} />
           <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
             <Text style={styles.dropdownItemIcon}>🚪</Text>
-            <Text style={[styles.dropdownItemText, { color: '#f87171' }]}>Salir</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.dropdownItemText, { color: '#f87171' }]}>Cerrar sesión</Text>
+              <Text style={[styles.dropdownItemSub, { color: 'rgba(239,68,68,0.6)' }]}>Salir de la cuenta</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </Pressable>
@@ -567,6 +576,7 @@ var styles = StyleSheet.create({
   dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 10 },
   dropdownItemIcon: { fontSize: 16 },
   dropdownItemText: { color: '#d1d5db', fontSize: 14, flex: 1 },
+  dropdownItemSub: { color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 1 },
   updateDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E88E00' },
   // Settings
   settingsOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
