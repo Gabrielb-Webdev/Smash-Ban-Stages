@@ -44,6 +44,10 @@ export default function HomePage() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifToast, setNotifToast] = useState(null);
 
+  // Estado global de matchmaking (persiste al cambiar de tab)
+  const [bgMM, setBgMM]               = useState(null);
+  const [acceptCountdown, setAcceptCountdown] = useState(15);
+
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored) { router.replace('/login'); return; }
@@ -101,6 +105,44 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // Polling global de matchmaking (persiste entre tabs)
+  useEffect(() => {
+    if (!bgMM?.polling || !user) return;
+    const uid = String(user?.id || user?.slug || '');
+    if (!uid) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid));
+        if (!r.ok || !active) return;
+        const data = await r.json();
+        if (['idle', 'timeout', 'declined'].includes(data.status)) {
+          if (active) setBgMM(null);
+          return;
+        }
+        setBgMM(prev => prev ? {
+          ...prev,
+          status:   data.status,
+          room:     data.room  || prev.room,
+          code:     data.code  || prev.code,
+          timeLeft: data.timeLeft,
+          polling:  !['finished', 'idle', 'timeout', 'declined'].includes(data.status),
+        } : prev);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 3000);
+    return () => { active = false; clearInterval(iv); };
+  }, [bgMM?.polling, user]);
+
+  // Countdown local para la pantalla de aceptación
+  useEffect(() => {
+    if (bgMM?.status !== 'pending_accept') return;
+    setAcceptCountdown(bgMM?.timeLeft ?? 15);
+    const t = setInterval(() => setAcceptCountdown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [bgMM?.status]);
+
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B0B12' }}>
       <div style={{ width: 32, height: 32, border: '2px solid #E88E00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -121,6 +163,30 @@ export default function HomePage() {
       });
     } catch {}
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+  };
+
+  const uid        = user?.id ? String(user.id) : (user?.slug || '');
+  const uName      = user?.name || 'Jugador';
+
+  const handleAcceptMatch = async () => {
+    try {
+      const r = await fetch('/api/matchmaking/room', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'accept', userId: uid, userName: uName }),
+      });
+      const data = await r.json();
+      setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room || prev.room, timeLeft: data.timeLeft } : prev);
+    } catch {}
+  };
+
+  const handleDeclineMatch = async () => {
+    try {
+      await fetch('/api/matchmaking/room', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'decline', userId: uid, userName: uName }),
+      });
+    } catch {}
+    setBgMM(null);
   };
 
   return (
@@ -346,18 +412,91 @@ export default function HomePage() {
           {tab === 'rankings' && <TabRankings />}
           {tab === 'torneos'  && <TabTorneos  />}
           {tab === 'tips'     && <TabTips     />}
-          {tab === 'match'    && <TabMatch    />}
+          {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} />}
         </main>
 
         {/* â”€â”€ BOTTOM NAV â”€â”€ */}
-        <BottomNav tab={tab} setTab={setTab} />
+        <BottomNav tab={tab} setTab={setTab} bgMMStatus={bgMM?.status} />
+
+        {/* ══ POPUP match encontrado ══ */}
+        {bgMM && bgMM.status === 'pending_accept' && bgMM.room && (() => {
+          const myRole   = uid === bgMM.room.host?.userId ? 'host' : 'guest';
+          const opponent = myRole === 'host' ? bgMM.room.guest : bgMM.room.host;
+          const pData    = PLATFORMS.find(x => x.id === bgMM.plat);
+          const radius   = 26;
+          const circ     = 2 * Math.PI * radius;
+          const pct      = acceptCountdown / 15;
+          return (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 200,
+              background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 24px',
+            }}>
+              <div style={{
+                width: '100%', maxWidth: 360,
+                background: 'linear-gradient(160deg,#13131E,#0e0e18)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 28, padding: '28px 24px',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.9)',
+                animation: 'fadeUp 0.22s ease',
+              }}>
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{ fontSize: 46, marginBottom: 10 }}>⚡</div>
+                  <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{pData?.label ?? bgMM.plat}</p>
+                </div>
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 16, padding: '14px 16px', marginBottom: 20, textAlign: 'center',
+                }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
+                  <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                  <div style={{ position: 'relative', width: 68, height: 68 }}>
+                    <svg width={68} height={68} style={{ transform: 'rotate(-90deg)' }}>
+                      <circle cx={34} cy={34} r={radius} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={4} />
+                      <circle cx={34} cy={34} r={radius} fill="none"
+                        stroke={acceptCountdown > 5 ? '#FF8C00' : '#EF4444'}
+                        strokeWidth={4}
+                        strokeDasharray={circ}
+                        strokeDashoffset={circ * (1 - pct)}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+                      />
+                    </svg>
+                    <p style={{
+                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: 0, fontSize: 20, fontWeight: 900,
+                      color: acceptCountdown > 5 ? '#FF8C00' : '#EF4444',
+                    }}>{acceptCountdown}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={handleDeclineMatch} style={{
+                    flex: 1, padding: '13px', borderRadius: 14,
+                    border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
+                    color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                  }}>Rechazar</button>
+                  <button onClick={handleAcceptMatch} style={{
+                    flex: 2, padding: '13px', borderRadius: 14, border: 'none',
+                    background: 'linear-gradient(135deg,#22C55E,#16A34A)',
+                    color: '#fff', fontWeight: 900, fontSize: 15, cursor: 'pointer',
+                    boxShadow: '0 6px 20px rgba(34,197,94,0.35)',
+                  }}>✅ Aceptar</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </>
   );
 }
 
 /* â”€â”€â”€ BOTTOM NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function BottomNav({ tab, setTab }) {
+function BottomNav({ tab, setTab, bgMMStatus }) {
   const leftItems = [
     { id: 'inicio',   label: 'Inicio',   icon: ICO.home   },
     { id: 'rankings', label: 'Rankings', icon: ICO.trophy },
@@ -425,6 +564,9 @@ function BottomNav({ tab, setTab }) {
             paddingBottom: 6,
           }}
         >
+          {bgMMStatus && bgMMStatus !== 'idle' && (
+            <div style={{ position: 'absolute', top: 8, right: 14, width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E', animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
+          )}
           <Svg size={20} sw={2.4}>{ICO.bolt}</Svg>
           <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', lineHeight: 1 }}>
             MATCH
@@ -1437,292 +1579,208 @@ const STAGE_EMOJI = {
 
 function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; }
 
-function TabMatch() {
-  const [plat, setPlat]           = useState(null);
-  const [mmStatus, setMmStatus]   = useState(null);
-  const [polling, setPolling]     = useState(false);
-  const [joining, setJoining]     = useState(false);
-  const [joinError, setJoinError] = useState(null);
-  const [reported, setReported]   = useState(false);
-  const [reportLoading, setReportLoading] = useState(false);
-  const [reportError, setReportError]     = useState(null);
-  const [onlineCount, setOnlineCount]     = useState(null);
+function TabMatch({ bgMM, setBgMM, userId, userName }) {
+  const uid = userId || '';
+  const uName = userName || 'Jugador';
 
+  // STAGE donde muestra chat del match activo
+  const p = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
+  const matchData = bgMM?.room;
+  const matchStatus = bgMM?.status;
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput]       = useState('');
+  const [chatSending, setChatSending]   = useState(false);
+  const chatBottomRef = React.useRef(null);
+
+  // Polling de chat
   useEffect(() => {
-    const fetchOnline = () => {
-      fetch('/api/matchmaking/online')
-        .then(r => r.json())
-        .then(d => setOnlineCount(d?.total ?? 0))
-        .catch(() => {});
-    };
-    fetchOnline();
-    const iv = setInterval(fetchOnline, 15000);
-    return () => clearInterval(iv);
-  }, []);
-  const [elapsed, setElapsed]     = useState(0);
-
-  const p = PLATFORMS.find(x => x.id === plat);
-
-  const stored   = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
-  const _rawUidMm = stored?.user?.id || stored?.user?.slug;
-  const userId   = _rawUidMm != null ? String(_rawUidMm) : undefined;
-  const userName = stored?.user?.name || 'Jugador';
-
-  // Consultar estado existente al elegir plataforma
-  useEffect(() => {
-    if (!plat || !userId) return;
-    fetch("/api/matchmaking/queue?userId=" + encodeURIComponent(userId) + "&platform=" + plat)
-      .then(r => r.json())
-      .then(data => {
-        if (data.status && data.status !== 'idle') {
-          setMmStatus(data);
-          if (data.status !== 'finished') setPolling(true);
-        }
-      })
-      .catch(() => {});
-  }, [plat]);
-
-
-  // â”€â”€ Polling de estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  useEffect(() => {
-    if (!polling || !userId || !plat) return;
-    let active = true;
-    const poll = async () => {
+    if (!matchData?.matchId || !['active','pending_result','disputed'].includes(matchStatus)) return;
+    let lastTs = 0;
+    const fetchChat = async () => {
       try {
-        const r = await fetch(`/api/matchmaking/queue?userId=${encodeURIComponent(userId)}&platform=${plat}`);
-        if (!r.ok || !active) return;
+        const url = '/api/matchmaking/chat?matchId=' + encodeURIComponent(matchData.matchId) + (lastTs ? '&since=' + lastTs : '');
+        const r = await fetch(url);
+        if (!r.ok) return;
         const data = await r.json();
-        setMmStatus(data);
-        if (data.status === 'finished') setPolling(false);
+        if (data.messages?.length) {
+          lastTs = data.messages[data.messages.length - 1].ts;
+          setChatMessages(prev => {
+            const ids = new Set(prev.map(m => m.id));
+            const newOnes = data.messages.filter(m => !ids.has(m.id));
+            return newOnes.length ? [...prev, ...newOnes] : prev;
+          });
+        }
       } catch {}
     };
-    poll();
-    const iv = setInterval(poll, 3000);
-    return () => { active = false; clearInterval(iv); };
-  }, [polling, userId, plat]);
+    fetchChat();
+    const iv = setInterval(fetchChat, 2500);
+    return () => clearInterval(iv);
+  }, [matchData?.matchId, matchStatus]);
 
-  // â”€â”€ Contador de tiempo en cola â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Scroll chat al fondo
   useEffect(() => {
-    if (!polling || mmStatus?.status !== 'waiting') { setElapsed(0); return; }
-    const t = setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => clearInterval(t);
-  }, [polling, mmStatus?.status]);
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
-  // â”€â”€ Acciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const joinQueue = async () => {
-    setJoining(true); setJoinError(null);
-    const body = { userId, userName, platform: plat };
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatSending || !matchData?.matchId) return;
+    setChatSending(true);
+    const msg = chatInput.trim();
+    setChatInput('');
     try {
-      const r = await fetch('/api/matchmaking/queue', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      });
-      const data = await r.json();
-      if (!r.ok) {
-        // Si el servidor devuelve match o cola activa, mostrarlo directamente
-        if (data.status === 'matched' || data.status === 'waiting') {
-          setMmStatus(data);
-          setPolling(true);
-        } else {
-          setJoinError(data.error || 'Error al unirse');
-        }
-        return;
-      }
-      setMmStatus(data);
-      setPolling(true);
-    } catch { setJoinError('Error de conexión'); }
-    finally { setJoining(false); }
-  };
-
-  const cancelQueue = async () => {
-    setPolling(false);
-    try {
-      await fetch('/api/matchmaking/queue', {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, platform: plat }),
+      await fetch('/api/matchmaking/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: matchData.matchId, userId: uid, userName: uName, message: msg }),
       });
     } catch {}
-    setMmStatus(null); setElapsed(0);
+    setChatSending(false);
   };
 
+  // Reportar resultado
+  const [reported, setReported]           = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError]     = useState(null);
+
   const reportResult = async (winnerId) => {
-    const matchId = mmStatus?.match?.id;
-    if (!matchId) return;
+    if (!matchData?.matchId) return;
     setReportLoading(true); setReportError(null);
     try {
       const r = await fetch('/api/matchmaking/result', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId, reportingUserId: userId, claimedWinnerId: winnerId }),
+        body: JSON.stringify({ matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: winnerId }),
       });
       const data = await r.json();
       if (!r.ok) { setReportError(data.error || 'Error al reportar'); return; }
       setReported(true);
-      setMmStatus(prev => ({ ...prev, match: { ...prev.match, status: data.matchStatus, result: data.result } }));
-      if (data.matchStatus !== 'finished') setPolling(true);
+      setBgMM(prev => prev ? {
+        ...prev,
+        room: { ...prev.room, status: data.matchStatus, result: data.result },
+        status: data.matchStatus === 'finished' ? 'finished' : prev.status,
+      } : prev);
     } catch { setReportError('Error de conexión'); }
     finally { setReportLoading(false); }
   };
 
   const resetAll = () => {
-    setPlat(null); setMmStatus(null);
-    setPolling(false); setJoining(false); setJoinError(null);
-    setReported(false); setReportError(null); setElapsed(0);
+    setBgMM(null);
+    setChatMessages([]); setChatInput(''); setReported(false); setReportError(null);
   };
 
-  const matchData = mmStatus?.match;
-  const matchStatus = matchData?.status || mmStatus?.status;
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDER — Selección de plataforma
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  if (!plat) return (
-    <div style={{ padding: '24px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Matchmaking</h1>
-        {onlineCount !== null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: onlineCount > 0 ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${onlineCount > 0 ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 20, padding: '4px 10px 4px 8px' }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: onlineCount > 0 ? '#34D399' : '#555', boxShadow: onlineCount > 0 ? '0 0 6px #34D399' : 'none', flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: onlineCount > 0 ? '#34D399' : 'rgba(255,255,255,0.3)' }}>{onlineCount} en cola</span>
-          </div>
-        )}
-      </div>
-      <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí tu plataforma para jugar</p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-        {PLATFORMS.map(px => (
-          <button key={px.id} onClick={() => setPlat(px.id)} style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            background: `linear-gradient(135deg,${px.from}1a,${px.to}0d)`,
-            border: `1px solid ${px.from}40`, borderRadius: 20, padding: '16px', cursor: 'pointer',
-            textAlign: 'left', transition: 'all 0.15s',
-          }}>
-            <div style={{ width: 50, height: 50, borderRadius: 16, background: `linear-gradient(135deg,${px.from},${px.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0, boxShadow: `0 6px 16px ${px.from}35` }}>{px.icon}</div>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 15, color: '#fff' }}>{px.label}</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{px.id === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
-            </div>
-            {onlineCount !== null && onlineCount > 0 && (
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '3px 8px', flexShrink: 0 }}>
-                {onlineCount}
-              </div>
-            )}
-            <Svg size={18} sw={2} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </Svg>
-          </button>
-        ))}
-      </div>
-
-      <SectionTitle>¿Cómo funciona?</SectionTitle>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {[
-          ['🔍', 'Buscás partida', 'Te unís a la cola y te emparejamos automáticamente'],
-          ['🗺️', 'Escenario aleatorio', 'Mapa competitivo elegido al azar entre los 8 legales'],
-          ['📜', 'Reglas estándar', 'Stock 3, tiempo 7 min, sin objetos'],
-          ['📤', 'Reportás el resultado', 'Ambos confirman quién ganó'],
-        ].map(([icon, t, d], idx, arr) => (
-          <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 11, background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{icon}</div>
-              {idx < arr.length - 1 && <div style={{ width: 1, flex: 1, minHeight: 12, background: 'rgba(255,255,255,0.05)', marginTop: 4 }} />}
-            </div>
-            <div style={{ paddingBottom: 12 }}>
-              <p style={{ margin: '4px 0 2px', fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{t}</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.45 }}>{d}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDER — Estado FINISHED
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══ RENDER: RESULTADO FINAL ═══════════════════════════════════════════
   if (matchStatus === 'finished' && matchData?.result) {
-    const iWon = matchData.result.winnerId === userId;
+    const iWon = matchData.result.winnerId === uid;
     return (
       <div style={{ padding: '24px 18px' }}>
         <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
-          <Svg size={18} sw={2}>{ICO.back}</Svg> Volver al inicio
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Nueva partida
         </button>
-        <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: `1px solid ${iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: 24, marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: '1px solid ' + (iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'), borderRadius: 24, marginBottom: 16 }}>
           <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
           <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? '¡Ganaste!' : 'Perdiste'}</p>
-          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? `Derrotaste a ${matchData.opponent.name}` : `${matchData.opponent.name} ganó esta vez`}</p>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '8px 14px' }}>
-            <span style={{ fontSize: 16 }}>{STAGE_EMOJI[matchData.stage] || '🗺️'}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{matchData.stage}</span>
-          </div>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado 💪' : 'La próxima será'}</p>
         </div>
-        <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: `linear-gradient(135deg,${p.from},${p.to})`, color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-          {p.icon} Jugar otra vez
+        <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+          Jugar otra vez
         </button>
       </div>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDER — Match activo (matched / pending_result / disputed)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  if ((matchStatus === 'matched' || matchStatus === 'active' || matchStatus === 'pending_result' || matchStatus === 'disputed') && matchData) {
+  // ═══ RENDER: MATCH ACTIVO (active / pending_result / disputed) ══════════
+  if (matchData && ['active','pending_result','disputed'].includes(matchStatus)) {
+    const opponent = uid === matchData.host?.userId ? matchData.guest : matchData.host;
+    const stage    = matchData.stage || '—';
+    const STAGE_EMOJI = { 'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '⚔️', 'Pokémon Stadium 2': '⚡', 'Town & City': '🏙️', 'Smashville': '🏘️', 'Hollow Bastion': '🏯', 'Kalos Pokémon League': '❄️' };
     return (
-      <div style={{ padding: '24px 18px' }}>
-        {/* Header rival encontrado */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 14, background: `linear-gradient(135deg,${p.from},${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p.icon}</div>
+      <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '🎮'}</div>
           <div>
             <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>¡Rival encontrado!</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p.label}</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p?.label}</p>
           </div>
         </div>
 
-        {/* Card rival */}
-        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px', marginBottom: 12 }}>
-          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
-          <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{matchData.opponent.name}</p>
+        {/* Rival */}
+        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+          <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
+          <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
         </div>
 
-        {/* Stage card */}
-        <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: '16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 34 }}>{STAGE_EMOJI[matchData.stage] || '🗺️'}</span>
+        {/* Escenario */}
+        <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 32 }}>{STAGE_EMOJI[stage] || '🗺️'}</span>
           <div>
-            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: 'rgba(255,165,0,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario elegido</p>
-            <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#FF8C00' }}>{matchData.stage}</p>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,165,0,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#FF8C00' }}>{stage}</p>
             <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Stock 3 · 7 min · Sin objetos</p>
           </div>
         </div>
 
-        {/* Coordinar conexión */}
-        <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 16, padding: '12px 16px', marginBottom: 18 }}>
+        {/* Instrucción */}
+        <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.12)', borderRadius: 14, padding: '10px 14px' }}>
           <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-            {plat === 'switch' ? '🎮 Buscá a tu rival por su usuario en Nintendo Switch Online y añadilo como amigo.' : '🖥️ Coordiná con tu rival para conectarse en Parsec (por Discord u otro medio).'}
+            {bgMM?.plat === 'switch' ? '🎮 Buscá a tu rival en Nintendo Switch Online y añadilo.' : '🖥️ Coordiná la conexión en Parsec con tu rival.'}
           </p>
         </div>
 
-        {/* Reporte de resultado */}
+        {/* Chat */}
+        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E' }} />
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Chat</p>
+          </div>
+          <div style={{ height: 130, overflowY: 'auto', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {chatMessages.length === 0 && (
+              <p style={{ margin: 'auto', fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Sin mensajes aún…</p>
+            )}
+            {chatMessages.map(m => {
+              const isMe = m.userId === uid;
+              return (
+                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                  {!isMe && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{m.userName}</span>}
+                  <div style={{ maxWidth: '80%', background: isMe ? 'rgba(232,142,0,0.18)' : 'rgba(255,255,255,0.06)', border: '1px solid ' + (isMe ? 'rgba(232,142,0,0.25)' : 'rgba(255,255,255,0.08)'), borderRadius: 10, padding: '6px 10px' }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#fff', wordBreak: 'break-word' }}>{m.message}</p>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatBottomRef} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, padding: '8px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendChat()}
+              placeholder="Escribí un mensaje…"
+              maxLength={200}
+              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }}
+            />
+            <button onClick={sendChat} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 10, padding: '0 14px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 18 }}>→</button>
+          </div>
+        </div>
+
+        {/* Reporte resultado */}
         {matchStatus === 'disputed' ? (
-          <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
+          <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>⚠️ Resultado en disputa</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Reportaron resultados distintos. Contactá a un admin para resolver.</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Reportaron resultados distintos. Contactá a un admin.</p>
           </div>
         ) : reported ? (
-          <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 18, padding: '16px', textAlign: 'center' }}>
-            <div style={{ width: 28, height: 28, border: '2px solid #818CF8', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 10px' }} />
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando el reporte del rival...</p>
+          <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 6px', fontSize: 20 }}>⏳</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando reporte del rival…</p>
           </div>
         ) : (
-          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '16px' }}>
-            <p style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó la partida?</p>
-            {reportError && <p style={{ margin: '0 0 10px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+            <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
+            {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button onClick={() => reportResult(userId)} disabled={reportLoading}
-                style={{ padding: '13px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.08))', border: '1px solid rgba(52,211,153,0.3)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>
-                🏆 Yo gané
-              </button>
-              <button onClick={() => reportResult(matchData.opponent.userId)} disabled={reportLoading}
-                style={{ padding: '13px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>
-                💀 Perdí
-              </button>
+              <button onClick={() => reportResult(uid)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>🏆 Yo gané</button>
+              <button onClick={() => reportResult(uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>💀 Perdí</button>
             </div>
           </div>
         )}
@@ -1730,79 +1788,201 @@ function TabMatch() {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDER — En cola (waiting)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  if (mmStatus?.status === 'waiting') return (
+  // ═══ RENDER: BUSCANDO (waiting en sala propia) ══════════════════════════
+  if (matchStatus === 'waiting' && matchData) {
+    const myCode = bgMM?.code || '????';
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <button onClick={async () => {
+          await fetch('/api/matchmaking/room', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) });
+          setBgMM(null);
+        }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Cancelar búsqueda
+        </button>
+
+        <div style={{ background: p ? 'linear-gradient(135deg,' + p.from + '15,' + p.to + '08)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (p?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: '16px', background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '⚡'}</div>
+          </div>
+          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Esperando rival…</p>
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
+          <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Código de sala</p>
+          <p style={{ margin: 0, fontSize: 36, fontWeight: 900, color: '#FF8C00', letterSpacing: 6 }}>{myCode}</p>
+          {matchData.password && (
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>🔒 Con contraseña</p>
+          )}
+        </div>
+
+        <button onClick={async () => {
+          await fetch('/api/matchmaking/room', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) });
+          setBgMM(null);
+        }} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+          Cancelar sala
+        </button>
+      </div>
+    );
+  }
+
+  // ═══ RENDER: SELECCIÓN HOST / JOIN ══════════════════════════════════════
+  const [screen, setScreen]       = useState('select');    // select | host | join
+  const [hostPlat, setHostPlat]   = useState(null);
+  const [hostPass, setHostPass]   = useState('');
+  const [joinCode, setJoinCode]   = useState('');
+  const [joinPass, setJoinPass]   = useState('');
+  const [joinPlat, setJoinPlat]   = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [formError, setFormError] = useState(null);
+
+  const createRoom = async () => {
+    if (!hostPlat) { setFormError('Elegí una plataforma'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/room', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform: hostPlat, password: hostPass }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setFormError(data.error || 'Error al crear sala'); return; }
+      setBgMM({ status: data.status, code: data.code, room: data.room, plat: hostPlat, polling: true });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const joinRoom = async () => {
+    if (!joinCode.trim()) { setFormError('Ingresá el código de sala'); return; }
+    if (!joinPlat) { setFormError('Elegí tu plataforma'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/room', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, platform: joinPlat, code: joinCode.toUpperCase().trim(), password: joinPass }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setFormError(data.error || 'Error al unirse'); return; }
+      setBgMM({ status: data.status, code: data.code, room: data.room, plat: joinPlat, timeLeft: data.timeLeft, polling: true });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  // ─ Pantalla: selección inicial ─
+  if (screen === 'select') return (
     <div style={{ padding: '24px 18px' }}>
-      <button onClick={cancelQueue} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
-        <Svg size={18} sw={2}>{ICO.back}</Svg> Cancelar búsqueda
+      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>Matchmaking</h1>
+      <p style={{ margin: '0 0 28px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>¿Cómo querés jugar?</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button onClick={() => setScreen('host')} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 20, padding: '18px 16px', cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,#7C3AED,#3730A3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>🏠</div>
+          <div>
+            <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Hostear sala</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Creás la sala y compartís el código con tu rival</p>
+          </div>
+        </button>
+        <button onClick={() => setScreen('join')} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 20, padding: '18px 16px', cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>🚪</div>
+          <div>
+            <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Unirse a sala</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Ingresás el código que te pasó tu rival</p>
+          </div>
+        </button>
+      </div>
+      <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
+        {[['🏠','Host crea la sala','Elige plataforma y opcionalmente contraseña'],['🔑','Comparte el código','4 letras — dale el código a tu rival'],['🚪','Rival se une','Ingresa el código (y contraseña si tiene)'],['✅','Ambos aceptan (15s)','Los dos deben confirmar antes del tiempo'],['⚔️','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
+          <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+            <div>
+              <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ─ Pantalla: HOST ─
+  if (screen === 'host') return (
+    <div style={{ padding: '24px 18px' }}>
+      <button onClick={() => { setScreen('select'); setFormError(null); }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 22 }}>
+        <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
       </button>
+      <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>Hostear sala</h2>
+      <p style={{ margin: '0 0 24px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Elegí la plataforma y creá la sala</p>
 
-      <div style={{ background: `linear-gradient(135deg,${p.from}15,${p.to}08)`, border: `1px solid ${p.from}30`, borderRadius: 24, padding: '36px 24px', textAlign: 'center', marginBottom: 16 }}>
-        {/* Spinner pulsante */}
-        <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 22px' }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${p.from}30` }} />
-          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${p.from}`, borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
-          <div style={{ position: 'absolute', inset: '16px', background: `linear-gradient(135deg,${p.from},${p.to})`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p.icon}</div>
-        </div>
-
-        <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Buscando rival...</p>
-        <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{p.label} · {fmtElapsed(elapsed)} esperando</p>
-
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#fff' }}>#{mmStatus.position}</p>
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Posición</p>
-          </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.08)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#fff' }}>{mmStatus.queueSize}</p>
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>En cola</p>
-          </div>
-        </div>
+      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Plataforma</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        {PLATFORMS.map(px => (
+          <button key={px.id} onClick={() => setHostPlat(px.id)} style={{ display: 'flex', alignItems: 'center', gap: 14, background: hostPlat === px.id ? 'linear-gradient(135deg,' + px.from + '22,' + px.to + '0d)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (hostPlat === px.id ? px.from + '60' : 'rgba(255,255,255,0.07)'), borderRadius: 16, padding: '14px', cursor: 'pointer', transition: 'all 0.15s' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{px.icon}</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{px.label}</p>
+            </div>
+            {hostPlat === px.id && <span style={{ color: '#FF8C00', fontSize: 18 }}>✓</span>}
+          </button>
+        ))}
       </div>
 
-      <button onClick={cancelQueue} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-        Cancelar
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Contraseña (opcional)</p>
+      <input
+        value={hostPass}
+        onChange={e => setHostPass(e.target.value)}
+        placeholder="Dejar vacío para sala abierta"
+        maxLength={30}
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 20 }}
+      />
+
+      {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+      <button onClick={createRoom} disabled={loading} style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7C3AED,#3730A3)', color: '#fff', fontWeight: 900, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 6px 20px rgba(124,58,237,0.35)' }}>
+        {loading ? 'Creando…' : '🏠 Crear sala'}
       </button>
     </div>
   );
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDER — Formulario de ingreso (idle / default)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ─ Pantalla: JOIN ─
   return (
     <div style={{ padding: '24px 18px' }}>
-      <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 20 }}>
+      <button onClick={() => { setScreen('select'); setFormError(null); }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 22 }}>
         <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
       </button>
+      <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>Unirse a sala</h2>
+      <p style={{ margin: '0 0 24px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Ingresá el código que te pasó tu rival</p>
 
-      {/* Platform header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg,${p.from},${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: `0 6px 18px ${p.from}40` }}>{p.icon}</div>
-        <div>
-          <h1 style={{ margin: '0 0 3px', fontSize: 22, fontWeight: 900, color: '#fff' }}>{p.label}</h1>
-          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{plat === 'parsec' ? 'Emulador · Rollback netcode' : 'Nintendo Switch Online'}</p>
-        </div>
-      </div>
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Código de sala</p>
+      <input
+        value={joinCode}
+        onChange={e => setJoinCode(e.target.value.toUpperCase().slice(0, 4))}
+        placeholder="Ej: AB3X"
+        maxLength={4}
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: 6, outline: 'none', boxSizing: 'border-box', marginBottom: 16, textAlign: 'center' }}
+      />
 
-      {joinError && <p style={{ margin: '0 0 10px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{joinError}</p>}
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Contraseña (si tiene)</p>
+      <input
+        value={joinPass}
+        onChange={e => setJoinPass(e.target.value)}
+        placeholder="Dejar vacío si no tiene"
+        maxLength={30}
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 13, padding: '12px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}
+      />
 
-      <button onClick={joinQueue} disabled={joining}
-        style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: joining ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg,${p.from},${p.to})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: joining ? 'not-allowed' : 'pointer', boxShadow: joining ? 'none' : `0 6px 20px ${p.from}35` }}>
-        {joining ? 'Buscando...' : '🔍 Buscar partida'}
-      </button>
-
-      {/* Info reglas */}
-      <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
-        {[['⚔️', 'Stock 3'], ['⏱ï¸', '7 min'], ['🚫', 'Sin items']].map(([icon, label]) => (
-          <div key={label} style={{ flex: 1, textAlign: 'center', background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '10px 4px' }}>
-            <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
-            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{label}</p>
-          </div>
+      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu plataforma</p>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {PLATFORMS.map(px => (
+          <button key={px.id} onClick={() => setJoinPlat(px.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: joinPlat === px.id ? 'linear-gradient(135deg,' + px.from + '22,' + px.to + '0d)' : 'rgba(255,255,255,0.03)', border: '1px solid ' + (joinPlat === px.id ? px.from + '60' : 'rgba(255,255,255,0.07)'), borderRadius: 14, padding: '12px 8px', cursor: 'pointer' }}>
+            <span style={{ fontSize: 22 }}>{px.icon}</span>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: joinPlat === px.id ? '#fff' : 'rgba(255,255,255,0.4)' }}>{px.label}</p>
+          </button>
         ))}
       </div>
+
+      {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+      <button onClick={joinRoom} disabled={loading} style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: loading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 900, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 6px 20px rgba(232,142,0,0.35)' }}>
+        {loading ? 'Uniéndose…' : '🚪 Unirse'}
+      </button>
     </div>
   );
 }
