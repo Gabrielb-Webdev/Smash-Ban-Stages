@@ -9,7 +9,7 @@ const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const SSBU_GAME_ID = 1386;
 const CACHE_TTL = 3600; // 1 hora
 
-// Query liviano: sets del jugador (sin filtro de videogame - SetFilters no lo soporta)
+// Query completa (primera página): incluye perfil del jugador
 const SETS_QUERY = `
 query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
@@ -44,6 +44,39 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
       }
       sets(page: $page, perPage: $perPage) {
         pageInfo { total totalPages }
+        nodes {
+          winnerId
+          slots {
+            entrant {
+              id
+              participants { player { id } }
+            }
+          }
+          games {
+            winnerId
+            selections {
+              entrant { id }
+              selectionType
+              selectionValue
+            }
+          }
+          event {
+            videogame { id }
+            tournament { name }
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+// Query ligera (páginas extra): solo sets, sin profile
+const SETS_ONLY_QUERY = `
+query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
+  user(slug: $slug) {
+    player {
+      sets(page: $page, perPage: $perPage) {
         nodes {
           winnerId
           slots {
@@ -176,7 +209,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v6:${slug}`;
+  const cacheKey = `startgg:stats:v7:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -240,26 +273,43 @@ export default async function handler(req, res) {
       rankings: player.rankings,
     };
 
-    // Si hay más páginas, intentar obtener más dentro del tiempo restante
-    const startTime = Date.now();
-    for (let page = 2; page <= Math.min(totalPages, 10); page++) {
-      if (Date.now() - startTime > 4000) break; // máximo 4s extra
+    // Fetch paralelo de páginas extra con query ligera
+    let actualPagesFetched = 1;
+    if (totalPages > 1) {
+      const maxPages = Math.min(totalPages, 20); // hasta 20 páginas = 1000 sets
+      const fetchPage = async (page) => {
+        try {
+          const r = await fetch(STARTGG_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': auth },
+            body: JSON.stringify({
+              query: SETS_ONLY_QUERY,
+              variables: { slug, page, perPage: 50 },
+            }),
+          });
+          if (!r.ok) return [];
+          const d = await r.json();
+          return d.data?.user?.player?.sets?.nodes || [];
+        } catch { return []; }
+      };
 
-      try {
-        const r = await fetch(STARTGG_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': auth },
-          body: JSON.stringify({
-            query: SETS_QUERY,
-            variables: { slug, page, perPage: 50 },
-          }),
-        });
-        if (!r.ok) break;
-        const d = await r.json();
-        const nodes = d.data?.user?.player?.sets?.nodes;
-        if (!nodes?.length) break;
-        allSets.push(...nodes);
-      } catch { break; }
+      // Batch paralelo: 5 páginas a la vez
+      for (let batchStart = 2; batchStart <= maxPages; batchStart += 5) {
+        const batchEnd = Math.min(batchStart + 4, maxPages);
+        const pageNums = [];
+        for (let p = batchStart; p <= batchEnd; p++) pageNums.push(p);
+
+        const results = await Promise.all(pageNums.map(p => fetchPage(p)));
+        let gotData = false;
+        for (const nodes of results) {
+          if (nodes.length > 0) {
+            allSets.push(...nodes);
+            actualPagesFetched++;
+            gotData = true;
+          }
+        }
+        if (!gotData) break; // si ninguna página del batch trajo data, parar
+      }
     }
 
     const result = processSets(allSets, playerId);
@@ -268,7 +318,7 @@ export default async function handler(req, res) {
     result.profile = profile;
     result.debug.slug = slug;
     result.debug.totalPagesAvailable = totalPages;
-    result.debug.pagesFetched = Math.min(totalPages, 10);
+    result.debug.pagesFetched = actualPagesFetched;
     result.debug.totalSetsFetchedRaw = allSets.length;
 
     // Cachear resultado
