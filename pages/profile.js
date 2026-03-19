@@ -73,7 +73,17 @@ export default function ProfilePage() {
     { id: 'historial', label: 'Historial' },
   ];
 
-  const heroRender = recentChars.length > 0 ? CHARACTER_RENDERS[recentChars[0]] : null;
+  const heroRender = (() => {
+    if (!history.length) return null;
+    const counts = {};
+    for (const m of history) {
+      const charId = m.winnerId === String(user.id || user.slug) ? m.winnerCharId : m.loserCharId;
+      if (charId) counts[charId] = (counts[charId] || 0) + 1;
+    }
+    let best = null, max = 0;
+    for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
+    return best ? CHARACTER_RENDERS[best] : null;
+  })();
 
   return (
     <>
@@ -112,24 +122,6 @@ export default function ProfilePage() {
           )}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
           <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
-        </div>
-
-        {/* Player info */}
-        <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            {user.avatar
-              ? <img src={user.avatar} alt={displayName} style={{ width: 64, height: 64, borderRadius: 20, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.55)', boxShadow: '0 6px 24px rgba(0,0,0,0.6)' }} />
-              : <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FF8C00,#C05600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, boxShadow: '0 6px 24px rgba(232,142,0,0.3)' }}>{initial}</div>
-            }
-            <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '3px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.8)' }} />
-          </div>
-          <div>
-            {user.slug && <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{user.slug.replace('user/', '')}</p>}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>⚡ AFK SMASH</span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>🎮 START.GG</span>
-            </div>
-          </div>
         </div>
 
         {/* Tab bar */}

@@ -1322,7 +1322,20 @@ function TabPerfil({ user }) {
   const initial     = displayName.charAt(0).toUpperCase();
   const totalW = (stats?.switch?.wins || 0)   + (stats?.parsec?.wins || 0);
   const totalL = (stats?.switch?.losses || 0) + (stats?.parsec?.losses || 0);
-  const heroRender = recentChars.length > 0 ? CHARACTER_RENDERS[recentChars[0]] : null;
+
+  // Calcular personaje más usado del historial
+  const mostUsedChar = (() => {
+    if (!history.length) return null;
+    const counts = {};
+    for (const m of history) {
+      const charId = m.winnerId === String(user.id || user.slug) ? m.winnerCharId : m.loserCharId;
+      if (charId) counts[charId] = (counts[charId] || 0) + 1;
+    }
+    let best = null, max = 0;
+    for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
+    return best;
+  })();
+  const heroRender = mostUsedChar ? CHARACTER_RENDERS[mostUsedChar] : null;
   return (
     <div style={{ paddingBottom: 32 }}>
       {/* ── Hero Banner (supermajor style) ── */}
@@ -1341,23 +1354,6 @@ function TabPerfil({ user }) {
         <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
       </div>
 
-      {/* Player info */}
-      <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 18 }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          {user.avatar
-            ? <img src={user.avatar} alt={displayName} style={{ width: 64, height: 64, borderRadius: 20, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.5)' }} />
-            : <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: '#fff', boxShadow: '0 8px 20px rgba(232,142,0,0.3)' }}>{initial}</div>
-          }
-          <div style={{ position: 'absolute', bottom: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '2px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
-        </div>
-        <div>
-          {user.slug && <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>@{user.slug}</p>}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>AFK SMASH</span>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>START.GG</span>
-          </div>
-        </div>
-      </div>
       <div style={{ padding: '20px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
