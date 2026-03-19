@@ -5,7 +5,7 @@
     "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "backgroundColor": "#0a0a0a",
     "icon": "./assets/afk-icon.png",
     "assetBundlePatterns": ["**/*"],
