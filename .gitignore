@@ -30,6 +30,9 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# Firebase (solo ignorar el de raíz, el de mobile-app debe commitearse)
+/google-services.json
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

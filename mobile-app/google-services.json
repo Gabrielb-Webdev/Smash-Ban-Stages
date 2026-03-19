@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "528550808946",
+    "project_id": "afk-smash",
+    "storage_bucket": "afk-smash.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528550808946:android:e230cd75e35e6fe05fe1eb",
+        "android_client_info": {
+          "package_name": "com.afksmash.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUvJNuWb9Lf4an6kWm07WZeLiNhu_5ZHo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
