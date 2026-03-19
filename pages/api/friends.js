@@ -1,7 +1,7 @@
-// API de amigos — agregar, listar y eliminar amigos
-// Almacena listas bidireccionales en Redis
+// API de amigos — solicitudes, aceptar/rechazar, listar y eliminar
+// Sistema de solicitudes: POST envía solicitud, PUT acepta/rechaza
 
-import redis, { friendsKey, mmQueueKey, rankedStatsKey } from '../../lib/redis';
+import redis, { friendsKey, friendRequestsKey, mmQueueKey, rankedStatsKey, notifsKey } from '../../lib/redis';
 
 const MAX_FRIENDS = 50;
 const QUEUE_TTL_MS = 10 * 60 * 1000;
@@ -13,7 +13,6 @@ function sanitize(s) {
 function userRoomKey(id) { return `mm:user:room:${id}`; }
 
 async function getOnlineStatus(userId) {
-  // Verificar si está en cola de búsqueda
   for (const plat of ['switch', 'parsec']) {
     const queue = (await redis.get(mmQueueKey(plat))) || [];
     const now = Date.now();
@@ -21,7 +20,6 @@ async function getOnlineStatus(userId) {
       return 'searching';
     }
   }
-  // Verificar si tiene sala activa
   const roomCode = await redis.get(userRoomKey(userId));
   if (roomCode) return 'in_match';
   return 'offline';
@@ -29,19 +27,22 @@ async function getOnlineStatus(userId) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // GET: listar amigos con estado online
+  // GET: listar amigos o solicitudes pendientes
   if (req.method === 'GET') {
-    const { userId } = req.query;
+    const { userId, type } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId requerido' });
     const clean = sanitize(userId);
 
-    const friends = (await redis.get(friendsKey(clean))) || [];
+    if (type === 'requests') {
+      const requests = (await redis.get(friendRequestsKey(clean))) || [];
+      return res.status(200).json(requests);
+    }
 
-    // Enriquecer con estado online y stats
+    const friends = (await redis.get(friendsKey(clean))) || [];
     const enriched = await Promise.all(friends.map(async (f) => {
       const status = await getOnlineStatus(f.userId);
       const switchStats = await redis.get(rankedStatsKey(f.userId, 'switch'));
@@ -56,15 +57,12 @@ export default async function handler(req, res) {
         placementDone: bestStats?.placementDone || false,
       };
     }));
-
-    // Ordenar: in_match primero, luego searching, luego offline
     const order = { in_match: 0, searching: 1, offline: 2 };
     enriched.sort((a, b) => (order[a.online] ?? 2) - (order[b.online] ?? 2));
-
     return res.status(200).json(enriched);
   }
 
-  // POST: agregar amigo por nombre de usuario
+  // POST: enviar solicitud de amistad
   if (req.method === 'POST') {
     const { userId, userName, friendId, friendName } = req.body || {};
     if (!userId || !friendId || !friendName) {
@@ -75,29 +73,125 @@ export default async function handler(req, res) {
     }
 
     const cleanUserId = sanitize(userId);
-    const cleanUserName = sanitize(userName);
+    const cleanUserName = sanitize(userName || 'Jugador');
     const cleanFriendId = sanitize(friendId);
     const cleanFriendName = sanitize(friendName);
 
-    // Agregar a ambas listas (bidireccional)
+    // Ya son amigos?
     const myFriends = (await redis.get(friendsKey(cleanUserId))) || [];
-    if (myFriends.length >= MAX_FRIENDS) {
-      return res.status(400).json({ error: 'Límite de amigos alcanzado' });
-    }
     if (myFriends.find(f => f.userId === cleanFriendId)) {
       return res.status(409).json({ error: 'Ya es tu amigo' });
     }
 
-    myFriends.push({ userId: cleanFriendId, userName: cleanFriendName, addedAt: new Date().toISOString() });
-    await redis.set(friendsKey(cleanUserId), myFriends);
-
-    const theirFriends = (await redis.get(friendsKey(cleanFriendId))) || [];
-    if (!theirFriends.find(f => f.userId === cleanUserId)) {
-      theirFriends.push({ userId: cleanUserId, userName: cleanUserName, addedAt: new Date().toISOString() });
-      await redis.set(friendsKey(cleanFriendId), theirFriends);
+    // Ya hay solicitud pendiente tuya?
+    const theirRequests = (await redis.get(friendRequestsKey(cleanFriendId))) || [];
+    if (theirRequests.find(r => r.fromId === cleanUserId)) {
+      return res.status(409).json({ error: 'Ya enviaste una solicitud' });
     }
 
-    return res.status(200).json({ success: true });
+    // Ellos ya te enviaron? → auto-accept
+    const myRequests = (await redis.get(friendRequestsKey(cleanUserId))) || [];
+    const theirReq = myRequests.find(r => r.fromId === cleanFriendId);
+    if (theirReq) {
+      if (myFriends.length >= MAX_FRIENDS) {
+        return res.status(400).json({ error: 'Límite de amigos alcanzado' });
+      }
+      myFriends.push({ userId: cleanFriendId, userName: cleanFriendName, addedAt: new Date().toISOString() });
+      await redis.set(friendsKey(cleanUserId), myFriends);
+
+      const theirFriends = (await redis.get(friendsKey(cleanFriendId))) || [];
+      if (!theirFriends.find(f => f.userId === cleanUserId)) {
+        theirFriends.push({ userId: cleanUserId, userName: cleanUserName, addedAt: new Date().toISOString() });
+        await redis.set(friendsKey(cleanFriendId), theirFriends);
+      }
+      await redis.set(friendRequestsKey(cleanUserId), myRequests.filter(r => r.fromId !== cleanFriendId));
+      return res.status(200).json({ success: true, autoAccepted: true });
+    }
+
+    // Crear solicitud
+    theirRequests.push({ fromId: cleanUserId, fromName: cleanUserName, sentAt: new Date().toISOString() });
+    await redis.set(friendRequestsKey(cleanFriendId), theirRequests.length > 50 ? theirRequests.slice(-50) : theirRequests);
+
+    // Enviar notificación
+    const notif = {
+      id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      type: 'friend_request',
+      targetName: cleanFriendName.toLowerCase(),
+      setup: 'Solicitud de amistad',
+      message: `${cleanUserName} quiere ser tu amigo`,
+      sentBy: cleanUserName,
+      fromId: cleanUserId,
+      sentAt: new Date().toISOString(),
+      readAt: null,
+    };
+    const nKey = notifsKey(cleanFriendName.toLowerCase());
+    const notifs = (await redis.get(nKey)) || [];
+    notifs.push(notif);
+    await redis.set(nKey, notifs.length > 100 ? notifs.slice(-100) : notifs);
+
+    return res.status(200).json({ success: true, requestSent: true });
+  }
+
+  // PUT: aceptar o rechazar solicitud
+  if (req.method === 'PUT') {
+    const { userId, userName, fromId, action } = req.body || {};
+    if (!userId || !fromId || !action) {
+      return res.status(400).json({ error: 'userId, fromId y action requeridos' });
+    }
+    if (!['accept', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'action debe ser accept o reject' });
+    }
+
+    const cleanUserId = sanitize(userId);
+    const cleanUserName = sanitize(userName || 'Jugador');
+    const cleanFromId = sanitize(fromId);
+
+    const requests = (await redis.get(friendRequestsKey(cleanUserId))) || [];
+    const reqIdx = requests.findIndex(r => r.fromId === cleanFromId);
+    if (reqIdx === -1) {
+      return res.status(404).json({ error: 'Solicitud no encontrada' });
+    }
+
+    const friendRequest = requests[reqIdx];
+    requests.splice(reqIdx, 1);
+    await redis.set(friendRequestsKey(cleanUserId), requests);
+
+    if (action === 'accept') {
+      const myFriends = (await redis.get(friendsKey(cleanUserId))) || [];
+      if (myFriends.length >= MAX_FRIENDS) {
+        return res.status(400).json({ error: 'Límite de amigos alcanzado' });
+      }
+      if (!myFriends.find(f => f.userId === cleanFromId)) {
+        myFriends.push({ userId: cleanFromId, userName: friendRequest.fromName, addedAt: new Date().toISOString() });
+        await redis.set(friendsKey(cleanUserId), myFriends);
+      }
+
+      const theirFriends = (await redis.get(friendsKey(cleanFromId))) || [];
+      if (!theirFriends.find(f => f.userId === cleanUserId)) {
+        theirFriends.push({ userId: cleanUserId, userName: cleanUserName, addedAt: new Date().toISOString() });
+        await redis.set(friendsKey(cleanFromId), theirFriends);
+      }
+
+      // Notificar aceptación
+      const notif = {
+        id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        type: 'friend_accepted',
+        targetName: friendRequest.fromName.toLowerCase(),
+        setup: 'Solicitud aceptada',
+        message: `${cleanUserName} aceptó tu solicitud de amistad`,
+        sentBy: cleanUserName,
+        sentAt: new Date().toISOString(),
+        readAt: null,
+      };
+      const nKey = notifsKey(friendRequest.fromName.toLowerCase());
+      const notifs = (await redis.get(nKey)) || [];
+      notifs.push(notif);
+      await redis.set(nKey, notifs.length > 100 ? notifs.slice(-100) : notifs);
+
+      return res.status(200).json({ success: true, accepted: true });
+    }
+
+    return res.status(200).json({ success: true, rejected: true });
   }
 
   // DELETE: eliminar amigo

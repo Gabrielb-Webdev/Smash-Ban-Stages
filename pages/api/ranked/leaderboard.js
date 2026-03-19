@@ -2,7 +2,7 @@
 // Devuelve el top de jugadores por puntos ranked para la plataforma pedida.
 // Smashers quedan primeros por tener los puntos más altos.
 
-import redis, { rankedStatsKey, rankedBoardKey } from '../../../lib/redis';
+import redis, { rankedStatsKey, rankedBoardKey, rankedDoubleStatsKey, rankedDoubleBoardKey } from '../../../lib/redis';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,16 +18,20 @@ export default async function handler(req, res) {
     ? req.query.platform
     : 'switch';
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 50));
+  const isDoubles = req.query.mode === 'doubles';
+
+  const boardKey = isDoubles ? rankedDoubleBoardKey(platform) : rankedBoardKey(platform);
+  const statsKeyFn = isDoubles ? rankedDoubleStatsKey : rankedStatsKey;
 
   // zrange con rev:true devuelve miembros del sorted set de mayor a menor score
-  const playerIds = await redis.zrange(rankedBoardKey(platform), 0, limit - 1, { rev: true });
+  const playerIds = await redis.zrange(boardKey, 0, limit - 1, { rev: true });
 
   if (!playerIds || playerIds.length === 0) {
     return res.status(200).json([]);
   }
 
   const statsArray = await Promise.all(
-    playerIds.map(id => redis.get(rankedStatsKey(id, platform)))
+    playerIds.map(id => redis.get(statsKeyFn(id, platform)))
   );
 
   const leaderboard = statsArray

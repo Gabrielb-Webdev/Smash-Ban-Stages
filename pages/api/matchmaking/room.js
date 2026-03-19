@@ -1,6 +1,6 @@
 // API de salas para matchmaking Host/Join — Upstash Redis
 
-import redis, { mmMatchKey, mmQueueKey } from '../../../lib/redis';
+import redis, { mmMatchKey, mmQueueKey, mmQueueDoublesKey } from '../../../lib/redis';
 
 const ROOM_TTL_MS = 30 * 60 * 1000; // 30 min
 const ACCEPT_MS   = 15 * 1000;       // 15s para aceptar
@@ -35,8 +35,16 @@ async function getUserRoom(userId) {
 
 async function cleanupRoom(code, room) {
   await redis.del(roomKey(code));
-  if (room?.host?.userId)  await redis.del(userRoomKey(room.host.userId));
-  if (room?.guest?.userId) await redis.del(userRoomKey(room.guest.userId));
+  if (room?.mode === '2v2') {
+    // Limpiar 4 jugadores en 2v2
+    for (const team of [room.team1, room.team2]) {
+      if (team?.player1?.userId) await redis.del(userRoomKey(team.player1.userId));
+      if (team?.player2?.userId) await redis.del(userRoomKey(team.player2.userId));
+    }
+  } else {
+    if (room?.host?.userId)  await redis.del(userRoomKey(room.host.userId));
+    if (room?.guest?.userId) await redis.del(userRoomKey(room.guest.userId));
+  }
 }
 
 export default async function handler(req, res) {
@@ -58,6 +66,11 @@ export default async function handler(req, res) {
         const queue = (await redis.get(mmQueueKey(plat))) || [];
         if (queue.find(e => e.userId === cleanId)) {
           return res.status(200).json({ status: 'searching', platform: plat });
+        }
+        // También verificar cola de 2v2
+        const queue2v2 = (await redis.get(mmQueueDoublesKey(plat))) || [];
+        if (queue2v2.find(e => e.player1.userId === cleanId || e.player2.userId === cleanId)) {
+          return res.status(200).json({ status: 'searching', platform: plat, mode: '2v2' });
         }
       }
       return res.status(200).json({ status: 'idle' });
@@ -196,27 +209,56 @@ export default async function handler(req, res) {
         room.acceptedBy.push(cleanUserId);
       }
 
-      const bothAccepted =
-        room.host?.userId  && room.acceptedBy.includes(room.host.userId) &&
-        room.guest?.userId && room.acceptedBy.includes(room.guest.userId);
+      // Determinar si es 2v2 o 1v1
+      const is2v2 = room.mode === '2v2';
+      let allAccepted = false;
 
-      if (bothAccepted) {
+      if (is2v2) {
+        const allPlayerIds = [
+          room.team1.player1.userId, room.team1.player2.userId,
+          room.team2.player1.userId, room.team2.player2.userId,
+        ];
+        allAccepted = allPlayerIds.every(id => room.acceptedBy.includes(id));
+      } else {
+        allAccepted =
+          room.host?.userId  && room.acceptedBy.includes(room.host.userId) &&
+          room.guest?.userId && room.acceptedBy.includes(room.guest.userId);
+      }
+
+      if (allAccepted) {
         room.status = 'active';
         room.stage  = STAGES[Math.floor(Math.random() * STAGES.length)];
 
-        // Crear registro de match compatible con result.js
-        const matchRecord = {
-          id:       room.matchId,
-          platform: room.platform,
-          stage:    room.stage,
-          player1:  { userId: room.host.userId,  userName: room.host.userName,  charId: room.host.charId  || null },
-          player2:  { userId: room.guest.userId, userName: room.guest.userName, charId: room.guest.charId || null },
-          status:   'active',
-          reports:  [],
-          result:   null,
-          createdAt: new Date().toISOString(),
-        };
-        await redis.set(mmMatchKey(room.matchId), matchRecord);
+        if (is2v2) {
+          // Crear registro de match 2v2
+          const matchRecord = {
+            id:       room.matchId,
+            platform: room.platform,
+            mode:     '2v2',
+            stage:    room.stage,
+            team1:    room.team1,
+            team2:    room.team2,
+            status:   'active',
+            reports:  [],
+            result:   null,
+            createdAt: new Date().toISOString(),
+          };
+          await redis.set(mmMatchKey(room.matchId), matchRecord);
+        } else {
+          // Crear registro de match 1v1
+          const matchRecord = {
+            id:       room.matchId,
+            platform: room.platform,
+            stage:    room.stage,
+            player1:  { userId: room.host.userId,  userName: room.host.userName,  charId: room.host.charId  || null },
+            player2:  { userId: room.guest.userId, userName: room.guest.userName, charId: room.guest.charId || null },
+            status:   'active',
+            reports:  [],
+            result:   null,
+            createdAt: new Date().toISOString(),
+          };
+          await redis.set(mmMatchKey(room.matchId), matchRecord);
+        }
 
         const MATCH_LIST_KEY = 'mm:matches:index';
         const index = (await redis.get(MATCH_LIST_KEY)) || [];
