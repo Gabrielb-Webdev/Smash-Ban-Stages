@@ -1119,14 +1119,19 @@ function TabPerfil({ user }) {
         body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName }),
       });
       const data = await r.json();
-      if (data.autoAccepted) {
-        setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]);
-        setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId));
-        setSentRequests(prev => prev.filter(s => s.toId !== friendId));
-      } else if (data.requestSent) {
-        setSentRequests(prev => [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]);
+      if (r.ok) {
+        if (data.autoAccepted) {
+          setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]);
+          setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId));
+          setSentRequests(prev => prev.filter(s => s.toId !== friendId));
+        } else if (data.requestSent) {
+          setSentRequests(prev => [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]);
+        }
+        setFriendSearch(''); setFriendResults([]);
+      } else if (r.status === 409) {
+        // Already sent or already friends — sync sentRequests state
+        setSentRequests(prev => prev.some(s => s.toId === friendId) ? prev : [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]);
       }
-      if (r.ok) { setFriendSearch(''); setFriendResults([]); }
     } catch {}
     setFriendAdding(null);
   };
@@ -2390,7 +2395,7 @@ function TabRankings({ user }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {charBoard.map((p, i) => {
                     const medals = ['🥇','🥈','🥉'];
-                    const winRate = Math.round((p.winRate ?? 0) * 100);
+                    const winRate = Math.round(p.winRate ?? 0);
                     return (
                       <div key={p.userId} style={{
                         background: i < 3 ? `rgba(255,255,255,0.04)` : '#10101A',
