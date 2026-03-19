@@ -54,34 +54,36 @@ function processSets(allSets, playerId) {
   const charCounts = {};
   const charWins = {};
   const tournamentNames = new Set();
+  const pid = String(playerId);
 
   for (const set of allSets) {
     if (!set.slots || set.slots.length < 2) continue;
-    // Filtrar solo sets de SSBU (videogame id 1386)
+    // Filtro estricto: solo sets de SSBU (videogame id 1386)
     const vgId = set.event?.videogame?.id;
-    if (vgId && vgId !== SSBU_GAME_ID) continue;
+    if (!vgId || vgId !== SSBU_GAME_ID) continue;
 
     const mySlot = set.slots.find(s =>
-      s.entrant?.participants?.some(p => p.player?.id === playerId)
+      s.entrant?.participants?.some(p => String(p.player?.id) === pid)
     );
     const myEntrantId = mySlot?.entrant?.id;
     if (!myEntrantId) continue;
+    const eid = String(myEntrantId);
 
-    if (set.winnerId === myEntrantId) totalWins++;
-    else totalLosses++;
+    if (set.winnerId != null && String(set.winnerId) === eid) totalWins++;
+    else if (set.winnerId != null) totalLosses++;
 
     if (set.event?.tournament?.name) tournamentNames.add(set.event.tournament.name);
 
     if (set.games) {
       for (const game of set.games) {
-        if (!game.selections) continue;
+        if (!game.selections || !game.winnerId) continue;
         const mySel = game.selections.find(s =>
-          s.entrant?.id === myEntrantId && s.selectionType === 'CHARACTER'
+          String(s.entrant?.id) === eid && s.selectionType === 'CHARACTER'
         );
         if (mySel?.selectionValue) {
           const cid = mySel.selectionValue;
           charCounts[cid] = (charCounts[cid] || 0) + 1;
-          if (game.winnerId === myEntrantId) charWins[cid] = (charWins[cid] || 0) + 1;
+          if (String(game.winnerId) === eid) charWins[cid] = (charWins[cid] || 0) + 1;
         }
       }
     }
@@ -121,7 +123,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v2:${slug}`;
+  const cacheKey = `startgg:stats:v3:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
