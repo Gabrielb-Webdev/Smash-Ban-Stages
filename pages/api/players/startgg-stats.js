@@ -51,6 +51,7 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
           slots {
             entrant {
               id
+              name
               participants { player { id } }
             }
           }
@@ -65,7 +66,7 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
           event {
             videogame { id }
             slug
-            tournament { name slug }
+            tournament { name }
           }
         }
       }
@@ -86,6 +87,7 @@ query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
           slots {
             entrant {
               id
+              name
               participants { player { id } }
             }
           }
@@ -100,7 +102,7 @@ query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
           event {
             videogame { id }
             slug
-            tournament { name slug }
+            tournament { name }
           }
         }
       }
@@ -130,6 +132,8 @@ function processSets(allSets, playerId) {
   let setsProcessed = 0;
   let gamesWithSelections = 0;
   let gamesWithoutSelections = 0;
+  let matchedByDirectId = 0;
+  let matchedByExclusion = 0;
   for (const set of allSets) {
     if (!set.slots || set.slots.length < 2) { skippedNoSlots++; continue; }
     const vgId = set.event?.videogame?.id;
@@ -147,6 +151,11 @@ function processSets(allSets, playerId) {
     setsProcessed++;
     const eid = String(myEntrantId);
 
+    // Get opponent info for exclusion-based matching
+    const opponentSlot = set.slots.find(s => s !== mySlot);
+    const opponentEntrantId = opponentSlot?.entrant?.id;
+    const oeid = opponentEntrantId ? String(opponentEntrantId) : null;
+
     const isWin = set.winnerId != null && String(set.winnerId) === eid;
     if (set.winnerId != null) {
       if (isWin) totalWins++;
@@ -156,12 +165,11 @@ function processSets(allSets, playerId) {
     const tName = set.event?.tournament?.name;
     if (tName) tournamentNames.add(tName);
 
-    // Build set link
-    const tSlug = set.event?.tournament?.slug;
+    // Build set link using event.slug (already contains full path)
     const eSlug = set.event?.slug;
     const setId = set.id;
-    const setLink = (tSlug && eSlug && setId)
-      ? `https://www.start.gg/tournament/${tSlug}/event/${eSlug}/set/${setId}`
+    const setLink = (eSlug && setId)
+      ? `https://www.start.gg/${eSlug}/set/${setId}`
       : null;
 
     if (set.games) {
@@ -170,10 +178,23 @@ function processSets(allSets, playerId) {
 
         const allCharSels = game.selections.filter(s => s.selectionType === 'CHARACTER');
 
-        // Match by entrant ID (consistent within a set between slots and selections)
-        const mySel = allCharSels.find(s => String(s.entrant?.id) === eid);
+        // Strategy 1: Direct entrant ID match
+        let mySel = allCharSels.find(s => String(s.entrant?.id) === eid);
+        let matchMethod = 'direct';
+
+        // Strategy 2: Exclusion — if direct match fails, take the selection
+        // that is NOT the opponent's (works when entrant IDs differ between slots & selections)
+        if (!mySel && oeid && allCharSels.length >= 2) {
+          const notOpponent = allCharSels.filter(s => String(s.entrant?.id) !== oeid);
+          if (notOpponent.length === 1) {
+            mySel = notOpponent[0];
+            matchMethod = 'exclusion';
+          }
+        }
 
         if (mySel?.selectionValue) {
+          if (matchMethod === 'direct') matchedByDirectId++;
+          else matchedByExclusion++;
           gamesWithSelections++;
           const cid = mySel.selectionValue;
           charCounts[cid] = (charCounts[cid] || 0) + 1;
@@ -181,7 +202,18 @@ function processSets(allSets, playerId) {
           // Record evidence (max 5 per char)
           if (!charEvidence[cid]) charEvidence[cid] = [];
           if (charEvidence[cid].length < 5) {
-            charEvidence[cid].push({ tournament: tName || '?', setLink });
+            // Find opponent's character in same game
+            const opponentSel = allCharSels.find(s => s !== mySel && s.selectionType === 'CHARACTER');
+            charEvidence[cid].push({
+              tournament: tName || '?',
+              setLink,
+              matchMethod,
+              myEntrant: { id: myEntrantId, name: mySlot?.entrant?.name },
+              selectionEntrantId: mySel.entrant?.id,
+              opponentEntrant: { id: opponentEntrantId, name: opponentSlot?.entrant?.name },
+              opponentCharId: opponentSel?.selectionValue,
+              opponentCharName: STARTGG_CHAR_MAP[opponentSel?.selectionValue] || null,
+            });
           }
         } else {
           gamesWithoutSelections++;
@@ -212,6 +244,8 @@ function processSets(allSets, playerId) {
       setsProcessed,
       gamesWithSelections,
       gamesWithoutSelections,
+      matchedByDirectId,
+      matchedByExclusion,
     },
     totalSets: setsProcessed,
     wins: totalWins,
@@ -236,7 +270,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v11:${slug}`;
+  const cacheKey = `startgg:stats:v12:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
