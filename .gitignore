@@ -32,6 +32,8 @@ yarn-error.log*
 
 # Firebase (solo ignorar el de raíz, el de mobile-app debe commitearse)
 /google-services.json
+# Firebase Admin SDK keys (NUNCA subir al repo)
+afk-smash-firebase-adminsdk-*.json
 
 # TypeScript
 *.tsbuildinfo
