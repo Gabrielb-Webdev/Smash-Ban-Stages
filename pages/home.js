@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, STARTGG_CHAR_MAP } from '../lib/characters';
+import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath } from '../lib/characters';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1464,7 +1464,7 @@ function TabPerfil({ user }) {
             </div>
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
               {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 5).map((ch, i) => {
-                const localId = STARTGG_CHAR_MAP[ch.startggCharId];
+                const localId = ch.localCharId;
                 const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
                 const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
                 const isTop = i === 0;
@@ -1485,7 +1485,7 @@ function TabPerfil({ user }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                         <p style={{ margin: 0, fontSize: isTop ? 13 : 11, fontWeight: 700, color: isTop ? '#fff' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {charObj?.name || localId || `#${ch.startggCharId}`}
+                          {charObj?.name || ch.charName || `#${ch.startggCharId}`}
                         </p>
                         <p style={{ margin: 0, fontSize: isTop ? 15 : 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
                       </div>

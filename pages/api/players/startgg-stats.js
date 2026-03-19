@@ -4,11 +4,51 @@
 // Cachea resultados en Redis por 1 hora
 
 import redis from '../../../lib/redis';
-import { STARTGG_CHAR_MAP } from '../../../lib/characters';
+import { findLocalCharId } from '../../../lib/characters';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const SSBU_GAME_ID = 1386;
 const CACHE_TTL = 3600; // 1 hora
+const CHAR_CACHE_TTL = 86400; // 24 horas para el mapa de personajes
+
+// Query para obtener personajes del videojuego desde Start.GG
+const CHARACTERS_QUERY = `
+query VideoGameCharacters($gameId: ID!) {
+  videogame(id: $gameId) {
+    characters {
+      id
+      name
+    }
+  }
+}
+`;
+
+/** Obtiene el mapa charId → nombre desde Start.GG API (cacheado 24h en Redis) */
+async function fetchStartggCharMap(authHeader) {
+  const cacheKey = 'startgg:charmap:ssbu';
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return typeof cached === 'string' ? JSON.parse(cached) : cached;
+  } catch { /* continuar sin cache */ }
+
+  const resp = await fetch(STARTGG_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+    body: JSON.stringify({ query: CHARACTERS_QUERY, variables: { gameId: SSBU_GAME_ID } }),
+  });
+
+  if (!resp.ok) return {};
+  const data = await resp.json();
+  if (data.errors || !data.data?.videogame?.characters) return {};
+
+  const charMap = {};
+  for (const c of data.data.videogame.characters) {
+    charMap[c.id] = c.name;
+  }
+
+  try { await redis.set(cacheKey, JSON.stringify(charMap), { ex: CHAR_CACHE_TTL }); } catch { /* silent */ }
+  return charMap;
+}
 
 // Query completa (primera página): incluye perfil del jugador
 const SETS_QUERY = `
@@ -115,7 +155,7 @@ function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
 }
 
-function processSets(allSets, playerId) {
+function processSets(allSets, playerId, startggCharMap = {}) {
   let totalWins = 0;
   let totalLosses = 0;
   const charCounts = {};
@@ -212,7 +252,7 @@ function processSets(allSets, playerId) {
               selectionEntrantId: mySel.entrant?.id,
               opponentEntrant: { id: opponentEntrantId, name: opponentSlot?.entrant?.name },
               opponentCharId: opponentSel?.selectionValue,
-              opponentCharName: STARTGG_CHAR_MAP[opponentSel?.selectionValue] || null,
+              opponentCharName: startggCharMap[opponentSel?.selectionValue] || null,
             });
           }
         } else {
@@ -226,7 +266,8 @@ function processSets(allSets, playerId) {
   const charUsage = Object.entries(charCounts)
     .map(([charId, count]) => ({
       startggCharId: Number(charId),
-      charName: STARTGG_CHAR_MAP[Number(charId)] || `unknown-${charId}`,
+      charName: startggCharMap[Number(charId)] || `unknown-${charId}`,
+      localCharId: findLocalCharId(startggCharMap[Number(charId)]) || null,
       games: count,
       wins: charWins[charId] || 0,
       usage: totalGames > 0 ? Math.round(count * 100 / totalGames) : 0,
@@ -270,7 +311,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v12:${slug}`;
+  const cacheKey = `startgg:stats:v13:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -373,7 +414,8 @@ export default async function handler(req, res) {
       }
     }
 
-    const result = processSets(allSets, playerId);
+    const startggCharMap = await fetchStartggCharMap(auth);
+    const result = processSets(allSets, playerId, startggCharMap);
     result.gamerTag = gamerTag;
     result.playerId = playerId;
     result.profile = profile;
