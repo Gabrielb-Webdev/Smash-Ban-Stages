@@ -498,33 +498,48 @@ export default function App() {
     </Modal>
   );
 
-  // Botón de perfil flotante (sobre WebViews)
-  var FloatingProfileBtn = (
-    <View style={[styles.floatingHeader, { top: SB + 8 }]}>
-      {/* Campana */}
+  // Header nativo (imita el diseño del header web)
+  var NativeHeader = (
+    <View style={styles.nativeAppHeader}>
+      {/* Izquierda: Avatar del usuario */}
       <TouchableOpacity
-        style={styles.floatingBellBtn}
+        style={styles.headerLeft}
+        onPress={function () { setDropdownOpen(true); }}
+        activeOpacity={0.75}
+      >
+        <View style={styles.headerAvatarWrap}>
+          {user.avatar
+            ? <Image source={{ uri: user.avatar }} style={styles.headerAvatar} />
+            : <View style={[styles.headerAvatar, styles.headerAvatarFallback]}>
+                <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
+              </View>
+          }
+          {updateInfo && <View style={styles.headerUpdateDot} />}
+        </View>
+      </TouchableOpacity>
+
+      {/* Centro: Logo AFK SMASH */}
+      <View style={styles.headerCenter}>
+        <View style={styles.headerLogoBox}>
+          <Text style={{ fontSize: 16 }}>🎮</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+          <Text style={styles.headerLogoAfk}>AFK</Text>
+          <Text style={styles.headerLogoSmash}> SMASH</Text>
+        </View>
+      </View>
+
+      {/* Derecha: Campana */}
+      <TouchableOpacity
+        style={styles.headerRight}
+        activeOpacity={0.7}
         onPress={function () {
           if (webViewRef.current) {
             webViewRef.current.injectJavaScript("var b=document.getElementById('app-bell-btn');if(b)b.click();true;");
           }
         }}
       >
-        <Text style={{ fontSize: 18 }}>🔔</Text>
-      </TouchableOpacity>
-      {/* Perfil */}
-      <TouchableOpacity
-        style={styles.floatingProfileBtn}
-        onPress={function () { setDropdownOpen(true); }}
-      >
-        {user.avatar
-          ? <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          : <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitial}>{user.name ? user.name[0].toUpperCase() : '?'}</Text>
-            </View>
-        }
-        {updateInfo && <View style={styles.profileUpdateDot} />}
-        <Text style={styles.chevron}>▾</Text>
+        <Text style={{ fontSize: 20, color: 'rgba(255,255,255,0.5)' }}>🔔</Text>
       </TouchableOpacity>
     </View>
   );
@@ -551,6 +566,7 @@ export default function App() {
       {SettingsModal}
       {/* Spacer sólido del alto de la barra de estado */}
       <View style={{ height: SB, backgroundColor: '#0a0a0a' }} />
+      {NativeHeader}
       <WebView
         key={webKey}
         ref={webViewRef}
@@ -570,7 +586,6 @@ export default function App() {
           }
         }}
       />
-      {FloatingProfileBtn}
     </View>
   );
 }
@@ -617,30 +632,35 @@ var styles = StyleSheet.create({
     paddingVertical: 5, paddingHorizontal: 10,
     borderWidth: 1, borderColor: '#333',
   },
-  floatingHeader: {
-    position: 'absolute', right: 12, zIndex: 100, flexDirection: 'row', alignItems: 'center', gap: 8,
+  // Header nativo (replica el diseño del header web)
+  nativeAppHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: '#0a0a12',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  floatingBellBtn: {
-    backgroundColor: 'rgba(17,17,17,0.85)', borderRadius: 20,
-    paddingVertical: 7, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: 'rgba(80,80,80,0.6)',
-    alignItems: 'center', justifyContent: 'center',
+  headerLeft: { flex: 1, alignItems: 'flex-start' },
+  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerRight: { flex: 1, alignItems: 'flex-end', padding: 5 },
+  headerAvatarWrap: { position: 'relative' },
+  headerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(232,142,0,0.35)' },
+  headerAvatarFallback: {
+    backgroundColor: 'rgba(232,142,0,0.18)', alignItems: 'center', justifyContent: 'center',
   },
-  // Floating profile button (over WebView)
-  floatingProfileBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(17,17,17,0.85)', borderRadius: 20,
-    paddingVertical: 5, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: 'rgba(80,80,80,0.6)',
+  headerUpdateDot: {
+    position: 'absolute', top: -2, right: -2,
+    width: 10, height: 10, borderRadius: 5, backgroundColor: '#E88E00',
+    borderWidth: 2, borderColor: '#0a0a0a',
   },
-  avatar: { width: 28, height: 28, borderRadius: 14 },
+  headerLogoBox: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: '#FF8C00', alignItems: 'center', justifyContent: 'center',
+  },
+  headerLogoAfk: { fontSize: 16, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  headerLogoSmash: { fontSize: 16, fontWeight: '300', color: 'rgba(232,142,0,0.7)', letterSpacing: 1.5 },
+  // Shared (usado en dropdown y settings)
   avatarFallback: { backgroundColor: '#333', alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  chevron: { color: '#aaa', fontSize: 11 },
-  profileUpdateDot: {
-    position: 'absolute', top: 2, right: 24,
-    width: 8, height: 8, borderRadius: 4, backgroundColor: '#E88E00',
-  },
   // Dropdown
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   dropdown: {
