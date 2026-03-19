@@ -1444,7 +1444,7 @@ function TabPerfil({ user }) {
               <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
-              {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 5).map((ch, i) => {
+              {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 3).map((ch, i) => {
                 const localId = ch.localCharId;
                 const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
                 const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
@@ -1453,7 +1453,7 @@ function TabPerfil({ user }) {
                 const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
                 const barColor = barColors[i % barColors.length] || '#F5C518';
                 return (
-                  <div key={ch.startggCharId} onClick={() => setSelectedChar(ch.startggCharId)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}>
+                  <div key={ch.startggCharId} onClick={() => setSelectedChar(ch.startggCharId)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 3) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}>
                     {renderFile ? (
                       <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
                     ) : charObj ? (
@@ -1487,7 +1487,7 @@ function TabPerfil({ user }) {
               return ch ? <CharacterDetail ch={ch} onClose={() => setSelectedChar(null)} /> : null;
             })()}
 
-            {startggStats.charUsage.length > 5 && (
+            {startggStats.charUsage.length > 3 && (
               <button onClick={() => setShowAllChars(!showAllChars)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 {showAllChars ? 'Ver menos' : `Ver todos (${startggStats.charUsage.length})`}
               </button>
@@ -1511,6 +1511,59 @@ function TabPerfil({ user }) {
                 <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Torneos</p>
               </div>
             </div>
+
+            {/* Stages */}
+            {startggStats.stageUsage && startggStats.stageUsage.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 8px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#818CF8,#6366F1)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Stages</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {startggStats.stageUsage.slice(0, 3).map((st, idx) => (
+                    <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden' }}>
+                      {st.image && <img src={st.image} alt="" style={{ width: '100%', height: 55, objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />}
+                      {!st.image && <div style={{ width: '100%', height: 55, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)' }}>{st.name}</span></div>}
+                      <div style={{ padding: '5px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)' }}>#{idx + 1}</span>
+                        <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{st.usage}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Highlights */}
+            {startggStats.highlights && startggStats.highlights.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 8px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F97316,#EA580C)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Highlights</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  {startggStats.highlights.slice(0, 9).map((h, hi) => {
+                    const isTop3 = h.placement <= 3;
+                    const placementColor = h.placement === 1 ? '#F5C518' : h.placement === 2 ? '#C0C0C0' : h.placement === 3 ? '#CD7F32' : '#fff';
+                    return (
+                      <div key={hi} onClick={() => h.eventSlug && window.open(h.eventSlug, '_blank')} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isTop3 ? 'rgba(245,197,24,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px', cursor: h.eventSlug ? 'pointer' : 'default', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                          {h.tournamentImage && <img src={h.tournamentImage} alt="" style={{ width: 22, height: 22, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />}
+                          <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{h.tournament}</p>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: placementColor }}>
+                          {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'ST' : h.placement === 2 ? 'ND' : h.placement === 3 ? 'RD' : 'TH'}</sup>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>/{h.entrants}</span>
+                        </p>
+                        <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
+                          {h.date ? new Date(h.date).toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' }) : ''}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 

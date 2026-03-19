@@ -11,6 +11,33 @@ const SSBU_GAME_ID = 1386;
 const CACHE_TTL = 3600; // 1 hora
 const CHAR_CACHE_TTL = 86400; // 24 horas para el mapa de personajes
 
+// Mapa de stage IDs de Start.GG para SSBU (competitivos + populares)
+const STAGE_MAP = {
+  2: 'Battlefield', 3: 'Final Destination', 31: 'Pokemon Stadium 2',
+  32: 'Smashville', 34: 'Town and City', 49: 'Kalos Pokemon League',
+  50: 'Small Battlefield', 70: 'Hollow Bastion',
+  // Otros stages conocidos
+  1: 'Peach\'s Castle', 5: 'Kongo Jungle', 6: 'Hyrule Castle',
+  7: 'Super Happy Tree', 8: 'Dream Land', 9: 'Saffron City',
+  10: 'Mushroom Kingdom', 12: 'Princess Peach\'s Castle', 13: 'Rainbow Cruise',
+  14: 'Kongo Falls', 18: 'Fountain of Dreams', 19: 'Pokemon Stadium',
+  25: 'Yoshi\'s Story', 26: 'Yoshi\'s Island', 29: 'Lylat Cruise',
+  33: 'Unova Pokemon League', 36: 'Midgar', 37: 'Umbra Clock Tower',
+  51: 'Northern Cave',
+};
+
+// Imagen local para stages competitivos
+const STAGE_IMAGES = {
+  'Battlefield': '/images/stages/Battlefield.png',
+  'Final Destination': '/images/stages/Final Destination.png',
+  'Pokemon Stadium 2': '/images/stages/Pokemon Stadium 2.png',
+  'Smashville': '/images/stages/Smashville.png',
+  'Town and City': '/images/stages/Town and City.png',
+  'Kalos Pokemon League': '/images/stages/Kalos.png',
+  'Small Battlefield': '/images/stages/Small Battlefield.png',
+  'Hollow Bastion': '/images/stages/Hollow Bastion.png',
+};
+
 // Query para obtener personajes del videojuego desde Start.GG
 const CHARACTERS_QUERY = `
 query VideoGameCharacters($gameId: ID!) {
@@ -118,6 +145,33 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
 }
 `;
 
+// Query para highlights de torneos
+const EVENTS_QUERY = `
+query PlayerEvents($slug: String!, $evPage: Int!, $evPerPage: Int!) {
+  user(slug: $slug) {
+    events(query: { page: $evPage, perPage: $evPerPage, filter: { videogameId: [1386] } }) {
+      nodes {
+        name
+        numEntrants
+        startAt
+        slug
+        userEntrant {
+          standing {
+            placement
+          }
+        }
+        tournament {
+          name
+          images { url type }
+          countryCode
+          city
+        }
+      }
+    }
+  }
+}
+`;
+
 // Query ligera (páginas extra): solo sets, sin profile
 const SETS_ONLY_QUERY = `
 query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
@@ -166,12 +220,14 @@ function processSets(allSets, playerId, startggCharMap = {}) {
   let totalLosses = 0;
   const charCounts = {};
   const charWins = {};
-  const charSetIds = {}; // charId → Set of set IDs where this char was used
-  const charSetWins = {}; // charId → Set of set IDs won with this char
-  const charSetMatches = {}; // charId → { setId → { setInfo, games: [] } }
-  const charVsChars = {}; // charId → { oppCharId → { games, wins, sets: Set, setWins: Set } }
-  const charVsPlayers = {}; // charId → { oppName → { games, wins, sets: Set, setWins: Set } }
+  const charSetIds = {};
+  const charSetWins = {};
+  const charSetMatches = {};
+  const charVsChars = {};
+  const charVsPlayers = {};
   const tournamentNames = new Set();
+  const stageCounts = {}; // stageId → { games, wins }
+  const tournamentSets = {}; // tournamentName → { wins, losses, events: Set<eventSlug> }
   const pid = String(playerId);
 
   let setsProcessed = 0;
@@ -206,7 +262,13 @@ function processSets(allSets, playerId, startggCharMap = {}) {
     }
 
     const tName = set.event?.tournament?.name;
-    if (tName) tournamentNames.add(tName);
+    if (tName) {
+      tournamentNames.add(tName);
+      if (!tournamentSets[tName]) tournamentSets[tName] = { wins: 0, losses: 0, events: new Set() };
+      if (isWin) tournamentSets[tName].wins++;
+      else if (set.winnerId != null) tournamentSets[tName].losses++;
+      if (set.event?.slug) tournamentSets[tName].events.add(set.event.slug);
+    }
 
     // Build set link using event.slug (already contains full path)
     const eSlug = set.event?.slug;
@@ -233,6 +295,15 @@ function processSets(allSets, playerId, startggCharMap = {}) {
             mySel = notOpponent[0];
             matchMethod = 'exclusion';
           }
+        }
+
+        // Collect stage selections
+        const stageSel = game.selections.find(s => s.selectionType === 'STAGE');
+        if (stageSel?.selectionValue) {
+          const stId = stageSel.selectionValue;
+          if (!stageCounts[stId]) stageCounts[stId] = { games: 0, wins: 0 };
+          stageCounts[stId].games++;
+          if (String(game.winnerId) === eid) stageCounts[stId].wins++;
         }
 
         if (mySel?.selectionValue) {
@@ -352,6 +423,19 @@ function processSets(allSets, playerId, startggCharMap = {}) {
     })
     .sort((a, b) => b.games - a.games);
 
+  // Build stage usage (sorted by games desc)
+  const stageUsage = Object.entries(stageCounts)
+    .map(([stId, d]) => ({
+      stageId: Number(stId),
+      name: STAGE_MAP[Number(stId)] || `Stage ${stId}`,
+      image: STAGE_IMAGES[STAGE_MAP[Number(stId)]] || null,
+      games: d.games,
+      wins: d.wins,
+      usage: totalGames > 0 ? Math.round(d.games * 100 / totalGames) : 0,
+    }))
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 8);
+
   return {
     totalSets: setsProcessed,
     wins: totalWins,
@@ -359,6 +443,7 @@ function processSets(allSets, playerId, startggCharMap = {}) {
     winRate: (totalWins + totalLosses) > 0 ? Math.round(totalWins * 100 / (totalWins + totalLosses)) : 0,
     tournaments: tournamentNames.size,
     charUsage,
+    stageUsage,
     totalGamesWithChars: totalGames,
   };
 }
@@ -376,7 +461,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v15:${slug}`;
+  const cacheKey = `startgg:stats:v16:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -480,10 +565,45 @@ export default async function handler(req, res) {
     }
 
     const startggCharMap = await fetchStartggCharMap(auth);
+
+    // Fetch events/highlights en paralelo con charMap
+    let highlights = [];
+    try {
+      const evResp = await fetch(STARTGG_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': auth },
+        body: JSON.stringify({
+          query: EVENTS_QUERY,
+          variables: { slug, evPage: 1, evPerPage: 16 },
+        }),
+      });
+      if (evResp.ok) {
+        const evData = await evResp.json();
+        const events = evData.data?.user?.events?.nodes || [];
+        highlights = events
+          .filter(e => e.userEntrant?.standing?.placement)
+          .map(e => {
+            const tImg = e.tournament?.images?.find(i => i.type === 'profile') || e.tournament?.images?.[0];
+            return {
+              event: e.name,
+              tournament: e.tournament?.name || e.name,
+              placement: e.userEntrant.standing.placement,
+              entrants: e.numEntrants || 0,
+              date: e.startAt ? new Date(e.startAt * 1000).toISOString().slice(0, 10) : null,
+              eventSlug: e.slug ? `https://www.start.gg/${e.slug}` : null,
+              tournamentImage: tImg?.url || null,
+              country: e.tournament?.countryCode || null,
+            };
+          })
+          .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      }
+    } catch { /* silent */ }
+
     const result = processSets(allSets, playerId, startggCharMap);
     result.gamerTag = gamerTag;
     result.playerId = playerId;
     result.profile = profile;
+    result.highlights = highlights;
 
     // Cachear resultado
     try {

@@ -18,6 +18,12 @@ function timeAgo(iso) {
   return `hace ${d}d`;
 }
 
+function countryFlag(countryCode) {
+  if (!countryCode || countryCode.length !== 2) return '';
+  const cc = countryCode.toUpperCase();
+  return String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser]           = useState(null);
@@ -142,7 +148,18 @@ export default function ProfilePage() {
             <div style={{ height: 120 }} />
           )}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
-          <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
+          <p style={{ margin: 0, padding: '8px 18px 4px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
+          {startggStats?.profile?.location && (() => {
+            const loc = startggStats.profile.location;
+            const flag = countryFlag(loc.countryId);
+            const parts = [loc.state, loc.country].filter(Boolean);
+            return parts.length > 0 ? (
+              <p style={{ margin: '4px 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', position: 'relative', zIndex: 3 }}>
+                {flag && <span style={{ fontSize: 14, marginRight: 5 }}>{flag}</span>}
+                {parts.join(', ')}
+              </p>
+            ) : null;
+          })()}
         </div>
 
         {/* Tab bar */}
@@ -220,7 +237,7 @@ export default function ProfilePage() {
                     <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
-                    {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 5).map((ch, i) => {
+                    {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 3).map((ch, i) => {
                       const localId = ch.localCharId;
                       const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
                       const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
@@ -262,7 +279,7 @@ export default function ProfilePage() {
                     const ch = startggStats.charUsage.find(c => c.startggCharId === selectedChar);
                     return ch ? <CharacterDetail ch={ch} onClose={() => setSelectedChar(null)} /> : null;
                   })()}
-                  {startggStats.charUsage.length > 5 && (
+                  {startggStats.charUsage.length > 3 && (
                     <button onClick={() => setShowAllChars(!showAllChars)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                       {showAllChars ? 'Ver menos' : `Ver todos (${startggStats.charUsage.length})`}
                     </button>
@@ -286,6 +303,73 @@ export default function ProfilePage() {
                       <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Torneos</p>
                     </div>
                   </div>
+
+                  {/* Stages */}
+                  {startggStats.stageUsage && startggStats.stageUsage.length > 0 && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#818CF8,#6366F1)', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Stages</p>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                        {startggStats.stageUsage.slice(0, 3).map((st, i) => (
+                          <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                            {st.image && <img src={st.image} alt="" style={{ width: '100%', height: 60, objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />}
+                            {!st.image && <div style={{ width: '100%', height: 60, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{st.name}</span></div>}
+                            <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)' }}>#{i + 1}</span>
+                              <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{st.usage}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {startggStats.stageUsage.length > 3 && (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                          {startggStats.stageUsage.slice(3, 8).map(st => {
+                            const wrPct = st.games > 0 ? Math.round(st.wins * 100 / st.games) : 0;
+                            return (
+                              <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{st.name}</span>
+                                <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>{st.usage}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Highlights */}
+                  {startggStats.highlights && startggStats.highlights.length > 0 && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F97316,#EA580C)', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Highlights</p>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                        {startggStats.highlights.slice(0, 12).map((h, i) => {
+                          const isTop3 = h.placement <= 3;
+                          const placementColor = h.placement === 1 ? '#F5C518' : h.placement === 2 ? '#C0C0C0' : h.placement === 3 ? '#CD7F32' : '#fff';
+                          return (
+                            <div key={i} onClick={() => h.eventSlug && window.open(h.eventSlug, '_blank')} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isTop3 ? 'rgba(245,197,24,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px', cursor: h.eventSlug ? 'pointer' : 'default', overflow: 'hidden' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                {h.tournamentImage && <img src={h.tournamentImage} alt="" style={{ width: 24, height: 24, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />}
+                                <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{h.tournament}</p>
+                              </div>
+                              <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: placementColor }}>
+                                {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'ST' : h.placement === 2 ? 'ND' : h.placement === 3 ? 'RD' : 'TH'}</sup>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>/{h.entrants}</span>
+                              </p>
+                              <p style={{ margin: '3px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
+                                {h.country && <span>{countryFlag(h.country)} </span>}
+                                {h.date ? new Date(h.date).toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' }) : ''}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
