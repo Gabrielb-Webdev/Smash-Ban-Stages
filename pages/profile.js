@@ -99,22 +99,19 @@ export default function ProfilePage() {
         </div>
 
         {/* â”€â”€ Banner / Hero â”€â”€ */}
-        <div style={{ position: 'relative', height: 195, background: '#0B0B12', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
           {heroRender ? (
             <img
               src={charRenderPath(heroRender)}
               alt=""
-              style={{ position: 'absolute', top: 0, right: '5%', height: '100%', objectFit: 'contain', objectPosition: 'right bottom', zIndex: 0, pointerEvents: 'none' }}
+              style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }}
               onError={e => { e.target.style.display = 'none'; }}
             />
-          ) : null}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, #0B0B12 18%, rgba(11,11,18,0.5) 55%, transparent 85%)', zIndex: 1, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 45%)', zIndex: 1, pointerEvents: 'none' }} />
-
-          {/* Nameplate */}
-          <div style={{ position: 'absolute', bottom: 14, left: 18, right: 18, zIndex: 2 }}>
-            <p style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,1)', lineHeight: 1 }}>{displayName}</p>
-          </div>
+          ) : (
+            <div style={{ height: 120 }} />
+          )}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+          <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
         </div>
 
         {/* Player info */}
