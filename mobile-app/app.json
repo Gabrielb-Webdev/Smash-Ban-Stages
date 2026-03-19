@@ -7,21 +7,25 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "backgroundColor": "#0a0a0a",
-    "icon": "./assets/afk-icon.png",
+    "icon": "./assets/afk-favicon.png",
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.afksmash.mobile",
       "versionCode": 14,
       "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES", "RECEIVE_BOOT_COMPLETED", "VIBRATE", "POST_NOTIFICATIONS"],
       "googleServicesFile": "./google-services.json",
-      "adaptiveIcon": { "foregroundImage": "./assets/afk-icon.png", "backgroundColor": "#000000" }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/afk-favicon.png",
+        "monochromeImage": "./assets/afk-favicon.png",
+        "backgroundColor": "transparent"
+      }
     },
     "owner": "gabriel_sin_h",
     "plugins": [
       [
         "expo-notifications",
         {
-          "icon": "./assets/afk-icon.png",
+          "icon": "./assets/afk-favicon.png",
           "color": "#FF8C00",
           "defaultChannel": "default"
         }
