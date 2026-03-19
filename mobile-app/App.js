@@ -20,7 +20,7 @@ Notifications.setNotificationHandler({
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
-var CURRENT_VERSION = '1.1.0';
+var CURRENT_VERSION = '1.2.0';
 var SESSION_KEY = 'afk_session_v2';
 var ADMIN_HOME = BASE_URL + '/';
 var SB = StatusBar.currentHeight || 24;
