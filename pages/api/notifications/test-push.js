@@ -52,7 +52,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
+  const rawSubs = await redis.get(pushSubKey(cleanUserId));
+  const subs = Array.isArray(rawSubs) ? rawSubs : (typeof rawSubs === 'string' ? (() => { try { return JSON.parse(rawSubs); } catch { return []; } })() : []);
 
   const vapidConfigured = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
@@ -60,6 +61,8 @@ export default async function handler(req, res) {
   if (!send) {
     return res.status(200).json({
       userId: cleanUserId,
+      redisKey: pushSubKey(cleanUserId),
+      rawType: rawSubs === null ? 'null' : typeof rawSubs,
       totalSubscriptions: subs.length,
       expoTokens: subs.filter(s => s.type === 'expo').map(s => ({ token: s.token, registeredAt: s.registeredAt })),
       webTokens: subs.filter(s => s.type === 'web').length,
