@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
 import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath } from '../lib/characters';
+import CharacterDetail from '../src/components/CharacterDetail';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1148,6 +1149,7 @@ function TabPerfil({ user }) {
   const [recentChars, setRecentChars] = useState([]);
   const [startggStats, setStartggStats] = useState(null);
   const [showAllChars, setShowAllChars] = useState(false);
+  const [selectedChar, setSelectedChar] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
   const [viewProfile, setViewProfile]   = useState(null); // { userId, userName }
   const [profileData, setProfileData]   = useState(null);
@@ -1472,7 +1474,7 @@ function TabPerfil({ user }) {
                 const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
                 const barColor = barColors[i % barColors.length] || '#F5C518';
                 return (
-                  <div key={ch.startggCharId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent' }}>
+                  <div key={ch.startggCharId} onClick={() => setSelectedChar(selectedChar === ch.startggCharId ? null : ch.startggCharId)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: selectedChar === ch.startggCharId ? 'rgba(245,197,24,0.15)' : isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}>
                     {renderFile ? (
                       <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
                     ) : charObj ? (
@@ -1501,6 +1503,10 @@ function TabPerfil({ user }) {
                 );
               })}
             </div>
+            {selectedChar && (() => {
+              const ch = startggStats.charUsage.find(c => c.startggCharId === selectedChar);
+              return ch ? <CharacterDetail ch={ch} onClose={() => setSelectedChar(null)} /> : null;
+            })()}
             {startggStats.charUsage.length > 5 && (
               <button onClick={() => setShowAllChars(!showAllChars)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 {showAllChars ? 'Ver menos' : `Ver todos (${startggStats.charUsage.length})`}
