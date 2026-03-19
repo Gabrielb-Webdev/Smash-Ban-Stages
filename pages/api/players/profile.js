@@ -1,6 +1,6 @@
 // API para perfiles de jugadores — Upstash Redis
 
-import redis, { playerKey } from '../../../lib/redis';
+import redis, { playerKey, rankedStatsKey, rankedDoubleStatsKey, matchHistoryKey } from '../../../lib/redis';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 200);
@@ -35,10 +35,29 @@ export default async function handler(req, res) {
 
   // ── GET: obtener perfil ───────────────────────────────
   if (req.method === 'GET') {
-    const { id } = req.query;
+    const { id, full } = req.query;
     if (!id) return res.status(400).json({ error: 'id requerido' });
 
-    const profile = await redis.get(playerKey(sanitize(String(id)).slice(0, 80)));
+    const cleanId = sanitize(String(id)).slice(0, 80);
+    const profile = await redis.get(playerKey(cleanId));
+
+    if (full === 'true') {
+      const empty = { wins: 0, losses: 0, rankedPoints: 0, rank: 'Plástico 1' };
+      const [sw1v1, pc1v1, sw2v2, pc2v2, history] = await Promise.all([
+        redis.get(rankedStatsKey(cleanId, 'switch')),
+        redis.get(rankedStatsKey(cleanId, 'parsec')),
+        redis.get(rankedDoubleStatsKey(cleanId, 'switch')),
+        redis.get(rankedDoubleStatsKey(cleanId, 'parsec')),
+        redis.lrange(matchHistoryKey(cleanId), 0, 19),
+      ]);
+      return res.status(200).json({
+        profile: profile || null,
+        stats: { switch: sw1v1 || empty, parsec: pc1v1 || empty },
+        doublesStats: { switch: sw2v2 || empty, parsec: pc2v2 || empty },
+        history: Array.isArray(history) ? history : [],
+      });
+    }
+
     return res.status(200).json(profile || null);
   }
 

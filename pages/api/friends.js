@@ -1,7 +1,7 @@
 // API de amigos — solicitudes, aceptar/rechazar, listar y eliminar
 // Sistema de solicitudes: POST envía solicitud, PUT acepta/rechaza
 
-import redis, { friendsKey, friendRequestsKey, mmQueueKey, rankedStatsKey, notifsKey } from '../../lib/redis';
+import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey } from '../../lib/redis';
 
 const MAX_FRIENDS = 50;
 const QUEUE_TTL_MS = 10 * 60 * 1000;
@@ -40,6 +40,11 @@ export default async function handler(req, res) {
     if (type === 'requests') {
       const requests = (await redis.get(friendRequestsKey(clean))) || [];
       return res.status(200).json(requests);
+    }
+
+    if (type === 'sent') {
+      const sent = (await redis.get(sentRequestsKey(clean))) || [];
+      return res.status(200).json(sent);
     }
 
     const friends = (await redis.get(friendsKey(clean))) || [];
@@ -105,12 +110,22 @@ export default async function handler(req, res) {
         await redis.set(friendsKey(cleanFriendId), theirFriends);
       }
       await redis.set(friendRequestsKey(cleanUserId), myRequests.filter(r => r.fromId !== cleanFriendId));
+      // Limpiar sent de ambos
+      const mySent = (await redis.get(sentRequestsKey(cleanUserId))) || [];
+      await redis.set(sentRequestsKey(cleanUserId), mySent.filter(s => s.toId !== cleanFriendId));
+      const theirSent = (await redis.get(sentRequestsKey(cleanFriendId))) || [];
+      await redis.set(sentRequestsKey(cleanFriendId), theirSent.filter(s => s.toId !== cleanUserId));
       return res.status(200).json({ success: true, autoAccepted: true });
     }
 
     // Crear solicitud
     theirRequests.push({ fromId: cleanUserId, fromName: cleanUserName, sentAt: new Date().toISOString() });
     await redis.set(friendRequestsKey(cleanFriendId), theirRequests.length > 50 ? theirRequests.slice(-50) : theirRequests);
+
+    // Guardar en enviadas del remitente
+    const mySent = (await redis.get(sentRequestsKey(cleanUserId))) || [];
+    mySent.push({ toId: cleanFriendId, toName: cleanFriendName, sentAt: new Date().toISOString() });
+    await redis.set(sentRequestsKey(cleanUserId), mySent.length > 50 ? mySent.slice(-50) : mySent);
 
     // Enviar notificación
     const notif = {
@@ -155,6 +170,10 @@ export default async function handler(req, res) {
     const friendRequest = requests[reqIdx];
     requests.splice(reqIdx, 1);
     await redis.set(friendRequestsKey(cleanUserId), requests);
+
+    // Limpiar de enviadas del remitente
+    const senderSent = (await redis.get(sentRequestsKey(cleanFromId))) || [];
+    await redis.set(sentRequestsKey(cleanFromId), senderSent.filter(s => s.toId !== cleanUserId));
 
     if (action === 'accept') {
       const myFriends = (await redis.get(friendsKey(cleanUserId))) || [];
