@@ -15,6 +15,7 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
     player {
       id
+      gamerTag
       sets(page: $page, perPage: $perPage) {
         pageInfo { total totalPages }
         nodes {
@@ -67,6 +68,13 @@ function processSets(allSets, playerId) {
     );
     const myEntrantId = mySlot?.entrant?.id;
     if (!myEntrantId) continue;
+
+    // Ignorar sets de dobles/crews (entrant con >1 participante)
+    // Las selections son por entrant, no por jugador individual,
+    // así que en dobles el personaje del compañero contamina los datos
+    const participantCount = mySlot.entrant.participants?.length || 0;
+    if (participantCount !== 1) continue;
+
     const eid = String(myEntrantId);
 
     if (set.winnerId != null && String(set.winnerId) === eid) totalWins++;
@@ -123,7 +131,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v3:${slug}`;
+  const cacheKey = `startgg:stats:v4:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -169,6 +177,7 @@ export default async function handler(req, res) {
     const allSets = player.sets?.nodes || [];
     const totalPages = player.sets?.pageInfo?.totalPages || 1;
     const playerId = player.id;
+    const gamerTag = player.gamerTag || null;
 
     // Si hay más páginas, intentar obtener más dentro del tiempo restante
     const startTime = Date.now();
@@ -193,6 +202,8 @@ export default async function handler(req, res) {
     }
 
     const result = processSets(allSets, playerId);
+    result.gamerTag = gamerTag;
+    result.playerId = playerId;
 
     // Cachear resultado
     try {
