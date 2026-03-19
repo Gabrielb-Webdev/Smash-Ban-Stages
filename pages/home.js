@@ -1050,6 +1050,27 @@ function TabPerfil({ user }) {
       .catch(() => {});
   }, [uid]);
 
+  // Polling: friends, requests, sent requests (cada 12s)
+  useEffect(() => {
+    if (!uid) return;
+    const uidEnc = encodeURIComponent(uid);
+    const poll = setInterval(() => {
+      fetch('/api/friends?userId=' + uidEnc)
+        .then(r => r.ok ? r.json() : [])
+        .then(d => { if (Array.isArray(d)) setFriends(d); })
+        .catch(() => {});
+      fetch('/api/friends?userId=' + uidEnc + '&type=requests')
+        .then(r => r.ok ? r.json() : [])
+        .then(d => { if (Array.isArray(d)) setFriendRequests(d); })
+        .catch(() => {});
+      fetch('/api/friends?userId=' + uidEnc + '&type=sent')
+        .then(r => r.ok ? r.json() : [])
+        .then(d => { if (Array.isArray(d)) setSentRequests(d); })
+        .catch(() => {});
+    }, 12000);
+    return () => clearInterval(poll);
+  }, [uid]);
+
   // Fetch 2v2 stats
   useEffect(() => {
     if (!user) return;
@@ -1101,8 +1122,11 @@ function TabPerfil({ user }) {
       if (data.autoAccepted) {
         setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]);
         setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId));
+        setSentRequests(prev => prev.filter(s => s.toId !== friendId));
+      } else if (data.requestSent) {
+        setSentRequests(prev => [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]);
       }
-      setFriendSearch(''); setFriendResults([]);
+      if (r.ok) { setFriendSearch(''); setFriendResults([]); }
     } catch {}
     setFriendAdding(null);
   };
@@ -1540,6 +1564,7 @@ function TabPerfil({ user }) {
                   <div>
                     {friendResults.map(p => {
                       const alreadyFriend = friends.find(f => f.userId === p.userId);
+                      const alreadySent = sentRequests.find(s => s.toId === p.userId);
                       return (
                         <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <div onClick={() => openProfile(p.userId, p.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>
@@ -1548,6 +1573,8 @@ function TabPerfil({ user }) {
                           <p onClick={() => openProfile(p.userId, p.userName)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.userName}</p>
                           {alreadyFriend ? (
                             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', padding: '4px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>Ya agregado</span>
+                          ) : alreadySent ? (
+                            <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
                           ) : (
                             <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
                               {friendAdding === p.userId ? '…' : '📩 Solicitud'}
