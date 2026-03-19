@@ -142,6 +142,13 @@ export default function HomePage() {
         const arr = new Uint8Array(raw.length);
         for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
 
+        // Si ya hay una suscripción con otra key, desuscribir primero
+        const existingSub = await reg.pushManager.getSubscription();
+        if (existingSub) {
+          await existingSub.unsubscribe();
+          console.log('[PUSH] Suscripción anterior eliminada');
+        }
+
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: arr,
