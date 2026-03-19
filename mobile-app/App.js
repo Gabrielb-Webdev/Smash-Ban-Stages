@@ -95,19 +95,28 @@ export default function App() {
           });
         }
         // Pedir permiso
-        var perm = await Notifications.requestPermissionsAsync();
-        if (perm.status !== 'granted') return;
+        var settings = await Notifications.getPermissionsAsync();
+        if (settings.status !== 'granted') {
+          settings = await Notifications.requestPermissionsAsync();
+        }
+        if (settings.status !== 'granted') {
+          console.log('[PUSH] Permisos denegados');
+          return;
+        }
         // Obtener Expo push token
         var tokenData = await Notifications.getExpoPushTokenAsync({ projectId: '1cc82cc6-5c6c-437d-aa76-3a3d79eda94e' });
         var expoPushToken = tokenData.data;
+        console.log('[PUSH] Token obtenido:', expoPushToken);
         if (!expoPushToken) return;
         // Registrar token en el servidor
-        await fetch(BASE_URL + '/api/notifications/register', {
+        var regRes = await fetch(BASE_URL + '/api/notifications/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: String(user.id), type: 'expo', token: expoPushToken }),
         });
-      } catch (e) { /* push no disponible */ }
+        var regData = await regRes.json();
+        console.log('[PUSH] Registro:', regData);
+      } catch (e) { console.log('[PUSH] Error:', e.message); }
     })();
 
     return function () { responseSub.remove(); };
