@@ -1,7 +1,7 @@
 // Actualizar latestVersion cuando haya una nueva release
 export default function handler(req, res) {
   res.status(200).json({
-    latestVersion: '1.3.0',
-    downloadUrl: 'https://github.com/Gabrielb-Webdev/Smash-Ban-Stages/releases/download/v1.3.0/afk-smash.apk',
+    latestVersion: '1.4.0',
+    downloadUrl: 'https://github.com/Gabrielb-Webdev/Smash-Ban-Stages/releases/download/v1.4.0/afk-smash.apk',
   });
 }

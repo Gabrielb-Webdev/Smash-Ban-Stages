@@ -2,7 +2,7 @@
   "expo": {
     "name": "AFK Smash",
     "slug": "afk-smash-mobile",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
@@ -11,7 +11,7 @@
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.afksmash.mobile",
-      "versionCode": 14,
+      "versionCode": 15,
       "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES", "RECEIVE_BOOT_COMPLETED", "VIBRATE", "POST_NOTIFICATIONS"],
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
