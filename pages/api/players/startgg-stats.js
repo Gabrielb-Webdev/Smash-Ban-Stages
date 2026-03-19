@@ -124,6 +124,10 @@ function processSets(allSets, playerId) {
   let setsProcessed = 0;
   let gamesWithSelections = 0;
   let gamesWithoutSelections = 0;
+  let gamesNoMySelection = 0;
+
+  // Sample data for debugging character attribution
+  const charSamples = []; // max 10 samples of non-main-char games
 
   for (const set of allSets) {
     if (!set.slots || set.slots.length < 2) { skippedNoSlots++; continue; }
@@ -142,24 +146,70 @@ function processSets(allSets, playerId) {
     setsProcessed++;
     const eid = String(myEntrantId);
 
-    if (set.winnerId != null && String(set.winnerId) === eid) totalWins++;
-    else if (set.winnerId != null) totalLosses++;
+    // Get opponent entrant ID for comparison
+    const oppSlot = set.slots.find(s => s.entrant?.id && String(s.entrant.id) !== eid);
+    const oppEid = oppSlot ? String(oppSlot.entrant.id) : null;
+
+    const isWin = set.winnerId != null && String(set.winnerId) === eid;
+    if (set.winnerId != null) {
+      if (isWin) totalWins++;
+      else totalLosses++;
+    }
 
     if (set.event?.tournament?.name) tournamentNames.add(set.event.tournament.name);
 
     if (set.games) {
       for (const game of set.games) {
         if (!game.selections || !game.winnerId) continue;
-        const mySel = game.selections.find(s =>
-          String(s.entrant?.id) === eid && s.selectionType === 'CHARACTER'
-        );
+
+        // Find ALL character selections in this game
+        const allCharSels = game.selections.filter(s => s.selectionType === 'CHARACTER');
+        const mySel = allCharSels.find(s => String(s.entrant?.id) === eid);
+        const oppSel = allCharSels.find(s => String(s.entrant?.id) === oppEid);
+
         if (mySel?.selectionValue) {
           gamesWithSelections++;
           const cid = mySel.selectionValue;
           charCounts[cid] = (charCounts[cid] || 0) + 1;
           if (String(game.winnerId) === eid) charWins[cid] = (charWins[cid] || 0) + 1;
+
+          // Save samples of non-main character games (charId != 1897 which is Sora)
+          if (cid !== 1897 && charSamples.length < 10) {
+            charSamples.push({
+              tournament: set.event?.tournament?.name,
+              myEntrantId: eid,
+              oppEntrantId: oppEid,
+              gameWinnerId: String(game.winnerId),
+              iWonGame: String(game.winnerId) === eid,
+              iWonSet: isWin,
+              allSelectionsRaw: allCharSels.map(s => ({
+                entrantId: String(s.entrant?.id),
+                isMe: String(s.entrant?.id) === eid,
+                charId: s.selectionValue,
+              })),
+              myCharId: cid,
+              oppCharId: oppSel?.selectionValue || null,
+            });
+          }
         } else {
-          gamesWithoutSelections++;
+          // No selection found for me - check if there are ANY selections
+          gamesNoMySelection++;
+          if (allCharSels.length > 0 && charSamples.length < 10) {
+            charSamples.push({
+              type: 'NO_MY_SELECTION',
+              tournament: set.event?.tournament?.name,
+              myEntrantId: eid,
+              oppEntrantId: oppEid,
+              selectionsCount: allCharSels.length,
+              allSelectionsRaw: allCharSels.map(s => ({
+                entrantId: String(s.entrant?.id),
+                isMe: String(s.entrant?.id) === eid,
+                charId: s.selectionValue,
+              })),
+            });
+          } else {
+            gamesWithoutSelections++;
+          }
         }
       }
     }
@@ -185,6 +235,8 @@ function processSets(allSets, playerId) {
       setsProcessed,
       gamesWithSelections,
       gamesWithoutSelections,
+      gamesNoMySelection,
+      charSamples,
     },
     totalSets: setsProcessed,
     wins: totalWins,
@@ -209,7 +261,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v7:${slug}`;
+  const cacheKey = `startgg:stats:v8:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
