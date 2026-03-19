@@ -1173,7 +1173,10 @@ function TabPerfil({ user }) {
       if (token && slug) {
         fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), {
           headers: { 'Authorization': 'Bearer ' + token },
-        }).then(r => r.ok ? r.json() : null).then(d => { if (d) setStartggStats(d); }).catch(() => {});
+        }).then(r => {
+          if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
+          return r.json();
+        }).then(d => { if (d) setStartggStats(d); }).catch(() => {});
       }
     } catch (e) {}
   }, [user?.id]);
