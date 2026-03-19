@@ -82,6 +82,7 @@ export default async function handler(req, res) {
   }
 
   const results = [];
+  const failed = [];
   for (const sub of subs) {
     if (sub.type === 'expo') {
       try {
@@ -105,6 +106,7 @@ export default async function handler(req, res) {
           diagnostico = '✅ Expo aceptó la notificación. Si no llega al teléfono, el problema es FCM (Firebase).';
         } else if (ticket?.status === 'error') {
           diagnostico = `❌ Expo rechazó: ${ticket.message || ticket.details?.error || 'error desconocido'}`;
+          if (ticket?.details?.error === 'DeviceNotRegistered') failed.push(sub);
         } else {
           diagnostico = '⚠️ Respuesta inesperada de Expo';
         }
@@ -134,18 +136,28 @@ export default async function handler(req, res) {
         await wp.sendNotification(sub.subscription, webPayload);
         results.push({ type: 'web', diagnostico: '✅ Web Push enviado correctamente' });
       } catch (err) {
-        const diagnostico = err.statusCode === 410 || err.statusCode === 404
-          ? '❌ Suscripción expirada o inválida (se debería limpiar)'
-          : `❌ Error: ${err.message}`;
-        results.push({ type: 'web', error: err.message, statusCode: err.statusCode, diagnostico });
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          failed.push(sub);
+          results.push({ type: 'web', statusCode: err.statusCode, diagnostico: '🗑️ Suscripción expirada → eliminada automáticamente' });
+        } else {
+          results.push({ type: 'web', error: err.message, statusCode: err.statusCode, diagnostico: `❌ Error: ${err.message}` });
+        }
       }
     }
+  }
+
+  // Limpiar suscripciones expiradas automáticamente
+  if (failed.length > 0) {
+    const remaining = subs.filter(s => !failed.includes(s));
+    await redis.set(pushSubKey(cleanUserId), remaining);
   }
 
   return res.status(200).json({
     success: true,
     userId: cleanUserId,
     results,
+    cleaned: failed.length > 0 ? `${failed.length} suscripción(es) expirada(s) eliminada(s)` : undefined,
+    remainingSubscriptions: failed.length > 0 ? subs.length - failed.length : subs.length,
     siguientePaso: results.length === 0 ? 'No se encontraron tokens para enviar.' : 'Revisá los diagnósticos de cada resultado.',
   });
 }
