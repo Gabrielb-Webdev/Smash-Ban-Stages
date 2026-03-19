@@ -17,7 +17,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/afk-favicon.png",
         "monochromeImage": "./assets/afk-favicon.png",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#000000"
       }
     },
     "owner": "gabriel_sin_h",
