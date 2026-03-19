@@ -1921,35 +1921,35 @@ function TabPerfil({ user }) {
         {/* ═══ MODAL RANGOS ═══ */}
         {showRanks && (
           <div onClick={() => setShowRanks(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, maxHeight: '80vh', overflowY: 'auto', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 360, maxHeight: '85vh', overflowY: 'auto', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
               {/* Modal header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#12121E', borderRadius: '20px 20px 0 0', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 20 }}>🏅</span>
-                  <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Todos los rangos</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#12121E', borderRadius: '20px 20px 0 0', zIndex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>🏅</span>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#fff' }}>Todos los rangos</p>
                 </div>
-                <button onClick={() => setShowRanks(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                <button onClick={() => setShowRanks(false)} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
               {/* Ranks grid — estilo Valorant */}
-              <div style={{ padding: '12px 10px', overflowX: 'auto' }}>
+              <div style={{ padding: '8px 6px' }}>
                 {/* Tier headers */}
                 {(() => {
                   const tiers = ['Plástico','Madera','Hierro','Bronce','Plata','Oro','Platino','Diamante','Smasher'];
                   return (
                     <>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4, marginBottom: 4, minWidth: 360 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 3, marginBottom: 3 }}>
                         {tiers.map(tier => {
                           const r0 = RANKS.find(r => r.tier === tier);
                           return (
-                            <div key={tier} style={{ textAlign: 'center', padding: '6px 2px', borderBottom: '2px solid ' + (r0?.color || '#555') }}>
-                              <p style={{ margin: 0, fontSize: 8, fontWeight: 900, color: r0?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{tier}</p>
+                            <div key={tier} style={{ textAlign: 'center', padding: '4px 1px', borderBottom: '2px solid ' + (r0?.color || '#555') }}>
+                              <p style={{ margin: 0, fontSize: 7, fontWeight: 900, color: r0?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden' }}>{tier.slice(0, 4).toUpperCase()}</p>
                             </div>
                           );
                         })}
                       </div>
                       {/* Rows: 3, 2, 1 */}
                       {[3, 2, 1].map(num => (
-                        <div key={num} style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4, marginBottom: 4, minWidth: 360 }}>
+                        <div key={num} style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 3, marginBottom: 3 }}>
                           {tiers.map(tier => {
                             const icon = TIER_ICONS[tier] || '🎮';
                             const rankName = tier === 'Smasher' ? 'Smasher' : `${tier} ${num}`;
@@ -1958,8 +1958,8 @@ function TabPerfil({ user }) {
                             if (tier === 'Smasher' && num !== 3) return <div key={tier} />;
                             const obj = r || RANKS.find(x => x.name === 'Smasher');
                             return (
-                              <div key={tier} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 2px', background: obj.bg, border: '1px solid ' + obj.border, borderRadius: 10 }}>
-                                <span style={{ fontSize: 20 }}>{icon}</span>
+                              <div key={tier} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '5px 1px', background: obj.bg, border: '1px solid ' + obj.border, borderRadius: 8 }}>
+                                <span style={{ fontSize: 16 }}>{icon}</span>
                                 <p style={{ margin: 0, fontSize: 7, fontWeight: 800, color: obj.color, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.2 }}>
                                   {tier === 'Smasher' ? 'SMASHER' : `${num}`}
                                 </p>
@@ -1969,9 +1969,9 @@ function TabPerfil({ user }) {
                         </div>
                       ))}
                       {/* Unranked row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4, marginTop: 8, minWidth: 360 }}>
-                        <div style={{ gridColumn: '8 / 10', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
-                          <span style={{ fontSize: 20 }}>❓</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 3, marginTop: 6 }}>
+                        <div style={{ gridColumn: '8 / 10', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '5px 2px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+                          <span style={{ fontSize: 16 }}>❓</span>
                           <p style={{ margin: 0, fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>UNRANKED</p>
                         </div>
                       </div>
@@ -1979,9 +1979,9 @@ function TabPerfil({ user }) {
                   );
                 })()}
                 {/* Explicación */}
-                <div style={{ padding: '12px 8px', marginTop: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>¿Cómo funciona?</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                <div style={{ padding: '10px 8px', marginTop: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>¿Cómo funciona?</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.5 }}>
                     Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Ganá +20 RP por victoria, perdé -10 RP por derrota. Al llegar a 100 RP ascendés al siguiente rango. ¡Llegá a Smasher para ser el mejor!
                   </p>
                 </div>
