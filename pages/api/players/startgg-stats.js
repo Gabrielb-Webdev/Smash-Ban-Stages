@@ -55,10 +55,7 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
           games {
             winnerId
             selections {
-              entrant {
-                id
-                participants { player { id } }
-              }
+              entrant { id }
               selectionType
               selectionValue
             }
@@ -91,10 +88,7 @@ query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
           games {
             winnerId
             selections {
-              entrant {
-                id
-                participants { player { id } }
-              }
+              entrant { id }
               selectionType
               selectionValue
             }
@@ -130,18 +124,6 @@ function processSets(allSets, playerId) {
   let setsProcessed = 0;
   let gamesWithSelections = 0;
   let gamesWithoutSelections = 0;
-  let matchedByPlayerId = 0;
-  let matchedByEntrantId = 0;
-
-  // Helper: check if a selection's entrant contains our player ID
-  function isMySelection(sel) {
-    // Primary: match by player ID within selection's entrant participants
-    if (sel.entrant?.participants) {
-      return sel.entrant.participants.some(p => String(p.player?.id) === pid);
-    }
-    return false;
-  }
-
   for (const set of allSets) {
     if (!set.slots || set.slots.length < 2) { skippedNoSlots++; continue; }
     const vgId = set.event?.videogame?.id;
@@ -173,15 +155,8 @@ function processSets(allSets, playerId) {
 
         const allCharSels = game.selections.filter(s => s.selectionType === 'CHARACTER');
 
-        // Primary: match by player ID in selection's entrant participants
-        let mySel = allCharSels.find(s => isMySelection(s));
-        if (mySel) {
-          matchedByPlayerId++;
-        } else {
-          // Fallback: match by entrant ID
-          mySel = allCharSels.find(s => String(s.entrant?.id) === eid);
-          if (mySel) matchedByEntrantId++;
-        }
+        // Match by entrant ID (consistent within a set between slots and selections)
+        const mySel = allCharSels.find(s => String(s.entrant?.id) === eid);
 
         if (mySel?.selectionValue) {
           gamesWithSelections++;
@@ -215,8 +190,6 @@ function processSets(allSets, playerId) {
       setsProcessed,
       gamesWithSelections,
       gamesWithoutSelections,
-      matchedByPlayerId,
-      matchedByEntrantId,
     },
     totalSets: setsProcessed,
     wins: totalWins,
@@ -241,7 +214,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v9:${slug}`;
+  const cacheKey = `startgg:stats:v10:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
