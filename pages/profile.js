@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const [showAllChars, setShowAllChars] = useState(false);
   const [showCharsModal, setShowCharsModal] = useState(false);
   const [selectedChar, setSelectedChar] = useState(null);
+  const [charFromModal, setCharFromModal] = useState(false);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -288,7 +289,7 @@ export default function ProfilePage() {
                   </div>
                   {selectedChar && (() => {
                     const ch = startggStats.charUsage.find(c => c.startggCharId === selectedChar);
-                    return ch ? <CharacterDetail ch={ch} onClose={() => setSelectedChar(null)} /> : null;
+                    return ch ? <CharacterDetail ch={ch} onClose={() => { setSelectedChar(null); setCharFromModal(false); }} onBack={charFromModal ? () => { setSelectedChar(null); setShowCharsModal(true); } : undefined} /> : null;
                   })()}
                   {startggStats.charUsage.length > 3 && (
                     <button onClick={() => setShowCharsModal(true)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -315,7 +316,7 @@ export default function ProfilePage() {
                             const cWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
                             const barColor = ['#F5C518','#818CF8','#22C55E','#F97316','#EF4444'][i % 5];
                             return (
-                              <div key={ch.startggCharId} onClick={() => { setShowCharsModal(false); setSelectedChar(ch.startggCharId); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                              <div key={ch.startggCharId} onClick={() => { setShowCharsModal(false); setCharFromModal(true); setSelectedChar(ch.startggCharId); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
                                 {renderFile ? <img src={charRenderPath(renderFile)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
                                   : charObj ? <img src={charImgPath(charObj.img)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
                                   : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />}

@@ -204,7 +204,7 @@ const TABS = [
   { key: 'opponents', label: 'Opponents' },
 ];
 
-export default function CharacterDetail({ ch, onClose }) {
+export default function CharacterDetail({ ch, onClose, onBack }) {
   const [tab, setTab] = useState('overview');
   const localId = ch.localCharId;
   const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
@@ -221,6 +221,9 @@ export default function CharacterDetail({ ch, onClose }) {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 14px', background: 'linear-gradient(90deg, rgba(245,197,24,0.12), transparent)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          {onBack && (
+            <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '4px 8px 4px 0', lineHeight: 1, flexShrink: 0 }}>←</button>
+          )}
           {renderFile ? (
             <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
           ) : (
