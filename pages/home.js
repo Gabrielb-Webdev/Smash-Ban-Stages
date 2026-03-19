@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath } from '../lib/characters';
+import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath } from '../lib/characters';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1106,6 +1106,7 @@ function TabPerfil({ user }) {
   const [chatSending, setChatSending]   = useState(false);
   const [partyState, setPartyState]     = useState(null);
   const [doublesStats, setDoublesStats] = useState(null);
+  const [recentChars, setRecentChars] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [viewProfile, setViewProfile]   = useState(null); // { userId, userName }
   const [profileData, setProfileData]   = useState(null);
@@ -1121,7 +1122,8 @@ function TabPerfil({ user }) {
     Promise.all([
       fetch('/api/players/stats?userId=' + uidEnc).then(r => r.json()).catch(() => null),
       fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []),
-    ]).then(([s, h]) => { setStats(s); setHistory(Array.isArray(h) ? h : []); setLoading(false); });
+      fetch('/api/matchmaking/recent-chars?userId=' + uidEnc).then(r => r.json()).catch(() => []),
+    ]).then(([s, h, chars]) => { setStats(s); setHistory(Array.isArray(h) ? h : []); setRecentChars(Array.isArray(chars) ? chars : []); setLoading(false); });
   }, [user?.id]);
 
   // Fetch friends
@@ -1320,20 +1322,36 @@ function TabPerfil({ user }) {
   const initial     = displayName.charAt(0).toUpperCase();
   const totalW = (stats?.switch?.wins || 0)   + (stats?.parsec?.wins || 0);
   const totalL = (stats?.switch?.losses || 0) + (stats?.parsec?.losses || 0);
+  const heroRender = recentChars.length > 0 ? CHARACTER_RENDERS[recentChars[0]] : null;
   return (
     <div style={{ paddingBottom: 32 }}>
-      <div style={{ padding: '28px 18px 24px', background: 'linear-gradient(160deg,rgba(124,58,237,0.09) 0%,rgba(232,142,0,0.06) 50%,transparent 80%)', display: 'flex', gap: 16, alignItems: 'center', position: 'relative', overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle,rgba(232,142,0,0.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
+      {/* ── Hero Banner (supermajor style) ── */}
+      <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
+        {heroRender ? (
+          <img
+            src={charRenderPath(heroRender)}
+            alt=""
+            style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }}
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+        ) : (
+          <div style={{ height: 100 }} />
+        )}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+        <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
+      </div>
+
+      {/* Player info */}
+      <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 18 }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
           {user.avatar
-            ? <img src={user.avatar} alt={displayName} style={{ width: 72, height: 72, borderRadius: 22, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.5)' }} />
-            : <div style={{ width: 72, height: 72, borderRadius: 22, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, color: '#fff', boxShadow: '0 8px 20px rgba(232,142,0,0.3)' }}>{initial}</div>
+            ? <img src={user.avatar} alt={displayName} style={{ width: 64, height: 64, borderRadius: 20, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.5)' }} />
+            : <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: '#fff', boxShadow: '0 8px 20px rgba(232,142,0,0.3)' }}>{initial}</div>
           }
           <div style={{ position: 'absolute', bottom: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '2px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
         </div>
         <div>
-          <p style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px', color: '#fff' }}>{displayName}</p>
-          {user.slug && <p style={{ margin: '3px 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>@{user.slug}</p>}
+          {user.slug && <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>@{user.slug}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>AFK SMASH</span>
             <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>START.GG</span>
