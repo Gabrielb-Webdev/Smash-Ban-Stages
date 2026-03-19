@@ -57,24 +57,30 @@ function processSets(allSets, playerId) {
   const tournamentNames = new Set();
   const pid = String(playerId);
 
+  // Debug counters
+  let skippedNoSlots = 0;
+  let skippedNotSSBU = 0;
+  let skippedNoEntrant = 0;
+  let skippedDoubles = 0;
+  let setsProcessed = 0;
+  let gamesWithSelections = 0;
+  let gamesWithoutSelections = 0;
+
   for (const set of allSets) {
-    if (!set.slots || set.slots.length < 2) continue;
-    // Filtro estricto: solo sets de SSBU (videogame id 1386)
+    if (!set.slots || set.slots.length < 2) { skippedNoSlots++; continue; }
     const vgId = set.event?.videogame?.id;
-    if (!vgId || vgId !== SSBU_GAME_ID) continue;
+    if (!vgId || vgId !== SSBU_GAME_ID) { skippedNotSSBU++; continue; }
 
     const mySlot = set.slots.find(s =>
       s.entrant?.participants?.some(p => String(p.player?.id) === pid)
     );
     const myEntrantId = mySlot?.entrant?.id;
-    if (!myEntrantId) continue;
+    if (!myEntrantId) { skippedNoEntrant++; continue; }
 
-    // Ignorar sets de dobles/crews (entrant con >1 participante)
-    // Las selections son por entrant, no por jugador individual,
-    // así que en dobles el personaje del compañero contamina los datos
     const participantCount = mySlot.entrant.participants?.length || 0;
-    if (participantCount !== 1) continue;
+    if (participantCount !== 1) { skippedDoubles++; continue; }
 
+    setsProcessed++;
     const eid = String(myEntrantId);
 
     if (set.winnerId != null && String(set.winnerId) === eid) totalWins++;
@@ -89,9 +95,12 @@ function processSets(allSets, playerId) {
           String(s.entrant?.id) === eid && s.selectionType === 'CHARACTER'
         );
         if (mySel?.selectionValue) {
+          gamesWithSelections++;
           const cid = mySel.selectionValue;
           charCounts[cid] = (charCounts[cid] || 0) + 1;
           if (String(game.winnerId) === eid) charWins[cid] = (charWins[cid] || 0) + 1;
+        } else {
+          gamesWithoutSelections++;
         }
       }
     }
@@ -108,7 +117,17 @@ function processSets(allSets, playerId) {
     .sort((a, b) => b.games - a.games);
 
   return {
-    totalSets: allSets.length,
+    debug: {
+      totalSetsFetched: allSets.length,
+      skippedNoSlots,
+      skippedNotSSBU,
+      skippedNoEntrant,
+      skippedDoubles,
+      setsProcessed,
+      gamesWithSelections,
+      gamesWithoutSelections,
+    },
+    totalSets: setsProcessed,
     wins: totalWins,
     losses: totalLosses,
     winRate: (totalWins + totalLosses) > 0 ? Math.round(totalWins * 100 / (totalWins + totalLosses)) : 0,
@@ -131,7 +150,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v4:${slug}`;
+  const cacheKey = `startgg:stats:v5:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -204,6 +223,10 @@ export default async function handler(req, res) {
     const result = processSets(allSets, playerId);
     result.gamerTag = gamerTag;
     result.playerId = playerId;
+    result.debug.slug = slug;
+    result.debug.totalPagesAvailable = totalPages;
+    result.debug.pagesFetched = Math.min(totalPages, 10);
+    result.debug.totalSetsFetchedRaw = allSets.length;
 
     // Cachear resultado
     try {
