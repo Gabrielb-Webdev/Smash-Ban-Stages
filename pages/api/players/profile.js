@@ -1,6 +1,6 @@
 // API para perfiles de jugadores — Upstash Redis
 
-import redis, { playerKey, rankedStatsKey, rankedDoubleStatsKey, matchHistoryKey } from '../../../lib/redis';
+import redis, { playerKey, playersIndexKey, rankedStatsKey, rankedDoubleStatsKey, matchHistoryKey } from '../../../lib/redis';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 200);
@@ -29,6 +29,21 @@ export default async function handler(req, res) {
       lastSeen: new Date().toISOString(),
       firstSeen: existing.firstSeen || new Date().toISOString(),
     });
+
+    // Registrar en índice de jugadores (para búsqueda de amigos)
+    const idx = (await redis.get(playersIndexKey)) || [];
+    if (!idx.find(p => p.id === cleanId)) {
+      idx.push({ id: cleanId, name: name ? sanitize(name).slice(0, 80) : '' });
+      await redis.set(playersIndexKey, idx.length > 5000 ? idx.slice(-5000) : idx);
+    } else {
+      // Actualizar nombre si cambió
+      const entry = idx.find(p => p.id === cleanId);
+      const newName = name ? sanitize(name).slice(0, 80) : entry.name;
+      if (entry.name !== newName) {
+        entry.name = newName;
+        await redis.set(playersIndexKey, idx);
+      }
+    }
 
     return res.status(200).json({ success: true });
   }
