@@ -118,22 +118,22 @@ export default function HomePage() {
       || window.matchMedia('(display-mode: standalone)').matches;
 
     if (isIOS && !isStandalone) {
-      // Mostrar tip: el usuario debe agregar a la pantalla de inicio
       setShowIOSTip(true);
       return;
     }
 
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-    if (!vapidKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!vapidKey) { console.warn('[PUSH] VAPID key no configurada'); return; }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { console.warn('[PUSH] Push no soportado en este navegador'); return; }
 
     const uid = String(user?.id || user?.slug || '');
-    if (!uid) return;
+    if (!uid) { console.warn('[PUSH] No hay userId'); return; }
 
     (async () => {
       try {
         const reg = await navigator.serviceWorker.register('/sw.js');
         const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
+        if (permission !== 'granted') { console.warn('[PUSH] Permiso denegado'); return; }
 
         // urlBase64ToUint8Array
         const padding = '='.repeat((4 - vapidKey.length % 4) % 4);
@@ -147,12 +147,14 @@ export default function HomePage() {
           applicationServerKey: arr,
         });
 
-        await fetch('/api/notifications/register', {
+        const regRes = await fetch('/api/notifications/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: uid, subscription: sub.toJSON() }),
         });
-      } catch (e) { /* push no soportado o denegado */ }
+        const regData = await regRes.json();
+        console.log('[PUSH] Web push registrado:', regData);
+      } catch (e) { console.error('[PUSH] Error registrando web push:', e.message); }
     })();
   }, [user]);
 

@@ -1,7 +1,8 @@
 // Endpoint de diagnóstico para probar push notifications
 // GET ?userId=ID → ver tokens registrados
-// GET ?userId=ID&send=1 → enviar push de prueba (fácil de testear en el navegador)
-import redis, { pushSubKey } from '../../../lib/redis';
+// GET ?userId=ID&send=1 → enviar push de prueba
+// GET ?userId=ID&register=EXPO_TOKEN → registrar token manualmente
+import redis, { pushSubKey, pushUsersSetKey } from '../../../lib/redis';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
@@ -15,17 +16,45 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { userId, send } = req.query;
+  const { userId, send, register } = req.query;
   if (!userId) {
     return res.status(400).json({
       error: 'userId requerido',
       uso: '/api/notifications/test-push?userId=TU_ID para ver tokens',
       enviar: '/api/notifications/test-push?userId=TU_ID&send=1 para enviar push de prueba',
+      registrar: '/api/notifications/test-push?userId=TU_ID&register=ExponentPushToken[xxx] para registrar token manualmente',
     });
   }
 
   const cleanUserId = sanitize(userId);
+
+  // Registrar token manualmente (para debug)
+  if (register) {
+    const cleanToken = sanitize(register);
+    if (!cleanToken.startsWith('ExponentPushToken[')) {
+      return res.status(400).json({ error: 'Token inválido. Debe ser ExponentPushToken[...]' });
+    }
+    const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
+    const existing = subs.findIndex(s => s.type === 'expo' && s.token === cleanToken);
+    if (existing === -1) {
+      subs.push({ type: 'expo', token: cleanToken, registeredAt: new Date().toISOString() });
+    } else {
+      subs[existing].registeredAt = new Date().toISOString();
+    }
+    await redis.set(pushSubKey(cleanUserId), subs);
+    await redis.sadd(pushUsersSetKey, cleanUserId);
+    return res.status(200).json({
+      success: true,
+      message: '✅ Token registrado manualmente',
+      userId: cleanUserId,
+      token: cleanToken,
+      totalSubscriptions: subs.length,
+    });
+  }
+
   const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
+
+  const vapidConfigured = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
   // Solo ver tokens
   if (!send) {
@@ -34,6 +63,7 @@ export default async function handler(req, res) {
       totalSubscriptions: subs.length,
       expoTokens: subs.filter(s => s.type === 'expo').map(s => ({ token: s.token, registeredAt: s.registeredAt })),
       webTokens: subs.filter(s => s.type === 'web').length,
+      vapidConfigured,
       diagnostico: subs.length === 0
         ? '❌ No hay tokens. El usuario no abrió la app o no aceptó permisos.'
         : '✅ Tokens registrados. Usá &send=1 para enviar push de prueba.',
