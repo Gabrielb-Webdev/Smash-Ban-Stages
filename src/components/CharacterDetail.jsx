@@ -212,37 +212,46 @@ export default function CharacterDetail({ ch, onClose }) {
   const displayName = charObj?.name || ch.charName || `#${ch.startggCharId}`;
 
   return (
-    <div style={{ background: 'rgba(0,0,0,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'linear-gradient(90deg, rgba(245,197,24,0.12), transparent)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        {renderFile ? (
-          <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-        ) : (
-          <CharImg localCharId={localId} size={48} />
-        )}
-        <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>{displayName}</p>
-          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{ch.games} games · {ch.sets || 0} sets · {ch.usage}% usage</p>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}>✕</button>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 14px', background: 'linear-gradient(90deg, rgba(245,197,24,0.12), transparent)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          {renderFile ? (
+            <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+          ) : (
+            <CharImg localCharId={localId} size={48} />
+          )}
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>{displayName}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{ch.games} games · {ch.sets || 0} sets · {ch.usage}% usage</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}>✕</button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: tab === t.key ? '2px solid #F5C518' : '2px solid transparent', color: tab === t.key ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content — scrollable */}
+        <div style={{ padding: '14px 16px', flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          {tab === 'overview' && <OverviewTab ch={ch} />}
+          {tab === 'matches' && <MatchesTab ch={ch} />}
+          {tab === 'characters' && <CharactersTab ch={ch} />}
+          {tab === 'opponents' && <OpponentsTab ch={ch} />}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: tab === t.key ? '2px solid #F5C518' : '2px solid transparent', color: tab === t.key ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div style={{ padding: '14px 16px', maxHeight: 420, overflowY: 'auto' }}>
-        {tab === 'overview' && <OverviewTab ch={ch} />}
-        {tab === 'matches' && <MatchesTab ch={ch} />}
-        {tab === 'characters' && <CharactersTab ch={ch} />}
-        {tab === 'opponents' && <OpponentsTab ch={ch} />}
-      </div>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
     </div>
   );
 }
