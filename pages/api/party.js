@@ -104,7 +104,7 @@ export default async function handler(req, res) {
     const notifs = (await redis.get(nKey)) || [];
     notifs.push(notif);
     await redis.set(nKey, notifs.length > 100 ? notifs.slice(-100) : notifs);
-    sendPush(cleanFriendId, { title: '👥 Invitación 2v2', body: `${cleanUserName} te invita a jugar ranked 2v2`, tag: 'party-invite', data: { url: '/home' } }).catch(() => {});
+    sendPush(cleanFriendId, { title: '👥 Invitación 2v2', body: `${cleanUserName} te invita a jugar ranked 2v2`, tag: 'party-invite', data: { url: '/home?open=match' } }).catch(() => {});
 
     return res.status(200).json({ success: true, partyId, party });
   }

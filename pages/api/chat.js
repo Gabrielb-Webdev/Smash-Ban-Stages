@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       title: `💬 ${cleanUserName}`,
       body: cleanMessage.slice(0, 100),
       tag: 'chat-message',
-      data: { url: '/home' },
+      data: { url: '/home?open=perfil' },
     }).catch(() => {});
 
     return res.status(200).json({ success: true, message: msg });

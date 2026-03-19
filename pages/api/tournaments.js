@@ -97,7 +97,7 @@ export default function handler(req, res) {
       title: `🏆 ${tournamentName}`,
       body: tournamentDesc,
       tag: 'tournament',
-      data: { url: '/home' },
+      data: { url: '/home?open=torneos' },
     }).catch(() => {});
 
     res.status(200).json({ success: true, message: 'Notificación enviada a todos los usuarios' });

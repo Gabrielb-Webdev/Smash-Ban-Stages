@@ -150,7 +150,7 @@ export default async function handler(req, res) {
     const notifs = (await redis.get(nKey)) || [];
     notifs.push(notif);
     await redis.set(nKey, notifs.length > 100 ? notifs.slice(-100) : notifs);
-    sendPush(cleanFriendId, { title: '👤 Solicitud de amistad', body: `${cleanUserName} quiere ser tu amigo`, tag: 'friend-request', data: { url: '/home' } }).catch(() => {});
+    sendPush(cleanFriendId, { title: '👤 Solicitud de amistad', body: `${cleanUserName} quiere ser tu amigo`, tag: 'friend-request', data: { url: '/home?open=perfil' } }).catch(() => {});
 
     return res.status(200).json({ success: true, requestSent: true });
   }
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
       const notifs = (await redis.get(nKey)) || [];
       notifs.push(notif);
       await redis.set(nKey, notifs.length > 100 ? notifs.slice(-100) : notifs);
-      sendPush(cleanFromId, { title: '✅ Solicitud aceptada', body: `${cleanUserName} aceptó tu solicitud de amistad`, tag: 'friend-accepted', data: { url: '/home' } }).catch(() => {});
+      sendPush(cleanFromId, { title: '✅ Solicitud aceptada', body: `${cleanUserName} aceptó tu solicitud de amistad`, tag: 'friend-accepted', data: { url: '/home?open=perfil' } }).catch(() => {});
 
       return res.status(200).json({ success: true, accepted: true });
     }

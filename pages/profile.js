@@ -1,24 +1,9 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-
-/* ─── SVG ─────────────────────────────────────── */
-function Svg({ children, size = 24, sw = 1.7 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-      strokeWidth={sw} stroke="currentColor" width={size} height={size}>
-      {children}
-    </svg>
-  );
-}
-const ICO_BACK  = <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />;
-const ICO_SWORD = <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />;
-
-/* ─── Helpers ─────────────────────────────────── */
-function platLabel(p) { return p === 'switch' ? '🎮 Switch' : '🖥️ Parsec'; }
-function platColor(p) { return p === 'switch' ? '#EF4444' : '#8B5CF6'; }
+import { CHARACTERS, charImgPath } from '../lib/characters';
 
 function timeAgo(iso) {
   if (!iso) return '';
@@ -32,27 +17,14 @@ function timeAgo(iso) {
   return `hace ${d}d`;
 }
 
-/* ─── Rank mini badge ─────────────────────────── */
-function RankMini({ rankName }) {
-  const obj  = RANKS.find(r => r.name === rankName);
-  const icon = obj ? (TIER_ICONS[obj.tier] || '🎮') : '?';
-  const col  = obj ? obj.color : 'rgba(255,255,255,0.2)';
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 10, fontWeight: 800, color: col,
-    }}>
-      {icon} {rankName || 'Unranked'}
-    </span>
-  );
-}
-
 export default function ProfilePage() {
-  const router   = useRouter();
+  const router = useRouter();
   const [user, setUser]           = useState(null);
   const [stats, setStats]         = useState(null);
   const [history, setHistory]     = useState([]);
+  const [recentChars, setRecentChars] = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -65,14 +37,15 @@ export default function ProfilePage() {
       return;
     }
     setUser(u);
-
     const uid = encodeURIComponent(String(u.id || u.slug || ''));
     Promise.all([
       fetch(`/api/players/stats?userId=${uid}`).then(r => r.json()).catch(() => null),
       fetch(`/api/players/history?userId=${uid}&limit=30`).then(r => r.json()).catch(() => []),
-    ]).then(([s, h]) => {
+      fetch(`/api/matchmaking/recent-chars?userId=${uid}`).then(r => r.json()).catch(() => []),
+    ]).then(([s, h, chars]) => {
       setStats(s);
       setHistory(Array.isArray(h) ? h : []);
+      setRecentChars(Array.isArray(chars) ? chars : []);
       setLoading(false);
     });
   }, []);
@@ -81,208 +54,208 @@ export default function ProfilePage() {
 
   const displayName = user.name || user.slug || 'Jugador';
   const initial     = displayName.charAt(0).toUpperCase();
-  const totalW      = (stats?.switch?.wins || 0)   + (stats?.parsec?.wins || 0);
-  const totalL      = (stats?.switch?.losses || 0) + (stats?.parsec?.losses || 0);
+  const swW  = stats?.switch?.wins   || 0;
+  const swL  = stats?.switch?.losses || 0;
+  const pcW  = stats?.parsec?.wins   || 0;
+  const pcL  = stats?.parsec?.losses || 0;
+  const totalW   = swW + pcW;
+  const totalL   = swL + pcL;
+  const total    = totalW + totalL;
+  const winRate  = total > 0 ? Math.round(totalW * 100 / total) : 0;
+  const swTotal  = swW + swL;
+  const pcTotal  = pcW + pcL;
+  const swWR     = swTotal > 0 ? Math.round(swW * 100 / swTotal) : null;
+  const pcWR     = pcTotal > 0 ? Math.round(pcW * 100 / pcTotal) : null;
+
+  const TABS = [
+    { id: 'overview',  label: 'Overview'  },
+    { id: 'ranked',    label: 'Ranked'    },
+    { id: 'historial', label: 'Historial' },
+  ];
 
   return (
     <>
       <Head>
-        <title>{displayName} — AFK Smash</title>
+        <title>{displayName} â€” AFK Smash</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <style>{`
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
           body { background: #0B0B12; margin: 0; }
           ::-webkit-scrollbar { display: none; }
-          @keyframes shimmer { to { background-position: -200% 0 } }
-          .shimmer { background: linear-gradient(90deg,#13131E 25%,#1E1E2E 50%,#13131E 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
         `}</style>
       </Head>
-      <div style={{
-        minHeight: '100vh', background: '#0B0B12', color: '#fff',
-        fontFamily: "'Outfit', -apple-system, sans-serif",
-        maxWidth: 480, margin: '0 auto',
-        paddingBottom: 32,
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '14px 18px 14px',
-          display: 'flex', alignItems: 'center', gap: 12,
-          background: 'rgba(11,11,18,0.92)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          position: 'sticky', top: 0, zIndex: 10,
-        }}>
-          <button onClick={() => router.back()} style={{
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12, width: 38, height: 38,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: '#fff', flexShrink: 0,
-          }}>
-            <Svg size={18} sw={2}>{ICO_BACK}</Svg>
+      <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', -apple-system, sans-serif", maxWidth: 480, margin: '0 auto' }}>
+
+        {/* â”€â”€ Top bar â”€â”€ */}
+        <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
           </button>
-          <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#fff' }}>Mi Perfil</p>
+          <p style={{ margin: 0, fontWeight: 800, fontSize: 16 }}>Mi Perfil</p>
         </div>
 
-        {/* Hero */}
-        <div style={{
-          padding: '28px 18px 24px',
-          background: 'linear-gradient(160deg, rgba(124,58,237,0.09) 0%, rgba(232,142,0,0.06) 50%, transparent 80%)',
-          display: 'flex', gap: 16, alignItems: 'center',
-          position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,142,0,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', left: -50, bottom: -30, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            {user.avatar
-              ? <img src={user.avatar} alt={displayName} style={{ width: 72, height: 72, borderRadius: 22, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.5)' }} />
-              : <div style={{ width: 72, height: 72, borderRadius: 22, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, color: '#fff', boxShadow: '0 8px 20px rgba(232,142,0,0.3)' }}>{initial}</div>
-            }
-            <div style={{ position: 'absolute', bottom: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '2px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.4px' }}>{displayName}</p>
-            {user.slug && <p style={{ margin: '3px 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>@{user.slug}</p>}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>AFK SMASH</span>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>START.GG</span>
+        {/* â”€â”€ Banner / Hero â”€â”€ */}
+        <div style={{ position: 'relative', background: 'linear-gradient(180deg, rgba(124,58,237,0.16) 0%, rgba(11,11,18,0) 100%)', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -70, left: -70, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,142,0,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+          <div style={{ padding: '32px 20px 0', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            {/* Avatar */}
+            <div style={{ position: 'relative', marginBottom: 16 }}>
+              {user.avatar
+                ? <img src={user.avatar} alt={displayName} style={{ width: 92, height: 92, borderRadius: 28, objectFit: 'cover', border: '3px solid rgba(232,142,0,0.6)', boxShadow: '0 8px 32px rgba(232,142,0,0.3)' }} />
+                : <div style={{ width: 92, height: 92, borderRadius: 28, background: 'linear-gradient(135deg,#FF8C00,#C05600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, fontWeight: 900, boxShadow: '0 8px 32px rgba(232,142,0,0.3)' }}>{initial}</div>
+              }
+              <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: '#22C55E', border: '3px solid #0B0B12', boxShadow: '0 0 10px rgba(34,197,94,0.8)' }} />
+            </div>
+
+            <p style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-0.3px', textTransform: 'uppercase' }}>{displayName}</p>
+            {user.slug && <p style={{ margin: '5px 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>@{user.slug.replace('user/', '')}</p>}
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>âš¡ AFK SMASH</span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>ðŸŽ® START.GG</span>
             </div>
           </div>
-        </div>
 
-        <div style={{ padding: '0 18px' }}>
-
-          {/* Stats globales */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-            {[
-              { label: 'Victorias', value: totalW, color: '#22C55E' },
-              { label: 'Derrotas',  value: totalL, color: '#EF4444' },
-              { label: 'Partidas',  value: totalW + totalL, color: '#FF8C00' },
-              { label: 'W/R',       value: (totalW + totalL) > 0 ? Math.round(totalW * 100 / (totalW + totalL)) + '%' : '—', color: '#F59E0B' },
-            ].map(s => (
-              <div key={s.label} style={{
-                flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: 14, padding: '12px 8px', textAlign: 'center',
-              }}>
-                <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: s.color }}>{loading ? '—' : s.value}</p>
-                <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</p>
-              </div>
+          {/* Tab bar */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', zIndex: 1 }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, padding: '13px 0', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === t.id ? '#FF8C00' : 'transparent'}`, cursor: 'pointer', color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === t.id ? 800 : 500, fontSize: 13, position: 'relative', bottom: -1, transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+                {t.label}
+              </button>
             ))}
           </div>
+        </div>
 
-          {/* Rangos por plataforma */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-            {(['switch', 'parsec']).map(plat => {
-              const s        = stats?.[plat];
-              const total    = (s?.wins || 0) + (s?.losses || 0);
-              const unranked = !s?.placementDone && total === 0;
-              const inPlacement = !s?.placementDone && total > 0;
-              const rankName = s?.rank || '';
-              const pts      = s?.rankPoints || 0;
-              const isSmasher = rankName === 'Smasher';
-              const rankObj  = RANKS.find(r => r.name === rankName);
-              const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-              const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
-              return (
-                <div key={plat} style={{
-                  flex: 1,
-                  background: unranked ? 'rgba(255,255,255,0.04)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(160deg, ${rankColor}15 0%, transparent 60%)`,
-                  border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '30'}`,
-                  borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                }}>
-                  <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>
-                    {platLabel(plat)}
-                  </p>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: '50%',
-                    background: unranked ? 'rgba(255,255,255,0.05)' : inPlacement ? 'rgba(255,140,0,0.1)' : `${rankColor}18`,
-                    border: `2px solid ${unranked ? 'rgba(255,255,255,0.1)' : inPlacement ? 'rgba(255,140,0,0.3)' : rankColor + '50'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 24,
-                  }}>
-                    {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : inPlacement ? '⚔️' : tierIcon}
+        {/* â”€â”€ Content â”€â”€ */}
+        <div style={{ padding: '0 18px 40px' }}>
+
+          {/* â•â•â•â• OVERVIEW â•â•â•â• */}
+          {activeTab === 'overview' && (
+            <div>
+              <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Winrates</p>
+
+              {/* ALL TIME card */}
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
+                <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ALL TIME</p>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#22C55E', lineHeight: 1 }}>{loading ? 'â€”' : totalW}</span>
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>W</span>
+                        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', margin: '0 2px' }}>â€“</span>
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{loading ? 'â€”' : totalL}</span>
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>L</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: 40, fontWeight: 900, lineHeight: 1, color: loading ? 'rgba(255,255,255,0.2)' : winRate >= 50 ? '#22C55E' : winRate >= 40 ? '#F59E0B' : 'rgba(255,255,255,0.45)' }}>
+                        {loading ? 'â€”' : `${winRate}%`}
+                      </p>
+                    </div>
                   </div>
-                  <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor, textAlign: 'center' }}>
-                    {unranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
-                  </p>
-                  {!unranked && !inPlacement && !isSmasher && (
-                    <div style={{ width: '100%', marginTop: 6 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>RR</span>
-                        <span style={{ fontSize: 8, fontWeight: 800, color: rankColor }}>{pts}/100</span>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 5, overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100,pts)}%`, height: '100%', background: rankColor, borderRadius: 3 }} />
-                      </div>
+                  {!loading && total > 0 && (
+                    <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
+                      <div style={{ width: `${winRate}%`, height: '100%', background: `linear-gradient(90deg, ${winRate >= 50 ? '#22C55E, #16A34A' : '#F59E0B, #D97706'})`, borderRadius: 4, transition: 'width 0.8s ease' }} />
                     </div>
                   )}
-                  {isSmasher && <p style={{ margin: '2px 0 0', fontSize: 10, fontWeight: 800, color: '#FF8C00' }}>{pts} RP</p>}
-                  <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                    <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
-                    {' · '}
-                    <span style={{ color: '#EF4444', fontWeight: 700 }}>{s?.losses || 0}L</span>
-                  </p>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Historial */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial de partidas</p>
-          </div>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
-          ) : history.length === 0 ? (
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
-              <p style={{ fontSize: 28, margin: '0 0 8px' }}>⚔️</p>
-              <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jugá partidas ranked para ver tu historial</p>
+                {/* Platform breakdown */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                  {[
+                    { label: 'ðŸŽ® Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
+                    { label: 'ðŸ–¥ï¸ Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
+                  ].map((p, i) => (
+                    <div key={i} style={{ padding: '14px 20px', borderRight: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</p>
+                      {loading || p.wr === null
+                        ? <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin datos</p>
+                        : <>
+                          <p style={{ margin: '0 0 3px', fontSize: 24, fontWeight: 900, lineHeight: 1, color: p.wr >= 50 ? '#22C55E' : 'rgba(255,255,255,0.45)' }}>{p.wr}%</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{p.w}W Â· {p.l}L</p>
+                        </>
+                      }
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent characters */}
+              {recentChars.length > 0 && (
+                <>
+                  <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Personajes recientes</p>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {recentChars.slice(0, 6).map((charId, idx) => {
+                      const char = CHARACTERS.find(c => c.id === charId);
+                      if (!char) return null;
+                      return (
+                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 8px', minWidth: 68 }}>
+                          <img src={charImgPath(char.img)} alt={char.name} style={{ width: 46, height: 46, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em', maxWidth: 62, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.name}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {history.map((m, i) => {
-                const isWin   = String(m.winnerId) === String(user.id || user.slug);
-                const opponent = isWin ? m.loserName : m.winnerName;
+          )}
+
+          {/* â•â•â•â• RANKED â•â•â•â• */}
+          {activeTab === 'ranked' && (
+            <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {(['switch', 'parsec']).map(plat => {
+                const s        = stats?.[plat];
+                const tot      = (s?.wins || 0) + (s?.losses || 0);
+                const unranked = !s?.placementDone && tot === 0;
+                const inPlac   = !s?.placementDone && tot > 0;
+                const rankName = s?.rank || '';
+                const pts      = s?.rankPoints || 0;
+                const isSmasher= rankName === 'Smasher';
+                const rankObj  = RANKS.find(r => r.name === rankName);
+                const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
+                const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || 'ðŸŽ®') : '?';
+                const pColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
+                const pLabel   = plat === 'switch' ? 'ðŸŽ® Switch Online' : 'ðŸ–¥ï¸ Parsec';
+                const platWR   = tot > 0 ? Math.round((s?.wins || 0) * 100 / tot) : null;
                 return (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
-                    border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`,
-                    borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`,
-                    borderRadius: 12, padding: '10px 14px',
-                  }}>
-                    {/* Resultado */}
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                      background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14, fontWeight: 900,
-                      color: isWin ? '#22C55E' : '#EF4444',
-                    }}>
-                      {isWin ? 'W' : 'L'}
+                  <div key={plat} style={{ background: unranked ? 'rgba(255,255,255,0.03)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : rankColor + '35'}`, borderRadius: 20, padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{pLabel}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{tot} partidas</p>
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        vs {opponent}
-                      </p>
-                      <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-                        {platLabel(m.platform)} · {timeAgo(m.playedAt)}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>
-                        {isWin ? 'VICTORIA' : 'DERROTA'}
-                      </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                      <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: unranked ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${unranked ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
+                        {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 24 }}>?</span> : inPlac ? 'âš”ï¸' : tierIcon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: unranked ? 'rgba(255,255,255,0.2)' : inPlac ? '#FF8C00' : rankColor }}>
+                          {unranked ? 'UNRANKED' : inPlac ? `CLAS. ${tot}/5` : rankName}
+                        </p>
+                        <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+                          <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
+                          {' Â· '}
+                          <span style={{ color: '#EF4444', fontWeight: 700 }}>{s?.losses || 0}L</span>
+                          {platWR !== null && <span style={{ color: 'rgba(255,255,255,0.3)' }}> Â· {platWR}%</span>}
+                        </p>
+                        {!unranked && !inPlac && !isSmasher && (
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Rank Points</span>
+                              <span style={{ fontSize: 10, fontWeight: 800, color: rankColor }}>{pts}/100</span>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
+                            </div>
+                          </div>
+                        )}
+                        {isSmasher && <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#FF8C00' }}>{pts} RP</p>}
+                      </div>
                     </div>
                   </div>
                 );
@@ -290,17 +263,44 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* â•â•â•â• HISTORIAL â•â•â•â• */}
+          {activeTab === 'historial' && (
+            <div style={{ paddingTop: 20 }}>
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
+              ) : history.length === 0 ? (
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>âš”ï¸</p>
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aÃºn</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>JugÃ¡ ranked para ver tu historial</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {history.map((m, i) => {
+                    const isWin    = String(m.winnerId) === String(user.id || user.slug);
+                    const opponent = isWin ? m.loserName : m.winnerName;
+                    const pLabel   = m.platform === 'switch' ? 'ðŸŽ® Switch' : 'ðŸ–¥ï¸ Parsec';
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
+                          {isWin ? 'W' : 'L'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pLabel} Â· {timeAgo(m.playedAt)}</p>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Logout */}
-          <button onClick={() => { logout(); window.location.href = '/login'; }} style={{
-            marginTop: 28, width: '100%', padding: '14px', borderRadius: 16,
-            background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)',
-            color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-            transition: 'background .15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
-          >
-            Cerrar sesión
+          <button onClick={() => { logout(); window.location.href = '/login'; }} style={{ marginTop: 32, width: '100%', padding: '14px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            Cerrar sesiÃ³n
           </button>
         </div>
       </div>

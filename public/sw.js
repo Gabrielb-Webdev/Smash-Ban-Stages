@@ -19,13 +19,23 @@ self.addEventListener('push', function (event) {
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  var url = event.notification.data && event.notification.data.url ? event.notification.data.url : '/home';
+  var url = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/home';
+  var targetUrl = url.startsWith('http') ? url : (self.location.origin + url);
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].url.indexOf('/home') !== -1 && 'focus' in list[i]) return list[i].focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          // Navegar a la URL correcta en la ventana existente
+          if ('navigate' in client) {
+            return client.navigate(targetUrl).then(function(c) { return c && c.focus(); });
+          }
+          // Fallback: postMessage para que la página navegue
+          client.postMessage({ type: 'NOTIF_NAVIGATE', url: url });
+          return client.focus();
+        }
       }
-      return clients.openWindow(url);
+      return clients.openWindow(targetUrl);
     })
   );
 });

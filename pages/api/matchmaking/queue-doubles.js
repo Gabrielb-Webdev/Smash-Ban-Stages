@@ -77,7 +77,7 @@ async function tryMatchDoubles(platform) {
   const platLabel = platform === 'switch' ? 'Switch Online' : 'Parsec';
   const allPlayers = [team1.player1, team1.player2, team2.player1, team2.player2];
   await Promise.all(allPlayers.map(p =>
-    sendPush(p.userId, { title: '¡Match 2v2 encontrado! 👥', body: `¡Tu equipo está listo! · ${platLabel}`, tag: 'match-found-2v2', data: { url: '/home' } })
+    sendPush(p.userId, { title: '¡Match 2v2 encontrado! 👥', body: `¡Tu equipo está listo! · ${platLabel}`, tag: 'match-found-2v2', data: { url: '/home?open=match' } })
   ));
 }
 

@@ -68,8 +68,8 @@ async function tryMatch(platform) {
   // Push: match encontrado
   const platLabel = platform === 'switch' ? 'Switch Online' : 'Parsec';
   await Promise.all([
-    sendPush(p1.userId, { title: '¡Match encontrado! 🎮', body: `Rival: ${p2.userName} · ${platLabel}`, tag: 'match-found', data: { url: '/home' } }),
-    sendPush(p2.userId, { title: '¡Match encontrado! 🎮', body: `Rival: ${p1.userName} · ${platLabel}`, tag: 'match-found', data: { url: '/home' } }),
+    sendPush(p1.userId, { title: '¡Match encontrado! 🎮', body: `Rival: ${p2.userName} · ${platLabel}`, tag: 'match-found', data: { url: '/home?open=match' } }),
+    sendPush(p2.userId, { title: '¡Match encontrado! 🎮', body: `Rival: ${p1.userName} · ${platLabel}`, tag: 'match-found', data: { url: '/home?open=match' } }),
   ]);
 }
 

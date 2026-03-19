@@ -231,6 +231,33 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, [bgMM?.status]);
 
+  // Deep link desde notificación push: /home?open=tab
+  useEffect(() => {
+    if (!user || !router.isReady) return;
+    const open = router.query.open;
+    if (!open) return;
+    const validTabs = ['match', 'torneos', 'rankings', 'tips', 'perfil'];
+    if (validTabs.includes(open)) setTab(open);
+    router.replace('/home', undefined, { shallow: true });
+  }, [user, router.isReady]);
+
+  // Escuchar postMessage del Service Worker (fallback para navegadores sin client.navigate)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.serviceWorker) return;
+    const handler = (event) => {
+      if (event.data?.type === 'NOTIF_NAVIGATE') {
+        const url = event.data.url || '';
+        const m = url.match(/[?&]open=([^&]+)/);
+        if (m) {
+          const validTabs = ['match', 'torneos', 'rankings', 'tips', 'perfil'];
+          if (validTabs.includes(m[1])) setTab(m[1]);
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, []);
+
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B0B12' }}>
       <div style={{ width: 32, height: 32, border: '2px solid #E88E00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
