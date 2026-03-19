@@ -99,48 +99,49 @@ export default function ProfilePage() {
         </div>
 
         {/* â”€â”€ Banner / Hero â”€â”€ */}
-        <div style={{ position: 'relative', background: '#0E0E1A', overflow: 'hidden', minHeight: 220 }}>
-          {heroRender && (
+        <div style={{ position: 'relative', height: 195, background: '#0B0B12', overflow: 'hidden', flexShrink: 0 }}>
+          {heroRender ? (
             <img
               src={charRenderPath(heroRender)}
               alt=""
-              style={{ position: 'absolute', right: 0, bottom: 0, height: 220, objectFit: 'contain', objectPosition: 'bottom right', opacity: 0.85, zIndex: 0, pointerEvents: 'none', filter: 'drop-shadow(0 4px 32px rgba(0,0,0,0.8))' }}
+              style={{ position: 'absolute', top: 0, right: '5%', height: '100%', objectFit: 'contain', objectPosition: 'right bottom', zIndex: 0, pointerEvents: 'none' }}
               onError={e => { e.target.style.display = 'none'; }}
             />
-          )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, #0E0E1A 38%, rgba(14,14,26,0.7) 60%, transparent 100%)', zIndex: 1, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: -70, left: -70, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,142,0,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          ) : null}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, #0B0B12 18%, rgba(11,11,18,0.5) 55%, transparent 85%)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 45%)', zIndex: 1, pointerEvents: 'none' }} />
 
-          <div style={{ padding: '32px 20px 0', position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, textAlign: 'left' }}>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                {user.avatar
-                  ? <img src={user.avatar} alt={displayName} style={{ width: 68, height: 68, borderRadius: 22, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.55)', boxShadow: '0 6px 24px rgba(0,0,0,0.6)' }} />
-                  : <div style={{ width: 68, height: 68, borderRadius: 22, background: 'linear-gradient(135deg,#FF8C00,#C05600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, boxShadow: '0 6px 24px rgba(232,142,0,0.3)' }}>{initial}</div>
-                }
-                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '3px solid #0E0E1A', boxShadow: '0 0 8px rgba(34,197,94,0.8)' }} />
-              </div>
-              <div>
-                <p style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-0.3px', textTransform: 'uppercase', lineHeight: 1.1, textShadow: '0 2px 16px rgba(0,0,0,0.8)' }}>{displayName}</p>
-                {user.slug && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{user.slug.replace('user/', '')}</p>}
-              </div>
-            </div>
+          {/* Nameplate */}
+          <div style={{ position: 'absolute', bottom: 14, left: 18, right: 18, zIndex: 2 }}>
+            <p style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,1)', lineHeight: 1 }}>{displayName}</p>
+          </div>
+        </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>âš¡ AFK SMASH</span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>ðŸŽ® START.GG</span>
+        {/* Player info */}
+        <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {user.avatar
+              ? <img src={user.avatar} alt={displayName} style={{ width: 64, height: 64, borderRadius: 20, objectFit: 'cover', border: '2px solid rgba(232,142,0,0.55)', boxShadow: '0 6px 24px rgba(0,0,0,0.6)' }} />
+              : <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FF8C00,#C05600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, boxShadow: '0 6px 24px rgba(232,142,0,0.3)' }}>{initial}</div>
+            }
+            <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#22C55E', border: '3px solid #0B0B12', boxShadow: '0 0 8px rgba(34,197,94,0.8)' }} />
+          </div>
+          <div>
+            {user.slug && <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{user.slug.replace('user/', '')}</p>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.3)', color: '#FF8C00' }}>⚡ AFK SMASH</span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>🎮 START.GG</span>
             </div>
           </div>
+        </div>
 
-          {/* Tab bar */}
-          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', zIndex: 2 }}>
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, padding: '13px 0', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === t.id ? '#FF8C00' : 'transparent'}`, cursor: 'pointer', color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === t.id ? 800 : 500, fontSize: 13, position: 'relative', bottom: -1, transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', marginTop: 16 }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, padding: '13px 0', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === t.id ? '#FF8C00' : 'transparent'}`, cursor: 'pointer', color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === t.id ? 800 : 500, fontSize: 13, position: 'relative', bottom: -1, transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {/* â”€â”€ Content â”€â”€ */}

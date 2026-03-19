@@ -331,7 +331,7 @@ export default function HomePage() {
       <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: '#0B0B12', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
         {/* â”€â”€ TOP BAR â”€â”€ */}
-        <header style={{
+        <header id="app-top-header" style={{
           position: 'sticky', top: 0, zIndex: 50,
           padding: '10px 16px',
           background: 'rgba(11,11,18,0.92)',

@@ -554,7 +554,7 @@ export default function App() {
   // Después de cargar: ocultar controles duplicados del header web
   var injectedAfterLoad = [
     "try{localStorage.setItem('afk_user'," + JSON.stringify(sessionPayload) + ");}catch(e){}",
-    "var s=document.createElement('style');s.innerHTML='#app-profile-header{display:none!important}#app-bell-btn{display:none!important}';document.head.appendChild(s);",
+    "var s=document.createElement('style');s.innerHTML='#app-top-header{display:none!important}#app-profile-header{display:none!important}#app-bell-btn{display:none!important}';document.head.appendChild(s);",
     "true;",
   ].join('');
 
