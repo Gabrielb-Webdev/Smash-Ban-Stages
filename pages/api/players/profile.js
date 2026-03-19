@@ -58,18 +58,20 @@ export default async function handler(req, res) {
 
     if (full === 'true') {
       const empty = { wins: 0, losses: 0, rankedPoints: 0, rank: 'Plástico 1' };
-      const [sw1v1, pc1v1, sw2v2, pc2v2, history] = await Promise.all([
+      const [sw1v1, pc1v1, sw2v2, pc2v2, history, recentChars] = await Promise.all([
         redis.get(rankedStatsKey(cleanId, 'switch')),
         redis.get(rankedStatsKey(cleanId, 'parsec')),
         redis.get(rankedDoubleStatsKey(cleanId, 'switch')),
         redis.get(rankedDoubleStatsKey(cleanId, 'parsec')),
         redis.lrange(matchHistoryKey(cleanId), 0, 19),
+        redis.get(`recent:chars:${cleanId}`),
       ]);
       return res.status(200).json({
         profile: profile || null,
         stats: { switch: sw1v1 || empty, parsec: pc1v1 || empty },
         doublesStats: { switch: sw2v2 || empty, parsec: pc2v2 || empty },
         history: Array.isArray(history) ? history : [],
+        recentChars: Array.isArray(recentChars) ? recentChars : [],
       });
     }
 

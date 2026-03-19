@@ -824,64 +824,103 @@ function RankBadge({ rankName }) {
 }
 
 function RankedPlayerRow({ position, player, onPlayerClick }) {
-  const isSmasher  = player.rank === 'Smasher';
-  const rankObj    = RANKS.find(r => r.name === player.rank) || RANKS[0];
-  const posIcon    = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : null;
-  const rpts       = player.rankPoints || 0;
-  const pct        = isSmasher ? null : Math.min(100, rpts);
+  const isSmasher   = player.rank === 'Smasher';
+  const rankObj     = RANKS.find(r => r.name === player.rank) || RANKS[0];
   const inPlacement = !player.placementDone;
-  const played      = (player.wins || 0) + (player.losses || 0);
+  const wins  = player.wins || 0;
+  const losses = player.losses || 0;
+  const total  = wins + losses;
+  const wr     = total > 0 ? (wins / total).toFixed(4) : '0.0000';
+
+  // Character render
+  const charId    = player.mainCharId || null;
+  const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
+
+  // Top 3 styling
+  const isTop3 = position <= 3;
+  const topColors = {
+    1: { bg: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', text: '#000', posBg: '#fff', posColor: '#000' },
+    2: { bg: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', text: '#000', posBg: '#fff', posColor: '#000' },
+    3: { bg: 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)', text: '#000', posBg: '#fff', posColor: '#000' },
+  };
+  const tc = topColors[position] || null;
+
   return (
     <div onClick={() => onPlayerClick && onPlayerClick(player.userId, player.userName)} style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      background: isSmasher ? 'rgba(255,140,0,0.08)' : '#10101A',
-      border: `1px solid ${isSmasher ? 'rgba(255,140,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
-      borderRadius: 14, padding: '12px 14px',
+      display: 'flex', alignItems: 'center',
+      background: tc ? tc.bg : '#10101A',
+      border: tc ? 'none' : '1px solid rgba(255,255,255,0.05)',
+      borderRadius: 12, overflow: 'hidden',
       cursor: onPlayerClick ? 'pointer' : 'default',
+      position: 'relative', minHeight: isTop3 ? 72 : 56,
     }}>
-      <div style={{ width: 26, textAlign: 'center', flexShrink: 0 }}>
-        {posIcon
-          ? <span style={{ fontSize: 17 }}>{posIcon}</span>
-          : <span style={{ fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.25)' }}>{position}</span>
-        }
+      {/* Position badge */}
+      <div style={{
+        width: isTop3 ? 52 : 44, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: tc ? 'rgba(255,255,255,0.25)' : 'rgba(124,58,237,0.15)',
+        alignSelf: 'stretch',
+      }}>
+        <span style={{
+          fontSize: isTop3 ? 24 : 18, fontWeight: 900,
+          color: tc ? tc.posColor : '#A78BFA',
+          fontFamily: "'Outfit', sans-serif",
+        }}>{position}</span>
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: isSmasher ? '#FF8C00' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+
+      {/* Name + score */}
+      <div style={{ flex: 1, padding: isTop3 ? '10px 12px' : '8px 10px', minWidth: 0 }}>
+        <p style={{
+          margin: 0, fontSize: isTop3 ? 18 : 14, fontWeight: 900,
+          color: tc ? tc.text : (isSmasher ? '#FF8C00' : '#fff'),
+          textTransform: 'uppercase', letterSpacing: '0.02em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           {player.userName}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {inPlacement ? (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '3px 9px', borderRadius: 20,
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap',
-            }}>
-              ❓ Unranked
-            </span>
-          ) : (
-            <>
-              <RankBadge rankName={player.rank} />
-              {isSmasher && <span style={{ fontSize: 10, color: '#FF8C00', fontWeight: 700 }}>{rpts} RP</span>}
-            </>
+          {!inPlacement && (
+            <span style={{ fontSize: isTop3 ? 13 : 11, fontWeight: 700, marginLeft: 8, opacity: 0.7 }}>{wr}</span>
           )}
-        </div>
-        {!inPlacement && !isSmasher && (
-          <div style={{ marginTop: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 4, height: 4, overflow: 'hidden' }}>
-            <div style={{ width: `${pct}%`, height: '100%', background: rankObj.color, borderRadius: 4, transition: 'width 0.35s' }} />
+        </p>
+        {!inPlacement && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <RankBadge rankName={player.rank} />
+            {isSmasher && <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.6)' : '#FF8C00', fontWeight: 700 }}>{player.rankPoints || 0} RP</span>}
           </div>
         )}
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 800, color: '#fff' }}>
-          <span style={{ color: '#22C55E' }}>{player.wins || 0}W</span>
-          <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 3px' }}>·</span>
-          <span style={{ color: '#EF4444' }}>{player.losses || 0}L</span>
-        </p>
-        {!inPlacement && !isSmasher && (
-          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rpts}/100 RP</p>
+        {inPlacement && (
+          <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 700, color: tc ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)' }}>
+            {wins}W · {losses}L
+          </p>
         )}
       </div>
+
+      {/* W/L stats (non-top3) */}
+      {!isTop3 && !inPlacement && (
+        <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: renderFile ? 4 : 14 }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800 }}>
+            <span style={{ color: '#22C55E' }}>{wins}W</span>
+            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>·</span>
+            <span style={{ color: '#EF4444' }}>{losses}L</span>
+          </p>
+        </div>
+      )}
+
+      {/* Character render */}
+      {renderFile && (
+        <img
+          src={charRenderPath(renderFile)}
+          alt=""
+          style={{
+            height: isTop3 ? 68 : 52,
+            objectFit: 'contain',
+            position: 'relative', zIndex: 1,
+            marginRight: isTop3 ? -4 : -2,
+            filter: isTop3 ? 'none' : 'brightness(0.85)',
+            flexShrink: 0,
+          }}
+          onError={e => { e.target.style.display = 'none'; }}
+        />
+      )}
     </div>
   );
 }
@@ -1941,43 +1980,27 @@ function TabPerfil({ user }) {
 
         {/* ═══ MODAL PERFIL JUGADOR ═══ */}
         {viewProfile && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-            {/* Header con avatar */}
-            <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'linear-gradient(160deg,rgba(124,58,237,0.09) 0%,rgba(232,142,0,0.06) 50%,transparent 80%)', position: 'sticky', top: 0, zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button onClick={() => setViewProfile(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  {profileData?.profile?.avatar
-                    ? <img src={profileData.profile.avatar} alt={viewProfile.userName} style={{ width: 56, height: 56, borderRadius: 18, objectFit: 'cover', border: '2px solid rgba(124,58,237,0.5)' }} />
-                    : <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#fff', boxShadow: '0 6px 16px rgba(99,102,241,0.3)' }}>
-                        {(viewProfile.userName || '?').charAt(0).toUpperCase()}
-                      </div>
-                  }
-                  {(() => {
-                    const friendEntry = friends.find(f => f.userId === viewProfile.userId);
-                    if (!friendEntry) return null;
-                    const onlineColor = friendEntry.online === 'in_match' ? '#34D399' : friendEntry.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.2)';
-                    return <div style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: onlineColor, border: '2px solid #0D0D15', boxShadow: friendEntry.online !== 'offline' ? '0 0 6px ' + onlineColor : 'none' }} />;
-                  })()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{viewProfile.userName}</p>
-                  {(() => {
-                    const friendEntry = friends.find(f => f.userId === viewProfile.userId);
-                    if (friendEntry) {
-                      const statusText = friendEntry.online === 'in_match' ? 'En partida' : friendEntry.online === 'searching' ? 'Buscando partida…' : 'Desconectado';
-                      const statusColor = friendEntry.online === 'in_match' ? '#34D399' : friendEntry.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.3)';
-                      return <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: statusColor }}>● {statusText}</p>;
-                    }
-                    return <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Perfil de jugador</p>;
-                  })()}
-                </div>
-                {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
-                  <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                    {friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}
-                  </button>
-                )}
-              </div>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            {/* Sticky top bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => setViewProfile(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+              </button>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>{viewProfile.userName}</p>
+              {(() => {
+                const friendEntry = friends.find(f => f.userId === viewProfile.userId);
+                if (friendEntry) {
+                  const statusText = friendEntry.online === 'in_match' ? 'En partida' : friendEntry.online === 'searching' ? 'Buscando…' : '';
+                  const statusColor = friendEntry.online === 'in_match' ? '#34D399' : friendEntry.online === 'searching' ? '#FBBF24' : null;
+                  if (statusColor) return <span style={{ fontSize: 10, fontWeight: 700, color: statusColor }}>● {statusText}</span>;
+                }
+                return null;
+              })()}
+              {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
+                <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                  {friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}
+                </button>
+              )}
             </div>
 
             {profileLoading ? (
@@ -1985,165 +2008,158 @@ function TabPerfil({ user }) {
                 <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p>
               </div>
             ) : profileData ? (
-              <div style={{ padding: '16px 18px', maxWidth: 480, margin: '0 auto', width: '100%' }}>
-                {/* ── Ranked 1v1 ── */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12 }}>⚔️</span>
-                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ranked 1v1</p>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                  {['switch', 'parsec'].map(plat => {
-                    const s = profileData.stats?.[plat] || {};
-                    const wins = s.wins || 0;
-                    const losses = s.losses || 0;
-                    const total = wins + losses;
-                    const rp = s.rankedPoints || 0;
-                    const rankName = s.rank || 'Plástico 1';
-                    const inPlacement = total > 0 && total < 5;
-                    const isUnranked = total === 0;
-                    const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
-                    const rankColor = rankObj?.color || '#9CA3AF';
-                    return (
-                      <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (isUnranked ? 'rgba(255,255,255,0.06)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{platLabel(plat)}</span>
-                        {isUnranked ? (
-                          <>
-                            <span style={{ fontSize: 20 }}>❔</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Unranked</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0/5 partidas</span>
-                          </>
-                        ) : inPlacement ? (
-                          <>
-                            <span style={{ fontSize: 20 }}>❔</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00' }}>Clasificando</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas · faltan {5 - total}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span style={{ fontSize: 20 }}>{tierIcon}</span>
-                            <span style={{ fontSize: 12, fontWeight: 900, color: rankColor }}>{rankName}</span>
-                            <div style={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 2 }}>
-                              <div style={{ height: '100%', borderRadius: 2, background: rankColor, width: Math.min(rp, 100) + '%', transition: 'width 0.3s' }} />
-                            </div>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rp} RP</span>
-                          </>
-                        )}
-                        {total > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{wins}W - {losses}L</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* ── Ranked 2v2 ── */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12 }}>👥</span>
-                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ranked 2v2</p>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                  {['switch', 'parsec'].map(plat => {
-                    const s = profileData.doublesStats?.[plat] || {};
-                    const wins = s.wins || 0;
-                    const losses = s.losses || 0;
-                    const total = wins + losses;
-                    const rp = s.rankedPoints || 0;
-                    const rankName = s.rank || 'Plástico 1';
-                    const inPlacement = total < 5;
-                    const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
-                    const rankColor = rankObj?.color || '#9CA3AF';
-                    return (
-                      <div key={plat} style={{ flex: 1, background: total === 0 ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (total === 0 ? 'rgba(255,255,255,0.06)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '30'), borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{platLabel(plat)}</span>
-                        {total === 0 ? (
-                          <>
-                            <span style={{ fontSize: 20 }}>❔</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Unranked</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0/5 partidas</span>
-                          </>
-                        ) : inPlacement ? (
-                          <>
-                            <span style={{ fontSize: 20 }}>{tierIcon}</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#A78BFA' }}>Clasificando</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas · faltan {5 - total}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span style={{ fontSize: 20 }}>{tierIcon}</span>
-                            <span style={{ fontSize: 12, fontWeight: 900, color: rankColor }}>{rankName}</span>
-                            <div style={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 2 }}>
-                              <div style={{ height: '100%', borderRadius: 2, background: rankColor, width: Math.min(rp, 100) + '%', transition: 'width 0.3s' }} />
-                            </div>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rp} RP</span>
-                          </>
-                        )}
-                        {total > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{wins}W - {losses}L</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* ── Resumen general ── */}
+              <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
+                {/* Hero banner */}
                 {(() => {
-                  const sw1 = profileData.stats?.switch || {};
-                  const pc1 = profileData.stats?.parsec || {};
-                  const sw2 = profileData.doublesStats?.switch || {};
-                  const pc2 = profileData.doublesStats?.parsec || {};
-                  const tW = (sw1.wins || 0) + (pc1.wins || 0) + (sw2.wins || 0) + (pc2.wins || 0);
-                  const tL = (sw1.losses || 0) + (pc1.losses || 0) + (sw2.losses || 0) + (pc2.losses || 0);
-                  const tT = tW + tL;
-                  const wr = tT > 0 ? Math.round((tW / tT) * 100) : 0;
+                  const heroCharId = (() => {
+                    const hist = profileData.history || [];
+                    if (hist.length) {
+                      const counts = {};
+                      for (const m of hist) {
+                        const cid = String(m.winnerId) === String(viewProfile.userId) ? m.winnerCharId : m.loserCharId;
+                        if (cid) counts[cid] = (counts[cid] || 0) + 1;
+                      }
+                      let best = null, max = 0;
+                      for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
+                      return best;
+                    }
+                    return profileData.recentChars?.[0] || null;
+                  })();
+                  const heroRenderFile = heroCharId ? CHARACTER_RENDERS[heroCharId] : null;
                   return (
-                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{tT}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Partidas</p>
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#22C55E' }}>{tW}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Victorias</p>
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#EF4444' }}>{tL}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Derrotas</p>
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#FF8C00' }}>{wr}%</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Winrate</p>
-                      </div>
+                    <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
+                      {heroRenderFile ? (
+                        <img src={charRenderPath(heroRenderFile)} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        <div style={{ height: 100 }} />
+                      )}
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+                      <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{viewProfile.userName}</p>
                     </div>
                   );
                 })()}
 
-                {/* ── Historial ── */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12 }}>📋</span>
-                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Historial</p>
-                </div>
-                {(!profileData.history || profileData.history.length === 0) ? (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '24px 16px', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin partidas registradas</p>
+                <div style={{ padding: '0 18px 40px' }}>
+                  {/* Estadísticas */}
+                  {(() => {
+                    const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
+                    const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
+                    const tW = (sw1.wins||0)+(pc1.wins||0)+(sw2.wins||0)+(pc2.wins||0);
+                    const tL = (sw1.losses||0)+(pc1.losses||0)+(sw2.losses||0)+(pc2.losses||0);
+                    const tT = tW+tL; const wr = tT > 0 ? Math.round((tW/tT)*100) : 0;
+                    return (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 12px' }}>
+                          <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#22C55E,#16A34A)', flexShrink: 0 }} />
+                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                          {[
+                            { label: 'Victorias', value: tW, color: '#22C55E' },
+                            { label: 'Derrotas', value: tL, color: '#EF4444' },
+                            { label: 'Partidas', value: tT, color: '#fff' },
+                            { label: 'W/R', value: wr + '%', color: '#F59E0B' },
+                          ].map(st => (
+                            <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
+                              <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{st.value}</p>
+                              <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{st.label}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {/* Ranked 1v1 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                    <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {profileData.history.slice(0, 20).map((m, i) => {
-                      const isWin = String(m.winnerId) === String(viewProfile.userId);
-                      const opponent = isWin ? m.loserName : m.winnerName;
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                    {['switch', 'parsec'].map(plat => {
+                      const s = profileData.stats?.[plat] || {};
+                      const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
+                      const rankName = s.rank || 'Plástico 1'; const rp = s.rankedPoints || 0;
+                      const isUnranked = total === 0; const inPlacement = !isUnranked && total < 5;
+                      const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+                      const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                      const rankColor = rankObj?.color || '#9CA3AF';
+                      const pColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                       return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isWin ? 'rgba(34,197,94,0.04)' : 'rgba(239,68,68,0.04)', border: '1px solid ' + (isWin ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)'), borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), borderRadius: 10, padding: '8px 12px' }}>
-                          <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
-                            {isWin ? 'W' : 'L'}
+                        <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                          <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                            {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                            <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
-                          </div>
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444', flexShrink: 0 }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor }}>
+                            {isUnranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
+                          </p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                         </div>
                       );
                     })}
                   </div>
-                )}
+
+                  {/* Ranked 2v2 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                    <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#A78BFA,#7C3AED)', flexShrink: 0 }} />
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                    {['switch', 'parsec'].map(plat => {
+                      const s = profileData.doublesStats?.[plat] || {};
+                      const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
+                      const rankName = s.rank || 'Plástico 1'; const rp = s.rankedPoints || 0;
+                      const isUnranked = total === 0; const inPlacement = !isUnranked && total < 5;
+                      const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+                      const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                      const rankColor = rankObj?.color || '#9CA3AF';
+                      return (
+                        <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                          <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                            {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
+                          </div>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#A78BFA' : rankColor }}>
+                            {isUnranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
+                          </p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Historial */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                    <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
+                  </div>
+                  {(!profileData.history || profileData.history.length === 0) ? (
+                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+                      <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
+                      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {profileData.history.slice(0, 20).map((m, i) => {
+                        const isWin = String(m.winnerId) === String(viewProfile.userId);
+                        const opponent = isWin ? m.loserName : m.winnerName;
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
+                              {isWin ? 'W' : 'L'}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                              <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                            </div>
+                            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2356,6 +2372,7 @@ function TabRankings({ user }) {
   const [mode,        setMode]       = useState('ba');
   const [rankPlat,    setRankPlat]   = useState('switch');
   const [rankBoard,   setRankBoard]  = useState([]);
+  const [rankTotal,   setRankTotal]  = useState(0);
   const [rankLoading, setRankLoading] = useState(false);
   const [charPlat,    setCharPlat]   = useState('switch');
   const [charSearch,  setCharSearch] = useState('');
@@ -2408,7 +2425,12 @@ function TabRankings({ user }) {
     const modeParam = mode === 'ranked2v2' ? '&mode=doubles' : '';
     fetch(`/api/ranked/leaderboard?platform=${rankPlat}${modeParam}`)
       .then(r => r.json())
-      .then(d => { setRankBoard(Array.isArray(d) ? d : []); setRankLoading(false); })
+      .then(d => {
+        const players = Array.isArray(d?.players) ? d.players : (Array.isArray(d) ? d : []);
+        setRankBoard(players);
+        setRankTotal(d?.total || players.length);
+        setRankLoading(false);
+      })
       .catch(() => setRankLoading(false));
   }, [mode, rankPlat]);
 
@@ -2487,11 +2509,9 @@ function TabRankings({ user }) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {rankBoard.some(p => p.rank === 'Smasher') && (
-                <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#FF8C00', letterSpacing: '0.08em' }}>
-                  👑 SMASHERS
-                </p>
-              )}
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', textAlign: 'center' }}>
+                Mostrando 1 - {rankBoard.length} de {rankTotal}
+              </p>
               {rankBoard.map((p, i) => (
                 <RankedPlayerRow key={p.userId} position={i + 1} player={p} onPlayerClick={openProfile} />
               ))}
@@ -2659,16 +2679,13 @@ function TabRankings({ user }) {
 
       {/* ═══ MODAL PERFIL JUGADOR (Rankings) ═══ */}
       {viewProfile && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15', position: 'sticky', top: 0, zIndex: 1 }}>
-            <button onClick={() => setViewProfile(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
-            <div style={{ width: 40, height: 40, borderRadius: 14, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 900, color: '#fff' }}>
-              {(viewProfile.userName || '?').charAt(0).toUpperCase()}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>{viewProfile.userName}</p>
-              <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Perfil de jugador</p>
-            </div>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          {/* Sticky top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <button onClick={() => setViewProfile(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+            </button>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>{viewProfile.userName}</p>
           </div>
 
           {profileLoading ? (
@@ -2676,101 +2693,158 @@ function TabRankings({ user }) {
               <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p>
             </div>
           ) : profileData ? (
-            <div style={{ padding: '16px 18px', maxWidth: 480, margin: '0 auto', width: '100%' }}>
-              {/* Ranked 1v1 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                <span style={{ fontSize: 12 }}>⚔️</span>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ranked 1v1</p>
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                {['switch', 'parsec'].map(plat => {
-                  const s = profileData.stats?.[plat] || {};
-                  const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                  const rp = s.rankedPoints || 0;
-                  const rankName = s.rank || 'Plástico 1';
-                  const inP = total < 5;
-                  const ro = RANKS.find(r => r.name === rankName) || RANKS[0];
-                  const ti = ro ? (TIER_ICONS[ro.tier] || '🎮') : '?';
-                  const rc = ro?.color || '#9CA3AF';
-                  return (
-                    <div key={plat} style={{ flex: 1, background: inP ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rc + '15 0%,transparent 60%)', border: '1px solid ' + (inP ? 'rgba(255,140,0,0.2)' : rc + '30'), borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{platLabel(plat)}</span>
-                      {inP ? (<><span style={{ fontSize: 20 }}>📊</span><span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00' }}>Posicionamiento</span><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas</span></>) : (<><span style={{ fontSize: 20 }}>{ti}</span><span style={{ fontSize: 12, fontWeight: 900, color: rc }}>{rankName}</span><div style={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 2 }}><div style={{ height: '100%', borderRadius: 2, background: rc, width: Math.min(rp, 100) + '%' }} /></div><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rp} RP</span></>)}
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{wins}W - {losses}L</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Ranked 2v2 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                <span style={{ fontSize: 12 }}>👥</span>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ranked 2v2</p>
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-                {['switch', 'parsec'].map(plat => {
-                  const s = profileData.doublesStats?.[plat] || {};
-                  const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                  const rp = s.rankedPoints || 0;
-                  const rankName = s.rank || 'Plástico 1';
-                  const inP = total < 5;
-                  const ro = RANKS.find(r => r.name === rankName) || RANKS[0];
-                  const ti = ro ? (TIER_ICONS[ro.tier] || '🎮') : '?';
-                  const rc = ro?.color || '#9CA3AF';
-                  return (
-                    <div key={plat} style={{ flex: 1, background: total === 0 ? 'rgba(255,255,255,0.03)' : inP ? 'rgba(124,58,237,0.04)' : 'linear-gradient(160deg,' + rc + '15 0%,transparent 60%)', border: '1px solid ' + (total === 0 ? 'rgba(255,255,255,0.06)' : inP ? 'rgba(124,58,237,0.2)' : rc + '30'), borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{platLabel(plat)}</span>
-                      {total === 0 ? (<><span style={{ fontSize: 20 }}>➖</span><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Sin partidas</span></>) : inP ? (<><span style={{ fontSize: 20 }}>📊</span><span style={{ fontSize: 11, fontWeight: 800, color: '#A78BFA' }}>Posicionamiento</span><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas</span></>) : (<><span style={{ fontSize: 20 }}>{ti}</span><span style={{ fontSize: 12, fontWeight: 900, color: rc }}>{rankName}</span><div style={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 2 }}><div style={{ height: '100%', borderRadius: 2, background: rc, width: Math.min(rp, 100) + '%' }} /></div><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rp} RP</span></>)}
-                      {total > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{wins}W - {losses}L</span>}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Resumen */}
+            <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
+              {/* Hero banner */}
               {(() => {
-                const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
-                const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
-                const tW = (sw1.wins||0)+(pc1.wins||0)+(sw2.wins||0)+(pc2.wins||0);
-                const tL = (sw1.losses||0)+(pc1.losses||0)+(sw2.losses||0)+(pc2.losses||0);
-                const tT = tW+tL; const wr = tT > 0 ? Math.round((tW/tT)*100) : 0;
+                const heroCharId = (() => {
+                  const hist = profileData.history || [];
+                  if (hist.length) {
+                    const counts = {};
+                    for (const m of hist) {
+                      const cid = String(m.winnerId) === String(viewProfile.userId) ? m.winnerCharId : m.loserCharId;
+                      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+                    }
+                    let best = null, max = 0;
+                    for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
+                    return best;
+                  }
+                  return profileData.recentChars?.[0] || null;
+                })();
+                const heroRenderFile = heroCharId ? CHARACTER_RENDERS[heroCharId] : null;
                 return (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-                    <div><p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{tT}</p><p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Partidas</p></div>
-                    <div><p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#22C55E' }}>{tW}</p><p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Victorias</p></div>
-                    <div><p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#EF4444' }}>{tL}</p><p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Derrotas</p></div>
-                    <div><p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#FF8C00' }}>{wr}%</p><p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Winrate</p></div>
+                  <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
+                    {heroRenderFile ? (
+                      <img src={charRenderPath(heroRenderFile)} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div style={{ height: 100 }} />
+                    )}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+                    <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{viewProfile.userName}</p>
                   </div>
                 );
               })()}
 
-              {/* Historial */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                <span style={{ fontSize: 12 }}>📋</span>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Historial</p>
-              </div>
-              {(!profileData.history || profileData.history.length === 0) ? (
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '24px 16px', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin partidas registradas</p>
+              <div style={{ padding: '0 18px 40px' }}>
+                {/* Estadísticas */}
+                {(() => {
+                  const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
+                  const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
+                  const tW = (sw1.wins||0)+(pc1.wins||0)+(sw2.wins||0)+(pc2.wins||0);
+                  const tL = (sw1.losses||0)+(pc1.losses||0)+(sw2.losses||0)+(pc2.losses||0);
+                  const tT = tW+tL; const wr = tT > 0 ? Math.round((tW/tT)*100) : 0;
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 12px' }}>
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#22C55E,#16A34A)', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                        {[
+                          { label: 'Victorias', value: tW, color: '#22C55E' },
+                          { label: 'Derrotas', value: tL, color: '#EF4444' },
+                          { label: 'Partidas', value: tT, color: '#fff' },
+                          { label: 'W/R', value: wr + '%', color: '#F59E0B' },
+                        ].map(st => (
+                          <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{st.value}</p>
+                            <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{st.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* Ranked 1v1 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {profileData.history.slice(0, 20).map((m, i) => {
-                    const isWin = String(m.winnerId) === String(viewProfile.userId);
-                    const opp = isWin ? m.loserName : m.winnerName;
+                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                  {['switch', 'parsec'].map(plat => {
+                    const s = profileData.stats?.[plat] || {};
+                    const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
+                    const rankName = s.rank || 'Plástico 1'; const rp = s.rankedPoints || 0;
+                    const isUnranked = total === 0; const inPlacement = !isUnranked && total < 5;
+                    const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const rankColor = rankObj?.color || '#9CA3AF';
+                    const pColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isWin ? 'rgba(34,197,94,0.04)' : 'rgba(239,68,68,0.04)', border: '1px solid ' + (isWin ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)'), borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), borderRadius: 10, padding: '8px 12px' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'W' : 'L'}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opp}</p>
-                          <p style={{ margin: '1px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                      <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                          {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444', flexShrink: 0 }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor }}>
+                          {isUnranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
                   })}
                 </div>
-              )}
+
+                {/* Ranked 2v2 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#A78BFA,#7C3AED)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                  {['switch', 'parsec'].map(plat => {
+                    const s = profileData.doublesStats?.[plat] || {};
+                    const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
+                    const rankName = s.rank || 'Plástico 1'; const rp = s.rankedPoints || 0;
+                    const isUnranked = total === 0; const inPlacement = !isUnranked && total < 5;
+                    const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const rankColor = rankObj?.color || '#9CA3AF';
+                    return (
+                      <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                          {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#A78BFA' : rankColor }}>
+                          {isUnranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Historial */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
+                </div>
+                {(!profileData.history || profileData.history.length === 0) ? (
+                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+                    <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
+                    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {profileData.history.slice(0, 20).map((m, i) => {
+                      const isWin = String(m.winnerId) === String(viewProfile.userId);
+                      const opponent = isWin ? m.loserName : m.winnerName;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
+                            {isWin ? 'W' : 'L'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                          </div>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

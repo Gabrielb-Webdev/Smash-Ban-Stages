@@ -27,14 +27,18 @@ export default async function handler(req, res) {
   const playerIds = await redis.zrange(boardKey, 0, limit - 1, { rev: true });
 
   if (!playerIds || playerIds.length === 0) {
-    return res.status(200).json([]);
+    return res.status(200).json({ players: [], total: 0 });
   }
 
-  const statsArray = await Promise.all(
-    playerIds.map(id => redis.get(statsKeyFn(id, platform)))
-  );
+  const total = await redis.zcard(boardKey);
+
+  const [statsArray, recentCharsArray] = await Promise.all([
+    Promise.all(playerIds.map(id => redis.get(statsKeyFn(id, platform)))),
+    Promise.all(playerIds.map(id => redis.get(`recent:chars:${id}`))),
+  ]);
 
   const leaderboard = statsArray
+    .map((s, i) => s ? { ...s, mainCharId: recentCharsArray[i]?.[0] || null } : null)
     .filter(Boolean)
     .sort((a, b) => {
       const sa = (a.rankIndex || 0) * 100 + (a.rankPoints || 0);
@@ -42,5 +46,5 @@ export default async function handler(req, res) {
       return sb - sa;
     });
 
-  return res.status(200).json(leaderboard);
+  return res.status(200).json({ players: leaderboard, total: total || leaderboard.length });
 }
