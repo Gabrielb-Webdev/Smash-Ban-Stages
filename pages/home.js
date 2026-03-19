@@ -45,6 +45,7 @@ export default function HomePage() {
   const [notifs, setNotifs]       = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifToast, setNotifToast] = useState(null);
+  const [showIOSTip, setShowIOSTip] = useState(false);
 
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
@@ -110,6 +111,18 @@ export default function HomePage() {
   // Registrar Service Worker y suscribirse a Web Push
   useEffect(() => {
     if (!user || typeof window === 'undefined') return;
+
+    // Detectar iOS: solo funciona en modo standalone (Agregar a pantalla de inicio)
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true
+      || window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isIOS && !isStandalone) {
+      // Mostrar tip: el usuario debe agregar a la pantalla de inicio
+      setShowIOSTip(true);
+      return;
+    }
+
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
     if (!vapidKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
@@ -335,6 +348,19 @@ export default function HomePage() {
             </button>
           </div>
         </header>
+        {/* iOS: tip para agregar a pantalla de inicio */}
+        {showIOSTip && (
+          <div style={{ background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>📲</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#FF8C00' }}>Activá las notificaciones</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                En iPhone, tocá <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Compartir →</strong> luego <strong style={{ color: 'rgba(255,255,255,0.7)' }}>"Agregar a inicio"</strong> y abrí la app desde ahí.
+              </p>
+            </div>
+            <button onClick={() => setShowIOSTip(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 18, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+          </div>
+        )}
 
         {/* â”€â”€ PROFILE MENU OVERLAY â”€â”€ */}
         {showMenu && (

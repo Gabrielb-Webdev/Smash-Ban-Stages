@@ -1,5 +1,5 @@
 // API Route para registrar suscripciones push (Web Push + Expo)
-import redis, { pushSubKey } from '../../../lib/redis';
+import redis, { pushSubKey, pushUsersSetKey } from '../../../lib/redis';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 300);
@@ -45,6 +45,8 @@ export default async function handler(req, res) {
     // Máximo 10 suscripciones por usuario (diferentes dispositivos)
     const trimmed = subs.length > 10 ? subs.slice(-10) : subs;
     await redis.set(pushSubKey(cleanUserId), trimmed);
+    // Agregar el userId al set global para poder notificar a todos (torneos, etc.)
+    await redis.sadd(pushUsersSetKey, cleanUserId);
 
     return res.status(200).json({ success: true });
   }

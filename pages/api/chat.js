@@ -2,6 +2,7 @@
 // GET: obtener mensajes, POST: enviar mensaje
 
 import redis, { chatKey, friendsKey } from '../../lib/redis';
+import { sendPush } from '../../lib/push';
 
 const MAX_MSG_LENGTH = 500;
 const MAX_MESSAGES = 100;
@@ -80,6 +81,14 @@ export default async function handler(req, res) {
       messages.splice(0, messages.length - MAX_MESSAGES);
     }
     await redis.set(key, messages);
+
+    // Push notification al receptor del mensaje
+    sendPush(cleanFriendId, {
+      title: `💬 ${cleanUserName}`,
+      body: cleanMessage.slice(0, 100),
+      tag: 'chat-message',
+      data: { url: '/home' },
+    }).catch(() => {});
 
     return res.status(200).json({ success: true, message: msg });
   }

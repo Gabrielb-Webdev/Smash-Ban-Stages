@@ -10,6 +10,13 @@ import * as FileSystem from 'expo-file-system';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Notifications from 'expo-notifications';
 
+// Configurar cómo mostrar notificaciones en foreground (DEBE estar en nivel de módulo)
+Notifications.setNotificationHandler({
+  handleNotification: async function () {
+    return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true };
+  },
+});
+
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
@@ -64,26 +71,32 @@ export default function App() {
   // Registrar push notifications cuando el usuario se loguea
   useEffect(function () {
     if (!user || !user.id) return;
+
+    // Listener para cuando el usuario toca una notificación (app en background/cerrada)
+    var responseSub = Notifications.addNotificationResponseReceivedListener(function (response) {
+      try {
+        var data = response.notification.request.content.data;
+        var url = data && data.url ? data.url : '/home';
+        setWebUrl(BASE_URL + url);
+        setWebKey(function (k) { return k + 1; });
+      } catch (e) {}
+    });
+
     (async function () {
       try {
-        // Configurar cómo mostrar notificaciones en foreground
-        Notifications.setNotificationHandler({
-          handleNotification: async function () {
-            return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true };
-          },
-        });
-        // Pedir permiso
-        var perm = await Notifications.requestPermissionsAsync();
-        if (perm.status !== 'granted') return;
-        // Solo en Android se necesita channel
+        // En Android el canal DEBE crearse ANTES de pedir permisos
         if (Platform.OS === 'android') {
           await Notifications.setNotificationChannelAsync('default', {
             name: 'AFK Smash',
-            importance: Notifications.AndroidImportance.HIGH,
+            importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#FF8C00',
+            sound: 'default',
           });
         }
+        // Pedir permiso
+        var perm = await Notifications.requestPermissionsAsync();
+        if (perm.status !== 'granted') return;
         // Obtener Expo push token
         var tokenData = await Notifications.getExpoPushTokenAsync({ projectId: '1cc82cc6-5c6c-437d-aa76-3a3d79eda94e' });
         var expoPushToken = tokenData.data;
@@ -96,7 +109,9 @@ export default function App() {
         });
       } catch (e) { /* push no disponible */ }
     })();
-  }, [user && user.id]);
+
+    return function () { responseSub.remove(); };
+  }, [user?.id]);
 
   // Botón atrás Android
   useEffect(function () {
