@@ -1377,8 +1377,8 @@ function TabPerfil({ user }) {
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'transform 0.15s', position: 'relative' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>{platLabel(plat)}</p>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: unranked ? 'rgba(255,255,255,0.05)' : inPlace ? 'rgba(255,140,0,0.1)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(255,255,255,0.1)' : inPlace ? 'rgba(255,140,0,0.3)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                  {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : inPlace ? '⚔️' : tierIcon}
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: (unranked || inPlace) ? 'rgba(255,255,255,0.05)' : rankColor + '18', border: '2px solid ' + ((unranked || inPlace) ? 'rgba(255,255,255,0.1)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                  {(unranked || inPlace) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#FF8C00' : rankColor, textAlign: 'center' }}>
                   {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/5' : rankName}
@@ -1423,8 +1423,8 @@ function TabPerfil({ user }) {
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(124,58,237,0.04)' : inPlace ? 'rgba(124,58,237,0.06)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(124,58,237,0.12)' : inPlace ? 'rgba(124,58,237,0.25)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', position: 'relative' }}>
                 <p style={{ margin: '0 0 4px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>2v2 {platLabel(plat)}</p>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: unranked ? 'rgba(124,58,237,0.08)' : inPlace ? 'rgba(124,58,237,0.12)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(124,58,237,0.2)' : inPlace ? 'rgba(124,58,237,0.35)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                  {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : inPlace ? '⚔️' : tierIcon}
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: (unranked || inPlace) ? 'rgba(124,58,237,0.08)' : rankColor + '18', border: '2px solid ' + ((unranked || inPlace) ? 'rgba(124,58,237,0.2)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                  {(unranked || inPlace) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#7C3AED' : rankColor, textAlign: 'center' }}>
                   {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/5' : rankName}
@@ -1921,7 +1921,7 @@ function TabPerfil({ user }) {
                           </>
                         ) : inPlacement ? (
                           <>
-                            <span style={{ fontSize: 20 }}>{tierIcon}</span>
+                            <span style={{ fontSize: 20 }}>❔</span>
                             <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00' }}>Clasificando</span>
                             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas · faltan {5 - total}</span>
                           </>
