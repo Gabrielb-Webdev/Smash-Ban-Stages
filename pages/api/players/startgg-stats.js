@@ -4,6 +4,7 @@
 // Cachea resultados en Redis por 1 hora
 
 import redis from '../../../lib/redis';
+import { STARTGG_CHAR_MAP } from '../../../lib/characters';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const SSBU_GAME_ID = 1386;
@@ -45,6 +46,7 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
       sets(page: $page, perPage: $perPage) {
         pageInfo { total totalPages }
         nodes {
+          id
           winnerId
           slots {
             entrant {
@@ -62,7 +64,8 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
           }
           event {
             videogame { id }
-            tournament { name }
+            slug
+            tournament { name slug }
           }
         }
       }
@@ -78,6 +81,7 @@ query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
     player {
       sets(page: $page, perPage: $perPage) {
         nodes {
+          id
           winnerId
           slots {
             entrant {
@@ -95,7 +99,8 @@ query PlayerSetsPage($slug: String!, $page: Int!, $perPage: Int!) {
           }
           event {
             videogame { id }
-            tournament { name }
+            slug
+            tournament { name slug }
           }
         }
       }
@@ -113,6 +118,7 @@ function processSets(allSets, playerId) {
   let totalLosses = 0;
   const charCounts = {};
   const charWins = {};
+  const charEvidence = {}; // per charId: array of {tournament, setLink}
   const tournamentNames = new Set();
   const pid = String(playerId);
 
@@ -147,7 +153,16 @@ function processSets(allSets, playerId) {
       else totalLosses++;
     }
 
-    if (set.event?.tournament?.name) tournamentNames.add(set.event.tournament.name);
+    const tName = set.event?.tournament?.name;
+    if (tName) tournamentNames.add(tName);
+
+    // Build set link
+    const tSlug = set.event?.tournament?.slug;
+    const eSlug = set.event?.slug;
+    const setId = set.id;
+    const setLink = (tSlug && eSlug && setId)
+      ? `https://www.start.gg/tournament/${tSlug}/event/${eSlug}/set/${setId}`
+      : null;
 
     if (set.games) {
       for (const game of set.games) {
@@ -163,6 +178,11 @@ function processSets(allSets, playerId) {
           const cid = mySel.selectionValue;
           charCounts[cid] = (charCounts[cid] || 0) + 1;
           if (String(game.winnerId) === eid) charWins[cid] = (charWins[cid] || 0) + 1;
+          // Record evidence (max 5 per char)
+          if (!charEvidence[cid]) charEvidence[cid] = [];
+          if (charEvidence[cid].length < 5) {
+            charEvidence[cid].push({ tournament: tName || '?', setLink });
+          }
         } else {
           gamesWithoutSelections++;
         }
@@ -174,9 +194,11 @@ function processSets(allSets, playerId) {
   const charUsage = Object.entries(charCounts)
     .map(([charId, count]) => ({
       startggCharId: Number(charId),
+      charName: STARTGG_CHAR_MAP[Number(charId)] || `unknown-${charId}`,
       games: count,
       wins: charWins[charId] || 0,
       usage: totalGames > 0 ? Math.round(count * 100 / totalGames) : 0,
+      evidence: charEvidence[charId] || [],
     }))
     .sort((a, b) => b.games - a.games);
 
@@ -214,7 +236,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v10:${slug}`;
+  const cacheKey = `startgg:stats:v11:${slug}`;
 
   // Intentar devolver datos cacheados
   try {

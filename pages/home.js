@@ -1147,6 +1147,7 @@ function TabPerfil({ user }) {
   const [doublesStats, setDoublesStats] = useState(null);
   const [recentChars, setRecentChars] = useState([]);
   const [startggStats, setStartggStats] = useState(null);
+  const [showAllChars, setShowAllChars] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
   const [viewProfile, setViewProfile]   = useState(null); // { userId, userName }
   const [profileData, setProfileData]   = useState(null);
@@ -1176,7 +1177,21 @@ function TabPerfil({ user }) {
         }).then(r => {
           if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
           return r.json();
-        }).then(d => { if (d) { console.log('[StartGG] Full response:', d); console.log('[StartGG] Profile:', d.profile); console.log('[StartGG] Debug:', d.debug); setStartggStats(d); } }).catch(() => {});
+        }).then(d => { if (d) {
+          console.log('[StartGG] Full response:', d);
+          console.log('[StartGG] Profile:', d.profile);
+          console.log('[StartGG] Debug:', d.debug);
+          if (d.charUsage) {
+            console.log('[StartGG] Character Usage:');
+            d.charUsage.forEach((ch, i) => {
+              console.log(`  ${i+1}. ${ch.charName} (ID: ${ch.startggCharId}) — ${ch.games} games, ${ch.usage}%, WR: ${ch.games > 0 ? Math.round(ch.wins*100/ch.games) : 0}%`);
+              if (ch.evidence && ch.evidence.length > 0) {
+                ch.evidence.forEach(ev => console.log(`     ↳ ${ev.tournament}${ev.setLink ? ' → ' + ev.setLink : ''}`));
+              }
+            });
+          }
+          setStartggStats(d);
+        } }).catch(() => {});
       }
     } catch (e) {}
   }, [user?.id]);
@@ -1439,16 +1454,16 @@ function TabPerfil({ user }) {
               <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
-              {startggStats.charUsage.slice(0, 5).map((ch, i) => {
+              {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 5).map((ch, i) => {
                 const localId = STARTGG_CHAR_MAP[ch.startggCharId];
                 const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
                 const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
                 const isTop = i === 0;
                 const charWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
                 const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
-                const barColor = barColors[i] || '#F5C518';
+                const barColor = barColors[i % barColors.length] || '#F5C518';
                 return (
-                  <div key={ch.startggCharId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent' }}>
+                  <div key={ch.startggCharId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent' }}>
                     {renderFile ? (
                       <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
                     ) : charObj ? (
@@ -1477,6 +1492,11 @@ function TabPerfil({ user }) {
                 );
               })}
             </div>
+            {startggStats.charUsage.length > 5 && (
+              <button onClick={() => setShowAllChars(!showAllChars)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {showAllChars ? 'Ver menos' : `Ver todos (${startggStats.charUsage.length})`}
+              </button>
+            )}
             {/* Start.GG career stats */}
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
