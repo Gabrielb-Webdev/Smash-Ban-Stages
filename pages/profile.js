@@ -18,9 +18,19 @@ function timeAgo(iso) {
   return `hace ${d}d`;
 }
 
-function countryFlag(countryCode) {
-  if (!countryCode || countryCode.length !== 2) return '';
-  const cc = countryCode.toUpperCase();
+const COUNTRY_TO_CODE = {
+  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','México':'MX',
+  'Chile':'CL','Peru':'PE','Perú':'PE','Colombia':'CO','Venezuela':'VE',
+  'Uruguay':'UY','Paraguay':'PY','Bolivia':'BO','Ecuador':'EC','Costa Rica':'CR',
+  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','España':'ES',
+  'Japan':'JP','South Korea':'KR','France':'FR','Germany':'DE','Italy':'IT',
+  'United Kingdom':'GB','UK':'GB','Australia':'AU','New Zealand':'NZ',
+  'Portugal':'PT','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
+};
+function countryFlag(country) {
+  if (!country) return '';
+  let cc = country.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
+  if (!cc) return '';
   return String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
 }
 
@@ -34,6 +44,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [startggStats, setStartggStats] = useState(null);
   const [showAllChars, setShowAllChars] = useState(false);
+  const [showCharsModal, setShowCharsModal] = useState(false);
   const [selectedChar, setSelectedChar] = useState(null);
 
   useEffect(() => {
@@ -151,8 +162,8 @@ export default function ProfilePage() {
           <p style={{ margin: 0, padding: '8px 18px 4px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
           {startggStats?.profile?.location && (() => {
             const loc = startggStats.profile.location;
-            const flag = countryFlag(loc.countryId);
-            const parts = [loc.state, loc.country].filter(Boolean);
+            const flag = countryFlag(loc.country);
+            const parts = [loc.city, loc.state].filter(Boolean);
             return parts.length > 0 ? (
               <p style={{ margin: '4px 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', position: 'relative', zIndex: 3 }}>
                 {flag && <span style={{ fontSize: 14, marginRight: 5 }}>{flag}</span>}
@@ -237,7 +248,7 @@ export default function ProfilePage() {
                     <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
-                    {startggStats.charUsage.slice(0, showAllChars ? startggStats.charUsage.length : 3).map((ch, i) => {
+                    {startggStats.charUsage.slice(0, 3).map((ch, i) => {
                       const localId = ch.localCharId;
                       const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
                       const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
@@ -280,9 +291,51 @@ export default function ProfilePage() {
                     return ch ? <CharacterDetail ch={ch} onClose={() => setSelectedChar(null)} /> : null;
                   })()}
                   {startggStats.charUsage.length > 3 && (
-                    <button onClick={() => setShowAllChars(!showAllChars)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      {showAllChars ? 'Ver menos' : `Ver todos (${startggStats.charUsage.length})`}
+                    <button onClick={() => setShowCharsModal(true)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Ver todos ({startggStats.charUsage.length})
                     </button>
+                  )}
+
+                  {/* Modal ver todos chars */}
+                  {showCharsModal && (
+                    <div onClick={() => setShowCharsModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+                          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
+                          <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                        </div>
+                        <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          {startggStats.charUsage.map((ch, i) => {
+                            const localId = ch.localCharId;
+                            const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+                            const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+                            const cWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
+                            const barColor = ['#F5C518','#818CF8','#22C55E','#F97316','#EF4444'][i % 5];
+                            return (
+                              <div key={ch.startggCharId} onClick={() => { setShowCharsModal(false); setSelectedChar(ch.startggCharId); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                {renderFile ? <img src={charRenderPath(renderFile)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                                  : charObj ? <img src={charImgPath(charObj.img)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                                  : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charObj?.name || ch.charName}</p>
+                                    <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
+                                  </div>
+                                  <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                                    <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
+                                  </div>
+                                  <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+                                </div>
+                                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>›</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {/* Start.GG career stats */}
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
