@@ -121,7 +121,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:${slug}`;
+  const cacheKey = `startgg:stats:v2:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
