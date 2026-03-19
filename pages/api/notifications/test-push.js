@@ -1,6 +1,6 @@
 // Endpoint de diagnóstico para probar push notifications
-// GET: ver tokens registrados de un usuario
-// POST: enviar push de prueba a un usuario
+// GET ?userId=ID → ver tokens registrados
+// GET ?userId=ID&send=1 → enviar push de prueba (fácil de testear en el navegador)
 import redis, { pushSubKey } from '../../../lib/redis';
 
 function sanitize(s) {
@@ -9,71 +9,83 @@ function sanitize(s) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // GET: ver qué tokens tiene registrado un usuario
-  if (req.method === 'GET') {
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId requerido (?userId=...)' });
-    const cleanUserId = sanitize(userId);
-    const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
-    return res.status(200).json({
-      userId: cleanUserId,
-      totalSubscriptions: subs.length,
-      subscriptions: subs.map(s => ({
-        type: s.type,
-        token: s.type === 'expo' ? s.token : '(web-push)',
-        registeredAt: s.registeredAt,
-      })),
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { userId, send } = req.query;
+  if (!userId) {
+    return res.status(400).json({
+      error: 'userId requerido',
+      uso: '/api/notifications/test-push?userId=TU_ID para ver tokens',
+      enviar: '/api/notifications/test-push?userId=TU_ID&send=1 para enviar push de prueba',
     });
   }
 
-  // POST: enviar push de prueba
-  if (req.method === 'POST') {
-    const { userId } = req.body || {};
-    if (!userId) return res.status(400).json({ error: 'userId requerido' });
-    const cleanUserId = sanitize(userId);
-    const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
+  const cleanUserId = sanitize(userId);
+  const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
 
-    if (subs.length === 0) {
-      return res.status(200).json({
-        success: false,
-        error: 'No hay tokens registrados para este usuario. ¿Abriste la app y aceptaste permisos?',
-      });
-    }
-
-    const results = [];
-    for (const sub of subs) {
-      if (sub.type === 'expo') {
-        try {
-          const expoRes = await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              to: sub.token,
-              sound: 'default',
-              title: '🔔 Test Push AFK Smash',
-              body: 'Si ves esto, las push notifications funcionan!',
-              data: { url: '/home' },
-              channelId: 'default',
-              priority: 'high',
-            }),
-          });
-          const expoData = await expoRes.json();
-          results.push({ type: 'expo', token: sub.token, response: expoData });
-        } catch (err) {
-          results.push({ type: 'expo', token: sub.token, error: err.message });
-        }
-      }
-    }
-
-    return res.status(200).json({ success: true, userId: cleanUserId, results });
+  // Solo ver tokens
+  if (!send) {
+    return res.status(200).json({
+      userId: cleanUserId,
+      totalSubscriptions: subs.length,
+      expoTokens: subs.filter(s => s.type === 'expo').map(s => ({ token: s.token, registeredAt: s.registeredAt })),
+      webTokens: subs.filter(s => s.type === 'web').length,
+      diagnostico: subs.length === 0
+        ? '❌ No hay tokens. El usuario no abrió la app o no aceptó permisos.'
+        : '✅ Tokens registrados. Usá &send=1 para enviar push de prueba.',
+    });
   }
 
-  res.status(405).json({ error: 'Method not allowed' });
+  // Enviar push de prueba
+  if (subs.length === 0) {
+    return res.status(200).json({
+      success: false,
+      error: '❌ No hay tokens registrados. Abrí la app, logueate, y aceptá permisos de notificación.',
+    });
+  }
+
+  const results = [];
+  for (const sub of subs) {
+    if (sub.type === 'expo') {
+      try {
+        const expoRes = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            to: sub.token,
+            sound: 'default',
+            title: '🔔 Test Push AFK Smash',
+            body: 'Si ves esto en la barra de notificaciones, ¡funciona!',
+            data: { url: '/home' },
+            channelId: 'default',
+            priority: 'high',
+          }),
+        });
+        const expoData = await expoRes.json();
+        const ticket = expoData?.data;
+        let diagnostico = '';
+        if (ticket?.status === 'ok') {
+          diagnostico = '✅ Expo aceptó la notificación. Si no llega al teléfono, el problema es FCM (Firebase).';
+        } else if (ticket?.status === 'error') {
+          diagnostico = `❌ Expo rechazó: ${ticket.message || ticket.details?.error || 'error desconocido'}`;
+        } else {
+          diagnostico = '⚠️ Respuesta inesperada de Expo';
+        }
+        results.push({ type: 'expo', token: sub.token, expoResponse: expoData, diagnostico });
+      } catch (err) {
+        results.push({ type: 'expo', token: sub.token, error: err.message, diagnostico: '❌ Error de red al contactar Expo' });
+      }
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    userId: cleanUserId,
+    results,
+    siguientePaso: 'Si Expo dice OK pero no llega al teléfono → falta configurar Firebase/FCM en el proyecto Expo.',
+  });
 }
