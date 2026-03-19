@@ -13,9 +13,35 @@ const CACHE_TTL = 3600; // 1 hora
 const SETS_QUERY = `
 query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
+    id
+    slug
+    name
+    bio
+    birthday
+    genderPronoun
+    location {
+      city
+      state
+      country
+      countryId
+    }
+    images {
+      url
+      type
+    }
+    authorizations {
+      type
+      externalUsername
+      url
+    }
     player {
       id
       gamerTag
+      prefix
+      rankings(videogameId: 1386) {
+        rank
+        title
+      }
       sets(page: $page, perPage: $perPage) {
         pageInfo { total totalPages }
         nodes {
@@ -150,7 +176,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v5:${slug}`;
+  const cacheKey = `startgg:stats:v6:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -185,7 +211,8 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: 'GraphQL error', detail: data.errors[0]?.message });
     }
 
-    const player = data.data?.user?.player;
+    const user = data.data?.user;
+    const player = user?.player;
     if (!player) {
       return res.status(200).json({
         totalSets: 0, wins: 0, losses: 0, winRate: 0,
@@ -197,6 +224,21 @@ export default async function handler(req, res) {
     const totalPages = player.sets?.pageInfo?.totalPages || 1;
     const playerId = player.id;
     const gamerTag = player.gamerTag || null;
+
+    // Info del perfil de Start.GG
+    const profile = {
+      userId: user.id,
+      slug: user.slug,
+      name: user.name,
+      bio: user.bio,
+      birthday: user.birthday,
+      genderPronoun: user.genderPronoun,
+      location: user.location,
+      images: user.images,
+      socials: user.authorizations,
+      prefix: player.prefix,
+      rankings: player.rankings,
+    };
 
     // Si hay más páginas, intentar obtener más dentro del tiempo restante
     const startTime = Date.now();
@@ -223,6 +265,7 @@ export default async function handler(req, res) {
     const result = processSets(allSets, playerId);
     result.gamerTag = gamerTag;
     result.playerId = playerId;
+    result.profile = profile;
     result.debug.slug = slug;
     result.debug.totalPagesAvailable = totalPages;
     result.debug.pagesFetched = Math.min(totalPages, 10);

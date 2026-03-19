@@ -1176,7 +1176,7 @@ function TabPerfil({ user }) {
         }).then(r => {
           if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
           return r.json();
-        }).then(d => { if (d) { console.log('[StartGG] Response:', JSON.stringify(d.debug, null, 2), 'gamerTag:', d.gamerTag, 'playerId:', d.playerId); setStartggStats(d); } }).catch(() => {});
+        }).then(d => { if (d) { console.log('[StartGG] Full response:', d); console.log('[StartGG] Profile:', d.profile); console.log('[StartGG] Debug:', d.debug); setStartggStats(d); } }).catch(() => {});
       }
     } catch (e) {}
   }, [user?.id]);
