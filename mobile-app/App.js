@@ -1,14 +1,15 @@
-﻿// v1.1.0
+﻿// v1.3.0
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar,
-  ActivityIndicator, Image, Modal, Pressable, BackHandler, Linking, ScrollView, Platform,
+  ActivityIndicator, Image, Modal, Pressable, BackHandler, Linking, ScrollView, Platform, Alert,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
 // Configurar cómo mostrar notificaciones en foreground (DEBE estar en nivel de módulo)
 Notifications.setNotificationHandler({
@@ -20,7 +21,7 @@ Notifications.setNotificationHandler({
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
-var CURRENT_VERSION = '1.2.0';
+var CURRENT_VERSION = '1.3.0';
 var SESSION_KEY = 'afk_session_v2';
 var ADMIN_HOME = BASE_URL + '/';
 var SB = StatusBar.currentHeight || 24;
@@ -84,6 +85,11 @@ export default function App() {
 
     (async function () {
       try {
+        // Push solo funciona en dispositivos físicos
+        if (!Device.isDevice) {
+          console.log('[PUSH] No es dispositivo físico, saltando registro');
+          return;
+        }
         // En Android el canal DEBE crearse ANTES de pedir permisos
         if (Platform.OS === 'android') {
           await Notifications.setNotificationChannelAsync('default', {
@@ -96,18 +102,28 @@ export default function App() {
         }
         // Pedir permiso
         var settings = await Notifications.getPermissionsAsync();
+        console.log('[PUSH] Permisos actuales:', settings.status);
         if (settings.status !== 'granted') {
           settings = await Notifications.requestPermissionsAsync();
+          console.log('[PUSH] Permisos solicitados:', settings.status);
         }
         if (settings.status !== 'granted') {
           console.log('[PUSH] Permisos denegados');
           return;
         }
         // Obtener Expo push token
-        var tokenData = await Notifications.getExpoPushTokenAsync({ projectId: '1cc82cc6-5c6c-437d-aa76-3a3d79eda94e' });
+        console.log('[PUSH] Obteniendo token...');
+        var tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: '1cc82cc6-5c6c-437d-aa76-3a3d79eda94e',
+        });
         var expoPushToken = tokenData.data;
         console.log('[PUSH] Token obtenido:', expoPushToken);
-        if (!expoPushToken) return;
+        if (!expoPushToken) {
+          console.log('[PUSH] Token vacío');
+          return;
+        }
+        // Guardar token localmente para debug
+        await AsyncStorage.setItem('expo_push_token', expoPushToken);
         // Registrar token en el servidor
         var regRes = await fetch(BASE_URL + '/api/notifications/register', {
           method: 'POST',
@@ -115,8 +131,11 @@ export default function App() {
           body: JSON.stringify({ userId: String(user.id), type: 'expo', token: expoPushToken }),
         });
         var regData = await regRes.json();
-        console.log('[PUSH] Registro:', regData);
-      } catch (e) { console.log('[PUSH] Error:', e.message); }
+        console.log('[PUSH] Registro:', JSON.stringify(regData));
+      } catch (e) {
+        console.log('[PUSH] Error completo:', e);
+        console.log('[PUSH] Error mensaje:', e.message);
+      }
     })();
 
     return function () { responseSub.remove(); };
