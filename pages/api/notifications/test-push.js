@@ -113,12 +113,39 @@ export default async function handler(req, res) {
         results.push({ type: 'expo', token: sub.token, error: err.message, diagnostico: '❌ Error de red al contactar Expo' });
       }
     }
+
+    if (sub.type === 'web') {
+      try {
+        const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || '';
+        const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
+        const VAPID_EMAIL   = process.env.VAPID_EMAIL       || 'mailto:gabrielbg211@gmail.com';
+        if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+          results.push({ type: 'web', diagnostico: '❌ VAPID keys no configuradas en el servidor' });
+          continue;
+        }
+        const wp = (await import('web-push')).default;
+        wp.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+        const webPayload = JSON.stringify({
+          title: '🔔 Test Push AFK Smash',
+          body: 'Si ves esto en tu navegador, ¡las Web Push funcionan!',
+          tag: 'test-push',
+          data: { url: '/home' },
+        });
+        await wp.sendNotification(sub.subscription, webPayload);
+        results.push({ type: 'web', diagnostico: '✅ Web Push enviado correctamente' });
+      } catch (err) {
+        const diagnostico = err.statusCode === 410 || err.statusCode === 404
+          ? '❌ Suscripción expirada o inválida (se debería limpiar)'
+          : `❌ Error: ${err.message}`;
+        results.push({ type: 'web', error: err.message, statusCode: err.statusCode, diagnostico });
+      }
+    }
   }
 
   return res.status(200).json({
     success: true,
     userId: cleanUserId,
     results,
-    siguientePaso: 'Si Expo dice OK pero no llega al teléfono → falta configurar Firebase/FCM en el proyecto Expo.',
+    siguientePaso: results.length === 0 ? 'No se encontraron tokens para enviar.' : 'Revisá los diagnósticos de cada resultado.',
   });
 }
