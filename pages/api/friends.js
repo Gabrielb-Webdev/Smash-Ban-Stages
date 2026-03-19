@@ -85,13 +85,19 @@ export default async function handler(req, res) {
     // Ya son amigos?
     const myFriends = (await redis.get(friendsKey(cleanUserId))) || [];
     if (myFriends.find(f => f.userId === cleanFriendId)) {
-      return res.status(409).json({ error: 'Ya es tu amigo' });
+      return res.status(200).json({ success: true, alreadyFriends: true });
     }
 
     // Ya hay solicitud pendiente tuya?
     const theirRequests = (await redis.get(friendRequestsKey(cleanFriendId))) || [];
     if (theirRequests.find(r => r.fromId === cleanUserId)) {
-      return res.status(409).json({ error: 'Ya enviaste una solicitud' });
+      // Asegurar que sentRequests del remitente esté sincronizado
+      const mySent = (await redis.get(sentRequestsKey(cleanUserId))) || [];
+      if (!mySent.find(s => s.toId === cleanFriendId)) {
+        mySent.push({ toId: cleanFriendId, toName: cleanFriendName, sentAt: new Date().toISOString() });
+        await redis.set(sentRequestsKey(cleanUserId), mySent);
+      }
+      return res.status(200).json({ success: true, requestSent: true, alreadyPending: true });
     }
 
     // Ellos ya te enviaron? → auto-accept
