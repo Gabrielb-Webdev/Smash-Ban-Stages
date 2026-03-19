@@ -76,17 +76,64 @@ export default async function handler(req, res) {
   if (match.reports.length === 2) {
     const [r1, r2] = match.reports;
     if (r1.claimedWinnerId === r2.claimedWinnerId) {
-      match.status = 'finished';
       const winnerSelfReport = match.reports.find(r => r.userId === r1.claimedWinnerId);
       const finalStocks = winnerSelfReport?.stocksWon ?? match.reports[0].stocksWon ?? 1;
-      match.result = {
-        winnerId: r1.claimedWinnerId,
-        winnerName: match.player1.userId === r1.claimedWinnerId
-          ? match.player1.userName
-          : match.player2.userName,
-        stocksWon: finalStocks,
-        decidedAt: new Date().toISOString(),
-      };
+
+      if (match.format === 'bo3') {
+        // Record game result
+        const gameResult = { gameNum: match.currentGame, stage: match.stage, winnerId: r1.claimedWinnerId, stocksWon: finalStocks };
+        match.games = [...(match.games || [])];
+        match.games[match.games.length - 1] = { ...(match.games[match.games.length - 1] || {}), result: gameResult };
+        match.score = match.score || {};
+        match.score[r1.claimedWinnerId] = (match.score[r1.claimedWinnerId] || 0) + 1;
+
+        if (match.score[r1.claimedWinnerId] >= 2) {
+          // Set finished
+          match.status = 'finished';
+          match.result = {
+            winnerId: r1.claimedWinnerId,
+            winnerName: match.player1.userId === r1.claimedWinnerId ? match.player1.userName : match.player2.userName,
+            stocksWon: finalStocks,
+            games: match.games,
+            score: match.score,
+            decidedAt: new Date().toISOString(),
+          };
+        } else {
+          // Next game: banning phase
+          match.currentGame = (match.currentGame || 1) + 1;
+          match.status = 'banning';
+          match.reports = [];
+          match.stage = null;
+          match.bans = {};
+          match.banPhase = 'winner_ban';
+          // Update room too
+          const roomCode = await redis.get(`mm:user:room:${cleanReporter}`);
+          if (roomCode) {
+            const room = await redis.get(`mm:room:${roomCode}`);
+            if (room) {
+              room.status = 'banning';
+              room.currentGame = match.currentGame;
+              room.score = match.score;
+              room.games = match.games;
+              room.bans = {};
+              room.banPhase = 'winner_ban';
+              room.stage = null;
+              await redis.set(`mm:room:${roomCode}`, room);
+            }
+          }
+        }
+      } else {
+        // Bo1 (legacy / 2v2)
+        match.status = 'finished';
+        match.result = {
+          winnerId: r1.claimedWinnerId,
+          winnerName: match.player1.userId === r1.claimedWinnerId
+            ? match.player1.userName
+            : match.player2.userName,
+          stocksWon: finalStocks,
+          decidedAt: new Date().toISOString(),
+        };
+      }
     } else {
       match.status = 'disputed';
     }

@@ -226,11 +226,10 @@ export default async function handler(req, res) {
       }
 
       if (allAccepted) {
-        room.status = 'active';
-        room.stage  = STAGES[Math.floor(Math.random() * STAGES.length)];
-
         if (is2v2) {
-          // Crear registro de match 2v2
+          // 2v2: Bo1 con stage aleatorio
+          room.status = 'active';
+          room.stage  = STAGES[Math.floor(Math.random() * STAGES.length)];
           const matchRecord = {
             id:       room.matchId,
             platform: room.platform,
@@ -245,14 +244,28 @@ export default async function handler(req, res) {
           };
           await redis.set(mmMatchKey(room.matchId), matchRecord);
         } else {
-          // Crear registro de match 1v1
+          // 1v1: Bo3 con baneos de stages
+          room.status   = 'banning';
+          room.format   = 'bo3';
+          room.games    = [];
+          room.currentGame = 1;
+          room.score    = { [room.host.userId]: 0, [room.guest.userId]: 0 };
+          room.bans     = {};
+          room.banPhase = 'both_ban';
+          room.stage    = null;
           const matchRecord = {
             id:       room.matchId,
             platform: room.platform,
-            stage:    room.stage,
+            format:   'bo3',
+            stage:    null,
             player1:  { userId: room.host.userId,  userName: room.host.userName,  charId: room.host.charId  || null },
             player2:  { userId: room.guest.userId, userName: room.guest.userName, charId: room.guest.charId || null },
-            status:   'active',
+            status:   'banning',
+            games:    [],
+            currentGame: 1,
+            score:    { [room.host.userId]: 0, [room.guest.userId]: 0 },
+            bans:     {},
+            banPhase: 'both_ban',
             reports:  [],
             result:   null,
             createdAt: new Date().toISOString(),
@@ -276,6 +289,74 @@ export default async function handler(req, res) {
       const found = await getUserRoom(cleanUserId);
       if (found) await cleanupRoom(found.code, found.room);
       return res.status(200).json({ status: 'declined' });
+    }
+
+    // ─── ban: banear stages (Bo3) ──────────────────────────
+    if (action === 'ban') {
+      const found = await getUserRoom(cleanUserId);
+      if (!found) return res.status(400).json({ error: 'No estás en ninguna sala' });
+      const { code, room } = found;
+      if (room.status !== 'banning') return res.status(400).json({ error: 'No estás en fase de baneo' });
+
+      const { bannedStages } = req.body || {};
+      if (!Array.isArray(bannedStages)) return res.status(400).json({ error: 'bannedStages requerido' });
+
+      if (room.banPhase === 'both_ban') {
+        if (bannedStages.length !== 2) return res.status(400).json({ error: 'Debés banear exactamente 2 escenarios' });
+        for (const s of bannedStages) { if (!STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
+        room.bans[cleanUserId] = bannedStages;
+        if (Object.keys(room.bans).length === 2) {
+          const allBanned = new Set(Object.values(room.bans).flat());
+          const available = STAGES.filter(s => !allBanned.has(s));
+          const stage = available[Math.floor(Math.random() * available.length)];
+          room.games.push({ gameNum: room.currentGame, stage, bans: { ...room.bans }, result: null });
+          room.stage = stage;
+          room.status = 'active';
+          room.bans = {};
+          const match = await redis.get(mmMatchKey(room.matchId));
+          if (match) { match.stage = stage; match.status = 'active'; match.games = room.games; await redis.set(mmMatchKey(room.matchId), match); }
+        }
+        await redis.set(roomKey(code), room);
+        return res.status(200).json({ status: room.status, code, room });
+      }
+
+      if (room.banPhase === 'winner_ban') {
+        if (bannedStages.length !== 2) return res.status(400).json({ error: 'Debés banear exactamente 2 escenarios' });
+        const prevWinnerId = room.games[room.games.length - 1]?.result?.winnerId;
+        if (cleanUserId !== prevWinnerId) return res.status(400).json({ error: 'Solo el ganador del game anterior puede banear' });
+        for (const s of bannedStages) { if (!STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
+        room.bans[cleanUserId] = bannedStages;
+        room.banPhase = 'loser_pick';
+        await redis.set(roomKey(code), room);
+        return res.status(200).json({ status: room.status, code, room });
+      }
+
+      return res.status(400).json({ error: 'Fase de baneo inválida' });
+    }
+
+    // ─── pick_stage: loser elige stage (Bo3 game 2+) ─────
+    if (action === 'pick_stage') {
+      const found = await getUserRoom(cleanUserId);
+      if (!found) return res.status(400).json({ error: 'No estás en ninguna sala' });
+      const { code, room } = found;
+      if (room.status !== 'banning' || room.banPhase !== 'loser_pick') return res.status(400).json({ error: 'No estás en fase de elección' });
+
+      const prevWinnerId = room.games[room.games.length - 1]?.result?.winnerId;
+      if (cleanUserId === prevWinnerId) return res.status(400).json({ error: 'Solo el perdedor puede elegir escenario' });
+
+      const { pickedStage } = req.body || {};
+      if (!pickedStage || !STAGES.includes(pickedStage)) return res.status(400).json({ error: 'Stage inválido' });
+      const winnerBans = new Set(room.bans[prevWinnerId] || []);
+      if (winnerBans.has(pickedStage)) return res.status(400).json({ error: 'Ese escenario fue baneado' });
+
+      room.games.push({ gameNum: room.currentGame, stage: pickedStage, bans: { ...room.bans }, result: null });
+      room.stage = pickedStage;
+      room.status = 'active';
+      room.bans = {};
+      const match = await redis.get(mmMatchKey(room.matchId));
+      if (match) { match.stage = pickedStage; match.status = 'active'; match.games = room.games; await redis.set(mmMatchKey(room.matchId), match); }
+      await redis.set(roomKey(code), room);
+      return res.status(200).json({ status: room.status, code, room });
     }
 
     return res.status(400).json({ error: 'Acción inválida' });
