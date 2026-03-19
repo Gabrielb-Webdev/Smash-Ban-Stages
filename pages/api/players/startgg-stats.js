@@ -168,35 +168,28 @@ function processSets(allSets, playerId, startggCharMap = {}) {
   const charWins = {};
   const charSetIds = {}; // charId → Set of set IDs where this char was used
   const charSetWins = {}; // charId → Set of set IDs won with this char
-  const charMatches = {}; // charId → [{ tournament, round, score, opponent, opponentCharId, opponentCharName, win, setLink, date }]
+  const charSetMatches = {}; // charId → { setId → { setInfo, games: [] } }
   const charVsChars = {}; // charId → { oppCharId → { games, wins, sets: Set, setWins: Set } }
   const charVsPlayers = {}; // charId → { oppName → { games, wins, sets: Set, setWins: Set } }
   const tournamentNames = new Set();
   const pid = String(playerId);
 
-  // Debug counters
-  let skippedNoSlots = 0;
-  let skippedNotSSBU = 0;
-  let skippedNoEntrant = 0;
-  let skippedDoubles = 0;
   let setsProcessed = 0;
   let gamesWithSelections = 0;
   let gamesWithoutSelections = 0;
-  let matchedByDirectId = 0;
-  let matchedByExclusion = 0;
   for (const set of allSets) {
-    if (!set.slots || set.slots.length < 2) { skippedNoSlots++; continue; }
+    if (!set.slots || set.slots.length < 2) continue;
     const vgId = set.event?.videogame?.id;
-    if (!vgId || vgId !== SSBU_GAME_ID) { skippedNotSSBU++; continue; }
+    if (!vgId || vgId !== SSBU_GAME_ID) continue;
 
     const mySlot = set.slots.find(s =>
       s.entrant?.participants?.some(p => String(p.player?.id) === pid)
     );
     const myEntrantId = mySlot?.entrant?.id;
-    if (!myEntrantId) { skippedNoEntrant++; continue; }
+    if (!myEntrantId) continue;
 
     const participantCount = mySlot.entrant.participants?.length || 0;
-    if (participantCount !== 1) { skippedDoubles++; continue; }
+    if (participantCount !== 1) continue;
 
     setsProcessed++;
     const eid = String(myEntrantId);
@@ -243,8 +236,6 @@ function processSets(allSets, playerId, startggCharMap = {}) {
         }
 
         if (mySel?.selectionValue) {
-          if (matchMethod === 'direct') matchedByDirectId++;
-          else matchedByExclusion++;
           gamesWithSelections++;
           const cid = mySel.selectionValue;
           const gameWon = String(game.winnerId) === eid;
@@ -264,19 +255,25 @@ function processSets(allSets, playerId, startggCharMap = {}) {
           const oppCharId = opponentSel?.selectionValue || null;
           const oppName = opponentSlot?.entrant?.name || '?';
 
-          // Collect match record
-          if (!charMatches[cid]) charMatches[cid] = [];
-          charMatches[cid].push({
-            tournament: tName || '?',
-            round: set.fullRoundText || '?',
-            score: set.displayScore || '—',
-            opponent: oppName,
-            opponentCharId: oppCharId,
-            opponentCharName: oppCharId ? (startggCharMap[oppCharId] || null) : null,
+          // Collect match record per set
+          if (!charSetMatches[cid]) charSetMatches[cid] = {};
+          if (!charSetMatches[cid][setId]) {
+            charSetMatches[cid][setId] = {
+              tournament: tName || '?',
+              round: set.fullRoundText || '?',
+              score: set.displayScore || '—',
+              opponent: oppName,
+              setWin: isWin,
+              setLink,
+              date: set.completedAt || null,
+              games: [],
+            };
+          }
+          charSetMatches[cid][setId].games.push({
             win: gameWon,
-            setWin: isWin,
-            setLink,
-            date: set.completedAt || null,
+            oppCharId,
+            oppCharName: oppCharId ? (startggCharMap[oppCharId] || null) : null,
+            oppLocalCharId: oppCharId ? (findLocalCharId(startggCharMap[oppCharId]) || null) : null,
           });
 
           // vs Characters
@@ -310,7 +307,7 @@ function processSets(allSets, playerId, startggCharMap = {}) {
       const sets = charSetIds[cid]?.size || 0;
       const setWins = charSetWins[cid]?.size || 0;
 
-      // Build vsChars array (sorted by games desc)
+      // Build vsChars array (sorted by games desc, top 15)
       const vsCharsArr = charVsChars[cid]
         ? Object.entries(charVsChars[cid]).map(([oppCid, d]) => ({
             charId: Number(oppCid),
@@ -320,10 +317,10 @@ function processSets(allSets, playerId, startggCharMap = {}) {
             wins: d.wins,
             sets: d.sets.size,
             setWins: d.setWins.size,
-          })).sort((a, b) => b.games - a.games)
+          })).sort((a, b) => b.games - a.games).slice(0, 15)
         : [];
 
-      // Build vsPlayers array (sorted by sets desc)
+      // Build vsPlayers array (sorted by sets desc, top 20)
       const vsPlayersArr = charVsPlayers[cid]
         ? Object.entries(charVsPlayers[cid]).map(([name, d]) => ({
             name,
@@ -331,11 +328,13 @@ function processSets(allSets, playerId, startggCharMap = {}) {
             wins: d.wins,
             sets: d.sets.size,
             setWins: d.setWins.size,
-          })).sort((a, b) => b.sets - a.sets)
+          })).sort((a, b) => b.sets - a.sets).slice(0, 20)
         : [];
 
-      // Build matches (sorted by date desc)
-      const matches = (charMatches[cid] || []).sort((a, b) => (b.date || 0) - (a.date || 0));
+      // Build matches per set (sorted by date desc, limited to 30)
+      const matchSets = charSetMatches[cid]
+        ? Object.values(charSetMatches[cid]).sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 30)
+        : [];
 
       return {
         startggCharId: cid,
@@ -346,7 +345,7 @@ function processSets(allSets, playerId, startggCharMap = {}) {
         sets,
         setWins,
         usage: totalGames > 0 ? Math.round(count * 100 / totalGames) : 0,
-        matches,
+        matches: matchSets,
         vsChars: vsCharsArr,
         vsPlayers: vsPlayersArr,
       };
@@ -354,18 +353,6 @@ function processSets(allSets, playerId, startggCharMap = {}) {
     .sort((a, b) => b.games - a.games);
 
   return {
-    debug: {
-      totalSetsFetched: allSets.length,
-      skippedNoSlots,
-      skippedNotSSBU,
-      skippedNoEntrant,
-      skippedDoubles,
-      setsProcessed,
-      gamesWithSelections,
-      gamesWithoutSelections,
-      matchedByDirectId,
-      matchedByExclusion,
-    },
     totalSets: setsProcessed,
     wins: totalWins,
     losses: totalLosses,
@@ -389,7 +376,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
-  const cacheKey = `startgg:stats:v14:${slug}`;
+  const cacheKey = `startgg:stats:v15:${slug}`;
 
   // Intentar devolver datos cacheados
   try {
@@ -406,7 +393,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', 'Authorization': auth },
       body: JSON.stringify({
         query: SETS_QUERY,
-        variables: { slug, page: 1, perPage: 50 },
+        variables: { slug, page: 1, perPage: 38 },
       }),
     });
 
@@ -464,7 +451,7 @@ export default async function handler(req, res) {
             headers: { 'Content-Type': 'application/json', 'Authorization': auth },
             body: JSON.stringify({
               query: SETS_ONLY_QUERY,
-              variables: { slug, page, perPage: 50 },
+              variables: { slug, page, perPage: 38 },
             }),
           });
           if (!r.ok) return [];
@@ -497,10 +484,6 @@ export default async function handler(req, res) {
     result.gamerTag = gamerTag;
     result.playerId = playerId;
     result.profile = profile;
-    result.debug.slug = slug;
-    result.debug.totalPagesAvailable = totalPages;
-    result.debug.pagesFetched = actualPagesFetched;
-    result.debug.totalSetsFetchedRaw = allSets.length;
 
     // Cachear resultado
     try {

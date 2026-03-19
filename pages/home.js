@@ -1180,27 +1180,6 @@ function TabPerfil({ user }) {
           if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
           return r.json();
         }).then(d => { if (d) {
-          console.log('[StartGG] Full response:', d);
-          console.log('[StartGG] Profile:', d.profile);
-          console.log('[StartGG] Debug:', d.debug);
-          if (d.charUsage) {
-            console.log('[StartGG] Character Usage:');
-            d.charUsage.forEach((ch, i) => {
-              console.log(`  ${i+1}. ${ch.charName} (ID: ${ch.startggCharId}) — ${ch.games} games, ${ch.usage}%, WR: ${ch.games > 0 ? Math.round(ch.wins*100/ch.games) : 0}%`);
-              if (ch.evidence && ch.evidence.length > 0) {
-                ch.evidence.forEach(ev => {
-                  const myInfo = ev.myEntrant ? `Mi entrant: ${ev.myEntrant.id} (${ev.myEntrant.name})` : '';
-                  const selInfo = ev.selectionEntrantId ? `Sel entrant: ${ev.selectionEntrantId}` : '';
-                  const oppInfo = ev.opponentEntrant ? `Oponente: ${ev.opponentEntrant.id} (${ev.opponentEntrant.name})` : '';
-                  const oppChar = ev.opponentCharName ? `Oponente usó: ${ev.opponentCharName}` : '';
-                  const method = ev.matchMethod ? `[${ev.matchMethod}]` : '';
-                  console.log(`     ↳ ${ev.tournament} ${method}`);
-                  console.log(`       ${myInfo} | ${selInfo} | ${oppInfo} | ${oppChar}`);
-                  if (ev.setLink) console.log(`       → ${ev.setLink}`);
-                });
-              }
-            });
-          }
           setStartggStats(d);
         } }).catch(() => {});
       }

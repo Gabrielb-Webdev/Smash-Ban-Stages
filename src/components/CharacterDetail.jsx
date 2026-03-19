@@ -100,39 +100,30 @@ function MatchesTab({ ch }) {
       {Object.entries(grouped).map(([tName, tMatches]) => (
         <div key={tName} style={{ marginBottom: 16 }}>
           <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>{tName}</p>
-          {/* Deduplicate by setLink to show per-set, not per-game */}
-          {(() => {
-            const setMap = {};
-            tMatches.forEach(m => {
-              const key = m.setLink || Math.random();
-              if (!setMap[key]) setMap[key] = { ...m, games: [] };
-              setMap[key].games.push(m);
-            });
-            return Object.values(setMap).map((setData, si) => {
-              const gamesWon = setData.games.filter(g => g.win).length;
-              const gamesLost = setData.games.filter(g => !g.win).length;
-              return (
-                <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', marginBottom: 4, background: setData.setWin ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${setData.setWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 10, cursor: setData.setLink ? 'pointer' : 'default' }} onClick={() => setData.setLink && window.open(setData.setLink, '_blank')}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>{setData.round}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: setData.setWin ? '#22C55E' : '#EF4444' }}>{gamesWon}</span>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>-</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: !setData.setWin ? '#22C55E' : '#EF4444' }}>{gamesLost}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{setData.opponent}</span>
-                    </div>
+          {tMatches.map((setData, si) => {
+            const gamesWon = setData.games.filter(g => g.win).length;
+            const gamesLost = setData.games.filter(g => !g.win).length;
+            return (
+              <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', marginBottom: 4, background: setData.setWin ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${setData.setWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 10, cursor: setData.setLink ? 'pointer' : 'default' }} onClick={() => setData.setLink && window.open(setData.setLink, '_blank')}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>{setData.round}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {setData.games.map((g, gi) => (
-                      <CharImg key={gi} localCharId={g.opponentCharName ? (CHARACTERS.find(c => c.name === g.opponentCharName)?.id || null) : null} size={20} />
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: setData.setWin ? '#22C55E' : '#EF4444' }}>{gamesWon}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>-</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: !setData.setWin ? '#22C55E' : '#EF4444' }}>{gamesLost}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{setData.opponent}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {setData.games.map((g, gi) => (
+                    <CharImg key={gi} localCharId={g.oppLocalCharId} size={20} />
+                  ))}
                   </div>
                 </div>
               );
-            });
-          })()}
+            })}
         </div>
       ))}
       {matches.length === 0 && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Sin datos de partidas</p>}
