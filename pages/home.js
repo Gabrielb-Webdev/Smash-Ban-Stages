@@ -107,6 +107,42 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // Registrar Service Worker y suscribirse a Web Push
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return;
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+    if (!vapidKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    const uid = String(user?.id || user?.slug || '');
+    if (!uid) return;
+
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        // urlBase64ToUint8Array
+        const padding = '='.repeat((4 - vapidKey.length % 4) % 4);
+        const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: arr,
+        });
+
+        await fetch('/api/notifications/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: uid, subscription: sub.toJSON() }),
+        });
+      } catch (e) { /* push no soportado o denegado */ }
+    })();
+  }, [user]);
+
   // Polling global de matchmaking (persiste entre tabs)
   useEffect(() => {
     if (!bgMM?.polling || !user) return;
@@ -1667,20 +1703,34 @@ function TabPerfil({ user }) {
         {chatOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 9998, display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
-              <button onClick={() => setChatOpen(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
-              <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff' }}>
-                {(chatOpen.userName || '?').charAt(0).toUpperCase()}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
+              <button onClick={() => setChatOpen(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4, flexShrink: 0 }}>←</button>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                {(() => {
+                  const chatFriend = friends.find(f => f.userId === chatOpen.userId);
+                  const avatar = chatFriend?.avatar || null;
+                  return avatar
+                    ? <img src={avatar} alt={chatOpen.userName} style={{ width: 36, height: 36, borderRadius: 12, objectFit: 'cover', border: '2px solid rgba(124,58,237,0.4)' }} />
+                    : <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff' }}>
+                        {(chatOpen.userName || '?').charAt(0).toUpperCase()}
+                      </div>;
+                })()}
+                {(() => {
+                  const chatFriend = friends.find(f => f.userId === chatOpen.userId);
+                  if (!chatFriend) return null;
+                  const c = chatFriend.online === 'in_match' ? '#34D399' : chatFriend.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)';
+                  return <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: c, border: '2px solid #0D0D15' }} />;
+                })()}
               </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#fff' }}>{chatOpen.userName}</p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chatOpen.userName}</p>
                 <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Chat privado</p>
               </div>
               {!partyState && (
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                   {['switch', 'parsec'].map(plat => (
-                    <button key={plat} onClick={() => inviteToDoubles(chatOpen.userId, chatOpen.userName, plat)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.1)', color: '#A78BFA', fontWeight: 700, fontSize: 9, cursor: 'pointer', textTransform: 'uppercase' }}>
-                      🎮 2v2 {plat === 'switch' ? 'SW' : 'PC'}
+                    <button key={plat} onClick={() => inviteToDoubles(chatOpen.userId, chatOpen.userName, plat)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.1)', color: '#A78BFA', fontWeight: 700, fontSize: 8, cursor: 'pointer', textTransform: 'uppercase', lineHeight: 1.2 }}>
+                      🎮 2v2<br/>{plat === 'switch' ? 'SW' : 'PC'}
                     </button>
                   ))}
                 </div>
@@ -1736,21 +1786,42 @@ function TabPerfil({ user }) {
         {/* ═══ MODAL PERFIL JUGADOR ═══ */}
         {viewProfile && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15', position: 'sticky', top: 0, zIndex: 1 }}>
-              <button onClick={() => setViewProfile(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
-              <div style={{ width: 40, height: 40, borderRadius: 14, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 900, color: '#fff' }}>
-                {(viewProfile.userName || '?').charAt(0).toUpperCase()}
+            {/* Header con avatar */}
+            <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'linear-gradient(160deg,rgba(124,58,237,0.09) 0%,rgba(232,142,0,0.06) 50%,transparent 80%)', position: 'sticky', top: 0, zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button onClick={() => setViewProfile(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4 }}>←</button>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  {profileData?.profile?.avatar
+                    ? <img src={profileData.profile.avatar} alt={viewProfile.userName} style={{ width: 56, height: 56, borderRadius: 18, objectFit: 'cover', border: '2px solid rgba(124,58,237,0.5)' }} />
+                    : <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#fff', boxShadow: '0 6px 16px rgba(99,102,241,0.3)' }}>
+                        {(viewProfile.userName || '?').charAt(0).toUpperCase()}
+                      </div>
+                  }
+                  {(() => {
+                    const friendEntry = friends.find(f => f.userId === viewProfile.userId);
+                    if (!friendEntry) return null;
+                    const onlineColor = friendEntry.online === 'in_match' ? '#34D399' : friendEntry.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.2)';
+                    return <div style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: onlineColor, border: '2px solid #0D0D15', boxShadow: friendEntry.online !== 'offline' ? '0 0 6px ' + onlineColor : 'none' }} />;
+                  })()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{viewProfile.userName}</p>
+                  {(() => {
+                    const friendEntry = friends.find(f => f.userId === viewProfile.userId);
+                    if (friendEntry) {
+                      const statusText = friendEntry.online === 'in_match' ? 'En partida' : friendEntry.online === 'searching' ? 'Buscando partida…' : 'Desconectado';
+                      const statusColor = friendEntry.online === 'in_match' ? '#34D399' : friendEntry.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.3)';
+                      return <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: statusColor }}>● {statusText}</p>;
+                    }
+                    return <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Perfil de jugador</p>;
+                  })()}
+                </div>
+                {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
+                  <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                    {friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}
+                  </button>
+                )}
               </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>{viewProfile.userName}</p>
-                <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Perfil de jugador</p>
-              </div>
-              {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
-                <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                  {friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}
-                </button>
-              )}
             </div>
 
             {profileLoading ? (
@@ -1772,18 +1843,25 @@ function TabPerfil({ user }) {
                     const total = wins + losses;
                     const rp = s.rankedPoints || 0;
                     const rankName = s.rank || 'Plástico 1';
-                    const inPlacement = total < 5;
+                    const inPlacement = total > 0 && total < 5;
+                    const isUnranked = total === 0;
                     const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
                     const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
                     const rankColor = rankObj?.color || '#9CA3AF';
                     return (
-                      <div key={plat} style={{ flex: 1, background: inPlacement ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (isUnranked ? 'rgba(255,255,255,0.06)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{platLabel(plat)}</span>
-                        {inPlacement ? (
+                        {isUnranked ? (
                           <>
-                            <span style={{ fontSize: 20 }}>📊</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00' }}>Posicionamiento</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas</span>
+                            <span style={{ fontSize: 20 }}>❔</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Unranked</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0/5 partidas</span>
+                          </>
+                        ) : inPlacement ? (
+                          <>
+                            <span style={{ fontSize: 20 }}>{tierIcon}</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00' }}>Clasificando</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas · faltan {5 - total}</span>
                           </>
                         ) : (
                           <>
@@ -1795,7 +1873,7 @@ function TabPerfil({ user }) {
                             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{rp} RP</span>
                           </>
                         )}
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{wins}W - {losses}L</span>
+                        {total > 0 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{wins}W - {losses}L</span>}
                       </div>
                     );
                   })}
@@ -1823,14 +1901,15 @@ function TabPerfil({ user }) {
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{platLabel(plat)}</span>
                         {total === 0 ? (
                           <>
-                            <span style={{ fontSize: 20 }}>➖</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Sin partidas</span>
+                            <span style={{ fontSize: 20 }}>❔</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Unranked</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>0/5 partidas</span>
                           </>
                         ) : inPlacement ? (
                           <>
-                            <span style={{ fontSize: 20 }}>📊</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#A78BFA' }}>Posicionamiento</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas</span>
+                            <span style={{ fontSize: 20 }}>{tierIcon}</span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: '#A78BFA' }}>Clasificando</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{total}/5 partidas · faltan {5 - total}</span>
                           </>
                         ) : (
                           <>

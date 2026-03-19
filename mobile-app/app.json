@@ -12,11 +12,19 @@
     "android": {
       "package": "com.afksmash.mobile",
       "versionCode": 11,
-      "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES"],
+      "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES", "RECEIVE_BOOT_COMPLETED", "VIBRATE"],
       "adaptiveIcon": { "foregroundImage": "./assets/afk-icon.png", "backgroundColor": "#000000" }
     },
     "owner": "gabriel_sin_h",
     "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/afk-icon.png",
+          "color": "#FF8C00",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-build-properties",
         {

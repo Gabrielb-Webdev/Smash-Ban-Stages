@@ -1,82 +1,69 @@
-// API Route para registrar tokens de notificaciones push
+// API Route para registrar suscripciones push (Web Push + Expo)
+import redis, { pushSubKey } from '../../../lib/redis';
 
-// Mock storage para tokens - en producción usar base de datos
-let mockPushTokens = [];
-
-export default function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method === 'POST') {
-    const { token, userId, platform } = req.body;
-    
-    if (!token || !userId) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    // Verificar si ya existe un token para este usuario
-    const existingTokenIndex = mockPushTokens.findIndex(t => t.userId === userId);
-    
-    const tokenData = {
-      token,
-      userId,
-      platform: platform || 'unknown',
-      registeredAt: new Date().toISOString(),
-      active: true,
-    };
-    
-    if (existingTokenIndex !== -1) {
-      // Actualizar token existente
-      mockPushTokens[existingTokenIndex] = tokenData;
-    } else {
-      // Nuevo token
-      mockPushTokens.push(tokenData);
-    }
-    
-    console.log(`Push token registered for user ${userId}: ${token.substring(0, 20)}...`);
-    
-    res.status(200).json({
-      message: 'Token registrado exitosamente',
-      tokenId: `token-${Date.now()}`,
-    });
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
-  }
+function sanitize(s) {
+  return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 300);
 }
 
-// Función helper para enviar notificaciones (para uso interno)
-export async function sendPushNotification(userId, notification) {
-  const userToken = mockPushTokens.find(t => t.userId === userId && t.active);
-  
-  if (!userToken) {
-    console.log(`No active push token found for user ${userId}`);
-    return;
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+
+  // POST: registrar suscripción push
+  if (req.method === 'POST') {
+    const { userId, type, subscription, token } = req.body || {};
+
+    if (!userId) return res.status(400).json({ error: 'userId requerido' });
+
+    const cleanUserId = sanitize(userId);
+    const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
+
+    if (type === 'expo' && token) {
+      // Expo push token (Android APK)
+      const existing = subs.findIndex(s => s.type === 'expo' && s.token === token);
+      if (existing === -1) {
+        subs.push({ type: 'expo', token, registeredAt: new Date().toISOString() });
+      } else {
+        subs[existing].registeredAt = new Date().toISOString();
+      }
+    } else if (subscription && subscription.endpoint) {
+      // Web Push subscription (iOS PWA + desktop)
+      const existing = subs.findIndex(s => s.type === 'web' && s.subscription?.endpoint === subscription.endpoint);
+      if (existing === -1) {
+        subs.push({ type: 'web', subscription, registeredAt: new Date().toISOString() });
+      } else {
+        subs[existing].subscription = subscription;
+        subs[existing].registeredAt = new Date().toISOString();
+      }
+    } else {
+      return res.status(400).json({ error: 'subscription o token requerido' });
+    }
+
+    // Máximo 10 suscripciones por usuario (diferentes dispositivos)
+    const trimmed = subs.length > 10 ? subs.slice(-10) : subs;
+    await redis.set(pushSubKey(cleanUserId), trimmed);
+
+    return res.status(200).json({ success: true });
   }
-  
-  try {
-    // En producción, usar Expo's push notification service
-    const message = {
-      to: userToken.token,
-      sound: 'default',
-      title: notification.title,
-      body: notification.body,
-      data: notification.data || {},
-    };
-    
-    // Aquí iría la llamada real al servicio de Expo
-    console.log('Would send push notification:', message);
-    
-    // Simular envío exitoso
-    return { success: true, messageId: `msg-${Date.now()}` };
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    return { success: false, error: error.message };
+
+  // DELETE: eliminar suscripción
+  if (req.method === 'DELETE') {
+    const { userId, endpoint, token } = req.body || {};
+    if (!userId) return res.status(400).json({ error: 'userId requerido' });
+
+    const cleanUserId = sanitize(userId);
+    const subs = (await redis.get(pushSubKey(cleanUserId))) || [];
+    const filtered = subs.filter(s => {
+      if (endpoint && s.type === 'web') return s.subscription?.endpoint !== endpoint;
+      if (token && s.type === 'expo') return s.token !== token;
+      return true;
+    });
+    await redis.set(pushSubKey(cleanUserId), filtered);
+    return res.status(200).json({ success: true });
   }
+
+  res.status(405).json({ error: 'Method not allowed' });
 }

@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar,
-  ActivityIndicator, Image, Modal, Pressable, BackHandler, Linking, ScrollView,
+  ActivityIndicator, Image, Modal, Pressable, BackHandler, Linking, ScrollView, Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as IntentLauncher from 'expo-intent-launcher';
+import * as Notifications from 'expo-notifications';
 
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
@@ -59,6 +60,43 @@ export default function App() {
       .catch(function () { setSessionLoading(false); });
     checkForUpdate();
   }, []);
+
+  // Registrar push notifications cuando el usuario se loguea
+  useEffect(function () {
+    if (!user || !user.id) return;
+    (async function () {
+      try {
+        // Configurar cómo mostrar notificaciones en foreground
+        Notifications.setNotificationHandler({
+          handleNotification: async function () {
+            return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true };
+          },
+        });
+        // Pedir permiso
+        var perm = await Notifications.requestPermissionsAsync();
+        if (perm.status !== 'granted') return;
+        // Solo en Android se necesita channel
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'AFK Smash',
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF8C00',
+          });
+        }
+        // Obtener Expo push token
+        var tokenData = await Notifications.getExpoPushTokenAsync({ projectId: '1cc82cc6-5c6c-437d-aa76-3a3d79eda94e' });
+        var expoPushToken = tokenData.data;
+        if (!expoPushToken) return;
+        // Registrar token en el servidor
+        await fetch(BASE_URL + '/api/notifications/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: String(user.id), type: 'expo', token: expoPushToken }),
+        });
+      } catch (e) { /* push no disponible */ }
+    })();
+  }, [user && user.id]);
 
   // Botón atrás Android
   useEffect(function () {

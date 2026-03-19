@@ -3,6 +3,7 @@
 // el flujo de aceptación/partida existente de room.js
 
 import redis, { mmQueueKey } from '../../../lib/redis';
+import { sendPush } from '../../../lib/push.js';
 
 const QUEUE_TTL_MS   = 10 * 60 * 1000;
 
@@ -63,6 +64,13 @@ async function tryMatch(platform) {
   await redis.set(roomKey(code), room);
   await redis.set(userRoomKey(p1.userId), code);
   await redis.set(userRoomKey(p2.userId), code);
+
+  // Push: match encontrado
+  const platLabel = platform === 'switch' ? 'Switch Online' : 'Parsec';
+  await Promise.all([
+    sendPush(p1.userId, { title: '¡Match encontrado! 🎮', body: `Rival: ${p2.userName} · ${platLabel}`, tag: 'match-found', data: { url: '/home' } }),
+    sendPush(p2.userId, { title: '¡Match encontrado! 🎮', body: `Rival: ${p1.userName} · ${platLabel}`, tag: 'match-found', data: { url: '/home' } }),
+  ]);
 }
 
 export default async function handler(req, res) {

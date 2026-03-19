@@ -2,6 +2,7 @@
 // Cuando matchea 2 parties, crea una room 2v2 con pending_accept
 
 import redis, { mmQueueDoublesKey, partyKey, userPartyKey, mmMatchKey } from '../../../lib/redis';
+import { sendPush } from '../../../lib/push.js';
 
 const QUEUE_TTL_MS = 10 * 60 * 1000;
 
@@ -71,6 +72,13 @@ async function tryMatchDoubles(platform) {
       await redis.set(partyKey(pid), party);
     }
   }
+
+  // Push: match 2v2 encontrado
+  const platLabel = platform === 'switch' ? 'Switch Online' : 'Parsec';
+  const allPlayers = [team1.player1, team1.player2, team2.player1, team2.player2];
+  await Promise.all(allPlayers.map(p =>
+    sendPush(p.userId, { title: '¡Match 2v2 encontrado! 👥', body: `¡Tu equipo está listo! · ${platLabel}`, tag: 'match-found-2v2', data: { url: '/home' } })
+  ));
 }
 
 export default async function handler(req, res) {
