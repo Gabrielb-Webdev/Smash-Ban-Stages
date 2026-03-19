@@ -15,7 +15,7 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
     player {
       id
-      sets(page: $page, perPage: $perPage, filters: { videogameId: ${SSBU_GAME_ID} }) {
+      sets(page: $page, perPage: $perPage, filters: { videogameIds: [${SSBU_GAME_ID}] }) {
         pageInfo { total totalPages }
         nodes {
           winnerId
