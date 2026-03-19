@@ -1,11 +1,13 @@
 // API: obtener estadísticas de carrera de Start.GG para un jugador
 // GET /api/players/startgg-stats?slug=ead8fa65
 // Header: Authorization: Bearer <startgg_access_token>
+// Obtiene TODOS los sets de TODOS los torneos (paginado completo)
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const SSBU_GAME_ID = 1386; // Super Smash Bros. Ultimate en Start.GG
+const MAX_PAGES = 20; // Máximo 20 páginas × 50 = hasta 1000 sets
 
-// Query para obtener sets recientes del jugador en SSBU
+// Query que obtiene player ID + sets en una sola llamada
 const SETS_QUERY = `
 query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
@@ -81,9 +83,12 @@ export default async function handler(req, res) {
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
   try {
-    // Obtener hasta 3 páginas de 50 sets cada una (150 sets máximo)
     const allSets = [];
-    for (let page = 1; page <= 3; page++) {
+    let playerId = null;
+    let totalPages = 1;
+
+    // Paginar TODOS los sets del jugador
+    for (let page = 1; page <= Math.min(totalPages, MAX_PAGES); page++) {
       const resp = await fetch(STARTGG_API, {
         method: 'POST',
         headers: {
@@ -97,37 +102,58 @@ export default async function handler(req, res) {
       });
 
       if (!resp.ok) {
-        const errText = await resp.text();
-        console.error('Start.GG API error:', resp.status, errText);
+        console.error('Start.GG API error:', resp.status);
+        // Si al menos tenemos datos parciales, devolver lo que hay
+        if (allSets.length > 0) break;
         return res.status(502).json({ error: 'Start.GG API error', status: resp.status });
       }
 
       const data = await resp.json();
       if (data.errors) {
         console.error('Start.GG GraphQL errors:', data.errors);
+        if (allSets.length > 0) break;
         return res.status(502).json({ error: 'GraphQL error', detail: data.errors[0]?.message });
       }
 
-      const setsData = data.data?.user?.player?.sets;
+      const userData = data.data?.user;
+      if (!userData?.player) {
+        if (allSets.length > 0) break;
+        return res.status(404).json({ error: 'Player not found' });
+      }
+
+      // Extraer player ID de la primera respuesta (sin llamada extra)
+      if (!playerId) {
+        playerId = userData.player.id;
+      }
+
+      const setsData = userData.player.sets;
       if (!setsData || !setsData.nodes?.length) break;
 
+      totalPages = setsData.pageInfo.totalPages || 1;
       allSets.push(...setsData.nodes);
 
-      if (page >= setsData.pageInfo.totalPages) break;
+      // Si ya tenemos todos, salir
+      if (page >= totalPages) break;
+    }
+
+    if (!playerId || allSets.length === 0) {
+      return res.status(200).json({
+        totalSets: 0, wins: 0, losses: 0, winRate: 0,
+        tournaments: 0, charUsage: [], totalGamesWithChars: 0,
+      });
     }
 
     // Procesar sets: contar personajes usados y estadísticas generales
-    const playerId = (await getPlayerId(slug, auth));
     let totalWins = 0;
     let totalLosses = 0;
-    const charCounts = {}; // { charSelectionValue: count }
+    const charCounts = {};
     const charWins = {};
-    let totalEvents = new Set();
+    const tournamentNames = new Set();
 
     for (const set of allSets) {
       if (!set.slots || set.slots.length < 2) continue;
 
-      // Determinar si el jugador ganó este set
+      // Determinar slot del jugador
       const mySlot = set.slots.find(s =>
         s.entrant?.participants?.some(p => p.player?.id === playerId)
       );
@@ -139,7 +165,7 @@ export default async function handler(req, res) {
       else totalLosses++;
 
       if (set.event?.tournament?.name) {
-        totalEvents.add(set.event.tournament.name);
+        tournamentNames.add(set.event.tournament.name);
       }
 
       // Contar personajes de los games dentro del set
@@ -176,7 +202,7 @@ export default async function handler(req, res) {
       wins: totalWins,
       losses: totalLosses,
       winRate: (totalWins + totalLosses) > 0 ? Math.round(totalWins * 100 / (totalWins + totalLosses)) : 0,
-      tournaments: totalEvents.size,
+      tournaments: tournamentNames.size,
       charUsage,
       totalGamesWithChars: totalGames,
     });
@@ -184,20 +210,4 @@ export default async function handler(req, res) {
     console.error('startgg-stats error:', err);
     return res.status(500).json({ error: 'Internal error', detail: err.message });
   }
-}
-
-// Helper: obtener el player ID numérico de Start.GG
-async function getPlayerId(slug, auth) {
-  const resp = await fetch(STARTGG_API, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': auth,
-    },
-    body: JSON.stringify({
-      query: `query { user(slug: "${slug}") { player { id } } }`,
-    }),
-  });
-  const data = await resp.json();
-  return data.data?.user?.player?.id || null;
 }
