@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath } from '../lib/characters';
+import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, STARTGG_CHAR_MAP } from '../lib/characters';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1107,6 +1107,7 @@ function TabPerfil({ user }) {
   const [partyState, setPartyState]     = useState(null);
   const [doublesStats, setDoublesStats] = useState(null);
   const [recentChars, setRecentChars] = useState([]);
+  const [startggStats, setStartggStats] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
   const [viewProfile, setViewProfile]   = useState(null); // { userId, userName }
   const [profileData, setProfileData]   = useState(null);
@@ -1124,6 +1125,18 @@ function TabPerfil({ user }) {
       fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []),
       fetch('/api/matchmaking/recent-chars?userId=' + uidEnc).then(r => r.json()).catch(() => []),
     ]).then(([s, h, chars]) => { setStats(s); setHistory(Array.isArray(h) ? h : []); setRecentChars(Array.isArray(chars) ? chars : []); setLoading(false); });
+
+    // Fetch Start.GG stats
+    try {
+      const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
+      const token = stored.access_token;
+      const slug = stored.user?.slug;
+      if (token && slug) {
+        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), {
+          headers: { 'Authorization': 'Bearer ' + token },
+        }).then(r => r.ok ? r.json() : null).then(d => { if (d) setStartggStats(d); }).catch(() => {});
+      }
+    } catch (e) {}
   }, [user?.id]);
 
   // Fetch friends
@@ -1372,6 +1385,73 @@ function TabPerfil({ user }) {
             </div>
           ))}
         </div>
+
+        {/* ── SUMMARY (Start.GG character usage) ── */}
+        {startggStats && startggStats.charUsage && startggStats.charUsage.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Summary</p>
+              </div>
+              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
+              {startggStats.charUsage.slice(0, 5).map((ch, i) => {
+                const localId = STARTGG_CHAR_MAP[ch.startggCharId];
+                const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+                const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+                const isTop = i === 0;
+                return (
+                  <div key={ch.startggCharId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: isTop ? '0' : '8px 12px', borderBottom: i < Math.min(startggStats.charUsage.length, 5) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', position: 'relative', overflow: 'hidden', minHeight: isTop ? 64 : 42 }}>
+                    {isTop && (
+                      <>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(245,197,24,0.12), transparent)', zIndex: 0 }} />
+                        {isTop && renderFile && (
+                          <img src={charRenderPath(renderFile)} alt="" style={{ height: 60, objectFit: 'contain', marginLeft: 4, position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display='none'; }} />
+                        )}
+                      </>
+                    )}
+                    {!isTop && charObj && (
+                      <img src={charImgPath(charObj.img)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                    )}
+                    <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
+                      {isTop && (
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                          <div style={{ width: ch.usage + '%', height: '100%', background: '#F5C518', borderRadius: 2 }} />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right', position: 'relative', zIndex: 1, flexShrink: 0 }}>
+                      <p style={{ margin: 0, fontSize: isTop ? 16 : 12, fontWeight: 900, color: isTop ? '#F5C518' : 'rgba(255,255,255,0.5)' }}>{ch.usage}%</p>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} games</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Start.GG career stats */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#F5C518' }}>{startggStats.winRate}%</p>
+                <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Win Rate</p>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#22C55E' }}>{startggStats.wins}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Wins</p>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{startggStats.losses}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Losses</p>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#818CF8' }}>{startggStats.tournaments}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Torneos</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
           <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
