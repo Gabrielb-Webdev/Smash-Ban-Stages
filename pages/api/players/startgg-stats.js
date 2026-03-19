@@ -9,13 +9,13 @@ const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const SSBU_GAME_ID = 1386;
 const CACHE_TTL = 3600; // 1 hora
 
-// Query liviano: solo sets sin games/selections (para W/L y torneos)
+// Query liviano: sets del jugador (sin filtro de videogame - SetFilters no lo soporta)
 const SETS_QUERY = `
 query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
     player {
       id
-      sets(page: $page, perPage: $perPage, filters: { videogameIds: [${SSBU_GAME_ID}] }) {
+      sets(page: $page, perPage: $perPage) {
         pageInfo { total totalPages }
         nodes {
           winnerId
@@ -33,7 +33,10 @@ query PlayerSets($slug: String!, $page: Int!, $perPage: Int!) {
               selectionValue
             }
           }
-          event { tournament { name } }
+          event {
+            videogame { id }
+            tournament { name }
+          }
         }
       }
     }
@@ -54,6 +57,10 @@ function processSets(allSets, playerId) {
 
   for (const set of allSets) {
     if (!set.slots || set.slots.length < 2) continue;
+    // Filtrar solo sets de SSBU (videogame id 1386)
+    const vgId = set.event?.videogame?.id;
+    if (vgId && vgId !== SSBU_GAME_ID) continue;
+
     const mySlot = set.slots.find(s =>
       s.entrant?.participants?.some(p => p.player?.id === playerId)
     );
