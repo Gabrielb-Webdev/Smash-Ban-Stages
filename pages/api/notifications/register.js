@@ -53,6 +53,11 @@ export default async function handler(req, res) {
     await redis.set(pushSubKey(cleanUserId), trimmed);
     // Agregar el userId al set global para poder notificar a todos (torneos, etc.)
     await redis.sadd(pushUsersSetKey, cleanUserId);
+    // Guardar mapeo nombre→userId para envío por nombre
+    const playerName = req.body?.name ? String(req.body.name).trim().slice(0, 100).toLowerCase() : null;
+    if (playerName) {
+      await redis.hset('push:name_to_uid', { [playerName]: cleanUserId });
+    }
 
     // Verificar que se guardó correctamente
     const verify = await redis.get(pushSubKey(cleanUserId));

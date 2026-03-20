@@ -186,7 +186,7 @@ export default function HomePage() {
         const regRes = await fetch('/api/notifications/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: uid, subscription: sub.toJSON() }),
+          body: JSON.stringify({ userId: uid, name: user.name, subscription: sub.toJSON() }),
         });
         const regData = await regRes.json();
         console.log('[PUSH] Web push registrado:', regData);

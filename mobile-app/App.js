@@ -1,4 +1,4 @@
-﻿// v1.4.0
+﻿// v2.0.0 — Sin Expo
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar,
@@ -6,22 +6,11 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import * as IntentLauncher from 'expo-intent-launcher';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-
-// Configurar cómo mostrar notificaciones en foreground (DEBE estar en nivel de módulo)
-Notifications.setNotificationHandler({
-  handleNotification: async function () {
-    return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true };
-  },
-});
 
 var BASE_URL = 'https://smash-ban-stages.vercel.app';
 var CLIENT_ID = '435';
 var REDIRECT_URI = BASE_URL + '/auth/callback';
-var CURRENT_VERSION = '1.4.0';
+var CURRENT_VERSION = '2.0.0';
 var SESSION_KEY = 'afk_session_v2';
 var ADMIN_HOME = BASE_URL + '/';
 var SB = StatusBar.currentHeight || 24;
@@ -37,13 +26,10 @@ export default function App() {
   var [showSettings, setShowSettings] = useState(false);
   var [updateInfo, setUpdateInfo] = useState(null);
   var [checkingUpdate, setCheckingUpdate] = useState(false);
-  var [downloadProgress, setDownloadProgress] = useState(null);
-  var [downloadError, setDownloadError] = useState(null);
   var [webUrl, setWebUrl] = useState(null);
   var [webKey, setWebKey] = useState(0);
   var [showBell, setShowBell] = useState(false);
   var webViewRef = useRef(null);
-  var downloadRef = useRef(null);
 
   // Restaurar sesión al iniciar
   useEffect(function () {
@@ -69,77 +55,9 @@ export default function App() {
     checkForUpdate();
   }, []);
 
-  // Registrar push notifications cuando el usuario se loguea
-  useEffect(function () {
-    if (!user || !user.id) return;
-
-    // Listener para cuando el usuario toca una notificación (app en background/cerrada)
-    var responseSub = Notifications.addNotificationResponseReceivedListener(function (response) {
-      try {
-        var data = response.notification.request.content.data;
-        var url = data && data.url ? data.url : '/home';
-        setWebUrl(BASE_URL + url);
-        setWebKey(function (k) { return k + 1; });
-      } catch (e) {}
-    });
-
-    (async function () {
-      try {
-        // Push solo funciona en dispositivos físicos
-        if (!Device.isDevice) {
-          console.log('[PUSH] No es dispositivo físico, saltando registro');
-          return;
-        }
-        // En Android el canal DEBE crearse ANTES de pedir permisos
-        if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('default', {
-            name: 'AFK Smash',
-            importance: Notifications.AndroidImportance.MAX,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF8C00',
-            sound: 'default',
-          });
-        }
-        // Pedir permiso
-        var settings = await Notifications.getPermissionsAsync();
-        console.log('[PUSH] Permisos actuales:', settings.status);
-        if (settings.status !== 'granted') {
-          settings = await Notifications.requestPermissionsAsync();
-          console.log('[PUSH] Permisos solicitados:', settings.status);
-        }
-        if (settings.status !== 'granted') {
-          console.log('[PUSH] Permisos denegados');
-          return;
-        }
-        // Obtener Expo push token
-        console.log('[PUSH] Obteniendo token...');
-        var tokenData = await Notifications.getExpoPushTokenAsync({
-          projectId: '1cc82cc6-5c6c-437d-aa76-3a3d79eda94e',
-        });
-        var expoPushToken = tokenData.data;
-        console.log('[PUSH] Token obtenido:', expoPushToken);
-        if (!expoPushToken) {
-          console.log('[PUSH] Token vacío');
-          return;
-        }
-        // Guardar token localmente para debug
-        await AsyncStorage.setItem('expo_push_token', expoPushToken);
-        // Registrar token en el servidor
-        var regRes = await fetch(BASE_URL + '/api/notifications/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: String(user.id), type: 'expo', token: expoPushToken }),
-        });
-        var regData = await regRes.json();
-        console.log('[PUSH] Registro:', JSON.stringify(regData));
-      } catch (e) {
-        console.log('[PUSH] Error completo:', e);
-        console.log('[PUSH] Error mensaje:', e.message);
-      }
-    })();
-
-    return function () { responseSub.remove(); };
-  }, [user?.id]);
+  // Registrar Service Worker en WebView (para web push via navegador)
+  // No se necesita librería nativa: el ChomeWebView de Android soporta service workers
+  // y web push nativo. Las notificaciones se manejan directo desde la web.
 
   // Botón atrás Android
   useEffect(function () {
@@ -230,38 +148,10 @@ export default function App() {
 
   function downloadAndInstall() {
     if (!updateInfo || !updateInfo.downloadUrl) return;
-    setDownloadProgress(0);
-    setDownloadError(null);
-    var localUri = FileSystem.cacheDirectory + 'afk-smash-update.apk';
-    var dl = FileSystem.createDownloadResumable(
-      updateInfo.downloadUrl,
-      localUri,
-      {},
-      function (progress) {
-        var pct = progress.totalBytesExpectedToWrite > 0
-          ? progress.totalBytesWritten / progress.totalBytesExpectedToWrite : 0;
-        setDownloadProgress(pct);
-      }
-    );
-    downloadRef.current = dl;
-    dl.downloadAsync()
-      .then(function (result) {
-        setDownloadProgress(null);
-        downloadRef.current = null;
-        return FileSystem.getContentUriAsync(result.uri);
-      })
-      .then(function (contentUri) {
-        return IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-          data: contentUri,
-          flags: 1,
-          type: 'application/vnd.android.package-archive',
-        });
-      })
-      .catch(function () {
-        setDownloadProgress(null);
-        downloadRef.current = null;
-        setDownloadError('No se pudo descargar. Intentá de nuevo.');
-      });
+    // Abrir en el navegador para que el SO maneje la descarga e instalación del APK
+    Linking.openURL(updateInfo.downloadUrl).catch(function () {
+      Alert.alert('Error', 'No se pudo abrir el link de descarga.');
+    });
   }
 
   // ── Carga inicial ──────────────────────────────────────────
@@ -269,7 +159,7 @@ export default function App() {
     return (
       <View style={[styles.full, styles.center]}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        <Text style={styles.loadingTitle}>AFK Smash</Text>
+        <Text style={styles.loadingTitle}>Sin H</Text>
         <ActivityIndicator color="#E88E00" size="large" style={{ marginTop: 24 }} />
       </View>
     );
@@ -305,7 +195,7 @@ export default function App() {
       <View style={[styles.full, styles.center]}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.loginScreen}>
-          <Text style={styles.title}>AFK Smash</Text>
+          <Text style={styles.title}>Sin H</Text>
           <Text style={styles.sub}>BIENVENIDO</Text>
           {authLoading ? (
             <View style={styles.loadingBox}>
@@ -449,21 +339,9 @@ export default function App() {
                   <View style={styles.updateBanner}>
                     <Text style={styles.updateBannerText}>🆕 Nueva versión: v{updateInfo.latestVersion}</Text>
                   </View>
-                  {downloadProgress !== null ? (
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: Math.round(downloadProgress * 100) + '%' }]} />
-                      </View>
-                      <Text style={styles.progressText}>Descargando... {Math.round(downloadProgress * 100)}%</Text>
-                    </View>
-                  ) : (
-                    <>
-                      {downloadError ? <Text style={styles.downloadError}>{downloadError}</Text> : null}
-                      <TouchableOpacity style={styles.settingsUpdateBtn} onPress={downloadAndInstall}>
-                        <Text style={styles.settingsUpdateBtnText}>⬇ Actualizar ahora</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
+                  <TouchableOpacity style={styles.settingsUpdateBtn} onPress={downloadAndInstall}>
+                    <Text style={styles.settingsUpdateBtnText}>⬇ Descargar actualización</Text>
+                  </TouchableOpacity>
                 </>
               ) : (
                 <View style={styles.settingsRow}>

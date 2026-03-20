@@ -72,6 +72,10 @@ export default function TestAdminPage() {
   // Iniciar torneo
   const [startState, setStartState] = useState(null); // null | 'loading' | 'ok' | 'error'
 
+  // Match call timers: { [setupId]: { secondsLeft, intervalId } }
+  const [matchTimers, setMatchTimers] = useState({});
+  const matchTimersRef = useRef({});
+
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored?.access_token) { router.replace('/login'); return; }
@@ -237,13 +241,21 @@ export default function TestAdminPage() {
       .then(d => { if (d.entrants) setEntrants(d.entrants); });
   }
 
-  function onDragStart(set, e) { setDraggedSet(set); e.dataTransfer.effectAllowed = 'move'; }
+  const tournamentStarted = tournament?.state === 2;
+
+  function onDragStart(set, e) {
+    if (!tournamentStarted) { e.preventDefault(); return; }
+    setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
+  }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
-  function onDragOver(e, setupId) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverSetup(setupId); }
+  function onDragOver(e, setupId) {
+    if (!tournamentStarted) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverSetup(setupId);
+  }
   function onDragLeave(e) { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverSetup(null); }
   function onDrop(e, setupId) {
     e.preventDefault();
-    if (!draggedSet) return;
+    if (!draggedSet || !tournamentStarted) return;
     setAssignedSets(prev => {
       const next = { ...prev };
       for (const k of Object.keys(next)) { if (next[k]?.id === draggedSet.id) delete next[k]; }
@@ -253,7 +265,74 @@ export default function TestAdminPage() {
     setDraggedSet(null); setDragOverSetup(null);
   }
   function removeAssignment(setupId) {
+    stopMatchTimer(setupId);
     setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+  }
+
+  function stopMatchTimer(setupId) {
+    const t = matchTimersRef.current[setupId];
+    if (t?.intervalId) clearInterval(t.intervalId);
+    delete matchTimersRef.current[setupId];
+    setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+  }
+
+  async function callMatch(setupId) {
+    const set = assignedSets[setupId];
+    if (!set) return;
+    const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
+
+    // Generar sessionId único para el ban
+    const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
+    const banUrl = `/tablet/${sessionId}`;
+
+    // Pre-crear la sesión de baneos con los jugadores
+    try {
+      await fetch(`/api/session/${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player1: players[0] || 'Jugador 1',
+          player2: players[1] || 'Jugador 2',
+          format: 'Bo3',
+        }),
+      });
+    } catch {}
+
+    // Guardar sessionId en el state para mostrarlo en la card
+    setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl } }));
+
+    // Notificar a los jugadores con URL al sistema de ban
+    try {
+      await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({
+          title: `📢 Match llamado — ${setupId.replace('test-', '').replace('stream', 'Stream')}`,
+          body: `${players.join(' vs ')} — ¡Tienen 5 min para hacer check-in!`,
+          targetUserNames: players,
+          data: { url: banUrl },
+        }),
+      });
+    } catch {}
+    // Iniciar countdown 5min
+    const SECONDS = 5 * 60;
+    matchTimersRef.current[setupId] = { secondsLeft: SECONDS };
+    setMatchTimers(prev => ({ ...prev, [setupId]: SECONDS }));
+    const iv = setInterval(() => {
+      const cur = matchTimersRef.current[setupId];
+      if (!cur) { clearInterval(iv); return; }
+      const next = cur.secondsLeft - 1;
+      matchTimersRef.current[setupId] = { secondsLeft: next, intervalId: iv };
+      setMatchTimers(prev => ({ ...prev, [setupId]: next }));
+      if (next <= 0) {
+        clearInterval(iv);
+        delete matchTimersRef.current[setupId];
+        setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+        // Liberar setup automáticamente
+        setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+      }
+    }, 1000);
+    matchTimersRef.current[setupId].intervalId = iv;
   }
 
   const assignedSetIds = new Set(Object.values(assignedSets).filter(Boolean).map(s => s.id));
@@ -436,7 +515,12 @@ export default function TestAdminPage() {
 
         {/* ── SETUPS GRID ── */}
         <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 20px 12px' }}>
-          <p style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 12 }}>Setups · arrastrá un match del bracket</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <p style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>Setups · arrastrá un match del bracket</p>
+            {!tournamentStarted && bracketSets.length > 0 && (
+              <span style={{ fontSize: 9, fontWeight: 800, color: '#F59E0B', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 99, padding: '2px 8px' }}>⚠ Iniciá el torneo para poder arrastrar matches</span>
+            )}
+          </div>
           <div className="setups-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {TEST_SETUPS.map(setup => {
               const assigned = assignedSets[setup.id];
@@ -469,6 +553,27 @@ export default function TestAdminPage() {
                             <span style={{ fontSize: 13, fontWeight: 700, color: slot?.entrant ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot?.entrant?.name || 'TBD'}</span>
                           </div>
                         ))}
+                        {/* Botón Iniciar match / countdown / ban link */}
+                        {matchTimers[setup.id] != null ? (
+                          <div style={{ marginTop: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 8, padding: '7px 10px', marginBottom: 6 }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00', flex: 1 }}>⏳ Check-in: {Math.floor(matchTimers[setup.id] / 60)}:{String(matchTimers[setup.id] % 60).padStart(2, '0')}</span>
+                              <button onClick={() => stopMatchTimer(setup.id)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 6, padding: '3px 8px', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>Cancelar</button>
+                            </div>
+                            {assigned?.banUrl && (
+                              <a href={assigned.banUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: setup.color, background: setup.color + '15', border: `1px solid ${setup.color}35`, borderRadius: 7, padding: '5px 8px', textDecoration: 'none' }}>
+                                🎯 Abrir sistema de ban →
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => callMatch(setup.id)}
+                            style={{ marginTop: 10, width: '100%', background: `linear-gradient(135deg,${setup.color},${setup.color}AA)`, border: 'none', color: '#fff', borderRadius: 8, padding: '8px 0', fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", letterSpacing: '0.04em', boxShadow: `0 2px 10px ${setup.color}44` }}
+                          >
+                            🎮 Iniciar match
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -526,7 +631,7 @@ export default function TestAdminPage() {
         </div>
 
         {/* ── BRACKET POR RONDAS ── */}
-        <div style={{ padding: '0 20px 48px' }}>
+        <div style={{ padding: '0 20px 48px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h2 style={{ fontWeight: 900, fontSize: 18, color: '#fff', marginBottom: 3 }}>🎯 Bracket{phaseName ? ` — ${phaseName}` : ''}</h2>
@@ -540,26 +645,28 @@ export default function TestAdminPage() {
             <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
           </div>
 
-          {bracketLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '40px 0' }}>
-              <div style={{ width: 22, height: 22, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
-              Cargando bracket desde start.gg...
-            </div>
-          ) : bracketSets.length === 0 ? (
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '44px 24px', textAlign: 'center' }}>
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No se encontraron sets en este bracket.</p>
-            </div>
-          ) : (
-            <TournamentBracket
-              bracketSets={bracketSets}
-              assignedSets={assignedSets}
-              draggedSet={draggedSet}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              TEST_SETUPS={TEST_SETUPS}
-              SET_STATE_STYLE={SET_STATE_STYLE}
-            />
-          )}
+          <div style={{ height: 520, overflowY: 'auto', overflowX: 'hidden', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
+            {bracketLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '40px 0' }}>
+                <div style={{ width: 22, height: 22, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                Cargando bracket desde start.gg...
+              </div>
+            ) : bracketSets.length === 0 ? (
+              <div style={{ padding: '44px 24px', textAlign: 'center' }}>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No se encontraron sets en este bracket.</p>
+              </div>
+            ) : (
+              <TournamentBracket
+                bracketSets={bracketSets}
+                assignedSets={assignedSets}
+                draggedSet={draggedSet}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                TEST_SETUPS={TEST_SETUPS}
+                SET_STATE_STYLE={SET_STATE_STYLE}
+              />
+            )}
+          </div>
         </div>
 
         {/* ── MODAL SELECTOR DE TORNEO ── */}

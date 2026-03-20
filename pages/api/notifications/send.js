@@ -1,9 +1,25 @@
 // API para enviar y gestionar notificaciones de llamado a setup
 import redis, { notifsKey } from '../../../lib/redis';
+import { sendPush } from '../../../lib/push';
 
 // Sanitiza strings para prevenir XSS/inyección
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`]/g, '').trim().slice(0, 200);
+}
+
+/** Guarda una notif en el inbox Redis + envía web push si hay suscripción registrada */
+async function storeAndPush(playerName, notif, pushPayload) {
+  const key = notifsKey(sanitize(playerName).toLowerCase());
+  const existing = (await redis.get(key)) || [];
+  existing.push(notif);
+  const sliced = existing.length > 100 ? existing.slice(-100) : existing;
+  await redis.set(key, sliced);
+
+  // Intentar enviar web push (no bloquea si falla)
+  try {
+    const uid = await redis.hget('push:name_to_uid', sanitize(playerName).toLowerCase());
+    if (uid) await sendPush(uid, pushPayload);
+  } catch { /* no interrumpir */ }
 }
 
 export default async function handler(req, res) {
@@ -16,10 +32,36 @@ export default async function handler(req, res) {
     return;
   }
 
-  // POST: Admin envía llamado a un jugador
+  // POST: Admin envía llamado a uno o varios jugadores
   if (req.method === 'POST') {
-    const { targetName, setup, message, sentBy, tournamentId } = req.body || {};
+    const { targetName, targetUserNames, title, body, setup, message, sentBy, tournamentId, data } = req.body || {};
 
+    // --- Modo nuevo: array de nombres (desde callMatch) ---
+    if (Array.isArray(targetUserNames) && targetUserNames.length > 0) {
+      const cleanTitle   = sanitize(title || '📢 AFK Smash');
+      const cleanBody    = sanitize(body || '');
+      const pushPayload  = { title: cleanTitle, body: cleanBody, data: data || {} };
+
+      await Promise.allSettled(targetUserNames.map(name => {
+        const notif = {
+          id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          type: 'call_to_play',
+          targetName: sanitize(name),
+          setup: setup ? sanitize(setup) : '',
+          message: cleanBody || cleanTitle,
+          sentBy: sentBy ? sanitize(sentBy) : 'Admin',
+          tournamentId: tournamentId ? sanitize(tournamentId) : null,
+          sentAt: new Date().toISOString(),
+          readAt: null,
+          url: data?.url || null,
+        };
+        return storeAndPush(name, notif, pushPayload);
+      }));
+
+      return res.status(201).json({ success: true, notified: targetUserNames.length });
+    }
+
+    // --- Modo legado: targetName individual ---
     if (!targetName || !setup) {
       return res.status(400).json({ error: 'targetName y setup son requeridos' });
     }
@@ -36,12 +78,8 @@ export default async function handler(req, res) {
       readAt: null,
     };
 
-    const key = notifsKey(notif.targetName);
-    const existing = (await redis.get(key)) || [];
-    existing.push(notif);
-    // Máximo 100 notificaciones por usuario
-    const sliced = existing.length > 100 ? existing.slice(-100) : existing;
-    await redis.set(key, sliced);
+    const pushPayload = { title: notif.message, body: notif.message, data: {} };
+    await storeAndPush(targetName, notif, pushPayload);
 
     return res.status(201).json({ success: true, notification: notif });
   }

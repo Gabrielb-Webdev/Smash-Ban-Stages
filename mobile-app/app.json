@@ -1,49 +1,5 @@
 {
-  "expo": {
-    "name": "AFK Smash",
-    "slug": "afk-smash-mobile",
-    "version": "1.4.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
-    "backgroundColor": "#0a0a0a",
-    "icon": "./assets/afk-favicon.png",
-    "assetBundlePatterns": ["**/*"],
-    "android": {
-      "package": "com.afksmash.mobile",
-      "versionCode": 15,
-      "permissions": ["INTERNET", "REQUEST_INSTALL_PACKAGES", "RECEIVE_BOOT_COMPLETED", "VIBRATE", "POST_NOTIFICATIONS"],
-      "googleServicesFile": "./google-services.json",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/afk-favicon.png",
-        "monochromeImage": "./assets/afk-favicon.png",
-        "backgroundColor": "#000000"
-      }
-    },
-    "owner": "gabriel_sin_h",
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/afk-favicon.png",
-          "color": "#FF8C00",
-          "defaultChannel": "default"
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "1.9.25",
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "minSdkVersion": 24
-          }
-        }
-      ]
-    ],
-    "extra": {
-      "eas": { "projectId": "1cc82cc6-5c6c-437d-aa76-3a3d79eda94e" }
-    }
-  }
+  "name": "SinH",
+  "displayName": "Sin H"
 }
+
