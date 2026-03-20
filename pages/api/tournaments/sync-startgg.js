@@ -47,7 +47,7 @@ query TournamentBySlug($slug: String!) {
 }
 `;
 
-// Query para obtener torneos de un usuario (con owner para filtrar los que creó)
+// Query para obtener torneos futuros de un usuario
 const TOURNAMENTS_BY_OWNER_QUERY = `
 query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
@@ -55,7 +55,7 @@ query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
     tournaments(query: {
       page: $page,
       perPage: $perPage,
-      filter: { past: false }
+      filter: { upcoming: true }
     }) {
       nodes {
         id
@@ -68,7 +68,6 @@ query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
         isRegistrationOpen
         url(relative: false)
         images { url type }
-        owner { id slug }
         events {
           id
           name
@@ -177,12 +176,12 @@ async function fetchStartggTournaments(token) {
     discoveredOwners.add(s);
   }
 
-  // 2. Fetch upcoming tournaments CREATED BY each discovered owner
+  // 2. Fetch upcoming tournaments from each discovered owner
+  // No filtramos por owner.id porque Start.gg usa IDs internos diferentes
+  // entre tournament.owner y user.id. Usando filter: { upcoming: true }
+  // solo devuelve torneos futuros y el dueño suele ser organizador de todos.
   for (const ownerSlug of discoveredOwners) {
     try {
-      // Normalizar slug para comparación (quitar prefijo "user/" si existe)
-      const normalizedOwner = ownerSlug.replace(/^user\//, '');
-
       const resp = await fetch(STARTGG_API, {
         method: 'POST',
         headers,
@@ -194,31 +193,9 @@ async function fetchStartggTournaments(token) {
       const data = await resp.json();
       const allNodes = data.data?.user?.tournaments?.nodes || [];
 
-      // Filtrar solo torneos creados por este owner (comparar normalizado)
-      const owned = allNodes.filter(n => {
-        if (!n.owner) return false;
-        const tOwner = (n.owner.slug || '').replace(/^user\//, '');
-        const tOwnerId = String(n.owner.id || '');
-        return tOwner === normalizedOwner || tOwnerId === normalizedOwner;
-      });
-
-      // Debug: mostrar sample de owners para diagnosticar
-      const sampleOwners = allNodes.slice(0, 3).map(n => ({
-        name: n.name,
-        ownerSlug: n.owner?.slug,
-        ownerId: n.owner?.id,
-      }));
-
-      const added = owned.filter(n => !seen.has(String(n.id)));
-      owned.forEach(addTournament);
-      debug.push({
-        owner: ownerSlug,
-        normalized: normalizedOwner,
-        total: allNodes.length,
-        owned: owned.length,
-        newAdded: added.length,
-        sampleOwners,
-      });
+      const added = allNodes.filter(n => !seen.has(String(n.id)));
+      allNodes.forEach(addTournament);
+      debug.push({ owner: ownerSlug, total: allNodes.length, newAdded: added.length });
     } catch (e) {
       debug.push({ owner: ownerSlug, status: 'error', message: e.message });
     }
