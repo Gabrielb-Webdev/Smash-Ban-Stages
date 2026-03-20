@@ -74,6 +74,7 @@ export default function TestAdminPage() {
 
   // Iniciar torneo
   const [startState, setStartState] = useState(null); // null | 'loading' | 'ok' | 'error'
+  const [phaseStarted, setPhaseStarted] = useState(false);
 
   // Match call timers: { [setupId]: { secondsLeft, intervalId } }
   const [matchTimers, setMatchTimers] = useState({});
@@ -162,37 +163,11 @@ export default function TestAdminPage() {
     }
   }
 
-  async function startPhase() {
+  function startPhase() {
     if (!selectedPhaseGroupId) return;
-    setStartState('loading');
-    try {
-      const r = await fetch('/api/tournaments/start-phase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer afk-admin-2025',
-        },
-        body: JSON.stringify({ phaseGroupId: selectedPhaseGroupId }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Error al iniciar fase');
-      setStartState('ok');
-      // Recargar bracket para reflejar el nuevo estado
-      setTimeout(() => {
-        setBracketLoading(true);
-        fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
-          .then(res => res.json())
-          .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
-          .finally(() => setBracketLoading(false));
-      }, 1200);
-    } catch (err) {
-      console.error('[startPhase]', err.message);
-      setStartState('error');
-      // Mostrar el mensaje en consola para saber qué dijo start.gg
-      alert('Error al iniciar: ' + err.message);
-    } finally {
-      setTimeout(() => setStartState(null), 5000);
-    }
+    setPhaseStarted(true);
+    setStartState('ok');
+    setTimeout(() => setStartState(null), 5000);
   }
 
   function openTourPicker() {
@@ -247,7 +222,7 @@ export default function TestAdminPage() {
       .then(d => { if (d.entrants) setEntrants(d.entrants); });
   }
 
-  const tournamentStarted = tournament?.state === 2;
+  const tournamentStarted = tournament?.state === 2 || phaseStarted;
 
   function onDragStart(set, e) {
     if (!tournamentStarted) { e.preventDefault(); return; }
