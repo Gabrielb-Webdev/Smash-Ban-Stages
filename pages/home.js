@@ -983,9 +983,9 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    fetch('/api/tournaments')
+    fetch('/api/tournaments/sync-startgg')
       .then(r => r.json())
-      .then(d => { setTorneos(Array.isArray(d) ? d : []); setLoadingData(false); })
+      .then(d => { setTorneos(Array.isArray(d.tournaments) ? d.tournaments : []); setLoadingData(false); })
       .catch(() => setLoadingData(false));
   }, []);
 
@@ -1055,7 +1055,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
               </p>
               <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
                 {featuredTorneo
-                  ? (featuredTorneo.date || featuredTorneo.startAt || 'Fecha por confirmar')
+                  ? (featuredTorneo.startAt ? new Date(featuredTorneo.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Fecha por confirmar')
                   : 'Ranked · Buenos Aires · Smash Ultimate'}
               </p>
               <button onClick={() => setTab(featuredTorneo ? 'torneos' : 'match')} style={{
@@ -2909,16 +2909,10 @@ function TabRankings({ user, setTab }) {
    TAB — TORNEOS
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function TabTorneos() {
-  const [loading, setLoading] = useState(true);
-  const [torneos, setTorneos] = useState([]);
   const [startggTorneos, setStartggTorneos] = useState([]);
   const [startggLoading, setStartggLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/tournaments')
-      .then(r => r.json())
-      .then(d => { setTorneos(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => setLoading(false));
     fetch('/api/tournaments/sync-startgg')
       .then(r => r.json())
       .then(d => { setStartggTorneos(Array.isArray(d.tournaments) ? d.tournaments : []); setStartggLoading(false); })
@@ -2936,9 +2930,8 @@ function TabTorneos() {
       <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Torneos</h1>
       <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Publicados en Start.GG</p>
 
-      {/* Torneos de Start.gg del organizador */}
       {startggLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1,2].map(i => (
             <div key={i} style={{ background: '#10101A', borderRadius: 18, padding: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
               <div className="shimmer" style={{ height: 14, width: '70%', borderRadius: 7, marginBottom: 10 }} />
@@ -2947,7 +2940,7 @@ function TabTorneos() {
           ))}
         </div>
       ) : startggTorneos.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {startggTorneos.map(t => (
             <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{
@@ -2983,42 +2976,13 @@ function TabTorneos() {
             </a>
           ))}
         </div>
-      ) : null}
-
-      {/* Torneos internos */}
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[1,2,3].map(i => (
-            <div key={i} style={{ background: '#10101A', borderRadius: 18, padding: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="shimmer" style={{ height: 14, width: '70%', borderRadius: 7, marginBottom: 10 }} />
-              <div className="shimmer" style={{ height: 10, width: '40%', borderRadius: 5 }} />
-            </div>
-          ))}
-        </div>
-      ) : torneos.length === 0 && startggTorneos.length === 0 ? (
+      ) : (
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
           <span style={{ fontSize: 44 }}>📋</span>
           <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin torneos activos</p>
           <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer acá automáticamente</p>
         </div>
-      ) : torneos.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {torneos.map((t, i) => (
-            <div key={i} style={{
-              background: '#10101A', border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: 18, padding: '14px 16px',
-              display: 'flex', alignItems: 'center', gap: 14,
-            }}>
-              <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.2),rgba(232,80,0,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: '0 0 3px', fontWeight: 700, fontSize: 14, color: '#fff' }}>{t.name || t.tournamentName || 'Torneo'}</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.date || t.startAt || 'Fecha por confirmar'}</p>
-              </div>
-              <Svg size={16} sw={2}>{ICO.chevron}</Svg>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      )}
     </div>
   );
 }

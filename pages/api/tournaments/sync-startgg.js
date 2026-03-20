@@ -1,35 +1,60 @@
-// API: Sincroniza torneos de un organizador de Start.gg y notifica nuevos
-// GET  → devuelve torneos actuales del organizador
+// API: Sincroniza torneos de Start.gg y notifica nuevos
+// GET  → devuelve torneos actuales
 // POST → sincroniza, detecta nuevos y envía push notifications
 //
-// Se puede llamar manualmente (admin) o desde un cron externo.
+// Busca torneos por slug directo, por organizador, y por búsqueda.
 
 import redis from '../../../lib/redis';
 import { sendPushToAll } from '../../../lib/push';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
-// Slug del organizador a monitorear (dueño de Choricup)
-// Se configura vía env o se usa el valor por defecto
-const ORGANIZER_SLUG = process.env.STARTGG_ORGANIZER_SLUG || 'choricup';
+// Slugs de torneos específicos a mostrar (comma-separated)
+const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+// Slug del organizador (usuario de Start.gg) — opcional
+const ORGANIZER_SLUG = process.env.STARTGG_ORGANIZER_SLUG || '';
 
 // Keys en Redis
-const SEEN_KEY      = 'startgg:tournaments:seen';   // Set de IDs ya vistos
-const CACHE_KEY     = 'startgg:tournaments:cache';   // Lista cacheada de torneos
-const CACHE_TTL     = 1800;                           // 30 min cache
+const SEEN_KEY      = 'startgg:tournaments:seen';
+const CACHE_KEY     = 'startgg:tournaments:cache';
+const CACHE_TTL     = 1800; // 30 min
+
+// Query para obtener un torneo específico por slug
+const TOURNAMENT_BY_SLUG_QUERY = `
+query TournamentBySlug($slug: String!) {
+  tournament(slug: $slug) {
+    id
+    name
+    slug
+    startAt
+    endAt
+    numAttendees
+    state
+    isRegistrationOpen
+    url(relative: false)
+    images { url type }
+    events {
+      id
+      name
+      numEntrants
+      videogame { id name }
+    }
+  }
+}
+`;
 
 // Query para obtener torneos de un usuario/organizador
 const TOURNAMENTS_BY_OWNER_QUERY = `
 query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
     id
-    slug
     tournaments(query: {
       page: $page,
       perPage: $perPage,
       filter: { past: false }
     }) {
-      pageInfo { total totalPages }
       nodes {
         id
         name
@@ -40,18 +65,12 @@ query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
         state
         isRegistrationOpen
         url(relative: false)
-        images {
-          url
-          type
-        }
+        images { url type }
         events {
           id
           name
           numEntrants
-          videogame {
-            id
-            name
-          }
+          videogame { id name }
         }
       }
     }
@@ -59,98 +78,8 @@ query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
 }
 `;
 
-// Query alternativa: buscar torneos por nombre del organizador
-const TOURNAMENTS_SEARCH_QUERY = `
-query SearchTournaments($name: String!, $page: Int!, $perPage: Int!) {
-  tournaments(query: {
-    page: $page,
-    perPage: $perPage,
-    filter: { 
-      name: $name,
-      past: false
-    }
-  }) {
-    pageInfo { total totalPages }
-    nodes {
-      id
-      name
-      slug
-      startAt
-      endAt
-      numAttendees
-      state
-      isRegistrationOpen
-      url(relative: false)
-      images {
-        url
-        type
-      }
-      owner {
-        id
-        slug
-      }
-      events {
-        id
-        name
-        numEntrants
-        videogame {
-          id
-          name
-        }
-      }
-    }
-  }
-}
-`;
-
-async function fetchStartggTournaments(token) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-  };
-
-  let tournaments = [];
-
-  // Intentar primero por slug de usuario/organizador
-  try {
-    const resp = await fetch(STARTGG_API, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        query: TOURNAMENTS_BY_OWNER_QUERY,
-        variables: { slug: ORGANIZER_SLUG, page: 1, perPage: 25 },
-      }),
-    });
-    const data = await resp.json();
-    if (data.data?.user?.tournaments?.nodes) {
-      tournaments = data.data.user.tournaments.nodes;
-    }
-  } catch { /* silent */ }
-
-  // Si no encontró por usuario, buscar por nombre de torneo
-  if (tournaments.length === 0) {
-    try {
-      const resp = await fetch(STARTGG_API, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          query: TOURNAMENTS_SEARCH_QUERY,
-          variables: { name: ORGANIZER_SLUG, page: 1, perPage: 25 },
-        }),
-      });
-      const data = await resp.json();
-      const nodes = data.data?.tournaments?.nodes || [];
-      // Filtrar solo los del organizador correcto (por slug en owner o name match)
-      tournaments = nodes.filter(t => {
-        const ownerMatch = t.owner?.slug?.toLowerCase() === ORGANIZER_SLUG.toLowerCase();
-        const nameMatch = t.name?.toLowerCase().includes(ORGANIZER_SLUG.toLowerCase());
-        return ownerMatch || nameMatch;
-      });
-    } catch { /* silent */ }
-  }
-
-  // Formatear datos
-  return tournaments.map(t => ({
+function formatTournament(t) {
+  return {
     id: String(t.id),
     name: t.name,
     slug: t.slug,
@@ -167,7 +96,62 @@ async function fetchStartggTournaments(token) {
       entrants: e.numEntrants || 0,
       game: e.videogame?.name || 'Unknown',
     })),
-  }));
+  };
+}
+
+async function fetchStartggTournaments(token) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const seen = new Set();
+  const results = [];
+
+  const addTournament = (t) => {
+    const id = String(t.id);
+    if (!seen.has(id)) {
+      seen.add(id);
+      results.push(t);
+    }
+  };
+
+  // 1. Fetch each specific tournament by slug
+  for (const slug of TOURNAMENT_SLUGS) {
+    try {
+      const resp = await fetch(STARTGG_API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          query: TOURNAMENT_BY_SLUG_QUERY,
+          variables: { slug },
+        }),
+      });
+      const data = await resp.json();
+      if (data.data?.tournament) {
+        addTournament(data.data.tournament);
+      }
+    } catch { /* skip */ }
+  }
+
+  // 2. If organizer slug is set, also fetch their tournaments
+  if (ORGANIZER_SLUG) {
+    try {
+      const resp = await fetch(STARTGG_API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          query: TOURNAMENTS_BY_OWNER_QUERY,
+          variables: { slug: ORGANIZER_SLUG, page: 1, perPage: 25 },
+        }),
+      });
+      const data = await resp.json();
+      const nodes = data.data?.user?.tournaments?.nodes || [];
+      nodes.forEach(addTournament);
+    } catch { /* skip */ }
+  }
+
+  return results.map(formatTournament);
 }
 
 export default async function handler(req, res) {
