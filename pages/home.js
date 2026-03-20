@@ -2614,15 +2614,16 @@ function TabRankings({ user, setTab }) {
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
 
       {/* Pill switcher */}
-      <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 22 }}>
+      <div className="pill-switcher" style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 22, flexWrap: 'wrap' }}>
         {MODES.map(m => (
           <button key={m.id} onClick={() => setMode(m.id)}
             style={{
-              flex: 1, padding: '9px 2px', borderRadius: 10, fontWeight: 700, fontSize: 11,
+              flex: '1 1 auto', minWidth: 0, padding: '9px 6px', borderRadius: 10, fontWeight: 700, fontSize: 11,
               border: 'none', cursor: 'pointer', transition: 'all 0.15s',
               background: mode === m.id ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'transparent',
               color: mode === m.id ? '#fff' : 'rgba(255,255,255,0.3)',
               boxShadow: mode === m.id ? '0 4px 12px rgba(232,142,0,0.3)' : 'none',
+              whiteSpace: 'nowrap',
             }}>
             {m.label}
           </button>
@@ -2758,7 +2759,7 @@ function TabRankings({ user, setTab }) {
                   marginBottom: 14, boxSizing: 'border-box',
                 }}
               />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+              <div className="char-grid-5">
                 {CHARACTERS.filter(c => c.name.toLowerCase().includes(charSearch.toLowerCase())).map(c => (
                   <button key={c.id} onClick={() => setCharSel(c.id)} style={{
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
@@ -3483,7 +3484,7 @@ function TabTips() {
           <p style={{ margin: '10px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin resultados para "{query}"</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div className="tips-grid">
           {filtered.map((c) => (
             <button key={c} onClick={() => setSelected(c)} style={{
               background: '#10101A', border: '1px solid rgba(255,255,255,0.05)',
@@ -3666,7 +3667,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
       />
 
       {/* Grilla */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
+      <div className="char-grid-5" style={{ maxHeight: 220, overflowY: 'auto' }}>
         {filtered.map(c => (
           <button
             key={c.id}

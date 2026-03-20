@@ -76,3 +76,24 @@ html, body {
 .gamer-card:hover { border-color: rgba(232,142,0,.35) !important; box-shadow: 0 0 20px rgba(232,142,0,.07) !important; }
 .btn-gamer:active { transform: scale(.97); }
 .tab-content { animation: fadeUp 0.18s ease; }
+
+/* ── Responsive grids ──────────────────────────── */
+.char-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 6px;
+}
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+@media (min-width: 380px) {
+  .char-grid-5 { grid-template-columns: repeat(5, 1fr); }
+}
+@media (max-width: 340px) {
+  .char-grid-5 { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .tips-grid   { grid-template-columns: 1fr; }
+  .pill-switcher { gap: 2px !important; }
+  .pill-switcher button { font-size: 10px !important; padding: 8px 4px !important; }
+}
