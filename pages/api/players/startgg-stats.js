@@ -462,14 +462,17 @@ export default async function handler(req, res) {
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 
   const cacheKey = `startgg:stats:v16:${slug}`;
+  const forceRefresh = req.query.refresh === 'true';
 
-  // Intentar devolver datos cacheados
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return res.status(200).json(typeof cached === 'string' ? JSON.parse(cached) : cached);
-    }
-  } catch (e) { /* continuar sin cache */ }
+  // Intentar devolver datos cacheados (skip si refresh=true)
+  if (!forceRefresh) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return res.status(200).json(typeof cached === 'string' ? JSON.parse(cached) : cached);
+      }
+    } catch (e) { /* continuar sin cache */ }
+  }
 
   // Fetch a Start.GG — solo 1 página para respetar el timeout de Vercel
   try {

@@ -34,6 +34,7 @@ const ICO = {
   back:      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />,
   settings:  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />,
   user:      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />,
+  users:     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />,
 };
 
 /* â”€â”€â”€ ROOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -452,7 +453,7 @@ export default function HomePage() {
               {/* Panel de Admin */}
               {isAdmin && (
               <div style={{ padding: '8px 10px 4px' }}>
-                <button onClick={() => { setShowMenu(false); router.push('/admin/afk-multi'); }}
+                <button onClick={() => { setShowMenu(false); router.push('/admin/setup'); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -469,7 +470,7 @@ export default function HomePage() {
 
               {/* Amigos */}
               <div style={{ padding: '4px 10px 0' }}>
-                <button onClick={() => { setShowMenu(false); setTab('perfil'); setTimeout(() => window.dispatchEvent(new CustomEvent('open-friends')), 100); }}
+                <button onClick={() => { setShowMenu(false); setTab('amigos'); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -594,6 +595,7 @@ export default function HomePage() {
           {tab === 'torneos'  && <TabTorneos  />}
           {tab === 'tips'     && <TabTips     />}
           {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} />}
+          {tab === 'amigos'   && <TabAmigos user={user} />}
           {tab === 'perfil'   && <TabPerfil user={user} />}
         </main>
 
@@ -695,8 +697,9 @@ function BottomNav({ tab, setTab, bgMMStatus }) {
     { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar },
   ];
   const rightItems = [
-    { id: 'tips',   label: 'Tips',   icon: ICO.bulb },
-    { id: 'perfil', label: 'Perfil', icon: ICO.user },
+    { id: 'tips',    label: 'Tips',    icon: ICO.bulb  },
+    { id: 'amigos',  label: 'Amigos',  icon: ICO.users },
+    { id: 'perfil',  label: 'Perfil',  icon: ICO.user  },
   ];
   const matchActive = tab === 'match';
 
@@ -1144,6 +1147,449 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 }
 
 
+/* --- TAB AMIGOS ------------------------------------------------ */
+function TabAmigos({ user }) {
+  const [friendTab, setFriendTab]       = useState('list');
+  const [friends, setFriends]           = useState([]);
+  const [friendSearch, setFriendSearch] = useState('');
+  const [friendResults, setFriendResults] = useState([]);
+  const [friendSearching, setFriendSearching] = useState(false);
+  const [friendAdding, setFriendAdding] = useState(null);
+  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, offline: false });
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [chatOpen, setChatOpen]         = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput]       = useState('');
+  const [chatSending, setChatSending]   = useState(false);
+  const [sentRequests, setSentRequests] = useState([]);
+  const [partyState, setPartyState]     = useState(null);
+  const [viewProfile, setViewProfile]   = useState(null);
+  const [profileData, setProfileData]   = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [history, setHistory]           = useState([]);
+  const chatEndRef = useRef(null);
+
+  const uid   = user ? String(user?.id || user?.slug || '') : '';
+  const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
+
+  // Fetch friends, requests, sent, party, history
+  useEffect(() => {
+    if (!uid) return;
+    const uidEnc = encodeURIComponent(uid);
+    fetch('/api/friends?userId=' + uidEnc).then(r => r.ok ? r.json() : []).then(d => setFriends(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch('/api/friends?userId=' + uidEnc + '&type=requests').then(r => r.ok ? r.json() : []).then(d => setFriendRequests(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch('/api/friends?userId=' + uidEnc + '&type=sent').then(r => r.ok ? r.json() : []).then(d => setSentRequests(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch('/api/party?userId=' + uidEnc).then(r => r.ok ? r.json() : null).then(d => { if (d && d.status !== 'none') setPartyState(d); }).catch(() => {});
+    fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []).then(h => setHistory(Array.isArray(h) ? h : []));
+  }, [uid]);
+
+  // Polling friends/requests/sent (12s)
+  useEffect(() => {
+    if (!uid) return;
+    const uidEnc = encodeURIComponent(uid);
+    const poll = setInterval(() => {
+      fetch('/api/friends?userId=' + uidEnc).then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setFriends(d); }).catch(() => {});
+      fetch('/api/friends?userId=' + uidEnc + '&type=requests').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setFriendRequests(d); }).catch(() => {});
+      fetch('/api/friends?userId=' + uidEnc + '&type=sent').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSentRequests(d); }).catch(() => {});
+    }, 12000);
+    return () => clearInterval(poll);
+  }, [uid]);
+
+  // Chat polling
+  useEffect(() => {
+    if (!chatOpen || !uid) return;
+    const fetchMsgs = () => {
+      fetch('/api/chat?userId=' + encodeURIComponent(uid) + '&friendId=' + encodeURIComponent(chatOpen.userId))
+        .then(r => r.ok ? r.json() : { messages: [] }).then(d => setChatMessages(d.messages || [])).catch(() => {});
+    };
+    fetchMsgs();
+    const iv = setInterval(fetchMsgs, 3000);
+    return () => clearInterval(iv);
+  }, [chatOpen?.userId, uid]);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
+
+  // Search players
+  useEffect(() => {
+    if (friendSearch.length < 2) { setFriendResults([]); return; }
+    setFriendSearching(true);
+    const t = setTimeout(() => {
+      fetch('/api/players/search?q=' + encodeURIComponent(friendSearch))
+        .then(r => r.ok ? r.json() : [])
+        .then(d => { setFriendResults(Array.isArray(d) ? d.filter(p => p.userId !== uid) : []); setFriendSearching(false); })
+        .catch(() => setFriendSearching(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [friendSearch, uid]);
+
+  const addFriend = async (friendId, friendName) => {
+    setFriendAdding(friendId);
+    try {
+      const r = await fetch('/api/friends', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName }) });
+      const data = await r.json();
+      if (r.ok) {
+        if (data.autoAccepted) { setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]); setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId)); setSentRequests(prev => prev.filter(s => s.toId !== friendId)); }
+        else if (data.requestSent) { setSentRequests(prev => [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]); }
+        setFriendSearch(''); setFriendResults([]);
+      } else if (r.status === 409) { setSentRequests(prev => prev.some(s => s.toId === friendId) ? prev : [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]); }
+    } catch {}
+    setFriendAdding(null);
+  };
+  const acceptRequest = async (fromId, fromName) => { try { await fetch('/api/friends', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'accept' }) }); setFriendRequests(prev => prev.filter(r => r.fromId !== fromId)); setFriends(prev => [...prev, { userId: fromId, userName: fromName, online: 'offline' }]); } catch {} };
+  const rejectRequest = async (fromId) => { try { await fetch('/api/friends', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'reject' }) }); setFriendRequests(prev => prev.filter(r => r.fromId !== fromId)); } catch {} };
+  const removeFriend = async (friendId) => { try { await fetch('/api/friends', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, friendId }) }); setFriends(prev => prev.filter(f => f.userId !== friendId)); } catch {} };
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || chatSending || !chatOpen) return;
+    setChatSending(true); const msg = chatInput.trim(); setChatInput('');
+    try { await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, friendId: chatOpen.userId, message: msg }) }); setChatMessages(prev => [...prev, { id: 'm-' + Date.now(), from: uid, fromName: uName, text: msg, sentAt: new Date().toISOString() }]); } catch {}
+    setChatSending(false);
+  };
+  const inviteToDoubles = async (friendId, friendName, platform) => { try { const r = await fetch('/api/party', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName, platform }) }); const data = await r.json(); if (data.success) setPartyState({ status: 'pending', partyId: data.partyId, party: data.party }); } catch {} };
+  const leaveParty = async () => { try { await fetch('/api/party', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) }); setPartyState(null); } catch {} };
+  const openProfile = (playerId, playerName) => { setViewProfile({ userId: playerId, userName: playerName }); setProfileData(null); setProfileLoading(true); fetch('/api/players/profile?id=' + encodeURIComponent(playerId) + '&full=true').then(r => r.ok ? r.json() : null).then(d => { setProfileData(d); setProfileLoading(false); }).catch(() => setProfileLoading(false)); };
+
+  if (!user || !uid) return null;
+
+  const renderFriendRow = (f, statusColor, statusLabel, opacity) => (
+    <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: opacity || 1 }}>
+      <div onClick={() => openProfile(f.userId, f.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: statusColor ? `linear-gradient(135deg,${statusColor},${statusColor}88)` : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: statusColor ? '#fff' : 'rgba(255,255,255,0.3)', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
+        {(f.userName || '?').charAt(0).toUpperCase()}
+        <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: statusColor || 'rgba(255,255,255,0.15)', border: '2px solid #0D0D15' }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(f.userId, f.userName)}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: opacity ? 'rgba(255,255,255,0.5)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+          <span style={{ fontSize: 10, color: statusColor || 'rgba(255,255,255,0.2)', fontWeight: 600 }}>{statusLabel}</span>
+          {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Unranked</span>}
+        </div>
+      </div>
+      <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: 'rgba(99,102,241,0.1)', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>💬</button>
+      <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+    </div>
+  );
+
+  const renderGroup = (label, icon, color, items, groupKey) => {
+    if (items.length === 0) return null;
+    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando…' }, offline: { color: null, label: 'Desconectado' } };
+    const s = statusMap[groupKey] || statusMap.offline;
+    return (
+      <div>
+        <button onClick={() => setFriendCollapsed(p => ({ ...p, [groupKey]: !p[groupKey] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: color ? `${color}08` : 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+          <span style={{ fontSize: 12, color: color || 'rgba(255,255,255,0.25)' }}>{icon}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: color || 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>{label} ({items.length})</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed[groupKey] ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
+        </button>
+        {!friendCollapsed[groupKey] && items.map(f => renderFriendRow(f, s.color, s.label, groupKey === 'offline' ? 0.6 : null))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ paddingBottom: 32 }}>
+      {/* Header */}
+      <div style={{ padding: '20px 18px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 24 }}>👥</span>
+          <div>
+            <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>Amigos</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{friends.length} amigos</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Party estado */}
+      {partyState && partyState.status !== 'none' && (
+        <div style={{ margin: '0 18px 12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>👥</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#A78BFA' }}>Party Dobles</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+              {partyState.status === 'pending' ? 'Esperando que acepten la invitación…' : partyState.status === 'ready' ? '¡Listo! Andá a Ranked para buscar partida 2v2' : partyState.status === 'searching' ? 'Buscando rivales 2v2…' : partyState.status}
+            </p>
+          </div>
+          <button onClick={leaveParty} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>Salir</button>
+        </div>
+      )}
+
+      <div style={{ margin: '0 18px', background: '#0D0D15', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <button onClick={() => setFriendTab('list')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
+            <span style={{ fontSize: 16, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.3)' }}>☰</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.3)' }}>Lista</span>
+          </button>
+          <button onClick={() => setFriendTab('requests')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
+            <span style={{ fontSize: 16, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.3)' }}>📩</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.3)' }}>Solicitudes</span>
+            {friendRequests.length > 0 && (
+              <span style={{ position: 'absolute', top: 4, right: '15%', minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', color: '#fff', fontSize: 9, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{friendRequests.length}</span>
+            )}
+          </button>
+          <button onClick={() => setFriendTab('add')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
+            <span style={{ fontSize: 16, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.3)' }}>👤+</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.3)' }}>Agregar</span>
+          </button>
+        </div>
+
+        {friendTab === 'list' ? (
+          <div>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>🔍</span>
+                <input value={friendSearch} onChange={e => { setFriendSearch(e.target.value); setFriendTab('add'); }} placeholder="Buscar amigo…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
+              </div>
+            </div>
+            {friends.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 24 }}>👥</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin amigos aún</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Tocá 👤+ para buscar y agregar jugadores</p>
+              </div>
+            ) : (
+              <div>
+                {renderGroup('En partida', '⚔️', '#34D399', friends.filter(f => f.online === 'in_match'), 'in_match')}
+                {renderGroup('Buscando', '🔍', '#FBBF24', friends.filter(f => f.online === 'searching'), 'searching')}
+                {renderGroup('Desconectado', '💤', null, friends.filter(f => f.online !== 'in_match' && f.online !== 'searching'), 'offline')}
+              </div>
+            )}
+          </div>
+        ) : friendTab === 'requests' ? (
+          <div>
+            {friendRequests.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 6px', fontSize: 24 }}>📩</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin solicitudes</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Las solicitudes de amistad aparecen acá</p>
+              </div>
+            ) : (
+              <div>
+                {friendRequests.map(rq => (
+                  <div key={rq.fromId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div onClick={() => openProfile(rq.fromId, rq.fromName)} style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>
+                      {(rq.fromName || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(rq.fromId, rq.fromName)}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rq.fromName}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Quiere ser tu amigo</p>
+                    </div>
+                    <button onClick={() => acceptRequest(rq.fromId, rq.fromName)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>✓</button>
+                    <button onClick={() => rejectRequest(rq.fromId)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div style={{ padding: '12px' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '10px 12px' }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>👤+</span>
+                  <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Nombre de jugador…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
+                </div>
+                {friendSearch.length >= 2 && (
+                  <button onClick={() => { setFriendSearch(''); setFriendResults([]); }} style={{ padding: '0 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>✕</button>
+                )}
+              </div>
+            </div>
+            {friendSearching ? (
+              <div style={{ padding: '20px 16px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Buscando…</p></div>
+            ) : friendResults.length > 0 ? (
+              <div>
+                {friendResults.map(p => {
+                  const alreadyFriend = friends.find(f => f.userId === p.userId);
+                  const alreadySent = sentRequests.find(s => s.toId === p.userId);
+                  return (
+                    <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div onClick={() => openProfile(p.userId, p.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>{(p.userName || '?').charAt(0).toUpperCase()}</div>
+                      <p onClick={() => openProfile(p.userId, p.userName)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.userName}</p>
+                      {alreadyFriend ? (
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', padding: '4px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>Ya agregado</span>
+                      ) : alreadySent ? (
+                        <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
+                      ) : (
+                        <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === p.userId ? '…' : '📩 Solicitud'}</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : friendSearch.length >= 2 ? (
+              <div style={{ padding: '24px 16px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No se encontraron jugadores</p></div>
+            ) : (
+              <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Escribí un nombre para buscar</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.15)' }}>Mínimo 2 caracteres</p>
+              </div>
+            )}
+            {sentRequests.length > 0 && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
+                <div style={{ padding: '10px 14px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12 }}>📤</span>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Solicitudes enviadas</p>
+                </div>
+                {sentRequests.map(sr => (
+                  <div key={sr.toId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div onClick={() => openProfile(sr.toId, sr.toName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#F59E0B,#D97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>{(sr.toName || '?').charAt(0).toUpperCase()}</div>
+                    <p onClick={() => openProfile(sr.toId, sr.toName)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{sr.toName}</p>
+                    <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(() => {
+              const friendIds = new Set(friends.map(f => f.userId));
+              const sentIds = new Set(sentRequests.map(s => s.toId));
+              const seen = new Set();
+              const recentPlayers = [];
+              for (const m of history) {
+                const oppId = String(m.winnerId) === String(user.id || user.slug) ? m.loserId : m.winnerId;
+                const oppName = String(m.winnerId) === String(user.id || user.slug) ? m.loserName : m.winnerName;
+                if (!oppId || oppId === String(user.id || user.slug) || friendIds.has(oppId) || seen.has(oppId)) continue;
+                seen.add(oppId);
+                recentPlayers.push({ id: oppId, name: oppName });
+                if (recentPlayers.length >= 10) break;
+              }
+              if (recentPlayers.length === 0) return null;
+              return (
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
+                  <div style={{ padding: '10px 14px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12 }}>🕹️</span>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Jugados recientemente</p>
+                  </div>
+                  {recentPlayers.map(rp => (
+                    <div key={rp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div onClick={() => openProfile(rp.id, rp.name)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>{(rp.name || '?').charAt(0).toUpperCase()}</div>
+                      <p onClick={() => openProfile(rp.id, rp.name)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{rp.name}</p>
+                      {sentIds.has(rp.id) ? (
+                        <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
+                      ) : (
+                        <button onClick={() => addFriend(rp.id, rp.name)} disabled={friendAdding === rp.id} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === rp.id ? '…' : '📩 Solicitud'}</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ CHAT ENTRE AMIGOS ═══ */}
+      {chatOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 9998, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
+            <button onClick={() => setChatOpen(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4, flexShrink: 0 }}>←</button>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff' }}>{(chatOpen.userName || '?').charAt(0).toUpperCase()}</div>
+              {(() => { const cf = friends.find(f => f.userId === chatOpen.userId); if (!cf) return null; const c = cf.online === 'in_match' ? '#34D399' : cf.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)'; return <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: c, border: '2px solid #0D0D15' }} />; })()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chatOpen.userName}</p>
+              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Chat privado</p>
+            </div>
+            {!partyState && (
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                {['switch', 'parsec'].map(plat => (
+                  <button key={plat} onClick={() => inviteToDoubles(chatOpen.userId, chatOpen.userName, plat)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.1)', color: '#A78BFA', fontWeight: 700, fontSize: 8, cursor: 'pointer', textTransform: 'uppercase', lineHeight: 1.2 }}>🎮 2v2<br/>{plat === 'switch' ? 'SW' : 'PC'}</button>
+                ))}
+              </div>
+            )}
+          </div>
+          {partyState && (
+            <div style={{ padding: '8px 18px', background: 'rgba(124,58,237,0.08)', borderBottom: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 14 }}>👥</span>
+              <p style={{ margin: 0, flex: 1, fontSize: 12, color: '#A78BFA', fontWeight: 700 }}>Party {partyState.status === 'pending' ? '(esperando respuesta)' : partyState.status === 'ready' ? '✓ Listo' : partyState.status === 'searching' ? '🔍 Buscando…' : partyState.status}</p>
+              <button onClick={leaveParty} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>Salir</button>
+            </div>
+          )}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {chatMessages.length === 0 && (<p style={{ margin: 'auto', fontSize: 13, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>No hay mensajes aún. ¡Escribí algo!</p>)}
+            {chatMessages.map(m => { const isMe = m.from === uid; return (
+              <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                {!isMe && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{m.fromName}</span>}
+                <div style={{ maxWidth: '80%', background: isMe ? 'rgba(232,142,0,0.18)' : 'rgba(255,255,255,0.06)', border: '1px solid ' + (isMe ? 'rgba(232,142,0,0.25)' : 'rgba(255,255,255,0.08)'), borderRadius: 14, padding: '8px 12px' }}>
+                  <p style={{ margin: 0, fontSize: 14, color: '#fff', wordBreak: 'break-word' }}>{m.text}</p>
+                </div>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.15)', marginTop: 2 }}>{new Date(m.sentAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ); })}
+            <div ref={chatEndRef} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 18px', borderTop: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
+            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChatMessage()} placeholder="Escribí un mensaje…" maxLength={500} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none' }} />
+            <button onClick={sendChatMessage} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 12, padding: '0 16px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 20 }}>→</button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MODAL PERFIL JUGADOR ═══ */}
+      {viewProfile && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <button onClick={() => setViewProfile(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+            </button>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>{viewProfile.userName}</p>
+            {(() => { const fe = friends.find(f => f.userId === viewProfile.userId); if (fe) { const st = fe.online === 'in_match' ? 'En partida' : fe.online === 'searching' ? 'Buscando…' : ''; const sc = fe.online === 'in_match' ? '#34D399' : fe.online === 'searching' ? '#FBBF24' : null; if (sc) return <span style={{ fontSize: 10, fontWeight: 700, color: sc }}>● {st}</span>; } return null; })()}
+            {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
+              <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}</button>
+            )}
+          </div>
+          {profileLoading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p></div>
+          ) : profileData ? (
+            <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', padding: '0 18px 40px' }}>
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#fff' }}>{viewProfile.userName}</p>
+              </div>
+              {(() => {
+                const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
+                const tW = (sw1.wins||0)+(pc1.wins||0); const tL = (sw1.losses||0)+(pc1.losses||0);
+                const tT = tW+tL; const wr = tT > 0 ? Math.round((tW/tT)*100) : 0;
+                return (
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                    {[{ label: 'Victorias', value: tW, color: '#22C55E' }, { label: 'Derrotas', value: tL, color: '#EF4444' }, { label: 'Partidas', value: tT, color: '#fff' }, { label: 'W/R', value: wr + '%', color: '#F59E0B' }].map(st => (
+                      <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{st.value}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>{st.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              {(!profileData.history || profileData.history.length === 0) ? (
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {profileData.history.slice(0, 20).map((m, i) => {
+                    const isWin = String(m.winnerId) === String(viewProfile.userId);
+                    const opponent = isWin ? m.loserName : m.winnerName;
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'W' : 'L'}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>No se pudo cargar el perfil</p></div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* --- TAB PERFIL ------------------------------------------------ */
 function platLabel(p) { return p === 'switch' ? '🎮 Switch' : '🖥️ Parsec'; }
 function platColor(p) { return p === 'switch' ? '#EF4444' : '#8B5CF6'; }
@@ -1163,18 +1609,6 @@ function TabPerfil({ user }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRanks, setShowRanks]       = useState(false);
-  const [friendTab, setFriendTab]       = useState('list');
-  const [friends, setFriends]           = useState([]);
-  const [friendSearch, setFriendSearch] = useState('');
-  const [friendResults, setFriendResults] = useState([]);
-  const [friendSearching, setFriendSearching] = useState(false);
-  const [friendAdding, setFriendAdding] = useState(null);
-  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, offline: false });
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [chatOpen, setChatOpen]         = useState(null); // { userId, userName }
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput]       = useState('');
-  const [chatSending, setChatSending]   = useState(false);
   const [partyState, setPartyState]     = useState(null);
   const [doublesStats, setDoublesStats] = useState(null);
   const [recentChars, setRecentChars] = useState([]);
@@ -1183,11 +1617,9 @@ function TabPerfil({ user }) {
   const [showCharsModal, setShowCharsModal] = useState(false);
   const [selectedChar, setSelectedChar] = useState(null);
   const [charFromModal, setCharFromModal] = useState(false);
-  const [sentRequests, setSentRequests] = useState([]);
   const [viewProfile, setViewProfile]   = useState(null); // { userId, userName }
   const [profileData, setProfileData]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const chatEndRef = useRef(null);
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
   const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
@@ -1207,7 +1639,7 @@ function TabPerfil({ user }) {
       const token = stored.access_token;
       const slug = stored.user?.slug;
       if (token && slug) {
-        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), {
+        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug) + '&refresh=true', {
           headers: { 'Authorization': 'Bearer ' + token },
         }).then(r => {
           if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
@@ -1222,46 +1654,11 @@ function TabPerfil({ user }) {
   // Fetch friends
   useEffect(() => {
     if (!uid) return;
-    fetch('/api/friends?userId=' + encodeURIComponent(uid))
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setFriends(Array.isArray(d) ? d : []))
-      .catch(() => {});
-    // Fetch friend requests
-    fetch('/api/friends?userId=' + encodeURIComponent(uid) + '&type=requests')
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setFriendRequests(Array.isArray(d) ? d : []))
-      .catch(() => {});
-    // Fetch sent requests
-    fetch('/api/friends?userId=' + encodeURIComponent(uid) + '&type=sent')
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setSentRequests(Array.isArray(d) ? d : []))
-      .catch(() => {});
     // Fetch party state
     fetch('/api/party?userId=' + encodeURIComponent(uid))
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d && d.status !== 'none') setPartyState(d); })
       .catch(() => {});
-  }, [uid]);
-
-  // Polling: friends, requests, sent requests (cada 12s)
-  useEffect(() => {
-    if (!uid) return;
-    const uidEnc = encodeURIComponent(uid);
-    const poll = setInterval(() => {
-      fetch('/api/friends?userId=' + uidEnc)
-        .then(r => r.ok ? r.json() : [])
-        .then(d => { if (Array.isArray(d)) setFriends(d); })
-        .catch(() => {});
-      fetch('/api/friends?userId=' + uidEnc + '&type=requests')
-        .then(r => r.ok ? r.json() : [])
-        .then(d => { if (Array.isArray(d)) setFriendRequests(d); })
-        .catch(() => {});
-      fetch('/api/friends?userId=' + uidEnc + '&type=sent')
-        .then(r => r.ok ? r.json() : [])
-        .then(d => { if (Array.isArray(d)) setSentRequests(d); })
-        .catch(() => {});
-    }, 12000);
-    return () => clearInterval(poll);
   }, [uid]);
 
   // Fetch 2v2 stats
@@ -1272,133 +1669,6 @@ function TabPerfil({ user }) {
       fetch('/api/players/stats?userId=' + uidEnc + '&mode=doubles').then(r => r.json()).catch(() => null),
     ]).then(([dStats]) => { setDoublesStats(dStats); });
   }, [user?.id]);
-
-  // Chat polling
-  useEffect(() => {
-    if (!chatOpen || !uid) return;
-    const fetchMsgs = () => {
-      fetch('/api/chat?userId=' + encodeURIComponent(uid) + '&friendId=' + encodeURIComponent(chatOpen.userId))
-        .then(r => r.ok ? r.json() : { messages: [] })
-        .then(d => setChatMessages(d.messages || []))
-        .catch(() => {});
-    };
-    fetchMsgs();
-    const iv = setInterval(fetchMsgs, 3000);
-    return () => clearInterval(iv);
-  }, [chatOpen?.userId, uid]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
-
-  // Search players for adding friends
-  useEffect(() => {
-    if (friendSearch.length < 2) { setFriendResults([]); return; }
-    setFriendSearching(true);
-    const t = setTimeout(() => {
-      fetch('/api/players/search?q=' + encodeURIComponent(friendSearch))
-        .then(r => r.ok ? r.json() : [])
-        .then(d => { setFriendResults(Array.isArray(d) ? d.filter(p => p.userId !== uid) : []); setFriendSearching(false); })
-        .catch(() => setFriendSearching(false));
-    }, 400);
-    return () => clearTimeout(t);
-  }, [friendSearch, uid]);
-
-  const addFriend = async (friendId, friendName) => {
-    setFriendAdding(friendId);
-    try {
-      const r = await fetch('/api/friends', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName }),
-      });
-      const data = await r.json();
-      if (r.ok) {
-        if (data.autoAccepted) {
-          setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]);
-          setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId));
-          setSentRequests(prev => prev.filter(s => s.toId !== friendId));
-        } else if (data.requestSent) {
-          setSentRequests(prev => [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]);
-        }
-        setFriendSearch(''); setFriendResults([]);
-      } else if (r.status === 409) {
-        // Already sent or already friends — sync sentRequests state
-        setSentRequests(prev => prev.some(s => s.toId === friendId) ? prev : [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]);
-      }
-    } catch {}
-    setFriendAdding(null);
-  };
-
-  const acceptRequest = async (fromId, fromName) => {
-    try {
-      await fetch('/api/friends', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'accept' }),
-      });
-      setFriendRequests(prev => prev.filter(r => r.fromId !== fromId));
-      setFriends(prev => [...prev, { userId: fromId, userName: fromName, online: 'offline' }]);
-    } catch {}
-  };
-
-  const rejectRequest = async (fromId) => {
-    try {
-      await fetch('/api/friends', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'reject' }),
-      });
-      setFriendRequests(prev => prev.filter(r => r.fromId !== fromId));
-    } catch {}
-  };
-
-  const sendChatMessage = async () => {
-    if (!chatInput.trim() || chatSending || !chatOpen) return;
-    setChatSending(true);
-    const msg = chatInput.trim();
-    setChatInput('');
-    try {
-      await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, friendId: chatOpen.userId, message: msg }),
-      });
-      setChatMessages(prev => [...prev, { id: 'm-' + Date.now(), from: uid, fromName: uName, text: msg, sentAt: new Date().toISOString() }]);
-    } catch {}
-    setChatSending(false);
-  };
-
-  const inviteToDoubles = async (friendId, friendName, platform) => {
-    try {
-      const r = await fetch('/api/party', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName, platform }),
-      });
-      const data = await r.json();
-      if (data.success) setPartyState({ status: 'pending', partyId: data.partyId, party: data.party });
-    } catch {}
-  };
-
-  const leaveParty = async () => {
-    try {
-      await fetch('/api/party', {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid }),
-      });
-      setPartyState(null);
-    } catch {}
-  };
-
-  const removeFriend = async (friendId) => {
-    try {
-      await fetch('/api/friends', {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, friendId }),
-      });
-      setFriends(prev => prev.filter(f => f.userId !== friendId));
-    } catch {}
-  };
-
-  const cancelSentRequest = async (toId) => {
-    setSentRequests(prev => prev.filter(s => s.toId !== toId));
-  };
 
   const openProfile = (playerId, playerName) => {
     setViewProfile({ userId: playerId, userName: playerName });
@@ -1754,389 +2024,7 @@ function TabPerfil({ user }) {
                 {partyState.status === 'pending' ? 'Esperando que acepten la invitación…' : partyState.status === 'ready' ? '¡Listo! Andá a Ranked para buscar partida 2v2' : partyState.status === 'searching' ? 'Buscando rivales 2v2…' : partyState.status}
               </p>
             </div>
-            <button onClick={leaveParty} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>Salir</button>
-          </div>
-        )}
-
-        {/* ═══ AMIGOS — Estilo Valorant ═══ */}
-        {uid && (
-          <div style={{ marginBottom: 24, background: '#0D0D15', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#fff', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Lista de amigos</p>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{friends.length}</span>
-            </div>
-
-            {/* Tab switcher */}
-            <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <button onClick={() => setFriendTab('list')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
-                <span style={{ fontSize: 16, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.3)' }}>☰</span>
-              </button>
-              <button onClick={() => setFriendTab('requests')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
-                <span style={{ fontSize: 16, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.3)' }}>📩</span>
-                {friendRequests.length > 0 && (
-                  <span style={{ position: 'absolute', top: 4, right: '30%', minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', color: '#fff', fontSize: 9, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{friendRequests.length}</span>
-                )}
-              </button>
-              <button onClick={() => setFriendTab('add')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
-                <span style={{ fontSize: 16, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.3)' }}>👤+</span>
-              </button>
-            </div>
-
-            {friendTab === 'list' ? (
-              <div>
-                {/* Search dentro de amigos */}
-                <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px' }}>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>🔍</span>
-                    <input
-                      value={friendSearch}
-                      onChange={e => { setFriendSearch(e.target.value); setFriendTab('add'); }}
-                      placeholder="Buscar amigo…"
-                      maxLength={50}
-                      style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                {friends.length === 0 ? (
-                  <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>👥</p>
-                    <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin amigos aún</p>
-                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Tocá 👤+ para buscar y agregar jugadores</p>
-                  </div>
-                ) : (
-                  <div>
-                    {/* Grupo: En partida */}
-                    {(() => {
-                      const inMatch = friends.filter(f => f.online === 'in_match');
-                      if (inMatch.length === 0) return null;
-                      return (
-                        <div>
-                          <button onClick={() => setFriendCollapsed(p => ({ ...p, in_match: !p.in_match }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'rgba(52,211,153,0.04)', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-                            <span style={{ fontSize: 12, color: '#34D399' }}>⚔️</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#34D399', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>En partida ({inMatch.length})</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed.in_match ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
-                          </button>
-                          {!friendCollapsed.in_match && inMatch.map(f => (
-                            <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
-                              <div onClick={() => openProfile(f.userId, f.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#34D399,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
-                                {(f.userName || '?').charAt(0).toUpperCase()}
-                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: '#34D399', border: '2px solid #0D0D15' }} />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(f.userId, f.userName)}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-                                  <span style={{ fontSize: 10, color: '#34D399', fontWeight: 600 }}>En partida</span>
-                                  {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Unranked</span>}
-                                </div>
-                              </div>
-                              <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: 'rgba(99,102,241,0.1)', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>💬</button>
-                              <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Grupo: Buscando */}
-                    {(() => {
-                      const searching = friends.filter(f => f.online === 'searching');
-                      if (searching.length === 0) return null;
-                      return (
-                        <div>
-                          <button onClick={() => setFriendCollapsed(p => ({ ...p, searching: !p.searching }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'rgba(251,191,36,0.04)', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-                            <span style={{ fontSize: 12, color: '#FBBF24' }}>🔍</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBF24', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>Buscando ({searching.length})</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed.searching ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
-                          </button>
-                          {!friendCollapsed.searching && searching.map(f => (
-                            <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
-                              <div onClick={() => openProfile(f.userId, f.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#D97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
-                                {(f.userName || '?').charAt(0).toUpperCase()}
-                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: '#FBBF24', border: '2px solid #0D0D15' }} />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(f.userId, f.userName)}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-                                  <span style={{ fontSize: 10, color: '#FBBF24', fontWeight: 600 }}>Buscando…</span>
-                                  {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Unranked</span>}
-                                </div>
-                              </div>
-                              <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: 'rgba(99,102,241,0.1)', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>💬</button>
-                              <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Grupo: Desconectado */}
-                    {(() => {
-                      const offline = friends.filter(f => f.online !== 'in_match' && f.online !== 'searching');
-                      if (offline.length === 0) return null;
-                      return (
-                        <div>
-                          <button onClick={() => setFriendCollapsed(p => ({ ...p, offline: !p.offline }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>💤</span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>Desconectado ({offline.length})</span>
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', transform: friendCollapsed.offline ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
-                          </button>
-                          {!friendCollapsed.offline && offline.map(f => (
-                            <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: 0.6 }}>
-                              <div onClick={() => openProfile(f.userId, f.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.3)', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
-                                {(f.userName || '?').charAt(0).toUpperCase()}
-                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '2px solid #0D0D15' }} />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(f.userId, f.userName)}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-                                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>Desconectado</span>
-                                  {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.15)' }}>Unranked</span>}
-                                </div>
-                              </div>
-                              <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: 'rgba(99,102,241,0.08)', color: 'rgba(99,102,241,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>💬</button>
-                              <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.4)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            ) : friendTab === 'requests' ? (
-              /* Tab: Solicitudes de amistad */
-              <div>
-                {friendRequests.length === 0 ? (
-                  <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>📩</p>
-                    <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin solicitudes</p>
-                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Las solicitudes de amistad aparecen acá</p>
-                  </div>
-                ) : (
-                  <div>
-                    {friendRequests.map(rq => (
-                      <div key={rq.fromId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div onClick={() => openProfile(rq.fromId, rq.fromName)} style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>
-                          {(rq.fromName || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(rq.fromId, rq.fromName)}>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rq.fromName}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Quiere ser tu amigo</p>
-                        </div>
-                        <button onClick={() => acceptRequest(rq.fromId, rq.fromName)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>✓</button>
-                        <button onClick={() => rejectRequest(rq.fromId)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Tab: Agregar amigo */
-              <div>
-                <div style={{ padding: '12px' }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '10px 12px' }}>
-                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>👤+</span>
-                      <input
-                        value={friendSearch}
-                        onChange={e => setFriendSearch(e.target.value)}
-                        placeholder="Nombre de jugador…"
-                        maxLength={50}
-                        style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }}
-                      />
-                    </div>
-                    {friendSearch.length >= 2 && (
-                      <button onClick={() => { setFriendSearch(''); setFriendResults([]); }} style={{ padding: '0 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>✕</button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Resultados de búsqueda */}
-                {friendSearching ? (
-                  <div style={{ padding: '20px 16px', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Buscando…</p>
-                  </div>
-                ) : friendResults.length > 0 ? (
-                  <div>
-                    {friendResults.map(p => {
-                      const alreadyFriend = friends.find(f => f.userId === p.userId);
-                      const alreadySent = sentRequests.find(s => s.toId === p.userId);
-                      return (
-                        <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <div onClick={() => openProfile(p.userId, p.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>
-                            {(p.userName || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <p onClick={() => openProfile(p.userId, p.userName)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{p.userName}</p>
-                          {alreadyFriend ? (
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', padding: '4px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>Ya agregado</span>
-                          ) : alreadySent ? (
-                            <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
-                          ) : (
-                            <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                              {friendAdding === p.userId ? '…' : '📩 Solicitud'}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : friendSearch.length >= 2 ? (
-                  <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No se encontraron jugadores</p>
-                  </div>
-                ) : (
-                  <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Escribí un nombre para buscar</p>
-                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.15)' }}>Mínimo 2 caracteres</p>
-                  </div>
-                )}
-
-                {/* ── Solicitudes enviadas ── */}
-                {sentRequests.length > 0 && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
-                    <div style={{ padding: '10px 14px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 12 }}>📤</span>
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Solicitudes enviadas</p>
-                    </div>
-                    {sentRequests.map(sr => (
-                      <div key={sr.toId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div onClick={() => openProfile(sr.toId, sr.toName)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#F59E0B,#D97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>
-                          {(sr.toName || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <p onClick={() => openProfile(sr.toId, sr.toName)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{sr.toName}</p>
-                        <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Jugados recientemente ── */}
-                {(() => {
-                  const friendIds = new Set(friends.map(f => f.userId));
-                  const sentIds = new Set(sentRequests.map(s => s.toId));
-                  const seen = new Set();
-                  const recentPlayers = [];
-                  for (const m of history) {
-                    const oppId = String(m.winnerId) === String(user.id || user.slug) ? m.loserId : m.winnerId;
-                    const oppName = String(m.winnerId) === String(user.id || user.slug) ? m.loserName : m.winnerName;
-                    if (!oppId || oppId === String(user.id || user.slug) || friendIds.has(oppId) || seen.has(oppId)) continue;
-                    seen.add(oppId);
-                    recentPlayers.push({ id: oppId, name: oppName });
-                    if (recentPlayers.length >= 10) break;
-                  }
-                  if (recentPlayers.length === 0) return null;
-                  return (
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
-                      <div style={{ padding: '10px 14px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 12 }}>🕹️</span>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Jugados recientemente</p>
-                      </div>
-                      {recentPlayers.map(rp => (
-                        <div key={rp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <div onClick={() => openProfile(rp.id, rp.name)} style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#fff', flexShrink: 0, cursor: 'pointer' }}>
-                            {(rp.name || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <p onClick={() => openProfile(rp.id, rp.name)} style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{rp.name}</p>
-                          {sentIds.has(rp.id) ? (
-                            <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
-                          ) : (
-                            <button onClick={() => addFriend(rp.id, rp.name)} disabled={friendAdding === rp.id} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                              {friendAdding === rp.id ? '…' : '📩 Solicitud'}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ═══ CHAT ENTRE AMIGOS ═══ */}
-        {chatOpen && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 9998, display: 'flex', flexDirection: 'column' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
-              <button onClick={() => setChatOpen(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4, flexShrink: 0 }}>←</button>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                {(() => {
-                  const chatFriend = friends.find(f => f.userId === chatOpen.userId);
-                  const avatar = chatFriend?.avatar || null;
-                  return avatar
-                    ? <img src={avatar} alt={chatOpen.userName} style={{ width: 36, height: 36, borderRadius: 12, objectFit: 'cover', border: '2px solid rgba(124,58,237,0.4)' }} />
-                    : <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff' }}>
-                        {(chatOpen.userName || '?').charAt(0).toUpperCase()}
-                      </div>;
-                })()}
-                {(() => {
-                  const chatFriend = friends.find(f => f.userId === chatOpen.userId);
-                  if (!chatFriend) return null;
-                  const c = chatFriend.online === 'in_match' ? '#34D399' : chatFriend.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)';
-                  return <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: c, border: '2px solid #0D0D15' }} />;
-                })()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chatOpen.userName}</p>
-                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Chat privado</p>
-              </div>
-              {!partyState && (
-                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                  {['switch', 'parsec'].map(plat => (
-                    <button key={plat} onClick={() => inviteToDoubles(chatOpen.userId, chatOpen.userName, plat)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.1)', color: '#A78BFA', fontWeight: 700, fontSize: 8, cursor: 'pointer', textTransform: 'uppercase', lineHeight: 1.2 }}>
-                      🎮 2v2<br/>{plat === 'switch' ? 'SW' : 'PC'}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Party banner */}
-            {partyState && (
-              <div style={{ padding: '8px 18px', background: 'rgba(124,58,237,0.08)', borderBottom: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 14 }}>👥</span>
-                <p style={{ margin: 0, flex: 1, fontSize: 12, color: '#A78BFA', fontWeight: 700 }}>
-                  Party {partyState.status === 'pending' ? '(esperando respuesta)' : partyState.status === 'ready' ? '✓ Listo' : partyState.status === 'searching' ? '🔍 Buscando…' : partyState.status}
-                </p>
-                <button onClick={leaveParty} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>Salir</button>
-              </div>
-            )}
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {chatMessages.length === 0 && (
-                <p style={{ margin: 'auto', fontSize: 13, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>No hay mensajes aún. ¡Escribí algo!</p>
-              )}
-              {chatMessages.map(m => {
-                const isMe = m.from === uid;
-                return (
-                  <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                    {!isMe && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{m.fromName}</span>}
-                    <div style={{ maxWidth: '80%', background: isMe ? 'rgba(232,142,0,0.18)' : 'rgba(255,255,255,0.06)', border: '1px solid ' + (isMe ? 'rgba(232,142,0,0.25)' : 'rgba(255,255,255,0.08)'), borderRadius: 14, padding: '8px 12px' }}>
-                      <p style={{ margin: 0, fontSize: 14, color: '#fff', wordBreak: 'break-word' }}>{m.text}</p>
-                    </div>
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.15)', marginTop: 2 }}>{new Date(m.sentAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                );
-              })}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Input */}
-            <div style={{ display: 'flex', gap: 8, padding: '12px 18px', borderTop: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
-              <input
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
-                placeholder="Escribí un mensaje…"
-                maxLength={500}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none' }}
-              />
-              <button onClick={sendChatMessage} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 12, padding: '0 16px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 20 }}>→</button>
-            </div>
+            <button onClick={() => { fetch('/api/party', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) }).catch(() => {}); setPartyState(null); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>Salir</button>
           </div>
         )}
 
@@ -2149,20 +2037,6 @@ function TabPerfil({ user }) {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
               </button>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>{viewProfile.userName}</p>
-              {(() => {
-                const friendEntry = friends.find(f => f.userId === viewProfile.userId);
-                if (friendEntry) {
-                  const statusText = friendEntry.online === 'in_match' ? 'En partida' : friendEntry.online === 'searching' ? 'Buscando…' : '';
-                  const statusColor = friendEntry.online === 'in_match' ? '#34D399' : friendEntry.online === 'searching' ? '#FBBF24' : null;
-                  if (statusColor) return <span style={{ fontSize: 10, fontWeight: 700, color: statusColor }}>● {statusText}</span>;
-                }
-                return null;
-              })()}
-              {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
-                <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
-                  {friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}
-                </button>
-              )}
             </div>
 
             {profileLoading ? (
@@ -3028,19 +2902,81 @@ function TabRankings({ user, setTab }) {
 function TabTorneos() {
   const [loading, setLoading] = useState(true);
   const [torneos, setTorneos] = useState([]);
+  const [startggTorneos, setStartggTorneos] = useState([]);
+  const [startggLoading, setStartggLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/tournaments')
       .then(r => r.json())
       .then(d => { setTorneos(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch('/api/tournaments/sync-startgg')
+      .then(r => r.json())
+      .then(d => { setStartggTorneos(Array.isArray(d.tournaments) ? d.tournaments : []); setStartggLoading(false); })
+      .catch(() => setStartggLoading(false));
   }, []);
+
+  const formatStartggDate = (iso) => {
+    if (!iso) return 'Fecha por confirmar';
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div style={{ padding: '24px 18px' }}>
       <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Torneos</h1>
       <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Publicados en Start.GG</p>
 
+      {/* Torneos de Start.gg del organizador */}
+      {startggLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {[1,2].map(i => (
+            <div key={i} style={{ background: '#10101A', borderRadius: 18, padding: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="shimmer" style={{ height: 14, width: '70%', borderRadius: 7, marginBottom: 10 }} />
+              <div className="shimmer" style={{ height: 10, width: '40%', borderRadius: 5 }} />
+            </div>
+          ))}
+        </div>
+      ) : startggTorneos.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {startggTorneos.map(t => (
+            <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div style={{
+                background: '#10101A', border: '1px solid rgba(232,142,0,0.15)',
+                borderRadius: 18, overflow: 'hidden',
+              }}>
+                {t.image && (
+                  <div style={{ height: 100, background: `url(${t.image}) center/cover no-repeat`, borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
+                )}
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
+                    </div>
+                    <Svg size={16} sw={2}>{ICO.chevron}</Svg>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                    {t.registrationOpen && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
+                    )}
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
+                    {t.events?.map(e => (
+                      <span key={e.id} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>{e.name}</span>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>Ver en Start.GG →</span>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Torneos internos */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1,2,3].map(i => (
@@ -3050,13 +2986,13 @@ function TabTorneos() {
             </div>
           ))}
         </div>
-      ) : torneos.length === 0 ? (
+      ) : torneos.length === 0 && startggTorneos.length === 0 ? (
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
           <span style={{ fontSize: 44 }}>📋</span>
           <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin torneos activos</p>
           <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer acá automáticamente</p>
         </div>
-      ) : (
+      ) : torneos.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {torneos.map((t, i) => (
             <div key={i} style={{
@@ -3073,7 +3009,7 @@ function TabTorneos() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -4174,11 +4110,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           ) : (
             <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
               <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: '#fff' }}>
-                Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : 'él ganó'} ({matchData.pendingResult.stocks} stock{matchData.pendingResult.stocks > 1 ? 's' : ''})
+                Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : 'él ganó'}
               </p>
+              {matchData.pendingResult.winnerId === uid && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>¿Con cuántos stocks quedaste?</p>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                    {[1,2,3].map(n => (
+                      <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, maxWidth: 100, padding: '8px 0', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', color: reportStocks === n ? '#FF8C00' : 'rgba(255,255,255,0.4)', fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.15s' }}>
+                        {'❤️'.repeat(n)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {matchData.pendingResult.winnerId !== uid && (
+                <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                  Según tu rival: {matchData.pendingResult.stocks} stock{matchData.pendingResult.stocks > 1 ? 's' : ''}
+                </p>
+              )}
               {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>✅ Confirmar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>✅ Confirmar</button>
                 <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>❌ Negar</button>
               </div>
             </div>

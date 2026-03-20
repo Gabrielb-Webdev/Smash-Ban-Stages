@@ -69,12 +69,16 @@ export default async function handler(req, res) {
     if (!pending) return res.status(400).json({ error: 'No hay resultado pendiente' });
     if (cleanReporter === pending.reporterId) return res.status(400).json({ error: 'No podés confirmar tu propio reporte' });
 
+    // If the confirmer IS the winner, use the stocks they provided (they choose how many they had left)
+    // If the confirmer is the loser, keep the original reported stocks
+    const confirmerIsWinner = cleanReporter === pending.winnerId;
+    const finalStocks = confirmerIsWinner ? reportStocks : pending.stocks;
+
     // Apply result
     match.reports = [
-      { userId: pending.reporterId, claimedWinnerId: pending.winnerId, stocksWon: pending.stocks },
-      { userId: cleanReporter, claimedWinnerId: pending.winnerId, stocksWon: pending.stocks },
+      { userId: pending.reporterId, claimedWinnerId: pending.winnerId, stocksWon: finalStocks },
+      { userId: cleanReporter, claimedWinnerId: pending.winnerId, stocksWon: finalStocks },
     ];
-    const finalStocks = pending.stocks;
     const agreedWinnerId = pending.winnerId;
 
     if (match.format === 'bo3') {
