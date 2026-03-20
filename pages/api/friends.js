@@ -1,7 +1,7 @@
 // API de amigos — solicitudes, aceptar/rechazar, listar y eliminar
 // Sistema de solicitudes: POST envía solicitud, PUT acepta/rechaza
 
-import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey } from '../../lib/redis';
+import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey, presenceKey } from '../../lib/redis';
 import { sendPush } from '../../lib/push.js';
 
 const MAX_FRIENDS = 50;
@@ -14,6 +14,10 @@ function sanitize(s) {
 function userRoomKey(id) { return `mm:user:room:${id}`; }
 
 async function getOnlineStatus(userId) {
+  // 1. En partida?
+  const roomCode = await redis.get(userRoomKey(userId));
+  if (roomCode) return 'in_match';
+  // 2. Buscando partida?
   for (const plat of ['switch', 'parsec']) {
     const queue = (await redis.get(mmQueueKey(plat))) || [];
     const now = Date.now();
@@ -21,8 +25,10 @@ async function getOnlineStatus(userId) {
       return 'searching';
     }
   }
-  const roomCode = await redis.get(userRoomKey(userId));
-  if (roomCode) return 'in_match';
+  // 3. Tiene presencia (heartbeat)?
+  const presence = await redis.get(presenceKey(userId));
+  if (presence) return 'online';
+  // 4. Desconectado
   return 'offline';
 }
 

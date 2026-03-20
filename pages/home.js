@@ -97,6 +97,15 @@ export default function HomePage() {
     }
   }, []);
 
+  // Heartbeat de presencia online (cada 30s, TTL 60s en el server)
+  useEffect(() => {
+    if (!user?.id) return;
+    const ping = () => fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: String(user.id) }) }).catch(() => {});
+    ping();
+    const iv = setInterval(ping, 30000);
+    return () => clearInterval(iv);
+  }, [user?.id]);
+
   // Polling de notificaciones
   useEffect(() => {
     if (!user) return;
@@ -1161,7 +1170,7 @@ function TabAmigos({ user }) {
   const [friendResults, setFriendResults] = useState([]);
   const [friendSearching, setFriendSearching] = useState(false);
   const [friendAdding, setFriendAdding] = useState(null);
-  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, offline: false });
+  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, online: false, offline: false });
   const [friendRequests, setFriendRequests] = useState([]);
   const [chatOpen, setChatOpen]         = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -1256,36 +1265,41 @@ function TabAmigos({ user }) {
 
   if (!user || !uid) return null;
 
-  const renderFriendRow = (f, statusColor, statusLabel, opacity) => (
-    <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: opacity || 1 }}>
-      <div onClick={() => openProfile(f.userId, f.userName)} style={{ width: 32, height: 32, borderRadius: 10, background: statusColor ? `linear-gradient(135deg,${statusColor},${statusColor}88)` : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: statusColor ? '#fff' : 'rgba(255,255,255,0.3)', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
+  const renderFriendRow = (f, statusColor, statusLabel) => {
+    const isOffline = !statusColor;
+    return (
+    <div key={f.userId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: isOffline ? 'transparent' : 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div onClick={() => openProfile(f.userId, f.userName)} style={{ width: 38, height: 38, borderRadius: 12, background: statusColor ? `linear-gradient(135deg,${statusColor},${statusColor}88)` : 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: statusColor ? '#fff' : 'rgba(255,255,255,0.4)', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
         {(f.userName || '?').charAt(0).toUpperCase()}
-        <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: statusColor || 'rgba(255,255,255,0.15)', border: '2px solid #0D0D15' }} />
+        <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: statusColor || '#555', border: '2.5px solid #0D0D15', boxShadow: statusColor ? `0 0 6px ${statusColor}` : 'none' }} />
       </div>
       <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(f.userId, f.userName)}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: opacity ? 'rgba(255,255,255,0.5)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-          <span style={{ fontSize: 10, color: statusColor || 'rgba(255,255,255,0.2)', fontWeight: 600 }}>{statusLabel}</span>
-          {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>Unranked</span>}
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: isOffline ? 'rgba(255,255,255,0.45)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 11, color: statusColor || 'rgba(255,255,255,0.25)', fontWeight: 700 }}>{statusLabel}</span>
+          {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>Unranked</span>}
         </div>
       </div>
-      <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: 'rgba(99,102,241,0.1)', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>💬</button>
-      <button onClick={() => removeFriend(f.userId)} style={{ padding: '4px 6px', borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>✕</button>
+      <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.12)', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span>💬</span><span style={{ fontSize: 10 }}>Chat</span>
+      </button>
+      <button onClick={() => removeFriend(f.userId)} style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.06)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>✕</button>
     </div>
-  );
+    );
+  };
 
   const renderGroup = (label, icon, color, items, groupKey) => {
     if (items.length === 0) return null;
-    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando…' }, offline: { color: null, label: 'Desconectado' } };
+    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando…' }, online: { color: '#22C55E', label: 'En línea' }, offline: { color: null, label: 'Desconectado' } };
     const s = statusMap[groupKey] || statusMap.offline;
     return (
       <div>
-        <button onClick={() => setFriendCollapsed(p => ({ ...p, [groupKey]: !p[groupKey] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: color ? `${color}08` : 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-          <span style={{ fontSize: 12, color: color || 'rgba(255,255,255,0.25)' }}>{icon}</span>
-          <span style={{ fontSize: 11, fontWeight: 800, color: color || 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>{label} ({items.length})</span>
+        <button onClick={() => setFriendCollapsed(p => ({ ...p, [groupKey]: !p[groupKey] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: color ? `${color}0D` : 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: color || '#555', boxShadow: color ? `0 0 6px ${color}` : 'none', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 800, color: color || 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>{label} ({items.length})</span>
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed[groupKey] ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
         </button>
-        {!friendCollapsed[groupKey] && items.map(f => renderFriendRow(f, s.color, s.label, groupKey === 'offline' ? 0.6 : null))}
+        {!friendCollapsed[groupKey] && items.map(f => renderFriendRow(f, s.color, s.label))}
       </div>
     );
   };
@@ -1293,12 +1307,19 @@ function TabAmigos({ user }) {
   return (
     <div style={{ paddingBottom: 32 }}>
       {/* Header */}
-      <div style={{ padding: '20px 18px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 24 }}>👥</span>
-          <div>
-            <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>Amigos</p>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{friends.length} amigos</p>
+      <div style={{ padding: '20px 18px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 22 }}>👥</span>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Amigos</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+              {friends.length} amigo{friends.length !== 1 ? 's' : ''}
+              {friends.filter(f => f.online !== 'offline').length > 0 && (
+                <span style={{ color: '#22C55E', fontWeight: 700 }}> · {friends.filter(f => f.online !== 'offline').length} en línea</span>
+              )}
+            </p>
           </div>
         </div>
       </div>
@@ -1317,23 +1338,23 @@ function TabAmigos({ user }) {
         </div>
       )}
 
-      <div style={{ margin: '0 18px', background: '#0D0D15', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
+      <div style={{ margin: '0 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}>
         {/* Tab switcher */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <button onClick={() => setFriendTab('list')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
-            <span style={{ fontSize: 16, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.3)' }}>☰</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.3)' }}>Lista</span>
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+          <button onClick={() => setFriendTab('list')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #6366F1' : '2px solid transparent', transition: 'all 0.15s' }}>
+            <span style={{ fontSize: 14 }}>👥</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Lista</span>
           </button>
-          <button onClick={() => setFriendTab('requests')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
-            <span style={{ fontSize: 16, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.3)' }}>📩</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.3)' }}>Solicitudes</span>
+          <button onClick={() => setFriendTab('requests')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
+            <span style={{ fontSize: 14 }}>📩</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Solicitudes</span>
             {friendRequests.length > 0 && (
-              <span style={{ position: 'absolute', top: 4, right: '15%', minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', color: '#fff', fontSize: 9, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{friendRequests.length}</span>
+              <span style={{ position: 'absolute', top: 4, right: '10%', minWidth: 18, height: 18, borderRadius: 9, background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', boxShadow: '0 0 8px rgba(239,68,68,0.4)' }}>{friendRequests.length}</span>
             )}
           </button>
-          <button onClick={() => setFriendTab('add')} style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #34D399' : '2px solid transparent', transition: 'all 0.15s' }}>
-            <span style={{ fontSize: 16, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.3)' }}>👤+</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.3)' }}>Agregar</span>
+          <button onClick={() => setFriendTab('add')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #22C55E' : '2px solid transparent', transition: 'all 0.15s' }}>
+            <span style={{ fontSize: 14 }}>➕</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Agregar</span>
           </button>
         </div>
 
@@ -1346,26 +1367,27 @@ function TabAmigos({ user }) {
               </div>
             </div>
             {friends.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-                <p style={{ margin: '0 0 6px', fontSize: 24 }}>👥</p>
-                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin amigos aún</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Tocá 👤+ para buscar y agregar jugadores</p>
+              <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#6366F1,#818CF8)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>👥</div>
+                <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Sin amigos aún</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tocá <b style={{ color: '#22C55E' }}>➕ Agregar</b> para buscar jugadores</p>
               </div>
             ) : (
               <div>
                 {renderGroup('En partida', '⚔️', '#34D399', friends.filter(f => f.online === 'in_match'), 'in_match')}
                 {renderGroup('Buscando', '🔍', '#FBBF24', friends.filter(f => f.online === 'searching'), 'searching')}
-                {renderGroup('Desconectado', '💤', null, friends.filter(f => f.online !== 'in_match' && f.online !== 'searching'), 'offline')}
+                {renderGroup('En línea', '🟢', '#22C55E', friends.filter(f => f.online === 'online'), 'online')}
+                {renderGroup('Desconectado', '💤', null, friends.filter(f => f.online !== 'in_match' && f.online !== 'searching' && f.online !== 'online'), 'offline')}
               </div>
             )}
           </div>
         ) : friendTab === 'requests' ? (
           <div>
             {friendRequests.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-                <p style={{ margin: '0 0 6px', fontSize: 24 }}>📩</p>
-                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Sin solicitudes</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Las solicitudes de amistad aparecen acá</p>
+              <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#FF8C00,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>📩</div>
+                <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Sin solicitudes</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Las solicitudes de amistad aparecen acá</p>
               </div>
             ) : (
               <div>
@@ -1389,8 +1411,8 @@ function TabAmigos({ user }) {
           <div>
             <div style={{ padding: '12px' }}>
               <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 10, padding: '10px 12px' }}>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>👤+</span>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, padding: '10px 12px' }}>
+                  <span style={{ fontSize: 13, color: '#22C55E' }}>🔍</span>
                   <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Nombre de jugador…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
                 </div>
                 {friendSearch.length >= 2 && (
