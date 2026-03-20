@@ -14,6 +14,9 @@ const TEST_SETUPS = [
   { id: 'test-stream', label: 'Stream',  icon: '📡', color: '#DC2626' },
   { id: 'test-1',     label: 'Setup 1', icon: '🎮', color: '#7C3AED' },
   { id: 'test-2',     label: 'Setup 2', icon: '🎮', color: '#2563EB' },
+  { id: 'test-3',     label: 'Setup 3', icon: '🎮', color: '#059669' },
+  { id: 'test-4',     label: 'Setup 4', icon: '🎮', color: '#D97706' },
+  { id: 'test-5',     label: 'Setup 5', icon: '🎮', color: '#DB2777' },
 ];
 
 const SET_STATE_STYLE = {
