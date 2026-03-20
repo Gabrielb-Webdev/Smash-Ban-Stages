@@ -1613,52 +1613,167 @@ function TabAmigos({ user }) {
             )}
           </div>
           {profileLoading ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p></div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p>
+            </div>
           ) : profileData ? (
-            <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', padding: '0 18px 40px' }}>
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#fff' }}>{viewProfile.userName}</p>
-              </div>
+            <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
+              {/* Hero banner */}
               {(() => {
-                const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
-                const tW = (sw1.wins||0)+(pc1.wins||0); const tL = (sw1.losses||0)+(pc1.losses||0);
-                const tT = tW+tL; const wr = tT > 0 ? Math.round((tW/tT)*100) : 0;
+                const heroCharId = (() => {
+                  const hist = profileData.history || [];
+                  if (hist.length) {
+                    const counts = {};
+                    for (const m of hist) {
+                      const cid = String(m.winnerId) === String(viewProfile.userId) ? m.winnerCharId : m.loserCharId;
+                      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+                    }
+                    let best = null, max = 0;
+                    for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
+                    return best;
+                  }
+                  return profileData.recentChars?.[0] || null;
+                })();
+                const heroRenderFile = heroCharId ? CHARACTER_RENDERS[heroCharId] : null;
                 return (
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                    {[{ label: 'Victorias', value: tW, color: '#22C55E' }, { label: 'Derrotas', value: tL, color: '#EF4444' }, { label: 'Partidas', value: tT, color: '#fff' }, { label: 'W/R', value: wr + '%', color: '#F59E0B' }].map(st => (
-                      <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{st.value}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>{st.label}</p>
-                      </div>
-                    ))}
+                  <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
+                    {heroRenderFile ? (
+                      <img src={charRenderPath(heroRenderFile)} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div style={{ height: 100 }} />
+                    )}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+                    <p style={{ margin: 0, padding: '8px 18px 16px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{viewProfile.userName}</p>
                   </div>
                 );
               })()}
-              {(!profileData.history || profileData.history.length === 0) ? (
-                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+
+              <div style={{ padding: '0 18px 40px' }}>
+                {/* Estadísticas */}
+                {(() => {
+                  const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
+                  const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
+                  const tW = (sw1.wins||0)+(pc1.wins||0)+(sw2.wins||0)+(pc2.wins||0);
+                  const tL = (sw1.losses||0)+(pc1.losses||0)+(sw2.losses||0)+(pc2.losses||0);
+                  const tT = tW+tL; const wr = tT > 0 ? Math.round((tW/tT)*100) : 0;
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 12px' }}>
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#22C55E,#16A34A)', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                        {[
+                          { label: 'Victorias', value: tW, color: '#22C55E' },
+                          { label: 'Derrotas', value: tL, color: '#EF4444' },
+                          { label: 'Partidas', value: tT, color: '#fff' },
+                          { label: 'W/R', value: wr + '%', color: '#F59E0B' },
+                        ].map(st => (
+                          <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{st.value}</p>
+                            <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{st.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* Ranked 1v1 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {profileData.history.slice(0, 20).map((m, i) => {
-                    const isWin = String(m.winnerId) === String(viewProfile.userId);
-                    const opponent = isWin ? m.loserName : m.winnerName;
+                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                  {['switch', 'parsec'].map(plat => {
+                    const s = profileData.stats?.[plat] || {};
+                    const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
+                    const rankName = s.rank || 'Plástico 1';
+                    const isUnranked = total === 0; const inPlacement = !isUnranked && total < 5;
+                    const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const rankColor = rankObj?.color || '#9CA3AF';
+                    const pColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'W' : 'L'}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                      <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                          {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor }}>
+                          {isUnranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
                   })}
                 </div>
-              )}
+
+                {/* Ranked 2v2 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#A78BFA,#7C3AED)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                  {['switch', 'parsec'].map(plat => {
+                    const s = profileData.doublesStats?.[plat] || {};
+                    const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
+                    const rankName = s.rank || 'Plástico 1';
+                    const isUnranked = total === 0; const inPlacement = !isUnranked && total < 5;
+                    const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const rankColor = rankObj?.color || '#9CA3AF';
+                    return (
+                      <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                          {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#A78BFA' : rankColor }}>
+                          {isUnranked ? 'UNRANKED' : inPlacement ? `CLAS. ${total}/5` : rankName}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Historial */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
+                </div>
+                {(!profileData.history || profileData.history.length === 0) ? (
+                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+                    <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
+                    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {profileData.history.slice(0, 20).map((m, i) => {
+                      const isWin = String(m.winnerId) === String(viewProfile.userId);
+                      const opponent = isWin ? m.loserName : m.winnerName;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
+                            {isWin ? 'W' : 'L'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                          </div>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>No se pudo cargar el perfil</p></div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>No se pudo cargar el perfil</p>
+            </div>
           )}
         </div>
       )}
