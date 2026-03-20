@@ -2884,19 +2884,43 @@ function TabRankings({ user, setTab }) {
   const [onlinePlayers, setOnlinePlayers] = useState([]);
 
   // Profile viewing
-  const [viewProfile, setViewProfile]       = useState(null);
-  const [profileData, setProfileData]       = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [viewProfile, setViewProfile]           = useState(null);
+  const [profileData, setProfileData]           = useState(null);
+  const [profileLoading, setProfileLoading]     = useState(false);
+  const [profileStartggStats, setProfileStartggStats] = useState(null);
+  const [selectedCharRank, setSelectedCharRank]       = useState(null);
+  const [showCharsModalRank, setShowCharsModalRank]   = useState(false);
+  const [charFromModalRank, setCharFromModalRank]     = useState(false);
 
   const myUid = String(user?.id || user?.slug || '');
   const openProfile = (playerId, playerName) => {
     if (String(playerId) === myUid) { setTab('perfil'); return; }
     setViewProfile({ userId: playerId, userName: playerName });
     setProfileData(null);
+    setProfileStartggStats(null);
+    setSelectedCharRank(null);
+    setShowCharsModalRank(false);
+    setCharFromModalRank(false);
     setProfileLoading(true);
     fetch('/api/players/profile?id=' + encodeURIComponent(playerId) + '&full=true')
       .then(r => r.ok ? r.json() : null)
-      .then(d => { setProfileData(d); setProfileLoading(false); })
+      .then(d => {
+        setProfileData(d);
+        setProfileLoading(false);
+        const slug = d?.profile?.slug;
+        if (slug) {
+          try {
+            const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
+            const token = stored.access_token;
+            if (token) {
+              fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(r => r.ok ? r.json() : null)
+                .then(sg => { if (sg) setProfileStartggStats(sg); })
+                .catch(() => {});
+            }
+          } catch {}
+        }
+      })
       .catch(() => setProfileLoading(false));
   };
 
@@ -3238,6 +3262,175 @@ function TabRankings({ user, setTab }) {
                     </>
                   );
                 })()}
+
+                {/* Resumen Start.GG */}
+                {profileStartggStats && profileStartggStats.charUsage && profileStartggStats.charUsage.length > 0 && (
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>🏆 Resumen</p>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {profileStartggStats.totalSets} sets</p>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
+                      {profileStartggStats.charUsage.slice(0, 3).map((ch, i) => {
+                        const localId = ch.localCharId;
+                        const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+                        const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+                        const isTop = i === 0;
+                        const charWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
+                        const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
+                        const barColor = barColors[i % barColors.length];
+                        return (
+                          <div key={ch.startggCharId} onClick={() => setSelectedCharRank(ch.startggCharId)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(profileStartggStats.charUsage.length, 3) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', background: isTop ? 'linear-gradient(90deg,rgba(245,197,24,0.10),transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}>
+                            {renderFile ? (
+                              <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                            ) : charObj ? (
+                              <img src={charImgPath(charObj.img)} alt="" style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                            ) : (
+                              <div style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, flexShrink: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.2)' }}>?</span>
+                              </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <p style={{ margin: 0, fontSize: isTop ? 13 : 11, fontWeight: 700, color: isTop ? '#fff' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {charObj?.name || ch.charName || `#${ch.startggCharId}`}
+                                </p>
+                                <p style={{ margin: 0, fontSize: isTop ? 15 : 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
+                              </div>
+                              <div style={{ height: isTop ? 6 : 4, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+                                <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} games</p>
+                                <p style={{ margin: 0, fontSize: 9, color: charWR >= 50 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)', fontWeight: 700 }}>{charWR}% WR ({ch.wins}W-{ch.games - ch.wins}L)</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {selectedCharRank && (() => {
+                      const ch = profileStartggStats.charUsage.find(c => c.startggCharId === selectedCharRank);
+                      return ch ? <CharacterDetail ch={ch} onClose={() => { setSelectedCharRank(null); setCharFromModalRank(false); }} onBack={charFromModalRank ? () => { setSelectedCharRank(null); setShowCharsModalRank(true); } : undefined} /> : null;
+                    })()}
+
+                    {profileStartggStats.charUsage.length > 3 && (
+                      <button onClick={() => setShowCharsModalRank(true)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        Ver todos ({profileStartggStats.charUsage.length})
+                      </button>
+                    )}
+
+                    {showCharsModalRank && (
+                      <div onClick={() => setShowCharsModalRank(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+                            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
+                            <button onClick={() => setShowCharsModalRank(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                          </div>
+                          <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            {profileStartggStats.charUsage.map((ch, i) => {
+                              const localId = ch.localCharId;
+                              const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+                              const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+                              const cWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
+                              const barColor = ['#F5C518','#818CF8','#22C55E','#F97316','#EF4444'][i % 5];
+                              return (
+                                <div key={ch.startggCharId} onClick={() => { setShowCharsModalRank(false); setCharFromModalRank(true); setSelectedCharRank(ch.startggCharId); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                  {renderFile ? <img src={charRenderPath(renderFile)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                                    : charObj ? <img src={charImgPath(charObj.img)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                                    : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charObj?.name || ch.charName}</p>
+                                      <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
+                                    </div>
+                                    <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                                      <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
+                                    </div>
+                                    <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+                                  </div>
+                                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>›</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      {[
+                        { label: 'Win Rate', value: profileStartggStats.winRate + '%', color: '#F5C518' },
+                        { label: 'Ganados',  value: profileStartggStats.wins,          color: '#22C55E' },
+                        { label: 'Perdidos', value: profileStartggStats.losses,        color: '#EF4444' },
+                        { label: 'Torneos',  value: profileStartggStats.tournaments,   color: '#818CF8' },
+                      ].map(st => (
+                        <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: st.color }}>{st.value}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>{st.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {profileStartggStats.stageUsage && profileStartggStats.stageUsage.length > 0 && (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 8px' }}>
+                          <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#818CF8,#6366F1)', flexShrink: 0 }} />
+                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Stages</p>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                          {profileStartggStats.stageUsage.slice(0, 3).map((st, idx) => (
+                            <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden' }}>
+                              {st.image && <img src={st.image} alt="" style={{ width: '100%', height: 55, objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />}
+                              {!st.image && <div style={{ width: '100%', height: 55, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '0 4px' }}>{st.name}</span></div>}
+                              <div style={{ padding: '5px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)' }}>#{idx + 1}</span>
+                                <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{st.usage}%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {profileStartggStats.highlights && profileStartggStats.highlights.length > 0 && (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 8px' }}>
+                          <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F97316,#EA580C)', flexShrink: 0 }} />
+                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Highlights</p>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
+                          {profileStartggStats.highlights.slice(0, 9).map((h, hi) => {
+                            const isTop3 = h.placement <= 3;
+                            const placementColor = h.placement === 1 ? '#F5C518' : h.placement === 2 ? '#C0C0C0' : h.placement === 3 ? '#CD7F32' : '#fff';
+                            return (
+                              <div key={hi} onClick={() => h.eventSlug && window.open(h.eventSlug, '_blank')} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isTop3 ? 'rgba(245,197,24,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px', cursor: h.eventSlug ? 'pointer' : 'default', overflow: 'hidden' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                                  {h.tournamentImage && <img src={h.tournamentImage} alt="" style={{ width: 22, height: 22, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />}
+                                  <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{h.tournament}</p>
+                                </div>
+                                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: placementColor }}>
+                                  {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'ST' : h.placement === 2 ? 'ND' : h.placement === 3 ? 'RD' : 'TH'}</sup>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>/{h.entrants}</span>
+                                </p>
+                                <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
+                                  {h.date ? new Date(h.date).toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' }) : ''}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Ranked 1v1 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
