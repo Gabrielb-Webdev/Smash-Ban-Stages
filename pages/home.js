@@ -859,11 +859,13 @@ function RankBadge({ rankName }) {
 }
 
 function RankedPlayerRow({ position, player, onPlayerClick }) {
+  const hasRank     = !!player.rank;
   const isSmasher   = player.rank === 'Smasher';
   const rankObj     = RANKS.find(r => r.name === player.rank) || RANKS[0];
-  const inPlacement = !player.placementDone;
+  const inPlacement = hasRank ? !player.placementDone : false;
   const wins  = player.wins || 0;
   const losses = player.losses || 0;
+  const winRate = player.winRate != null ? player.winRate : (wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0);
   const total  = wins + losses;
   const wr     = total > 0 ? (wins / total).toFixed(4) : '0.0000';
 
@@ -916,10 +918,18 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
             <span style={{ fontSize: isTop3 ? 13 : 11, fontWeight: 700, marginLeft: 8, opacity: 0.7 }}>{wr}</span>
           )}
         </p>
-        {!inPlacement && (
+        {!inPlacement && hasRank && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <RankBadge rankName={player.rank} />
             {isSmasher && <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.6)' : '#FF8C00', fontWeight: 700 }}>{player.rankPoints || 0} RP</span>}
+          </div>
+        )}
+        {!inPlacement && !hasRank && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <div style={{ background: winRate >= 60 ? 'rgba(52,211,153,0.15)' : winRate >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winRate >= 60 ? 'rgba(52,211,153,0.3)' : winRate >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '3px 8px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: winRate >= 60 ? '#34D399' : winRate >= 40 ? '#FBBF24' : '#F87171' }}>{winRate}%</span>
+            </div>
+            <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)', fontWeight: 700 }}>{wins}W · {losses}L</span>
           </div>
         )}
         {inPlacement && (
@@ -2687,28 +2697,9 @@ function TabRankings({ user, setTab }) {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {charBoard.map((p, i) => {
-                    const medals = ['🥇','🥈','🥉'];
-                    const winRate = Math.round(p.winRate ?? 0);
-                    return (
-                      <div key={p.userId} style={{
-                        background: i < 3 ? `rgba(255,255,255,0.04)` : '#10101A',
-                        border: `1px solid ${i === 0 ? 'rgba(255,215,0,0.18)' : i === 1 ? 'rgba(192,192,192,0.14)' : i === 2 ? 'rgba(205,127,50,0.14)' : 'rgba(255,255,255,0.05)'}`,
-                        borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
-                      }}>
-                        <span style={{ fontSize: i < 3 ? 20 : 13, fontWeight: 800, color: 'rgba(255,255,255,0.3)', width: 24, textAlign: 'center', flexShrink: 0 }}>
-                          {i < 3 ? medals[i] : `#${i+1}`}
-                        </span>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#fff', flex: 1 }}>{p.userName}</p>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.wins}V {p.losses}D</span>
-                          <div style={{ background: winRate >= 60 ? 'rgba(52,211,153,0.15)' : winRate >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winRate >= 60 ? 'rgba(52,211,153,0.3)' : winRate >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '3px 8px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: winRate >= 60 ? '#34D399' : winRate >= 40 ? '#FBBF24' : '#F87171' }}>{winRate}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {charBoard.map((p, i) => (
+                    <RankedPlayerRow key={p.userId} position={i + 1} player={{ ...p, mainCharId: charSel }} onPlayerClick={openProfile} />
+                  ))}
                 </div>
               )}
             </>
@@ -3920,6 +3911,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       ? matchData.result.winnerTeam === myTeamFinished
       : matchData.result.winnerId === uid;
     const stocks = matchData.result.stocksWon;
+    const winnerCharData = (() => { const wd = matchData.result.winnerId === matchData.host?.userId ? matchData.host : matchData.guest; return CHARACTERS.find(c => c.id === wd?.charId); })();
     return (
       <div style={{ padding: '24px 18px' }}>
         <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
@@ -3930,9 +3922,10 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? (is2v2Finished ? '¡Ganaron!' : '¡Ganaste!') : (is2v2Finished ? 'Perdieron' : 'Perdiste')}</p>
           <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado 💪' : 'La próxima será'}</p>
           {stocks && (
-            <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-              {'❤️'.repeat(stocks)} {stocks} stock{stocks > 1 ? 's' : ''} de ventaja
-            </p>
+            <div style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={charImgPath(winnerCharData.img)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>{stocks} stock{stocks > 1 ? 's' : ''} de ventaja</span>
+            </div>
           )}
           {iWon && matchRpDelta != null && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)' }}>
@@ -4117,8 +4110,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                   <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>¿Con cuántos stocks quedaste?</p>
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                     {[1,2,3].map(n => (
-                      <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, maxWidth: 100, padding: '8px 0', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', color: reportStocks === n ? '#FF8C00' : 'rgba(255,255,255,0.4)', fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.15s' }}>
-                        {'❤️'.repeat(n)}
+                      <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, maxWidth: 100, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                        {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
                       </button>
                     ))}
                   </div>
@@ -4142,8 +4135,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stocks que te quedaban</p>
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {[1,2,3].map(n => (
-                <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', color: reportStocks === n ? '#FF8C00' : 'rgba(255,255,255,0.4)', fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.15s' }}>
-                  {'❤️'.repeat(n)}
+                <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
                 </button>
               ))}
             </div>
