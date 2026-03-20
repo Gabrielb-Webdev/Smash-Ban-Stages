@@ -10,7 +10,12 @@ import { sendPushToAll } from '../../../lib/push';
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
 // Slugs de torneos "semilla" — se usan para descubrir organizadores y mostrar sus torneos
-const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1,asd2,true-combo-weeklies-53')
+const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'un-torneo-mas-1-1')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+// Series de torneos — se buscan por nombre para encontrar siempre el último número automáticamente
+// Ej: "True Combo Weeklies" encuentra True Combo Weeklies #61, #62, etc.
+const TOURNAMENT_SERIES = (process.env.STARTGG_TOURNAMENT_SERIES || 'True Combo Weeklies,To The Top')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 // Slugs adicionales de organizadores (usuarios de Start.gg) — opcional
@@ -21,6 +26,36 @@ const ORGANIZER_SLUGS = (process.env.STARTGG_ORGANIZER_SLUGS || process.env.STAR
 const SEEN_KEY      = 'startgg:tournaments:seen';
 const CACHE_KEY     = 'startgg:tournaments:cache';
 const CACHE_TTL     = 600; // 10 minutos (se auto-refresca)
+
+// Query para buscar torneos por nombre de serie (descubre el último número automáticamente)
+const SEARCH_TOURNAMENTS_BY_NAME_QUERY = `
+query SearchTournamentsByName($name: String!, $perPage: Int!) {
+  tournaments(query: {
+    perPage: $perPage,
+    filter: { name: $name }
+  }) {
+    nodes {
+      id
+      name
+      slug
+      startAt
+      endAt
+      numAttendees
+      state
+      isRegistrationOpen
+      url(relative: false)
+      images { url type }
+      owner { id slug name }
+      events {
+        id
+        name
+        numEntrants
+        videogame { id name }
+      }
+    }
+  }
+}
+`;
 
 // Query para obtener un torneo específico por slug (incluye owner para auto-descubrir organizador)
 const TOURNAMENT_BY_SLUG_QUERY = `
@@ -171,12 +206,42 @@ async function fetchStartggTournaments(token) {
     }
   }
 
+  // 2. Buscar torneos por nombre de serie (True Combo Weeklies, To The Top, etc.)
+  // Esto encuentra automáticamente el último número sin hardcodear slugs
+  for (const seriesName of TOURNAMENT_SERIES) {
+    try {
+      const resp = await fetch(STARTGG_API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          query: SEARCH_TOURNAMENTS_BY_NAME_QUERY,
+          variables: { name: seriesName, perPage: 10 },
+        }),
+      });
+      const data = await resp.json();
+      const nodes = data.data?.tournaments?.nodes || [];
+
+      // Filtrar solo activos/futuros (state 1=CREATED, 2=ACTIVE)
+      const upcoming = nodes.filter(n => n.state === 1 || n.state === 2);
+
+      for (const t of upcoming) {
+        addTournament(t);
+        const ownerSlug = t.owner?.slug;
+        if (ownerSlug) discoveredOwners.add(ownerSlug);
+      }
+
+      debug.push({ series: seriesName, found: nodes.length, upcoming: upcoming.length });
+    } catch (e) {
+      debug.push({ series: seriesName, status: 'error', message: e.message });
+    }
+  }
+
   // Add manually configured organizer slugs
   for (const s of ORGANIZER_SLUGS) {
     discoveredOwners.add(s);
   }
 
-  // 2. Fetch upcoming tournaments from each discovered owner
+  // 3. Fetch upcoming tournaments from each discovered owner
   // No filtramos por owner.id porque Start.gg usa IDs internos diferentes
   // entre tournament.owner y user.id. Usando filter: { upcoming: true }
   // solo devuelve torneos futuros y el dueño suele ser organizador de todos.
