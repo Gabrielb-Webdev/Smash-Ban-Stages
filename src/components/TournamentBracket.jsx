@@ -1,7 +1,6 @@
 import { Component } from 'react';
 import {
   SingleEliminationBracket,
-  SVGViewer,
   createTheme,
 } from '@g-loot/react-tournament-brackets';
 
@@ -200,20 +199,20 @@ function BracketInner({
   }
 
   return (
-    <div style={{ background: '#0B0B12', borderRadius: 16, overflow: 'hidden' }}>
+    <div style={{ background: '#0B0B12', borderRadius: 16, overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch' }}>
       <SingleEliminationBracket
         matches={matches}
         matchComponent={MatchCard}
-        svgWrapper={({ children, ...props }) => (
-          <SVGViewer
-            background="#0B0B12"
-            SVGBackground="#0B0B12"
-            width={props.width}
-            height={props.height}
-            {...props}
+        svgWrapper={({ children, width, height }) => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={width}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            style={{ display: 'block', background: '#0B0B12', minWidth: width }}
           >
             {children}
-          </SVGViewer>
+          </svg>
         )}
         theme={DARK_THEME}
         options={{
@@ -227,8 +226,8 @@ function BracketInner({
             connectorColor: 'rgba(255,255,255,0.14)',
             connectorColorHighlight: '#FF8C00',
             matchWidth: 220,
-            matchHeight: 45,
-            roundSeparatorWidth: 24,
+            matchHeight: 60,
+            roundSeparatorWidth: 32,
           },
         }}
       />

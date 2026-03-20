@@ -526,7 +526,7 @@ export default function TestAdminPage() {
         </div>
 
         {/* ── BRACKET POR RONDAS ── */}
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 20px 48px' }}>
+        <div style={{ padding: '0 20px 48px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h2 style={{ fontWeight: 900, fontSize: 18, color: '#fff', marginBottom: 3 }}>🎯 Bracket{phaseName ? ` — ${phaseName}` : ''}</h2>
