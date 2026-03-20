@@ -9,19 +9,20 @@ import { sendPushToAll } from '../../../lib/push';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
-// Slugs de torneos específicos a mostrar (comma-separated)
+// Slugs de torneos "semilla" — se usan para descubrir organizadores y mostrar sus torneos
 const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1')
   .split(',').map(s => s.trim()).filter(Boolean);
 
-// Slug del organizador (usuario de Start.gg) — opcional
-const ORGANIZER_SLUG = process.env.STARTGG_ORGANIZER_SLUG || '';
+// Slugs adicionales de organizadores (usuarios de Start.gg) — opcional
+const ORGANIZER_SLUGS = (process.env.STARTGG_ORGANIZER_SLUGS || process.env.STARTGG_ORGANIZER_SLUG || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
 
 // Keys en Redis
 const SEEN_KEY      = 'startgg:tournaments:seen';
 const CACHE_KEY     = 'startgg:tournaments:cache';
 const CACHE_TTL     = 3600; // 1 hora
 
-// Query para obtener un torneo específico por slug
+// Query para obtener un torneo específico por slug (incluye owner para auto-descubrir organizador)
 const TOURNAMENT_BY_SLUG_QUERY = `
 query TournamentBySlug($slug: String!) {
   tournament(slug: $slug) {
@@ -35,6 +36,7 @@ query TournamentBySlug($slug: String!) {
     isRegistrationOpen
     url(relative: false)
     images { url type }
+    owner { id slug name }
     events {
       id
       name
@@ -108,6 +110,7 @@ async function fetchStartggTournaments(token) {
   const seen = new Set();
   const results = [];
   const debug = [];
+  const discoveredOwners = new Set();
 
   const addTournament = (t) => {
     const id = String(t.id);
@@ -117,7 +120,7 @@ async function fetchStartggTournaments(token) {
     }
   };
 
-  // 1. Fetch each specific tournament by slug
+  // 1. Fetch seed tournaments by slug — and discover their owners
   for (const slug of TOURNAMENT_SLUGS) {
     try {
       const resp = await fetch(STARTGG_API, {
@@ -129,10 +132,9 @@ async function fetchStartggTournaments(token) {
         }),
       });
       const data = await resp.json();
-      if (data.data?.tournament) {
-        addTournament(data.data.tournament);
-        debug.push({ slug, status: 'found', method: 'direct' });
-      } else {
+      let tournament = data.data?.tournament;
+
+      if (!tournament) {
         // Try with tournament/ prefix
         const resp2 = await fetch(STARTGG_API, {
           method: 'POST',
@@ -143,18 +145,21 @@ async function fetchStartggTournaments(token) {
           }),
         });
         const data2 = await resp2.json();
-        if (data2.data?.tournament) {
-          addTournament(data2.data.tournament);
+        tournament = data2.data?.tournament;
+        if (tournament) {
           debug.push({ slug, status: 'found', method: 'with-prefix' });
         } else {
-          debug.push({
-            slug,
-            status: 'not_found',
-            httpStatus1: resp.status,
-            httpStatus2: resp2.status,
-            resp1: JSON.stringify(data).slice(0, 300),
-            resp2: JSON.stringify(data2).slice(0, 300),
-          });
+          debug.push({ slug, status: 'not_found' });
+        }
+      } else {
+        debug.push({ slug, status: 'found', method: 'direct' });
+      }
+
+      if (tournament) {
+        addTournament(tournament);
+        // Discover the owner for auto-fetching their other tournaments
+        if (tournament.owner?.slug) {
+          discoveredOwners.add(tournament.owner.slug);
         }
       }
     } catch (e) {
@@ -162,21 +167,30 @@ async function fetchStartggTournaments(token) {
     }
   }
 
-  // 2. If organizer slug is set, also fetch their tournaments
-  if (ORGANIZER_SLUG) {
+  // Add manually configured organizer slugs
+  for (const s of ORGANIZER_SLUGS) {
+    discoveredOwners.add(s);
+  }
+
+  // 2. Fetch ALL upcoming tournaments from each discovered owner
+  for (const ownerSlug of discoveredOwners) {
     try {
       const resp = await fetch(STARTGG_API, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           query: TOURNAMENTS_BY_OWNER_QUERY,
-          variables: { slug: ORGANIZER_SLUG, page: 1, perPage: 25 },
+          variables: { slug: ownerSlug, page: 1, perPage: 25 },
         }),
       });
       const data = await resp.json();
       const nodes = data.data?.user?.tournaments?.nodes || [];
+      const added = nodes.filter(n => !seen.has(String(n.id)));
       nodes.forEach(addTournament);
-    } catch { /* skip */ }
+      debug.push({ owner: ownerSlug, status: 'fetched', tournamentsFound: nodes.length, newAdded: added.length });
+    } catch (e) {
+      debug.push({ owner: ownerSlug, status: 'error', message: e.message });
+    }
   }
 
   // Filtrar solo torneos futuros o en curso (no pasados)
@@ -184,11 +198,8 @@ async function fetchStartggTournaments(token) {
   const now = Date.now();
   const formatted = results.map(formatTournament).filter(t => {
     const state = t.state;
-    // Excluir completados y cancelados (numérico o string)
     if (state === 3 || state === 4 || state === 'COMPLETED' || state === 'CANCELLED') return false;
-    // Si estado es creado o activo, siempre mostrar
     if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;
-    // Fallback por fechas
     if (t.endAt && new Date(t.endAt).getTime() > now) return true;
     if (t.startAt && new Date(t.startAt).getTime() > now) return true;
     if (!t.endAt && !t.startAt) return true;
@@ -236,7 +247,7 @@ export default async function handler(req, res) {
 
       const showDebug = req.query.debug === 'true';
       const response = { tournaments, source: 'live' };
-      if (showDebug) { response.slugs = TOURNAMENT_SLUGS; response.organizerSlug = ORGANIZER_SLUG || null; response.debug = debug; }
+      if (showDebug) { response.slugs = TOURNAMENT_SLUGS; response.organizerSlugs = ORGANIZER_SLUGS; response.debug = debug; }
       return res.status(200).json(response);
     } catch (err) {
       console.error('[sync-startgg] handler error:', err.message);
