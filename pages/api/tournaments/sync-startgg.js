@@ -47,7 +47,7 @@ query TournamentBySlug($slug: String!) {
 }
 `;
 
-// Query para obtener torneos de un usuario/organizador
+// Query para obtener torneos de un usuario/organizador (incluye owner para filtrar)
 const TOURNAMENTS_BY_OWNER_QUERY = `
 query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
@@ -68,6 +68,7 @@ query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
         isRegistrationOpen
         url(relative: false)
         images { url type }
+        owner { id slug }
         events {
           id
           name
@@ -172,7 +173,7 @@ async function fetchStartggTournaments(token) {
     discoveredOwners.add(s);
   }
 
-  // 2. Fetch ALL upcoming tournaments from each discovered owner
+  // 2. Fetch upcoming tournaments CREATED BY each discovered owner (not just registered)
   for (const ownerSlug of discoveredOwners) {
     try {
       const resp = await fetch(STARTGG_API, {
@@ -184,10 +185,13 @@ async function fetchStartggTournaments(token) {
         }),
       });
       const data = await resp.json();
+      const userId = data.data?.user?.id;
       const nodes = data.data?.user?.tournaments?.nodes || [];
-      const added = nodes.filter(n => !seen.has(String(n.id)));
-      nodes.forEach(addTournament);
-      debug.push({ owner: ownerSlug, status: 'fetched', tournamentsFound: nodes.length, newAdded: added.length });
+      // Solo agregar torneos donde el owner coincide (creados por este usuario, no donde está inscrito)
+      const owned = nodes.filter(n => n.owner && String(n.owner.id) === String(userId));
+      const added = owned.filter(n => !seen.has(String(n.id)));
+      owned.forEach(addTournament);
+      debug.push({ owner: ownerSlug, userId, status: 'fetched', total: nodes.length, owned: owned.length, newAdded: added.length });
     } catch (e) {
       debug.push({ owner: ownerSlug, status: 'error', message: e.message });
     }
