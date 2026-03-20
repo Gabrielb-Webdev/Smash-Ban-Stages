@@ -3191,9 +3191,11 @@ function TabRankings({ user, setTab }) {
                   <button key={c.id} onClick={() => setCharSel(c.id)} style={{
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 12, padding: 4, cursor: 'pointer', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: 4,
+                    alignItems: 'center', gap: 4, boxSizing: 'border-box', width: '100%',
                   }}>
-                    <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', borderRadius: 8 }} />
+                    <div style={{ width: '100%', aspectRatio: '1', overflow: 'hidden', borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
                     <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{c.name}</p>
                   </button>
                 ))}

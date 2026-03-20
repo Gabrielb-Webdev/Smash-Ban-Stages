@@ -8,11 +8,17 @@ import redis from '../../../lib/redis';
 const ADMIN_SLUGS = (process.env.ADMIN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
 const CACHE_TTL = 300; // 5 minutos
 
-async function getCommunities(slug) {
+async function getCommunities(slug, userId) {
   try {
-    const raw = await redis.get(`admins:user:${slug}`);
-    if (!raw) return [];
-    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    // Buscar primero por slug de start.gg (ej: "gabriel-sin-h")
+    const bySlug = await redis.get(`admins:user:${slug}`);
+    if (bySlug) return typeof bySlug === 'string' ? JSON.parse(bySlug) : bySlug;
+    // Fallback: buscar por ID numérico (cuando se agregó via autocomplete)
+    if (userId && String(userId) !== slug) {
+      const byId = await redis.get(`admins:user:${userId}`);
+      if (byId) return typeof byId === 'string' ? JSON.parse(byId) : byId;
+    }
+    return [];
   } catch { return []; }
 }
 
@@ -59,7 +65,7 @@ export default async function handler(req, res) {
     const isAdmin = ADMIN_SLUGS.length > 0 &&
       (ADMIN_SLUGS.includes(slugNormalized) || ADMIN_SLUGS.includes(user.slug));
 
-    const adminCommunities = isAdmin ? [] : await getCommunities(slugNormalized);
+    const adminCommunities = isAdmin ? [] : await getCommunities(slugNormalized, String(user.id));
 
     const result = {
       isAdmin,

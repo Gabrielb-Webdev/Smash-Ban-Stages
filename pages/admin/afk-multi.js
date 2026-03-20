@@ -19,7 +19,7 @@ export default function AfkMultiPage() {
     // Verificación real contra el servidor (isAdmin no se toma de localStorage)
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      if (!data.isAdmin) { router.replace('/home'); return; }
+      if (!data.isAdmin && !data.adminCommunities?.includes('afk')) { router.replace('/home'); return; }
       setUser(data.user);
       setChecking(false);
     });
