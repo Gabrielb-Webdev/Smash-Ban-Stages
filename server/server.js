@@ -178,18 +178,47 @@ const httpServer = createServer((req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id } = JSON.parse(body);
+        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format } = JSON.parse(body);
         if (!sessionId) { res.writeHead(400); res.end(JSON.stringify({ error: 'sessionId requerido' })); return; }
+
         // Guardar en pending (por si la sesión WebSocket todavía no se creó)
         pendingStartggData.set(sessionId, { startggSetId, startggEntrant1Id, startggEntrant2Id });
-        // Si la sesión ya existe en memoria, actualizarla inmediatamente
-        const session = sessions.get(sessionId);
-        if (session) {
+
+        // Crear la sesión completa en el Map para que join-session funcione inmediatamente
+        let session = sessions.get(sessionId);
+        if (!session && (player1 || player2)) {
+          session = {
+            sessionId,
+            community: null,
+            player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
+            player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
+            format: format || 'BO3',
+            currentGame: 1,
+            phase: 'RPS',
+            rpsWinner: null,
+            lastGameWinner: null,
+            currentTurn: null,
+            availableStages: [],
+            bannedStages: [],
+            selectedStage: null,
+            banHistory: [],
+            bansRemaining: 0,
+            totalBansNeeded: 0,
+            games: [],
+            startggSetId: startggSetId || null,
+            startggEntrant1Id: startggEntrant1Id || null,
+            startggEntrant2Id: startggEntrant2Id || null,
+          };
+          sessions.set(sessionId, session);
+          console.log('📝 Sesión pre-creada desde /session-meta:', sessionId);
+        } else if (session) {
+          // Actualizar datos start.gg en sesión existente
           session.startggSetId = startggSetId;
           session.startggEntrant1Id = startggEntrant1Id;
           session.startggEntrant2Id = startggEntrant2Id;
           sessions.set(sessionId, session);
         }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (e) {

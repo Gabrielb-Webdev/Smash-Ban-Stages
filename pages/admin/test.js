@@ -264,7 +264,8 @@ export default function TestAdminPage() {
 
     // Generar sessionId único para el ban
     const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
-    const banUrl = `/tablet/${sessionId}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
+    const banUrl = `${origin}/tablet/${sessionId}`;
 
     // IDs de start.gg del set seleccionado (para reportar resultados automáticamente)
     const startggSetId      = set.id;
@@ -293,7 +294,11 @@ export default function TestAdminPage() {
       fetch(`${socketUrl}/session-meta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id }),
+        body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id,
+          player1: players[0] || 'Jugador 1',
+          player2: players[1] || 'Jugador 2',
+          format: 'BO3',
+        }),
       });
     } catch {}
 
@@ -560,9 +565,20 @@ export default function TestAdminPage() {
                               <button onClick={() => stopMatchTimer(setup.id)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 6, padding: '3px 8px', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>Cancelar</button>
                             </div>
                             {assigned?.banUrl && (
-                              <a href={assigned.banUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: setup.color, background: setup.color + '15', border: `1px solid ${setup.color}35`, borderRadius: 7, padding: '5px 8px', textDecoration: 'none' }}>
-                                🎯 Abrir sistema de ban →
-                              </a>
+                              <div style={{ marginTop: 8 }}>
+                                <a href={assigned.banUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: setup.color, background: setup.color + '15', border: `1px solid ${setup.color}35`, borderRadius: 7, padding: '5px 8px', textDecoration: 'none', marginBottom: 8 }}>
+                                  🎯 Abrir sistema de ban →
+                                </a>
+                                {/* QR code para que el jugador escanee con su celu */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                  <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=ffffff&bgcolor=0B0B12&data=${encodeURIComponent(assigned.banUrl)}`}
+                                    alt="QR ban"
+                                    style={{ width: 110, height: 110, borderRadius: 8, border: `1px solid ${setup.color}40` }}
+                                  />
+                                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>📱 Escaneá para entrar</span>
+                                </div>
+                              </div>
                             )}
                           </div>
                         ) : (
