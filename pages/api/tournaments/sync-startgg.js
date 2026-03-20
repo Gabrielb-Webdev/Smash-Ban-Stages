@@ -10,7 +10,7 @@ import { sendPushToAll } from '../../../lib/push';
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
 // Slugs de torneos específicos a mostrar (comma-separated)
-const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup')
+const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 // Slug del organizador (usuario de Start.gg) — opcional
@@ -179,7 +179,19 @@ async function fetchStartggTournaments(token) {
     } catch { /* skip */ }
   }
 
-  return { tournaments: results.map(formatTournament), debug };
+  // Filtrar solo torneos futuros o en curso (no pasados)
+  const now = Date.now();
+  const formatted = results.map(formatTournament).filter(t => {
+    // Mostrar si: estado activo/creado, O si endAt es futuro, O si startAt es futuro
+    if (t.state && ['COMPLETED', 'CANCELLED'].includes(t.state)) return false;
+    if (t.endAt && new Date(t.endAt).getTime() > now) return true;
+    if (t.startAt && new Date(t.startAt).getTime() > now) return true;
+    // Si no tiene fechas pero no está completado, mostrarlo
+    if (!t.endAt && !t.startAt) return true;
+    return false;
+  });
+
+  return { tournaments: formatted, debug };
 }
 
 export default async function handler(req, res) {
@@ -218,7 +230,10 @@ export default async function handler(req, res) {
         await redis.set(CACHE_KEY, JSON.stringify(tournaments), { ex: CACHE_TTL });
       }
 
-      return res.status(200).json({ tournaments, source: 'live', slugs: TOURNAMENT_SLUGS, organizerSlug: ORGANIZER_SLUG || null, debug });
+      const showDebug = req.query.debug === 'true';
+      const response = { tournaments, source: 'live' };
+      if (showDebug) { response.slugs = TOURNAMENT_SLUGS; response.organizerSlug = ORGANIZER_SLUG || null; response.debug = debug; }
+      return res.status(200).json(response);
     } catch (err) {
       console.error('[sync-startgg] handler error:', err.message);
       return res.status(500).json({ error: 'Error consultando Start.gg', detail: err.message });
@@ -236,7 +251,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const tournaments = await fetchStartggTournaments(startggToken);
+      const { tournaments } = await fetchStartggTournaments(startggToken);
       if (tournaments.length === 0) {
         return res.status(200).json({ success: true, newTournaments: [], message: 'No se encontraron torneos' });
       }
