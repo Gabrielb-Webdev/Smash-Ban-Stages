@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -21,7 +21,7 @@ export default function Home() {
     });
   }, []);
 
-  // Cerrar menÃº al hacer click fuera
+  // Cerrar menú al hacer click fuera
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
@@ -46,9 +46,9 @@ export default function Home() {
   const communities = [
     {
       id: 'cordoba',
-      name: 'Smash CÃ³rdoba',
+      name: 'Smash Córdoba',
       logo: '/images/SCC.webp',
-      description: 'Panel de administraciÃ³n de Smash CÃ³rdoba',
+      description: 'Panel de administración de Smash Córdoba',
       color: 'from-pink-900 via-purple-700 to-pink-800',
       borderColor: 'border-pink-400',
       hoverColor: 'hover:border-pink-300'
@@ -57,7 +57,7 @@ export default function Home() {
       id: 'afk-multi',
       name: 'Smash AFK',
       logo: '/images/AFK.webp',
-      description: 'Panel de administraciÃ³n de Smash AFK (Buenos Aires)',
+      description: 'Panel de administración de Smash AFK (Buenos Aires)',
       color: 'from-sky-900 via-cyan-700 to-blue-800',
       borderColor: 'border-cyan-400',
       hoverColor: 'hover:border-cyan-300'
@@ -66,14 +66,14 @@ export default function Home() {
       id: 'mendoza',
       name: 'Smash Mendoza',
       logo: '/images/Team_Anexo/team_anexo_logo_nwe.png',
-      description: 'Panel de administraciÃ³n de Smash Mendoza',
+      description: 'Panel de administración de Smash Mendoza',
       color: 'from-gray-900 via-slate-700 to-gray-800',
       borderColor: 'border-gray-400',
       hoverColor: 'hover:border-gray-300'
     }
   ];
 
-  // Filtrar segÃºn acceso: admin global ve todo, community admin ve solo las suyas
+  // Filtrar según acceso: admin global ve todo, community admin ve solo las suyas
   const visibleCommunities = isAdmin
     ? communities
     : communities.filter(c => {
@@ -84,15 +84,15 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>la App sin H - GestiÃ³n de Torneos de Smash</title>
-        <meta name="description" content="Panel de administraciÃ³n para comunidades de Smash Bros" />
+        <title>la App sin H - Gestión de Torneos de Smash</title>
+        <meta name="description" content="Panel de administración para comunidades de Smash Bros" />
         <style>{`
           @keyframes fadeUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
           .menu-item:hover { background: var(--hover-bg) !important; }
         `}</style>
       </Head>
 
-      {/* Avatar / trigger menÃº â€” esquina superior derecha */}
+      {/* Avatar / trigger menú — esquina superior derecha */}
       <div ref={menuRef} style={{ position: 'fixed', top: 16, right: 20, zIndex: 100 }}>
         <button
           onClick={() => setShowMenu(v => !v)}
@@ -105,7 +105,7 @@ export default function Home() {
               </div>
           }
           <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>{displayName}</span>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>â–¾</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>▾</span>
         </button>
 
         {/* Dropdown */}
@@ -135,7 +135,7 @@ export default function Home() {
                 {user?.slug && <p style={{ margin: '3px 0 6px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'sans-serif' }}>@{user.slug}</p>}
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 99, padding: '2px 9px' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E' }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', fontFamily: 'sans-serif' }}>En lÃ­nea</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', fontFamily: 'sans-serif' }}>En línea</span>
                 </div>
               </div>
             </div>
@@ -148,12 +148,12 @@ export default function Home() {
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(34,197,94,0.08)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>ðŸ </div>
+                <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🏠</div>
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#22C55E' }}>Inicio</p>
                   <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(34,197,94,0.45)' }}>Rankings, torneos y perfil</p>
                 </div>
-                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>â€º</span>
+                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>›</span>
               </button>
             </div>
 
@@ -164,17 +164,17 @@ export default function Home() {
                   onClick={() => setShowMenu(false)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'rgba(232,142,0,0.06)', cursor: 'default', textAlign: 'left', fontFamily: 'sans-serif' }}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>ðŸŽ›ï¸</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🎛️</div>
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#FF8C00' }}>Panel de Admin</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(232,142,0,0.45)' }}>EstÃ¡s aquÃ­ ahora</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(232,142,0,0.45)' }}>Estás aquí ahora</p>
                   </div>
                   <span style={{ fontSize: 9, fontWeight: 700, color: '#FF8C00', background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 99, padding: '2px 8px' }}>Activo</span>
                 </button>
               </div>
             )}
 
-            {/* Cerrar sesiÃ³n */}
+            {/* Cerrar sesión */}
             <div style={{ padding: '4px 10px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <button
                 onClick={() => { logout(); setShowMenu(false); router.replace('/login'); }}
@@ -182,9 +182,9 @@ export default function Home() {
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.09)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>ðŸšª</div>
+                <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🚪</div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#EF4444' }}>Cerrar sesiÃ³n</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#EF4444' }}>Cerrar sesión</p>
                   <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(239,68,68,0.45)' }}>Salir de la cuenta</p>
                 </div>
               </button>
@@ -193,7 +193,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Overlay para cerrar menÃº */}
+      {/* Overlay para cerrar menú */}
       {showMenu && <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }} />}
 
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
@@ -201,10 +201,10 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            ðŸŽ® la App sin H
+            🎮 la App sin H
           </h1>
           <p className="text-xl text-gray-300">
-            Selecciona tu comunidad para acceder al panel de administraciÃ³n
+            Selecciona tu comunidad para acceder al panel de administración
           </p>
         </div>
 
@@ -259,7 +259,7 @@ export default function Home() {
                 {/* Button */}
                 <div className="text-center">
                   <span className="inline-block bg-white bg-opacity-20 text-white px-6 py-3 rounded-lg font-semibold group-hover:bg-opacity-30 transition-all">
-                    Acceder al Panel â†’
+                    Acceder al Panel →
                   </span>
                 </div>
               </div>
@@ -273,10 +273,10 @@ export default function Home() {
           {isAdmin && (
             <div className="mt-4 flex justify-center gap-4 flex-wrap">
               <Link href="/admin/manage-admins" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
-                ðŸ›¡ï¸ Gestionar Admins de comunidad
+                🛡️ Gestionar Admins de comunidad
               </Link>
               <Link href="/admin/test" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
-                ðŸ† Panel de Torneo
+                🏆 Panel de Torneo
               </Link>
             </div>
           )}
