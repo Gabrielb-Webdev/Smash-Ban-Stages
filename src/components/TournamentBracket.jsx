@@ -1,3 +1,4 @@
+import { Component } from 'react';
 import {
   DoubleEliminationBracket,
   SingleEliminationBracket,
@@ -27,7 +28,46 @@ const SET_STATES_MAP = {
   CREATED: 'SCHEDULED',
 };
 
-export default function TournamentBracket({
+// Error boundary para capturar crashes de la librería
+class BracketErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 14, padding: '24px 20px', textAlign: 'center',
+        }}>
+          <p style={{ color: '#F87171', fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Error al renderizar el bracket</p>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{this.state.error?.message}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function makeTwoParticipants(participants, setId) {
+  const result = [...(Array.isArray(participants) ? participants : [])];
+  while (result.length < 2) {
+    result.push({
+      id: `tbd-${setId}-${result.length}`,
+      name: 'TBD',
+      isWinner: false,
+      resultText: null,
+      status: null,
+    });
+  }
+  return result.slice(0, 2);
+}
+
+function BracketInner({
   bracketSets,
   assignedSets,
   draggedSet,
@@ -36,7 +76,10 @@ export default function TournamentBracket({
   TEST_SETUPS,
   SET_STATE_STYLE,
 }) {
-  const hasLosers = bracketSets.some(s => (s.round || '').toLowerCase().includes('losers'));
+  if (!Array.isArray(bracketSets) || bracketSets.length === 0) return null;
+
+  // Solo usar doble eliminación si hay conexiones reales de Losers
+  const hasLosers = bracketSets.some(s => s.nextLooserMatchId != null);
 
   const matches = bracketSets.map(set => ({
     id: set.id,
@@ -45,32 +88,35 @@ export default function TournamentBracket({
     tournamentRoundText: set.round || '',
     startTime: '',
     state: SET_STATES_MAP[set.stateLabel] || 'SCHEDULED',
-    participants: (set.slots || []).map((slot, i) => ({
-      id: slot.entrant?.id || `tbd-${set.id}-${i}`,
-      name: slot.entrant?.name || 'TBD',
-      isWinner: set.stateLabel === 'COMPLETED' && slot.placement === 1,
-      resultText:
-        (set.stateLabel === 'COMPLETED' || set.stateLabel === 'ACTIVE') && slot.score != null
-          ? String(slot.score)
-          : null,
-      status: set.stateLabel === 'COMPLETED' ? 'PLAYED' : null,
-    })),
+    participants: makeTwoParticipants(
+      (set.slots || []).map((slot, i) => ({
+        id: String(slot?.entrant?.id ?? `tbd-${set.id}-${i}`),
+        name: slot?.entrant?.name || 'TBD',
+        isWinner: set.stateLabel === 'COMPLETED' && slot?.placement === 1,
+        resultText:
+          (set.stateLabel === 'COMPLETED' || set.stateLabel === 'ACTIVE') && slot?.score != null
+            ? String(slot.score)
+            : null,
+        status: set.stateLabel === 'COMPLETED' ? 'PLAYED' : null,
+      })),
+      set.id,
+    ),
   }));
 
   const BracketComp = hasLosers ? DoubleEliminationBracket : SingleEliminationBracket;
 
   function MatchCard({ match, topParty, bottomParty, topWon, bottomWon }) {
-    const set = bracketSets.find(s => s.id === String(match.id));
-    if (!set) return null;
+    const set = bracketSets.find(s => s.id === String(match?.id));
+    if (!set || !match) return null;
 
-    const isDone    = set.stateLabel === 'COMPLETED';
-    const isBye     = set.stateLabel === 'BYE';
-    const isActive  = set.stateLabel === 'ACTIVE' || set.stateLabel === 'CALLED';
+    const isDone     = set.stateLabel === 'COMPLETED';
+    const isBye      = set.stateLabel === 'BYE';
+    const isActive   = set.stateLabel === 'ACTIVE' || set.stateLabel === 'CALLED';
     const isDragging = draggedSet?.id === set.id;
-    const aSetup    = TEST_SETUPS.find(s => assignedSets[s.id]?.id === set.id);
-    const sc        = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
-    const parties   = [topParty, bottomParty];
-    const wonArr    = [topWon, bottomWon];
+    const aSetup     = TEST_SETUPS.find(s => assignedSets[s.id]?.id === set.id);
+    const sc         = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
+    const parties    = [topParty, bottomParty];
+    const wonArr     = [topWon, bottomWon];
 
     return (
       <div
@@ -78,17 +124,13 @@ export default function TournamentBracket({
         onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
         onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
         style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
+          width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
           border: `1px solid ${
             aSetup      ? aSetup.color + '66'
             : isActive  ? 'rgba(255,140,0,0.4)'
             :             'rgba(255,255,255,0.09)'
           }`,
-          borderRadius: 10,
-          overflow: 'hidden',
+          borderRadius: 10, overflow: 'hidden',
           background: isDone   ? 'rgba(255,255,255,0.025)'
                     : isActive ? 'rgba(255,140,0,0.06)'
                     :            '#13131E',
@@ -99,7 +141,7 @@ export default function TournamentBracket({
           transition: 'opacity 0.15s',
         }}
       >
-        {/* Header: estado + setup asignado */}
+        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '3px 7px', background: 'rgba(0,0,0,0.25)',
@@ -124,7 +166,7 @@ export default function TournamentBracket({
           )}
         </div>
 
-        {/* Filas de participantes */}
+        {/* Participantes */}
         {parties.map((party, i) => {
           const won  = wonArr[i];
           const lost = isDone && !won && party?.name && party.name !== 'TBD';
@@ -197,5 +239,13 @@ export default function TournamentBracket({
         }}
       />
     </div>
+  );
+}
+
+export default function TournamentBracket(props) {
+  return (
+    <BracketErrorBoundary>
+      <BracketInner {...props} />
+    </BracketErrorBoundary>
   );
 }

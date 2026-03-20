@@ -32,8 +32,13 @@ export async function verifySession() {
       return null;
     }
     const data = await res.json();
-    // Actualizar isAdmin en localStorage con el valor fresco del servidor
-    localStorage.setItem('afk_user', JSON.stringify({ ...stored, isAdmin: data.isAdmin, user: data.user }));
+    // Actualizar isAdmin y adminCommunities en localStorage con valores frescos del servidor
+    localStorage.setItem('afk_user', JSON.stringify({
+      ...stored,
+      isAdmin: data.isAdmin,
+      adminCommunities: data.adminCommunities || [],
+      user: data.user,
+    }));
     return data;
   } catch {
     return null;

@@ -1,11 +1,20 @@
 // GET /api/auth/me
 // Verifica el access_token de start.gg y devuelve isAdmin según ADMIN_SLUGS del servidor.
+// También devuelve adminCommunities[] desde Redis para acceso segmentado por comunidad.
 // Usa Redis como caché (TTL 5 min) para no golpear la API de start.gg en cada request.
 
 import redis from '../../../lib/redis';
 
 const ADMIN_SLUGS = (process.env.ADMIN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
 const CACHE_TTL = 300; // 5 minutos
+
+async function getCommunities(slug) {
+  try {
+    const raw = await redis.get(`admins:user:${slug}`);
+    if (!raw) return [];
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch { return []; }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -50,8 +59,11 @@ export default async function handler(req, res) {
     const isAdmin = ADMIN_SLUGS.length > 0 &&
       (ADMIN_SLUGS.includes(slugNormalized) || ADMIN_SLUGS.includes(user.slug));
 
+    const adminCommunities = isAdmin ? [] : await getCommunities(slugNormalized);
+
     const result = {
       isAdmin,
+      adminCommunities,
       user: {
         id: user.id,
         name: user.name || user.player?.gamerTag || slugNormalized,

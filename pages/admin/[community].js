@@ -19,11 +19,12 @@ export default function CommunityAdmin() {
 
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      if (!data.isAdmin) { router.replace('/home'); return; }
+      const hasAccess = data.isAdmin || data.adminCommunities?.includes(community);
+      if (!hasAccess && community) { router.replace('/home'); return; }
       setAuthUser(data.user);
       setChecking(false);
     });
-  }, []);
+  }, [community]);
 
   // Redirigir rutas especiales que tienen su propia página
   useEffect(() => {

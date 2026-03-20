@@ -1,8 +1,16 @@
-// API Route para autenticación con start.gg
+import redis from '../../../../lib/redis';
 
 const START_GG_CLIENT_ID = process.env.START_GG_CLIENT_ID || '435';
 const START_GG_CLIENT_SECRET = process.env.START_GG_CLIENT_SECRET;
 const ADMIN_SLUGS = (process.env.ADMIN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
+
+async function getCommunities(slug) {
+  try {
+    const raw = await redis.get(`admins:user:${slug}`);
+    if (!raw) return [];
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch { return []; }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -85,6 +93,7 @@ export default async function handler(req, res) {
     // Start.gg devuelve slug como "user/ead8fa65" — normalizamos a solo "ead8fa65"
     const slugNormalized = user.slug?.replace(/^user\//, '');
     const isAdmin = ADMIN_SLUGS.length > 0 && (ADMIN_SLUGS.includes(slugNormalized) || ADMIN_SLUGS.includes(user.slug));
+    const adminCommunities = isAdmin ? [] : await getCommunities(slugNormalized);
 
     res.status(200).json({
       access_token: tokenData.access_token,
@@ -92,6 +101,7 @@ export default async function handler(req, res) {
       expires_in: tokenData.expires_in,
       token_type: tokenData.token_type,
       isAdmin,
+      adminCommunities,
       user: {
         id: user.id,
         name: user.name || user.player?.gamerTag || slugNormalized,

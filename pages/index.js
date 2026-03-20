@@ -3,19 +3,20 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Head from 'next/head';
-import { getStoredUser } from '../src/utils/auth';
+import { verifySession } from '../src/utils/auth';
 
 export default function Home() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [session, setSession]   = useState(null);
 
   useEffect(() => {
-    const user = getStoredUser();
-    if (!user || !user.isAdmin) {
-      router.replace('/login');
-    } else {
+    verifySession().then(data => {
+      if (!data) { router.replace('/login'); return; }
+      if (!data.isAdmin && !data.adminCommunities?.length) { router.replace('/login'); return; }
+      setSession(data);
       setChecking(false);
-    }
+    });
   }, []);
 
   if (checking) {
@@ -56,6 +57,14 @@ export default function Home() {
     }
   ];
 
+  // Filtrar según acceso: admin global ve todo, community admin ve solo las suyas
+  const visibleCommunities = session?.isAdmin
+    ? communities
+    : communities.filter(c => {
+        const cId = c.id === 'afk-multi' ? 'afk' : c.id;
+        return session?.adminCommunities?.includes(cId);
+      });
+
   return (
     <>
       <Head>
@@ -77,7 +86,7 @@ export default function Home() {
 
         {/* Community Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {communities.map((community) => (
+          {visibleCommunities.map((community) => (
             <Link 
               key={community.id} 
               href={`/admin/${community.id}`}
@@ -137,6 +146,16 @@ export default function Home() {
         {/* Footer Info */}
         <div className="text-center text-gray-400 text-sm mt-8">
           <p>Selecciona una comunidad para gestionar sesiones, jugadores y configuraciones</p>
+          {session?.isAdmin && (
+            <div className="mt-4 flex justify-center gap-4 flex-wrap">
+              <Link href="/admin/manage-admins" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
+                🛡️ Gestionar Admins de comunidad
+              </Link>
+              <Link href="/admin/test" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
+                🏆 Panel de Torneo
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
