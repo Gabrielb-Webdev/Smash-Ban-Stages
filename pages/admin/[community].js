@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import AdminPanel from '../../src/components/AdminPanel';
 import Link from 'next/link';
-import { getStoredUser, logout } from '../../src/utils/auth';
+import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
 
 export default function CommunityAdmin() {
   const router = useRouter();
@@ -12,13 +12,17 @@ export default function CommunityAdmin() {
 
   const validCommunities = ['cordoba', 'afk', 'mendoza'];
 
-  // Auth guard
+  // Auth guard — isAdmin se verifica en el servidor, no en localStorage
   useEffect(() => {
     const stored = getStoredUser();
-    if (!stored) { router.replace('/login'); return; }
-    if (!stored.isAdmin) { router.replace('/home'); return; }
-    setAuthUser(stored.user);
-    setChecking(false);
+    if (!stored?.access_token) { router.replace('/login'); return; }
+
+    verifySession().then(data => {
+      if (!data) { router.replace('/login'); return; }
+      if (!data.isAdmin) { router.replace('/home'); return; }
+      setAuthUser(data.user);
+      setChecking(false);
+    });
   }, []);
 
   // Redirigir rutas especiales que tienen su propia página

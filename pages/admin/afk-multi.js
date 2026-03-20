@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import AfkMultiSetupManager from '../../src/components/AfkMultiSetupManager';
-import { getStoredUser, logout } from '../../src/utils/auth';
+import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
 
 export default function AfkMultiPage() {
   const router = useRouter();
@@ -12,11 +12,17 @@ export default function AfkMultiPage() {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    // Chequeo rápido local: si no hay sesión ni token, redirigir de inmediato
     const stored = getStoredUser();
-    if (!stored) { router.replace('/login'); return; }
-    if (!stored.isAdmin) { router.replace('/home'); return; }
-    setUser(stored.user);
-    setChecking(false);
+    if (!stored?.access_token) { router.replace('/login'); return; }
+
+    // Verificación real contra el servidor (isAdmin no se toma de localStorage)
+    verifySession().then(data => {
+      if (!data) { router.replace('/login'); return; }
+      if (!data.isAdmin) { router.replace('/home'); return; }
+      setUser(data.user);
+      setChecking(false);
+    });
   }, []);
 
   useEffect(() => {
