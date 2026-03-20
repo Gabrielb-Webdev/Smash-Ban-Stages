@@ -2182,6 +2182,71 @@ function TabPerfil({ user }) {
                     );
                   })()}
 
+                {/* Start.GG Summary */}
+                {profileStartggStats && profileStartggStats.charUsage && profileStartggStats.charUsage.length > 0 && (
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Summary</p>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {profileStartggStats.totalSets} sets</p>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
+                      {profileStartggStats.charUsage.slice(0, 3).map((ch, i) => {
+                        const localId = ch.localCharId;
+                        const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+                        const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+                        const isTop = i === 0;
+                        const charWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
+                        const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
+                        const barColor = barColors[i % barColors.length];
+                        return (
+                          <div key={ch.startggCharId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none', background: isTop ? 'linear-gradient(90deg,rgba(245,197,24,0.10),transparent)' : 'transparent' }}>
+                            {renderFile ? (
+                              <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                            ) : charObj ? (
+                              <img src={charImgPath(charObj.img)} alt="" style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                            ) : (
+                              <div style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, flexShrink: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.2)' }}>?</span>
+                              </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <p style={{ margin: 0, fontSize: isTop ? 13 : 11, fontWeight: 700, color: isTop ? '#fff' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {charObj?.name || ch.charName || `#${ch.startggCharId}`}
+                                </p>
+                                <p style={{ margin: 0, fontSize: isTop ? 15 : 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
+                              </div>
+                              <div style={{ height: isTop ? 6 : 4, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 3 }} />
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+                                <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} games</p>
+                                <p style={{ margin: 0, fontSize: 9, color: charWR >= 50 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)', fontWeight: 700 }}>{charWR}% WR ({ch.wins}W-{ch.games - ch.wins}L)</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 20 }}>
+                      {[
+                        { label: 'Win Rate', value: profileStartggStats.winRate + '%', color: '#F5C518' },
+                        { label: 'Wins',     value: profileStartggStats.wins,           color: '#22C55E' },
+                        { label: 'Losses',   value: profileStartggStats.losses,         color: '#EF4444' },
+                        { label: 'Torneos',  value: profileStartggStats.tournaments,    color: '#818CF8' },
+                      ].map(st => (
+                        <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: st.color }}>{st.value}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>{st.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                   {/* Ranked 1v1 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                     <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
