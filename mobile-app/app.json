@@ -1,5 +1,24 @@
 {
-  "name": "SinH",
-  "displayName": "Sin H"
+  "expo": {
+    "name": "Sin H",
+    "slug": "afk-smash-mobile",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "backgroundColor": "#0a0a0a",
+    "icon": "./assets/afk-favicon.png",
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.afksmash.mobile",
+      "versionCode": 16,
+      "permissions": ["INTERNET"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/afk-favicon.png",
+        "monochromeImage": "./assets/afk-favicon.png",
+        "backgroundColor": "#000000"
+      }
+    }
+  }
 }
 

@@ -3,20 +3,18 @@
   "version": "2.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "react-native start",
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "build-android": "cd android && ./gradlew assembleRelease"
+    "start": "npx expo start",
+    "android": "npx expo run:android"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.0",
+    "expo": "~52.0.0",
     "react": "18.3.1",
     "react-native": "0.76.3",
     "react-native-webview": "^13.12.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "metro-react-native-babel-preset": "^0.77.0"
+    "@babel/core": "^7.20.0"
   },
   "private": true
 }
