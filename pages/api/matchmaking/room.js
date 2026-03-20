@@ -5,10 +5,15 @@ import redis, { mmMatchKey, mmQueueKey, mmQueueDoublesKey } from '../../../lib/r
 const ROOM_TTL_MS = 30 * 60 * 1000; // 30 min
 const ACCEPT_MS   = 15 * 1000;       // 15s para aceptar
 
-const STAGES = [
-  'Battlefield', 'Final Destination', 'Small Battlefield',
-  'Pokémon Stadium 2', 'Town & City', 'Smashville',
-  'Hollow Bastion', 'Kalos Pokémon League',
+const RANKED_STAGES_G1 = [
+  'Battlefield', 'Small Battlefield', 'Town and City',
+  'Smashville', 'Pokémon Stadium 2',
+];
+
+const RANKED_STAGES_G2 = [
+  'Battlefield', 'Small Battlefield', 'Town and City',
+  'Smashville', 'Pokémon Stadium 2',
+  'Final Destination', 'Hollow Bastion', 'Kalos',
 ];
 
 function sanitize(s) {
@@ -229,7 +234,7 @@ export default async function handler(req, res) {
         if (is2v2) {
           // 2v2: Bo1 con stage aleatorio
           room.status = 'active';
-          room.stage  = STAGES[Math.floor(Math.random() * STAGES.length)];
+          room.stage  = RANKED_STAGES_G1[Math.floor(Math.random() * RANKED_STAGES_G1.length)];
           const matchRecord = {
             id:       room.matchId,
             platform: room.platform,
@@ -244,14 +249,18 @@ export default async function handler(req, res) {
           };
           await redis.set(mmMatchKey(room.matchId), matchRecord);
         } else {
-          // 1v1: Bo3 con baneos de stages
+          // 1v1: Bo3 — J1/J2 aleatorio, J1 ban 1 → J2 ban 2 → J1 pick
+          const j1Id = Math.random() < 0.5 ? room.host.userId : room.guest.userId;
+          const j2Id = j1Id === room.host.userId ? room.guest.userId : room.host.userId;
           room.status   = 'banning';
           room.format   = 'bo3';
           room.games    = [];
           room.currentGame = 1;
           room.score    = { [room.host.userId]: 0, [room.guest.userId]: 0 };
           room.bans     = {};
-          room.banPhase = 'both_ban';
+          room.banPhase = 'j1_ban';
+          room.j1       = j1Id;
+          room.j2       = j2Id;
           room.stage    = null;
           const matchRecord = {
             id:       room.matchId,
@@ -265,7 +274,9 @@ export default async function handler(req, res) {
             currentGame: 1,
             score:    { [room.host.userId]: 0, [room.guest.userId]: 0 },
             bans:     {},
-            banPhase: 'both_ban',
+            banPhase: 'j1_ban',
+            j1:       j1Id,
+            j2:       j2Id,
             reports:  [],
             result:   null,
             createdAt: new Date().toISOString(),
@@ -301,30 +312,40 @@ export default async function handler(req, res) {
       const { bannedStages } = req.body || {};
       if (!Array.isArray(bannedStages)) return res.status(400).json({ error: 'bannedStages requerido' });
 
-      if (room.banPhase === 'both_ban') {
-        if (bannedStages.length !== 2) return res.status(400).json({ error: 'Debés banear exactamente 2 escenarios' });
-        for (const s of bannedStages) { if (!STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
+      const isGame1 = room.currentGame === 1;
+      const VALID_STAGES = isGame1 ? RANKED_STAGES_G1 : RANKED_STAGES_G2;
+
+      // ── Game 1: J1 ban 1 → J2 ban 2 → J1 pick ──
+      if (room.banPhase === 'j1_ban') {
+        if (cleanUserId !== room.j1) return res.status(400).json({ error: 'No es tu turno de banear' });
+        if (bannedStages.length !== 1) return res.status(400).json({ error: 'Debés banear exactamente 1 escenario' });
+        for (const s of bannedStages) { if (!VALID_STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
         room.bans[cleanUserId] = bannedStages;
-        if (Object.keys(room.bans).length === 2) {
-          const allBanned = new Set(Object.values(room.bans).flat());
-          const available = STAGES.filter(s => !allBanned.has(s));
-          const stage = available[Math.floor(Math.random() * available.length)];
-          room.games.push({ gameNum: room.currentGame, stage, bans: { ...room.bans }, result: null });
-          room.stage = stage;
-          room.status = 'active';
-          room.bans = {};
-          const match = await redis.get(mmMatchKey(room.matchId));
-          if (match) { match.stage = stage; match.status = 'active'; match.games = room.games; await redis.set(mmMatchKey(room.matchId), match); }
-        }
+        room.banPhase = 'j2_ban';
         await redis.set(roomKey(code), room);
         return res.status(200).json({ status: room.status, code, room });
       }
 
-      if (room.banPhase === 'winner_ban') {
+      if (room.banPhase === 'j2_ban') {
+        if (cleanUserId !== room.j2) return res.status(400).json({ error: 'No es tu turno de banear' });
         if (bannedStages.length !== 2) return res.status(400).json({ error: 'Debés banear exactamente 2 escenarios' });
+        const j1Bans = room.bans[room.j1] || [];
+        for (const s of bannedStages) {
+          if (!VALID_STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s });
+          if (j1Bans.includes(s)) return res.status(400).json({ error: 'Ese escenario ya fue baneado: ' + s });
+        }
+        room.bans[cleanUserId] = bannedStages;
+        room.banPhase = 'j1_pick';
+        await redis.set(roomKey(code), room);
+        return res.status(200).json({ status: room.status, code, room });
+      }
+
+      // ── Game 2+: Winner bans 3 → Loser picks ──
+      if (room.banPhase === 'winner_ban') {
         const prevWinnerId = room.games[room.games.length - 1]?.result?.winnerId;
         if (cleanUserId !== prevWinnerId) return res.status(400).json({ error: 'Solo el ganador del game anterior puede banear' });
-        for (const s of bannedStages) { if (!STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
+        if (bannedStages.length !== 3) return res.status(400).json({ error: 'Debés banear exactamente 3 escenarios' });
+        for (const s of bannedStages) { if (!VALID_STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
         room.bans[cleanUserId] = bannedStages;
         room.banPhase = 'loser_pick';
         await redis.set(roomKey(code), room);
@@ -334,20 +355,30 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Fase de baneo inválida' });
     }
 
-    // ─── pick_stage: loser elige stage (Bo3 game 2+) ─────
+    // ─── pick_stage: J1 o loser elige stage ─────
     if (action === 'pick_stage') {
       const found = await getUserRoom(cleanUserId);
       if (!found) return res.status(400).json({ error: 'No estás en ninguna sala' });
       const { code, room } = found;
-      if (room.status !== 'banning' || room.banPhase !== 'loser_pick') return res.status(400).json({ error: 'No estás en fase de elección' });
-
-      const prevWinnerId = room.games[room.games.length - 1]?.result?.winnerId;
-      if (cleanUserId === prevWinnerId) return res.status(400).json({ error: 'Solo el perdedor puede elegir escenario' });
+      if (room.status !== 'banning') return res.status(400).json({ error: 'No estás en fase de elección' });
 
       const { pickedStage } = req.body || {};
-      if (!pickedStage || !STAGES.includes(pickedStage)) return res.status(400).json({ error: 'Stage inválido' });
-      const winnerBans = new Set(room.bans[prevWinnerId] || []);
-      if (winnerBans.has(pickedStage)) return res.status(400).json({ error: 'Ese escenario fue baneado' });
+      const isGame1 = room.currentGame === 1;
+      const VALID_STAGES = isGame1 ? RANKED_STAGES_G1 : RANKED_STAGES_G2;
+      if (!pickedStage || !VALID_STAGES.includes(pickedStage)) return res.status(400).json({ error: 'Stage inválido' });
+
+      // Verificar que no esté baneado
+      const allBanned = new Set(Object.values(room.bans).flat());
+      if (allBanned.has(pickedStage)) return res.status(400).json({ error: 'Ese escenario fue baneado' });
+
+      if (room.banPhase === 'j1_pick') {
+        if (cleanUserId !== room.j1) return res.status(400).json({ error: 'Solo J1 puede elegir escenario' });
+      } else if (room.banPhase === 'loser_pick') {
+        const prevWinnerId = room.games[room.games.length - 1]?.result?.winnerId;
+        if (cleanUserId === prevWinnerId) return res.status(400).json({ error: 'Solo el perdedor puede elegir escenario' });
+      } else {
+        return res.status(400).json({ error: 'No estás en fase de selección' });
+      }
 
       room.games.push({ gameNum: room.currentGame, stage: pickedStage, bans: { ...room.bans }, result: null });
       room.stage = pickedStage;

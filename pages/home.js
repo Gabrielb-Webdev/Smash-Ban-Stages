@@ -467,6 +467,22 @@ export default function HomePage() {
               </div>
               )}
 
+              {/* Amigos */}
+              <div style={{ padding: '4px 10px 0' }}>
+                <button onClick={() => { setShowMenu(false); setTab('perfil'); setTimeout(() => window.dispatchEvent(new CustomEvent('open-friends')), 100); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>👥</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Amigos</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(99,102,241,0.45)' }}>Ver y agregar amigos</p>
+                  </div>
+                  <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
+                </button>
+              </div>
+
               {/* Logout */}
               <div style={{ padding: '4px 10px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <button onClick={() => { logout(); setShowMenu(false); window.location.href = '/login'; }}
@@ -555,7 +571,7 @@ export default function HomePage() {
         {/* â”€â”€ CONTENT â”€â”€ */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
           {/* Banner sala activa (fuera del tab match) */}
-          {tab !== 'match' && bgMM && ['searching','waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
+          {tab !== 'match' && bgMM && ['searching','waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
             <button
               onClick={() => setTab('match')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px', background: 'linear-gradient(90deg,rgba(124,58,237,0.18),rgba(255,140,0,0.12))', borderBottom: '1px solid rgba(124,58,237,0.3)', border: 'none', cursor: 'pointer', gap: 10 }}
@@ -567,14 +583,14 @@ export default function HomePage() {
                    bgMM.status === 'waiting'        ? 'Esperando rival\u2026'    :
                    bgMM.status === 'pending_accept' ? '\u00a1Match encontrado!'  :
                    bgMM.status === 'active'         ? '\u00a1Partida en juego!'  :
-                   bgMM.status === 'pending_result' ? 'Report\u00e1 el resultado' :
+                   bgMM.status === 'pending_confirm' ? 'Confirm\u00e1 el resultado' :
                                                       'Resultado en disputa'}
                 </span>
               </div>
               <span style={{ fontSize: 12, color: '#FF8C00', fontWeight: 800 }}>Ir \u2192</span>
             </button>
           )}
-          {tab === 'rankings' && <TabRankings user={user} />}
+          {tab === 'rankings' && <TabRankings user={user} setTab={setTab} />}
           {tab === 'torneos'  && <TabTorneos  />}
           {tab === 'tips'     && <TabTips     />}
           {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} />}
@@ -2514,7 +2530,7 @@ function NotifCard({ notif, onDismiss, userId, userName }) {
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB — RANKINGS
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function TabRankings({ user }) {
+function TabRankings({ user, setTab }) {
   const [mode,        setMode]       = useState('ba');
   const [rankPlat,    setRankPlat]   = useState('switch');
   const [rankBoard,   setRankBoard]  = useState([]);
@@ -2534,7 +2550,9 @@ function TabRankings({ user }) {
   const [profileData, setProfileData]       = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const myUid = String(user?.id || user?.slug || '');
   const openProfile = (playerId, playerName) => {
+    if (String(playerId) === myUid) { setTab('perfil'); return; }
     setViewProfile({ userId: playerId, userName: playerName });
     setProfileData(null);
     setProfileLoading(true);
@@ -3695,7 +3713,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   // Polling de chat
   useEffect(() => {
-    if (!matchData?.matchId || !['active','pending_result','disputed'].includes(matchStatus)) return;
+    if (!matchData?.matchId || !['active','pending_confirm','disputed'].includes(matchStatus)) return;
     let lastTs = 0;
     const fetchChat = async () => {
       try {
@@ -3792,22 +3810,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [matchStatus]);
 
-  const reportResult = async (winnerId, stocks) => {
+  const reportResult = async (winnerId, stocks, action) => {
     if (!matchData?.matchId) return;
     setReportLoading(true); setReportError(null);
     try {
       const is2v2 = matchData.mode === '2v2';
       const apiUrl = is2v2 ? '/api/matchmaking/result-doubles' : '/api/matchmaking/result';
       const bodyPayload = is2v2
-        ? { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerTeam: winnerId, stocksWon: stocks ?? 1 }
-        : { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: winnerId, stocksWon: stocks ?? 1 };
+        ? { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerTeam: winnerId, stocksWon: stocks ?? 1, action }
+        : { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: winnerId, stocksWon: stocks ?? 1, action };
       const r = await fetch(apiUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload),
       });
       const data = await r.json();
       if (!r.ok) { setReportError(data.error || 'Error al reportar'); return; }
-      setReported(true);
+      if (data.denied) {
+        setReported(false);
+        setReportStocks(1);
+        setReportError(null);
+      } else {
+        setReported(true);
+      }
       if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
       if (data.matchStatus === 'banning') {
         setReported(false);
@@ -3817,9 +3841,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       }
       setBgMM(prev => prev ? {
         ...prev,
-        room: { ...prev.room, status: data.matchStatus, result: data.result },
+        room: { ...prev.room, status: data.matchStatus, result: data.result, pendingResult: data.pendingResult || null },
         status: data.matchStatus === 'finished' ? 'finished' :
-                data.matchStatus === 'banning' ? 'banning' : prev.status,
+                data.matchStatus === 'banning' ? 'banning' :
+                data.matchStatus === 'pending_confirm' ? 'pending_confirm' :
+                data.matchStatus === 'active' ? 'active' : prev.status,
       } : prev);
     } catch { setReportError('Error de conexión'); }
     finally { setReportLoading(false); }
@@ -3893,23 +3919,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   const STAGE_IMG = {
     'Battlefield': '/images/stages/Battlefield.png',
-    'Final Destination': '/images/stages/Final Destination.png',
     'Small Battlefield': '/images/stages/Small Battlefield.png',
-    'Pokémon Stadium 2': '/images/stages/Pokemon Stadium 2.png',
-    'Town & City': '/images/stages/Town and City.png',
+    'Town and City': '/images/stages/Town and City.png',
     'Smashville': '/images/stages/Smashville.png',
+    'Pokémon Stadium 2': '/images/stages/Pokemon Stadium 2.png',
+    'Final Destination': '/images/stages/Final Destination.png',
     'Hollow Bastion': '/images/stages/Hollow Bastion.png',
-    'Kalos Pokémon League': '/images/stages/Kalos.png',
+    'Kalos': '/images/stages/Kalos.png',
   };
 
-  const BAN_STAGES = [
-    'Battlefield', 'Final Destination', 'Small Battlefield',
-    'Pokémon Stadium 2', 'Town & City', 'Smashville',
-    'Hollow Bastion', 'Kalos Pokémon League',
+  const BAN_STAGES_G1 = [
+    'Battlefield', 'Small Battlefield', 'Town and City',
+    'Smashville', 'Pokémon Stadium 2',
+  ];
+
+  const BAN_STAGES_G2 = [
+    'Battlefield', 'Small Battlefield', 'Town and City',
+    'Smashville', 'Pokémon Stadium 2',
+    'Final Destination', 'Hollow Bastion', 'Kalos',
   ];
 
   const submitBans = async () => {
-    if (selectedBans.length !== 2 || banLoading) return;
+    if (selectedBans.length < 1 || banLoading) return;
     setBanLoading(true);
     try {
       const r = await fetch('/api/matchmaking/room', {
@@ -4001,18 +4032,21 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  // ═══ RENDER: MATCH ACTIVO (active / pending_result / disputed) ══════════
-  if (matchData && ['active','pending_result','disputed'].includes(matchStatus)) {
+  // ═══ RENDER: MATCH ACTIVO (active / pending_confirm / disputed) ══════════
+  if (matchData && ['active','pending_confirm','disputed'].includes(matchStatus)) {
     const is2v2 = matchData.mode === '2v2';
     const opponent = is2v2 ? null : (uid === matchData.host?.userId ? matchData.guest : matchData.host);
     const myTeam = is2v2 ? (matchData.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
     const enemyTeam = is2v2 ? (myTeam === 'team1' ? matchData.team2 : matchData.team1) : null;
     const stage    = matchData.stage || '—';
-    const STAGE_EMOJI = { 'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '⚔️', 'Pokémon Stadium 2': '⚡', 'Town & City': '🏙️', 'Smashville': '🏘️', 'Hollow Bastion': '🏯', 'Kalos Pokémon League': '❄️' };
+    const STAGE_EMOJI = { 'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '⚔️', 'Pokémon Stadium 2': '⚡', 'Town and City': '🏙️', 'Smashville': '🏘️', 'Hollow Bastion': '🏯', 'Kalos': '❄️' };
     const isBo3 = matchData.format === 'bo3';
     const gameNum = matchData.currentGame || 1;
     const myScore = isBo3 ? (matchData.score?.[uid] || 0) : 0;
     const oppScore = isBo3 ? (matchData.score?.[opponent?.userId] || 0) : 0;
+    const myData = uid === matchData.host?.userId ? matchData.host : matchData.guest;
+    const myChar = CHARACTERS.find(c => c.id === myData?.charId);
+    const oppChar = CHARACTERS.find(c => c.id === opponent?.charId);
     return (
       <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -4033,18 +4067,45 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           )}
         </div>
 
-        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
-          <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{is2v2 ? 'Equipo rival' : 'Tu rival'}</p>
-          {is2v2 ? (
+        {/* Personajes: yo vs rival */}
+        {!is2v2 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '12px 16px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+              {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(52,211,153,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Vos</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#34D399' }}>{myChar?.name || myData?.charId || '—'}</p>
+              </div>
+            </div>
+            <span style={{ fontSize: 18, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end', textAlign: 'right' }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Rival</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
+              </div>
+              {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+            </div>
+          </div>
+        )}
+
+        {is2v2 && (
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Equipo rival</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {(enemyTeam || []).map(p => (
                 <p key={p.userId} style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{p.userName}</p>
               ))}
             </div>
-          ) : (
+          </div>
+        )}
+
+        {/* Nombre rival (1v1) */}
+        {!is2v2 && (
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
             <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
-          )}
-        </div>
+          </div>
+        )}
 
         <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: 32 }}>{STAGE_EMOJI[stage] || '🗺️'}</span>
@@ -4103,12 +4164,25 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>⚠️ Resultado en disputa</p>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Reportaron resultados distintos. Contactá a un admin.</p>
           </div>
-        ) : reported ? (
-          <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 6px', fontSize: 20 }}>⏳</p>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando reporte del rival…</p>
-          </div>
-        ) : (
+        ) : matchStatus === 'pending_confirm' && matchData.pendingResult ? (
+          matchData.pendingResult.reporterId === uid ? (
+            <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 20 }}>⏳</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando que tu rival confirme el resultado…</p>
+            </div>
+          ) : (
+            <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: '#fff' }}>
+                Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : 'él ganó'} ({matchData.pendingResult.stocks} stock{matchData.pendingResult.stocks > 1 ? 's' : ''})
+              </p>
+              {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>✅ Confirmar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>❌ Negar</button>
+              </div>
+            </div>
+          )
+        ) : matchStatus !== 'pending_confirm' ? (
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
             <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
             <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stocks que te quedaban</p>
@@ -4125,7 +4199,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               <button onClick={() => reportResult(is2v2 ? (myTeam === 'team1' ? 'team2' : 'team1') : (uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId), 1)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>💀 {is2v2 ? 'Perdimos' : 'Perdí'}</button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -4141,22 +4215,45 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     const prevWinnerId = prevGame?.result?.winnerId || null;
     const iAmPrevWinner = prevWinnerId === uid;
     const myBansSent = matchData.bans?.[uid];
+    const isGame1 = gameNum === 1;
 
     const winnerBans = banPhase === 'loser_pick' && prevWinnerId ? (matchData.bans?.[prevWinnerId] || []) : [];
-    const availableForPick = BAN_STAGES.filter(s => !winnerBans.includes(s));
+    const j1Bans = (banPhase === 'j2_ban' || banPhase === 'j1_pick') ? (matchData.bans?.[matchData.j1] || []) : [];
+    const j2Bans = banPhase === 'j1_pick' ? (matchData.bans?.[matchData.j2] || []) : [];
+    const allCurrentBans = [...winnerBans, ...j1Bans, ...j2Bans];
+
+    const CURRENT_STAGES = isGame1 ? BAN_STAGES_G1 : BAN_STAGES_G2;
+    const availableForPick = CURRENT_STAGES.filter(s => !allCurrentBans.includes(s));
+
+    const iAmJ1 = matchData.j1 === uid;
+    const iAmJ2 = matchData.j2 === uid;
 
     let subtitle, showStages = false, canSelect = false, maxSelect = 0, isPickMode = false;
-    if (banPhase === 'both_ban') {
-      if (myBansSent) {
-        subtitle = 'Esperando que tu rival banee…';
+    if (banPhase === 'j1_ban') {
+      if (iAmJ1) {
+        subtitle = 'Baneá 1 escenario';
+        showStages = true; canSelect = true; maxSelect = 1;
       } else {
+        subtitle = 'Tu rival está baneando…';
+      }
+    } else if (banPhase === 'j2_ban') {
+      if (iAmJ2) {
         subtitle = 'Baneá 2 escenarios';
         showStages = true; canSelect = true; maxSelect = 2;
+      } else {
+        subtitle = 'Tu rival está baneando…';
+      }
+    } else if (banPhase === 'j1_pick') {
+      if (iAmJ1) {
+        subtitle = 'Elegí un escenario';
+        showStages = true; canSelect = true; maxSelect = 1; isPickMode = true;
+      } else {
+        subtitle = 'Tu rival está eligiendo escenario…';
       }
     } else if (banPhase === 'winner_ban') {
       if (iAmPrevWinner) {
-        subtitle = 'Baneá 2 escenarios';
-        showStages = true; canSelect = true; maxSelect = 2;
+        subtitle = 'Baneá 3 escenarios';
+        showStages = true; canSelect = true; maxSelect = 3;
       } else {
         subtitle = 'Tu rival está baneando…';
       }
@@ -4169,10 +4266,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       }
     }
 
-    const stagesToShow = isPickMode ? availableForPick : BAN_STAGES;
+    const stagesToShow = isPickMode ? availableForPick : CURRENT_STAGES.filter(s => !allCurrentBans.includes(s));
 
     const toggleBan = (stage) => {
       if (!canSelect) return;
+      if (allCurrentBans.includes(stage) && !isPickMode) return;
       if (isPickMode) { setSelectedBans([stage]); return; }
       setSelectedBans(prev => {
         if (prev.includes(stage)) return prev.filter(s => s !== stage);
@@ -4206,12 +4304,25 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           {showStages && isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Elegí en qué escenario jugar</p>}
         </div>
 
+        {/* Banned stages indicator */}
+        {allCurrentBans.length > 0 && showStages && !isPickMode && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {allCurrentBans.map(s => (
+              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 8px' }}>
+                <span style={{ fontSize: 10 }}>🚫</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(239,68,68,0.7)' }}>{s}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Stages grid or waiting spinner */}
         {showStages ? (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
               {stagesToShow.map(stage => {
                 const isSel = selectedBans.includes(stage);
+                const isBanned = allCurrentBans.includes(stage);
                 return (
                   <div key={stage} onClick={() => toggleBan(stage)} style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', cursor: 'pointer', border: isSel ? (isPickMode ? '2px solid #22C55E' : '2px solid #EF4444') : '2px solid rgba(255,255,255,0.1)', transition: 'all 0.15s' }}>
                     <img src={STAGE_IMG[stage] || ''} alt={stage} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
@@ -4238,8 +4349,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                 {banLoading ? '⏳ Confirmando…' : `⚔️ Jugar en ${selectedBans[0] || '...'}`}
               </button>
             ) : (
-              <button onClick={submitBans} disabled={selectedBans.length !== 2 || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === 2 ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === 2 ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === 2 ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-                {banLoading ? '⏳ Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/2)`}
+              <button onClick={submitBans} disabled={selectedBans.length !== maxSelect || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === maxSelect ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === maxSelect ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === maxSelect ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
+                {banLoading ? '⏳ Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/${maxSelect})`}
               </button>
             )}
           </>
@@ -4346,7 +4457,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       </div>
 
       {/* Banner de sala activa */}
-      {bgMM && ['waiting','active','pending_result','disputed','pending_accept'].includes(bgMM.status) && (
+      {bgMM && ['waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(135deg,rgba(124,58,237,0.14),rgba(255,140,0,0.08))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 18, padding: '14px 16px', marginBottom: 20, cursor: 'default' }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : bgMM.status === 'waiting' ? '#FF8C00' : '#FBBF24', flexShrink: 0, boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00'), animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
           <div style={{ flex: 1 }}>
@@ -4354,7 +4465,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               {bgMM.status === 'waiting'        ? 'Sala activa — esperando rival' :
                bgMM.status === 'pending_accept' ? '¡Match encontrado!' :
                bgMM.status === 'active'         ? '¡Partida en juego!' :
-               bgMM.status === 'pending_result' ? 'Reportá el resultado' :
+               bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' :
                                                    'Resultado en disputa'}
             </p>
           </div>

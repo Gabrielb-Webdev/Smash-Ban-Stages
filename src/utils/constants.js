@@ -1,5 +1,25 @@
 // Constants para el sistema de baneos
 
+// ── Ranked Stages (universal) ─────────────────────────────────
+export const RANKED_STAGES_GAME1 = [
+  { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
+  { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
+  { id: 'town-and-city',     name: 'Town and City',     image: '/images/stages/Town and City.png' },
+  { id: 'smashville',        name: 'Smashville',        image: '/images/stages/Smashville.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+];
+
+export const RANKED_STAGES_GAME2_PLUS = [
+  { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
+  { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
+  { id: 'town-and-city',     name: 'Town and City',     image: '/images/stages/Town and City.png' },
+  { id: 'smashville',        name: 'Smashville',        image: '/images/stages/Smashville.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'final-destination', name: 'Final Destination', image: '/images/stages/Final Destination.png' },
+  { id: 'hollow-bastion',    name: 'Hollow Bastion',    image: '/images/stages/Hollow Bastion.png' },
+  { id: 'kalos',             name: 'Kalos',             image: '/images/stages/Kalos.png' },
+];
+
 // ── Córdoba ─────────────────────────────────────────────────
 export const STAGES_GAME1 = [
   { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
