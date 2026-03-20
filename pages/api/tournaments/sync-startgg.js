@@ -180,13 +180,17 @@ async function fetchStartggTournaments(token) {
   }
 
   // Filtrar solo torneos futuros o en curso (no pasados)
+  // Start.gg states: 1=CREATED, 2=ACTIVE, 3=COMPLETED, 4=CANCELLED
   const now = Date.now();
   const formatted = results.map(formatTournament).filter(t => {
-    // Mostrar si: estado activo/creado, O si endAt es futuro, O si startAt es futuro
-    if (t.state && ['COMPLETED', 'CANCELLED'].includes(t.state)) return false;
+    const state = t.state;
+    // Excluir completados y cancelados (numérico o string)
+    if (state === 3 || state === 4 || state === 'COMPLETED' || state === 'CANCELLED') return false;
+    // Si estado es creado o activo, siempre mostrar
+    if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;
+    // Fallback por fechas
     if (t.endAt && new Date(t.endAt).getTime() > now) return true;
     if (t.startAt && new Date(t.startAt).getTime() > now) return true;
-    // Si no tiene fechas pero no está completado, mostrarlo
     if (!t.endAt && !t.startAt) return true;
     return false;
   });
