@@ -107,6 +107,7 @@ async function fetchStartggTournaments(token) {
 
   const seen = new Set();
   const results = [];
+  const debug = [];
 
   const addTournament = (t) => {
     const id = String(t.id);
@@ -130,6 +131,7 @@ async function fetchStartggTournaments(token) {
       const data = await resp.json();
       if (data.data?.tournament) {
         addTournament(data.data.tournament);
+        debug.push({ slug, status: 'found', method: 'direct' });
       } else {
         // Try with tournament/ prefix
         const resp2 = await fetch(STARTGG_API, {
@@ -143,11 +145,21 @@ async function fetchStartggTournaments(token) {
         const data2 = await resp2.json();
         if (data2.data?.tournament) {
           addTournament(data2.data.tournament);
+          debug.push({ slug, status: 'found', method: 'with-prefix' });
         } else {
-          console.warn('[sync-startgg] Tournament not found for slug:', slug, 'errors:', JSON.stringify(data.errors || data2.errors || 'none').slice(0, 200));
+          debug.push({
+            slug,
+            status: 'not_found',
+            httpStatus1: resp.status,
+            httpStatus2: resp2.status,
+            resp1: JSON.stringify(data).slice(0, 300),
+            resp2: JSON.stringify(data2).slice(0, 300),
+          });
         }
       }
-    } catch (e) { console.error('[sync-startgg] fetch error for slug:', slug, e.message); }
+    } catch (e) {
+      debug.push({ slug, status: 'error', message: e.message });
+    }
   }
 
   // 2. If organizer slug is set, also fetch their tournaments
@@ -167,7 +179,7 @@ async function fetchStartggTournaments(token) {
     } catch { /* skip */ }
   }
 
-  return results.map(formatTournament);
+  return { tournaments: results.map(formatTournament), debug };
 }
 
 export default async function handler(req, res) {
@@ -199,14 +211,14 @@ export default async function handler(req, res) {
     }
 
     try {
-      const tournaments = await fetchStartggTournaments(startggToken);
+      const { tournaments, debug } = await fetchStartggTournaments(startggToken);
 
       // Solo cachear si hay resultados
       if (tournaments.length > 0) {
         await redis.set(CACHE_KEY, JSON.stringify(tournaments), { ex: CACHE_TTL });
       }
 
-      return res.status(200).json({ tournaments, source: 'live', slugs: TOURNAMENT_SLUGS, organizerSlug: ORGANIZER_SLUG || null });
+      return res.status(200).json({ tournaments, source: 'live', slugs: TOURNAMENT_SLUGS, organizerSlug: ORGANIZER_SLUG || null, debug });
     } catch (err) {
       console.error('[sync-startgg] handler error:', err.message);
       return res.status(500).json({ error: 'Error consultando Start.gg', detail: err.message });
