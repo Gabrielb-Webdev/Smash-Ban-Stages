@@ -864,7 +864,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
   const wins  = player.wins || 0;
   const losses = player.losses || 0;
   const total  = wins + losses;
-  const wr     = total > 0 ? (wins / total).toFixed(4) : '0.0000';
+  const winPct = total > 0 ? Math.round(wins / total * 100) : 0;
 
   // Character render
   const charId    = player.mainCharId || null;
@@ -911,20 +911,27 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {player.userName}
-          {!inPlacement && (
-            <span style={{ fontSize: isTop3 ? 13 : 11, fontWeight: 700, marginLeft: 8, opacity: 0.7 }}>{wr}</span>
-          )}
         </p>
         {!inPlacement && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
             <RankBadge rankName={player.rank} />
             {isSmasher && <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.6)' : '#FF8C00', fontWeight: 700 }}>{player.rankPoints || 0} RP</span>}
+            <div style={{ background: winPct >= 60 ? 'rgba(52,211,153,0.15)' : winPct >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winPct >= 60 ? 'rgba(52,211,153,0.3)' : winPct >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '2px 7px' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: winPct >= 60 ? '#34D399' : winPct >= 40 ? '#FBBF24' : '#F87171' }}>{winPct}%</span>
+            </div>
           </div>
         )}
         {inPlacement && (
-          <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 700, color: tc ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)' }}>
-            {wins}W · {losses}L
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: tc ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)' }}>
+              {wins}W · {losses}L
+            </p>
+            {total > 0 && (
+              <div style={{ background: winPct >= 60 ? 'rgba(52,211,153,0.15)' : winPct >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winPct >= 60 ? 'rgba(52,211,153,0.3)' : winPct >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '2px 7px' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: winPct >= 60 ? '#34D399' : winPct >= 40 ? '#FBBF24' : '#F87171' }}>{winPct}%</span>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
