@@ -40,7 +40,7 @@ export default function handler(req, res) {
 
   // POST - Crear sesión
   if (method === 'POST') {
-    const { player1, player2, format } = req.body;
+    const { player1, player2, format, startggSetId, startggEntrant1Id, startggEntrant2Id } = req.body;
     
     const session = {
       sessionId,
@@ -68,6 +68,10 @@ export default function handler(req, res) {
       banHistory: [],
       bansRemaining: 0,
       totalBansNeeded: 0,
+      // start.gg integration
+      startggSetId:      startggSetId      || null,
+      startggEntrant1Id: startggEntrant1Id || null,
+      startggEntrant2Id: startggEntrant2Id || null,
       lastUpdate: Date.now()
     };
 

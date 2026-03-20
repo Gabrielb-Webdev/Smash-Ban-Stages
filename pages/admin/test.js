@@ -175,7 +175,7 @@ export default function TestAdminPage() {
         body: JSON.stringify({ phaseGroupId: selectedPhaseGroupId }),
       });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Error');
+      if (!r.ok) throw new Error(d.error || 'Error al iniciar fase');
       setStartState('ok');
       // Recargar bracket para reflejar el nuevo estado
       setTimeout(() => {
@@ -185,8 +185,11 @@ export default function TestAdminPage() {
           .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
           .finally(() => setBracketLoading(false));
       }, 1200);
-    } catch {
+    } catch (err) {
+      console.error('[startPhase]', err.message);
       setStartState('error');
+      // Mostrar el mensaje en consola para saber qué dijo start.gg
+      alert('Error al iniciar: ' + err.message);
     } finally {
       setTimeout(() => setStartState(null), 5000);
     }
@@ -288,7 +291,12 @@ export default function TestAdminPage() {
     const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
     const banUrl = `/tablet/${sessionId}`;
 
-    // Pre-crear la sesión de baneos con los jugadores
+    // IDs de start.gg del set seleccionado (para reportar resultados automáticamente)
+    const startggSetId      = set.id;
+    const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
+    const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
+
+    // Pre-crear la sesión de baneos con los jugadores y datos start.gg
     try {
       await fetch(`/api/session/${sessionId}`, {
         method: 'POST',
@@ -296,8 +304,21 @@ export default function TestAdminPage() {
         body: JSON.stringify({
           player1: players[0] || 'Jugador 1',
           player2: players[1] || 'Jugador 2',
-          format: 'Bo3',
+          format: 'BO3',
+          startggSetId,
+          startggEntrant1Id,
+          startggEntrant2Id,
         }),
+      });
+    } catch {}
+
+    // Enviar datos de start.gg al servidor WebSocket (para que pueda reportar cuando termine cada game)
+    try {
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+      fetch(`${socketUrl}/session-meta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id }),
       });
     } catch {}
 

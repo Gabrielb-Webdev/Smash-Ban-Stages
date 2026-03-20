@@ -122,15 +122,81 @@ function getStagesForTournament(sessionId, currentGame) {
   return stages;
 }
 
+// ── start.gg integration ─────────────────────────────────────────────────────
+const START_GG_TOKEN = process.env.START_GG_API_TOKEN || process.env.START_GG_CLIENT_SECRET;
+
+// Datos de start.gg pendientes de ser asociados a una sesión (llegan antes que el create-session)
+const pendingStartggData = new Map();
+
+async function reportToStartGG(setId, winnerId, gameData) {
+  if (!START_GG_TOKEN) {
+    console.warn('⚠️ START_GG_API_TOKEN no configurado, no se reportará a start.gg');
+    return;
+  }
+  const mutation = `
+    mutation ReportSet($setId: ID!, $winnerId: ID, $gameData: [BracketSetGameDataInput]) {
+      reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: false, gameData: $gameData) {
+        id
+        state
+      }
+    }
+  `;
+  const res = await fetch('https://api.start.gg/gql/alpha', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${START_GG_TOKEN}` },
+    body: JSON.stringify({
+      query: mutation,
+      variables: {
+        setId: String(setId),
+        winnerId: winnerId ? String(winnerId) : null,
+        gameData: (gameData || []).map(g => ({ gameNum: g.gameNum, winnerId: String(g.winnerId) })),
+      },
+    }),
+  });
+  const data = await res.json();
+  if (data.errors) throw new Error(JSON.stringify(data.errors));
+  console.log(`✅ start.gg set ${setId} reportado (winner: ${winnerId || 'en curso'}):`, data.data?.reportBracketSet);
+  return data.data?.reportBracketSet;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const httpServer = createServer((req, res) => {
   // Health check endpoint para Railway y otros servicios
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
+    return;
+  }
+
+  // Recibir datos de start.gg para una sesión (llamado desde el panel admin)
+  if (req.url === '/session-meta' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id } = JSON.parse(body);
+        if (!sessionId) { res.writeHead(400); res.end(JSON.stringify({ error: 'sessionId requerido' })); return; }
+        // Guardar en pending (por si la sesión WebSocket todavía no se creó)
+        pendingStartggData.set(sessionId, { startggSetId, startggEntrant1Id, startggEntrant2Id });
+        // Si la sesión ya existe en memoria, actualizarla inmediatamente
+        const session = sessions.get(sessionId);
+        if (session) {
+          session.startggSetId = startggSetId;
+          session.startggEntrant1Id = startggEntrant1Id;
+          session.startggEntrant2Id = startggEntrant2Id;
+          sessions.set(sessionId, session);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Body inválido' }));
+      }
+    });
     return;
   }
   
@@ -229,9 +295,25 @@ io.on('connection', (socket) => {
         selectedStage: null,
         banHistory: [],
         bansRemaining: 0,
-        totalBansNeeded: 0
+        totalBansNeeded: 0,
+        // start.gg integration
+        games: [],
+        startggSetId: null,
+        startggEntrant1Id: null,
+        startggEntrant2Id: null,
       };
     }
+
+    // Asignar datos de start.gg si estaban pendientes
+    const pendingStgg = pendingStartggData.get(sessionId);
+    if (pendingStgg) {
+      session.startggSetId      = pendingStgg.startggSetId;
+      session.startggEntrant1Id = pendingStgg.startggEntrant1Id;
+      session.startggEntrant2Id = pendingStgg.startggEntrant2Id;
+      pendingStartggData.delete(sessionId);
+    }
+    // También reiniciar games al crear/resetear sesión
+    session.games = [];
 
     sessions.set(sessionId, session);
     
@@ -488,10 +570,18 @@ io.on('connection', (socket) => {
       session[winner].wonStages.push(session.selectedStage);
       
       session.lastGameWinner = winner;
+
+      // Registrar resultado de este game para start.gg
+      if (!session.games) session.games = [];
+      const winnerEntrantId = winner === 'player1' ? session.startggEntrant1Id : session.startggEntrant2Id;
+      session.games.push({ gameNum: session.currentGame, winnerId: winnerEntrantId });
       
       // Verificar si la serie terminó
-      const maxScore = session.format === 'BO3' ? 2 : 3;
-      if (session[winner].score >= maxScore) {
+      const fmt = (session.format || '').toUpperCase();
+      const maxScore = fmt === 'BO5' ? 3 : 2; // default BO3
+      const seriesFinished = session[winner].score >= maxScore;
+
+      if (seriesFinished) {
         session.phase = 'FINISHED';
         io.to(sessionId).emit('series-finished', { winner, session });
       } else {
@@ -511,6 +601,14 @@ io.on('connection', (socket) => {
       
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
+
+      // Reportar a start.gg si tenemos el setId
+      if (session.startggSetId && winnerEntrantId) {
+        const gameData = session.games.map(g => ({ gameNum: g.gameNum, winnerId: g.winnerId }));
+        const setWinnerId = seriesFinished ? winnerEntrantId : null;
+        reportToStartGG(session.startggSetId, setWinnerId, gameData)
+          .catch(e => console.error('⚠️ Error reportando a start.gg:', e.message));
+      }
     }
   });
 

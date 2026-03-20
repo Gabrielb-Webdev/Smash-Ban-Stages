@@ -39,7 +39,14 @@ export default async function handler(req, res) {
     if (!resp.ok) return res.status(502).json({ error: `Error HTTP ${resp.status} de start.gg` });
 
     const body = await resp.json();
-    if (body.errors?.length) return res.status(400).json({ error: body.errors[0].message });
+    if (body.errors?.length) {
+      const msg = body.errors[0].message || '';
+      // Si ya estaba iniciado lo tratamos como éxito
+      if (/already|started|ALREADY/i.test(msg)) {
+        return res.status(200).json({ id: String(phaseGroupId), state: 2, ok: true, alreadyStarted: true });
+      }
+      return res.status(400).json({ error: msg, startggErrors: body.errors });
+    }
 
     const pg = body.data?.startPhaseGroup;
     if (!pg) return res.status(502).json({ error: 'Respuesta inesperada de start.gg' });
