@@ -10,7 +10,7 @@ import { sendPushToAll } from '../../../lib/push';
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
 // Slugs de torneos "semilla" — se usan para descubrir organizadores y mostrar sus torneos
-const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1')
+const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1,asd2,true-combo-weeklies-53')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 // Slugs adicionales de organizadores (usuarios de Start.gg) — opcional
@@ -237,10 +237,9 @@ async function fetchStartggTournaments(token) {
           }),
         });
         data = await resp.json();
-        const userId = data.data?.user?.id;
         const allNodes = data.data?.user?.tournaments?.nodes || [];
-        // Filtrar solo los que este usuario es owner
-        nodes = allNodes.filter(n => n.owner && String(n.owner.id) === String(userId));
+        // Filtrar por owner.slug (más confiable que owner.id)
+        nodes = allNodes.filter(n => n.owner && n.owner.slug === ownerSlug);
         debug.push({ owner: ownerSlug, method: 'fallback-owner-filter', adminFound, total: allNodes.length, filtered: nodes.length });
       } else {
         debug.push({ owner: ownerSlug, method: 'admin-filter', found: nodes.length });
