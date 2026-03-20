@@ -465,7 +465,7 @@ export default function HomePage() {
               {/* Panel de Admin */}
               {isAdmin && (
               <div style={{ padding: '8px 10px 4px' }}>
-                <button onClick={() => { setShowMenu(false); router.push('/admin/setup'); }}
+                <button onClick={() => { setShowMenu(false); window.location.href = 'https://smash-ban-stages.vercel.app'; }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
