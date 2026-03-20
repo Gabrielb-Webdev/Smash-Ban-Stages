@@ -1,4 +1,4 @@
-﻿// v2.0.0 — Sin Expo
+﻿// v2.0.0 — La app sin H
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, StatusBar,
@@ -159,7 +159,7 @@ export default function App() {
     return (
       <View style={[styles.full, styles.center]}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        <Text style={styles.loadingTitle}>Sin H</Text>
+        <Text style={styles.loadingTitle}>La app sin H</Text>
         <ActivityIndicator color="#E88E00" size="large" style={{ marginTop: 24 }} />
       </View>
     );
@@ -195,7 +195,7 @@ export default function App() {
       <View style={[styles.full, styles.center]}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.loginScreen}>
-          <Text style={styles.title}>Sin H</Text>
+          <Text style={styles.title}>La app sin H</Text>
           <Text style={styles.sub}>BIENVENIDO</Text>
           {authLoading ? (
             <View style={styles.loadingBox}>
@@ -243,37 +243,46 @@ export default function App() {
             }
             <View style={{ flex: 1 }}>
               <Text style={styles.dropdownName}>{user.name || user.slug || 'Usuario'}</Text>
-              {user.slug && <Text style={styles.dropdownRole}>@{user.slug}</Text>}
+              {user.slug && <Text style={styles.dropdownRole}>@{user.slug.replace(/^user\//, '')}</Text>}
+            </View>
+            <View style={styles.onlineBadge}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineBadgeText}>En línea</Text>
             </View>
           </View>
           <View style={styles.dropdownDivider} />
           {isAdmin && (
             <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(ADMIN_HOME); }}>
-              <Text style={styles.dropdownItemIcon}>🎮</Text>
-              <Text style={styles.dropdownItemText}>Panel Admin</Text>
+              <View style={[styles.dropdownIconBox, { backgroundColor: 'rgba(232,142,0,0.15)' }]}>
+                <Text style={styles.dropdownItemIcon}>🏆</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dropdownItemText}>Panel de Admin</Text>
+                <Text style={styles.dropdownItemSub}>Gestionar torneos y setups</Text>
+              </View>
+              <Text style={styles.dropdownChevron}>›</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/home'); }}>
-            <Text style={styles.dropdownItemIcon}>🏠</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.dropdownItemText}>Home</Text>
+          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/friends'); }}>
+            <View style={[styles.dropdownIconBox, { backgroundColor: 'rgba(124,58,237,0.15)' }]}>
+              <Text style={styles.dropdownItemIcon}>👥</Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dropdownItem} onPress={function () { navigateTo(BASE_URL + '/profile'); }}>
-            <Text style={styles.dropdownItemIcon}>🎮</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.dropdownItemText}>Mi perfil</Text>
-              <Text style={styles.dropdownItemSub}>Start.GG</Text>
+              <Text style={styles.dropdownItemText}>Amigos</Text>
+              <Text style={styles.dropdownItemSub}>Ver y agregar amigos</Text>
             </View>
+            <Text style={styles.dropdownChevron}>›</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.dropdownItem}
             onPress={function () { setDropdownOpen(false); setShowSettings(true); }}
           >
-            <Text style={styles.dropdownItemIcon}>⚙️</Text>
+            <View style={[styles.dropdownIconBox, { backgroundColor: 'rgba(107,114,128,0.15)' }]}>
+              <Text style={styles.dropdownItemIcon}>⚙️</Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.dropdownItemText}>Configuración</Text>
-              <Text style={styles.dropdownItemSub}>Preferencias</Text>
+              <Text style={styles.dropdownItemSub}>Preferencias y actualizaciones</Text>
             </View>
             {updateInfo && <View style={styles.updateDot} />}
           </TouchableOpacity>
@@ -396,14 +405,14 @@ export default function App() {
         </View>
       </TouchableOpacity>
 
-      {/* Centro: Logo AFK SMASH */}
+      {/* Centro: Logo */}
       <View style={styles.headerCenter}>
         <View style={styles.headerLogoBox}>
           <Text style={{ fontSize: 16 }}>🎮</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-          <Text style={styles.headerLogoAfk}>AFK</Text>
-          <Text style={styles.headerLogoSmash}> SMASH</Text>
+          <Text style={styles.headerLogoAfk}>LA APP</Text>
+          <Text style={styles.headerLogoSmash}> SIN H</Text>
         </View>
       </View>
 
@@ -598,6 +607,21 @@ var styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: '#E88E00', borderRadius: 3 },
   progressText: { color: '#9ca3af', fontSize: 12, textAlign: 'center' },
   downloadError: { color: '#f87171', fontSize: 12, textAlign: 'center', paddingHorizontal: 14, paddingTop: 8 },
+  // Online badge
+  onlineBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(34,197,94,0.12)', borderWidth: 1,
+    borderColor: 'rgba(34,197,94,0.3)', borderRadius: 99,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E', marginRight: 4 },
+  onlineBadgeText: { fontSize: 10, fontWeight: '700', color: '#22C55E' },
+  // Dropdown icon box
+  dropdownIconBox: {
+    width: 34, height: 34, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center', marginRight: 10,
+  },
+  dropdownChevron: { fontSize: 20, color: 'rgba(255,255,255,0.25)', marginLeft: 4 },
   settingsLogoutBtn: {
     marginHorizontal: 16, marginTop: 16, backgroundColor: '#1a0a0a',
     borderRadius: 12, paddingVertical: 14, alignItems: 'center',
