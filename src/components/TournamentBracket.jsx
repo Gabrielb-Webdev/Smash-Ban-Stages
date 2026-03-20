@@ -1,6 +1,5 @@
 import { Component } from 'react';
 import {
-  DoubleEliminationBracket,
   SingleEliminationBracket,
   SVGViewer,
   createTheme,
@@ -78,9 +77,6 @@ function BracketInner({
 }) {
   if (!Array.isArray(bracketSets) || bracketSets.length === 0) return null;
 
-  // Solo usar doble eliminación si hay conexiones reales de Losers
-  const hasLosers = bracketSets.some(s => s.nextLooserMatchId != null);
-
   const matches = bracketSets.map(set => ({
     id: set.id,
     nextMatchId: set.nextMatchId ?? null,
@@ -102,8 +98,6 @@ function BracketInner({
       set.id,
     ),
   }));
-
-  const BracketComp = hasLosers ? DoubleEliminationBracket : SingleEliminationBracket;
 
   function MatchCard({ match, topParty, bottomParty, topWon, bottomWon }) {
     const set = bracketSets.find(s => s.id === String(match?.id));
@@ -207,7 +201,7 @@ function BracketInner({
 
   return (
     <div style={{ background: '#0B0B12', borderRadius: 16, overflow: 'hidden' }}>
-      <BracketComp
+      <SingleEliminationBracket
         matches={matches}
         matchComponent={MatchCard}
         svgWrapper={({ children, ...props }) => (
