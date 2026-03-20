@@ -1,12 +1,12 @@
 // POST /api/tournaments/start-phase
-// Inicia un phase group en start.gg via mutación startPhaseGroup
+// Inicia un phase group en start.gg seteando su estado a ACTIVE (2)
 // Body: { phaseGroupId: string }
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
 const START_MUTATION = `
-mutation StartPhaseGroup($phaseGroupId: ID!) {
-  startPhaseGroup(phaseGroupId: $phaseGroupId) {
+mutation UpdatePhaseGroup($phaseGroupId: ID!) {
+  updatePhaseGroup(phaseGroupId: $phaseGroupId, phaseGroupData: { state: 2 }) {
     id
     state
   }
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: msg, startggErrors: body.errors });
     }
 
-    const pg = body.data?.startPhaseGroup;
+    const pg = body.data?.updatePhaseGroup;
     if (!pg) return res.status(502).json({ error: 'Respuesta inesperada de start.gg' });
 
     return res.status(200).json({ id: String(pg.id), state: pg.state, ok: true });
