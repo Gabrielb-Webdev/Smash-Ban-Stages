@@ -7,6 +7,7 @@ const SETS_QUERY = `
 query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
   phaseGroup(id: $phaseGroupId) {
     id
+    state
     displayIdentifier
     phase { name }
     sets(page: $page, perPage: 50, sortType: CALL_ORDER) {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
     let page = 1;
     let totalPages = 1;
     let phaseName = '';
+    let phaseGroupState = 1;
 
     while (page <= totalPages) {
       const resp = await fetch(STARTGG_API, {
@@ -66,8 +68,9 @@ export default async function handler(req, res) {
       const pg = body.data?.phaseGroup;
       if (!pg) return res.status(404).json({ error: 'Phase group no encontrado' });
 
-      phaseName    = pg.phase?.name || '';
-      totalPages   = pg.sets?.pageInfo?.totalPages || 1;
+      phaseName       = pg.phase?.name || '';
+      phaseGroupState = pg.state || 1;
+      totalPages      = pg.sets?.pageInfo?.totalPages || 1;
       allSets.push(...(pg.sets?.nodes || []));
       page++;
     }
@@ -90,6 +93,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       phaseGroupId: String(phaseGroupId),
       phaseName,
+      phaseGroupState,
       sets: allSets.map(s => {
         const refs = forwardRefs[String(s.id)] || [];
         const isCurrentLosers = (s.fullRoundText || '').toLowerCase().includes('losers');

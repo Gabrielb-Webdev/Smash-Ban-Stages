@@ -150,7 +150,7 @@ export default function TestAdminPage() {
     setBracketSets([]);
     fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
       .then(r => r.json())
-      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
+      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
       .finally(() => setBracketLoading(false));
   }, [checking, selectedPhaseGroupId]);
 
@@ -198,28 +198,13 @@ export default function TestAdminPage() {
     }
   }
 
-  async function startPhase() {
+  function startPhase() {
     if (!selectedPhaseGroupId) return;
-    setStartState('loading');
-    try {
-      const r = await fetch('/api/tournaments/start-phase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-        body: JSON.stringify({ phaseGroupId: selectedPhaseGroupId }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Error al iniciar fase');
-      setPhaseStarted(true);
-      setStartState('ok');
-    } catch (err) {
-      console.error('[startPhase]', err.message);
-      // Si falla la API pero queremos igual habilitar el drag localmente
-      setPhaseStarted(true);
-      setStartState('ok');
-      console.warn('start.gg no pudo iniciarse, pero el torneo se marcó como iniciado localmente:', err.message);
-    } finally {
-      setTimeout(() => setStartState(null), 5000);
-    }
+    // La API pública de start.gg no permite iniciar phase groups.
+    // El drag se habilita localmente. El torneo en start.gg hay que iniciarlo desde allá.
+    setPhaseStarted(true);
+    setStartState('ok');
+    setTimeout(() => setStartState(null), 5000);
   }
 
   function openTourPicker() {
@@ -264,7 +249,7 @@ export default function TestAdminPage() {
     // Fetch en paralelo sin esperar re-render + effects
     fetch(`/api/tournaments/bracket?phaseGroupId=${pgIdStr}`)
       .then(r => r.json())
-      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
+      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
       .finally(() => setBracketLoading(false));
     fetch(`/api/tournaments/info?slug=${encodeURIComponent(slug)}`)
       .then(r => r.json())
@@ -534,19 +519,21 @@ export default function TestAdminPage() {
             <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 16px', fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,140,0,0.35)' }}>🔄 Cambiar torneo</button>
             <button
               onClick={startPhase}
-              disabled={startState === 'loading' || !selectedPhaseGroupId}
+              disabled={startState === 'loading' || !selectedPhaseGroupId || phaseStarted}
+              title="Iniciá el torneo desde start.gg primero, luego click aquí para habilitar el drag en la app"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                background: startState === 'ok' ? 'rgba(34,197,94,0.14)' : startState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(34,197,94,0.12)',
-                border: `1px solid ${startState === 'ok' ? 'rgba(34,197,94,0.45)' : startState === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`,
-                color: startState === 'ok' ? '#22C55E' : startState === 'error' ? '#F87171' : '#22C55E',
+                background: phaseStarted || startState === 'ok' ? 'rgba(34,197,94,0.14)' : startState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(34,197,94,0.12)',
+                border: `1px solid ${phaseStarted || startState === 'ok' ? 'rgba(34,197,94,0.45)' : startState === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`,
+                color: phaseStarted || startState === 'ok' ? '#22C55E' : startState === 'error' ? '#F87171' : '#22C55E',
                 borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11,
                 fontFamily: "'Outfit',sans-serif",
-                cursor: startState === 'loading' ? 'wait' : 'pointer',
+                cursor: phaseStarted || startState === 'loading' ? 'default' : 'pointer',
+                opacity: phaseStarted ? 0.7 : 1,
               }}
             >
               {startState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
-              {startState === 'ok' ? '✅ Iniciado' : startState === 'error' ? '❌ Error' : startState === 'loading' ? 'Iniciando...' : '🚀 Iniciar'}
+              {phaseStarted ? '✅ Iniciado' : startState === 'error' ? '❌ Error' : startState === 'loading' ? 'Iniciando...' : '🚀 Iniciar'}
             </button>
             <button onClick={notifyTournament} disabled={notifyState === 'loading'} style={{ display: 'flex', alignItems: 'center', gap: 5, background: notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.14)' : notifyState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(255,140,0,0.14)', border: `1px solid ${notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.35)' : notifyState === 'error' ? 'rgba(239,68,68,0.35)' : 'rgba(255,140,0,0.35)'}`, color: notifyState === 'ok' || notifyState === 'ok_no_new' ? '#22C55E' : notifyState === 'error' ? '#F87171' : '#FF8C00', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: notifyState === 'loading' ? 'wait' : 'pointer' }}>
               {notifyState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
