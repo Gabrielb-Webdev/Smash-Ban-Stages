@@ -1,3 +1,4 @@
+content = """\
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -99,7 +100,7 @@ export default function TestAdminPage() {
   if (checking) return (
     <div style={{ minHeight: '100vh', background: '#0B0B12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 32, height: 32, border: '3px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{\`@keyframes spin{to{transform:rotate(360deg)}}\`}</style>
     </div>
   );
 
@@ -110,7 +111,7 @@ export default function TestAdminPage() {
   return (
     <>
       <Head><title>Panel Test — Admin</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
-      <style>{`
+      <style>{\`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:#0B0B12;font-family:'Outfit',sans-serif}
@@ -122,7 +123,7 @@ export default function TestAdminPage() {
         .drop-zone.over{background:rgba(255,140,0,0.07)!important;border-color:rgba(255,140,0,0.45)!important}
         .btn-disabled{opacity:.4;cursor:not-allowed}
         @media(max-width:768px){.main-grid{grid-template-columns:1fr!important}}
-      `}</style>
+      \`}</style>
 
       <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif" }}>
 
@@ -189,7 +190,7 @@ export default function TestAdminPage() {
                   return (
                     <div
                       key={setup.id}
-                      className={`drop-zone\${isOver ? ' over' : ''}`}
+                      className={\`drop-zone\${isOver ? ' over' : ''}\`}
                       onDragOver={e => onDragOver(e, setup.id)}
                       onDragLeave={onDragLeave}
                       onDrop={e => onDrop(e, setup.id)}
@@ -282,15 +283,15 @@ function SetCard({ set, isDragging, onDragStart, onDragEnd, disabled }) {
   const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
   return (
     <div
-      className={`set-card\${isDragging ? ' is-dragging' : ''}`}
+      className={\`set-card\${isDragging ? ' is-dragging' : ''}\`}
       draggable={!disabled}
       onDragStart={!disabled ? e => onDragStart(set, e) : undefined}
       onDragEnd={!disabled ? onDragEnd : undefined}
-      style={{ background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,\${disabled ? '0.06' : '0.1'})`, borderRadius: 14, padding: '14px 15px', opacity: disabled ? 0.55 : 1 }}
+      style={{ background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: \`1px solid rgba(255,255,255,\${disabled ? '0.06' : '0.1'})\`, borderRadius: 14, padding: '14px 15px', opacity: disabled ? 0.55 : 1 }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
         <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{set.round}</span>
-        <span style={{ fontSize: 10, fontWeight: 700, background: sc.bg, border: `1px solid \${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 9px' }}>{set.stateLabel}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, background: sc.bg, border: \`1px solid \${sc.border}\`, color: sc.text, borderRadius: 99, padding: '2px 9px' }}>{set.stateLabel}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {set.slots.map((slot, i) => {
@@ -312,10 +313,10 @@ function SetCard({ set, isDragging, onDragStart, onDragEnd, disabled }) {
 
 function AssignedSetCard({ set, setup }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid \${setup.color}33`, borderRadius: 14, padding: '14px 15px' }}>
+    <div style={{ background: 'rgba(255,255,255,0.03)', border: \`1px solid \${setup.color}33\`, borderRadius: 14, padding: '14px 15px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
         <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{set.round}</span>
-        <span style={{ fontSize: 10, fontWeight: 700, background: `\${setup.color}1A`, border: `1px solid \${setup.color}44`, color: setup.color, borderRadius: 99, padding: '2px 9px' }}>{setup.icon} {setup.label}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, background: \`\${setup.color}1A\`, border: \`1px solid \${setup.color}44\`, color: setup.color, borderRadius: 99, padding: '2px 9px' }}>{setup.icon} {setup.label}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {set.slots.map((slot, i) => (
@@ -328,3 +329,8 @@ function AssignedSetCard({ set, setup }) {
     </div>
   );
 }
+"""
+
+with open(r'e:\\Users\\gabri\\Documents\\Clientes\\Smash-Ban-Stages\\pages\\admin\\test.js', 'w', encoding='utf-8') as f:
+    f.write(content)
+print("OK")
