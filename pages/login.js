@@ -17,7 +17,8 @@ export default function Login() {
       if (stored) {
         const data = JSON.parse(stored);
         if (data?.isAdmin) {
-          router.replace('/admin/afk-multi');
+          window.location.href = 'https://smash-ban-stages.vercel.app';
+          return;
         } else if (data?.user) {
           router.replace('/home');
         }

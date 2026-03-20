@@ -44,7 +44,8 @@ export default function AuthCallback() {
         localStorage.setItem('afk_user', JSON.stringify(data));
 
         if (data.isAdmin) {
-          router.replace('/admin/afk-multi');
+          window.location.href = 'https://smash-ban-stages.vercel.app';
+          return;
         } else {
           router.replace('/home');
         }
