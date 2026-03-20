@@ -171,17 +171,31 @@ export default function TestAdminPage() {
   }
 
   function confirmPhaseGroup(slug, pgId, eventId) {
+    const pgIdStr = String(pgId);
+    const evIdStr = String(eventId);
     setSelectedSlug(slug);
-    setSelectedPhaseGroupId(String(pgId));
-    setSelectedEventId(String(eventId));
+    setSelectedPhaseGroupId(pgIdStr);
+    setSelectedEventId(evIdStr);
     setSelectedBracketUrl(`https://www.start.gg/${slug}`);
     setTournament(null);
     setBracketSets([]);
+    setBracketLoading(true);   // mostrar spinner inmediatamente
     setAssignedSets({});
     setEntrants([]);
     setTourPickerOpen(false);
     setPickTour(null);
     setPickPhases(null);
+    // Fetch en paralelo sin esperar re-render + effects
+    fetch(`/api/tournaments/bracket?phaseGroupId=${pgIdStr}`)
+      .then(r => r.json())
+      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
+      .finally(() => setBracketLoading(false));
+    fetch(`/api/tournaments/info?slug=${encodeURIComponent(slug)}`)
+      .then(r => r.json())
+      .then(d => { if (!d.error) { setTournament(d); setLastRefresh(new Date()); } });
+    fetch(`/api/tournaments/entrants?eventId=${evIdStr}`)
+      .then(r => r.json())
+      .then(d => { if (d.entrants) setEntrants(d.entrants); });
   }
 
   function onDragStart(set, e) { setDraggedSet(set); e.dataTransfer.effectAllowed = 'move'; }
@@ -241,6 +255,10 @@ export default function TestAdminPage() {
     }
     return Object.entries(map).sort((a, b) => getRoundPriority(a[0]) - getRoundPriority(b[0]));
   })();
+  const winnersGroups = roundGroups.filter(([n]) => { const nl = n.toLowerCase(); return nl.includes('winners') && !nl.includes('grand'); });
+  const losersGroups  = roundGroups.filter(([n]) => { const nl = n.toLowerCase(); return nl.includes('losers'); });
+  const finalGroups   = roundGroups.filter(([n]) => { const nl = n.toLowerCase(); return nl.includes('grand'); });
+  const otherGroups   = roundGroups.filter(([n]) => { const nl = n.toLowerCase(); return !nl.includes('winners') && !nl.includes('losers') && !nl.includes('grand'); });
 
   return (
     <>
@@ -272,7 +290,7 @@ export default function TestAdminPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#D1D5DB', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: 'pointer' }}>🔄 Cambiar</button>
+            <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 16px', fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,140,0,0.35)' }}>🔄 Cambiar torneo</button>
             <button onClick={notifyTournament} disabled={notifyState === 'loading'} style={{ display: 'flex', alignItems: 'center', gap: 5, background: notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.14)' : notifyState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(255,140,0,0.14)', border: `1px solid ${notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.35)' : notifyState === 'error' ? 'rgba(239,68,68,0.35)' : 'rgba(255,140,0,0.35)'}`, color: notifyState === 'ok' || notifyState === 'ok_no_new' ? '#22C55E' : notifyState === 'error' ? '#F87171' : '#FF8C00', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: notifyState === 'loading' ? 'wait' : 'pointer' }}>
               {notifyState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
               {notifyState === 'ok' || notifyState === 'ok_no_new' ? '✅ Enviado' : notifyState === 'error' ? '❌ Error' : notifyState === 'loading' ? 'Enviando...' : '🔔 Notificar'}
@@ -410,81 +428,84 @@ export default function TestAdminPage() {
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No se encontraron sets en este bracket.</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', gap: 14, minWidth: 'max-content', alignItems: 'flex-start' }}>
-                {roundGroups.map(([roundName, roundSets]) => {
-                  const allDone   = roundSets.every(s => s.stateLabel === 'COMPLETED' || s.stateLabel === 'BYE');
-                  const anyActive = roundSets.some(s => s.stateLabel === 'ACTIVE' || s.stateLabel === 'CALLED');
-                  const n = roundName.toLowerCase();
-                  const isGF     = n.includes('grand');
-                  const isLosers = n.includes('losers');
-                  const accentColor = isGF ? '#F5C518' : isLosers ? '#818CF8' : '#22C55E';
-                  const dotColor    = allDone ? '#4B5563' : anyActive ? '#22C55E' : accentColor;
-                  const pending = roundSets.filter(s => s.stateLabel !== 'COMPLETED' && s.stateLabel !== 'BYE').length;
-                  return (
-                    <div key={roundName} style={{ width: 218, flexShrink: 0 }}>
-                      {/* Round header */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '7px 10px', background: accentColor + '0F', border: `1px solid ${accentColor}22`, borderRadius: 10 }}>
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0, boxShadow: anyActive ? `0 0 7px ${dotColor}` : 'none' }} />
-                        <p style={{ margin: 0, flex: 1, fontSize: 10, fontWeight: 900, color: allDone ? 'rgba(255,255,255,0.28)' : accentColor, textTransform: 'uppercase', letterSpacing: '0.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roundName}</p>
-                        {pending > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: accentColor, background: accentColor + '18', border: `1px solid ${accentColor}30`, borderRadius: 99, padding: '1px 6px', flexShrink: 0 }}>{pending}</span>}
-                      </div>
-                      {/* Match cards */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {roundSets.map(set => {
-                          const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
-                          const isDone   = set.stateLabel === 'COMPLETED';
-                          const isBye    = set.stateLabel === 'BYE';
-                          const isAsgnd  = assignedSetIds.has(set.id);
-                          const aSetup   = TEST_SETUPS.find(s => assignedSets[s.id]?.id === set.id);
-                          return (
-                            <div
-                              key={set.id}
-                              className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                              draggable={!isDone && !isBye}
-                              onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
-                              onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                              style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 13, overflow: 'hidden', opacity: isDone ? 0.6 : 1, cursor: isDone || isBye ? 'default' : 'grab' }}
-                            >
-                              {/* Top bar: state + assigned badge */}
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: isDone ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
-                                <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
-                                {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
-                              </div>
-                              {/* Slots */}
-                              <div style={{ padding: '8px 10px' }}>
-                                {set.slots.map((slot, i) => {
-                                  const isWinner = isDone && slot?.placement === 1;
-                                  const isLoser  = isDone && slot?.placement === 2;
-                                  return (
-                                    <div key={i}>
-                                      {i === 1 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '6px 0' }}>
-                                          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                                          <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.14em' }}>VS</span>
-                                          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                                        </div>
-                                      )}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                                        <div style={{ width: 16, height: 16, borderRadius: 4, background: isWinner ? accentColor + '22' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: isWinner ? accentColor : 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{i + 1}</div>
-                                        <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: isWinner ? '#fff' : isLoser ? 'rgba(255,255,255,0.3)' : (slot?.entrant ? '#E5E7EB' : 'rgba(255,255,255,0.22)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isLoser ? 'line-through' : 'none' }}>
-                                          {slot?.entrant?.name || 'TBD'}
-                                        </span>
-                                        {slot?.score != null && <span style={{ fontSize: 13, fontWeight: 900, color: isWinner ? '#4ADE80' : 'rgba(255,255,255,0.3)', flexShrink: 0, minWidth: 14, textAlign: 'right' }}>{slot.score}</span>}
-                                        {isWinner && <span style={{ fontSize: 10, flexShrink: 0 }}>🏆</span>}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {[
+                { label: '🏆 Winners Bracket', groups: winnersGroups, accent: '#22C55E', bgLine: 'rgba(34,197,94,0.04)', borderLine: 'rgba(34,197,94,0.12)' },
+                { label: '❌ Losers Bracket',  groups: losersGroups,  accent: '#818CF8', bgLine: 'rgba(129,140,248,0.04)', borderLine: 'rgba(129,140,248,0.12)' },
+                { label: '🏆 Finals',          groups: [...finalGroups, ...otherGroups], accent: '#F5C518', bgLine: 'rgba(245,197,24,0.04)', borderLine: 'rgba(245,197,24,0.12)' },
+              ].filter(section => section.groups.length > 0).map(section => (
+                <div key={section.label} style={{ background: section.bgLine, border: `1px solid ${section.borderLine}`, borderRadius: 16, padding: '14px 16px' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 900, color: section.accent, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{section.label} <span style={{ fontWeight: 500, color: 'rgba(255,255,255,0.25)' }}>· {section.groups.length} ronda{section.groups.length !== 1 ? 's' : ''}</span></p>
+                  <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
+                    <div style={{ display: 'flex', gap: 12, minWidth: 'max-content', alignItems: 'flex-start' }}>
+                      {section.groups.map(([roundName, roundSets]) => {
+                        const allDone   = roundSets.every(s => s.stateLabel === 'COMPLETED' || s.stateLabel === 'BYE');
+                        const anyActive = roundSets.some(s => s.stateLabel === 'ACTIVE' || s.stateLabel === 'CALLED');
+                        const pending   = roundSets.filter(s => s.stateLabel !== 'COMPLETED' && s.stateLabel !== 'BYE').length;
+                        const ac = section.accent;
+                        const dotColor = allDone ? '#4B5563' : anyActive ? '#22C55E' : ac;
+                        return (
+                          <div key={roundName} style={{ width: 210, flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: '6px 10px', background: ac + '12', border: `1px solid ${ac}28`, borderRadius: 9 }}>
+                              <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0, boxShadow: anyActive ? `0 0 7px ${dotColor}` : 'none' }} />
+                              <p style={{ margin: 0, flex: 1, fontSize: 10, fontWeight: 900, color: allDone ? 'rgba(255,255,255,0.25)' : ac, textTransform: 'uppercase', letterSpacing: '0.07em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roundName}</p>
+                              {pending > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: ac, background: ac + '18', border: `1px solid ${ac}30`, borderRadius: 99, padding: '1px 6px', flexShrink: 0 }}>{pending}</span>}
                             </div>
-                          );
-                        })}
-                      </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                              {roundSets.map(set => {
+                                const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
+                                const isDone  = set.stateLabel === 'COMPLETED';
+                                const isBye   = set.stateLabel === 'BYE';
+                                const aSetup  = TEST_SETUPS.find(s => assignedSets[s.id]?.id === set.id);
+                                return (
+                                  <div
+                                    key={set.id}
+                                    className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
+                                    draggable={!isDone && !isBye}
+                                    onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
+                                    onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
+                                    style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : 'grab' }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: isDone ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                                      <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
+                                      {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px', flexShrink: 0 }}>{aSetup.icon} {aSetup.label}</span>}
+                                    </div>
+                                    <div style={{ padding: '7px 9px' }}>
+                                      {set.slots.map((slot, i) => {
+                                        const isWinner = isDone && slot?.placement === 1;
+                                        const isLoser  = isDone && slot?.placement === 2;
+                                        return (
+                                          <div key={i}>
+                                            {i === 1 && (
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '5px 0' }}>
+                                                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                                                <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.14em' }}>VS</span>
+                                                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                                              </div>
+                                            )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                              <div style={{ width: 15, height: 15, borderRadius: 4, background: isWinner ? ac + '25' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: isWinner ? ac : 'rgba(255,255,255,0.28)', flexShrink: 0 }}>{i + 1}</div>
+                                              <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: isWinner ? '#fff' : isLoser ? 'rgba(255,255,255,0.28)' : (slot?.entrant ? '#E5E7EB' : 'rgba(255,255,255,0.22)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isLoser ? 'line-through' : 'none' }}>
+                                                {slot?.entrant?.name || 'TBD'}
+                                              </span>
+                                              {slot?.score != null && <span style={{ fontSize: 13, fontWeight: 900, color: isWinner ? '#4ADE80' : 'rgba(255,255,255,0.28)', flexShrink: 0, minWidth: 14, textAlign: 'right' }}>{slot.score}</span>}
+                                              {isWinner && <span style={{ fontSize: 10, flexShrink: 0 }}>🏆</span>}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
