@@ -8,7 +8,7 @@ import { findLocalCharId } from '../../../lib/characters';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const SSBU_GAME_ID = 1386;
-const CACHE_TTL = 3600; // 1 hora
+const CACHE_TTL = 7200; // 2 horas
 const CHAR_CACHE_TTL = 86400; // 24 horas para el mapa de personajes
 
 // Mapa de stage IDs de Start.GG para SSBU (competitivos + populares)
@@ -488,6 +488,13 @@ export default async function handler(req, res) {
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '');
       console.error('Start.GG error:', resp.status, errText.slice(0, 200));
+      // On rate limit, try returning stale cache
+      if (resp.status === 429) {
+        try {
+          const stale = await redis.get(cacheKey);
+          if (stale) return res.status(200).json(typeof stale === 'string' ? JSON.parse(stale) : stale);
+        } catch { /* no cache */ }
+      }
       return res.status(resp.status === 401 || resp.status === 403 ? 401 : 502)
         .json({ error: 'Start.GG API error', status: resp.status, detail: errText.slice(0, 100) });
     }
@@ -531,7 +538,7 @@ export default async function handler(req, res) {
     // Fetch paralelo de páginas extra con query ligera
     let actualPagesFetched = 1;
     if (totalPages > 1) {
-      const maxPages = Math.min(totalPages, 20); // hasta 20 páginas = 1000 sets
+      const maxPages = Math.min(totalPages, 10); // hasta 10 páginas = ~380 sets
       const fetchPage = async (page) => {
         try {
           const r = await fetch(STARTGG_API, {
@@ -548,9 +555,9 @@ export default async function handler(req, res) {
         } catch { return []; }
       };
 
-      // Batch paralelo: 5 páginas a la vez
-      for (let batchStart = 2; batchStart <= maxPages; batchStart += 5) {
-        const batchEnd = Math.min(batchStart + 4, maxPages);
+      // Batch paralelo: 3 páginas a la vez (reduce rate limit risk)
+      for (let batchStart = 2; batchStart <= maxPages; batchStart += 3) {
+        const batchEnd = Math.min(batchStart + 2, maxPages);
         const pageNums = [];
         for (let p = batchStart; p <= batchEnd; p++) pageNums.push(p);
 

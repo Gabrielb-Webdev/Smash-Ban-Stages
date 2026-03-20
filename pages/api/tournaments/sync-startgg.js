@@ -19,7 +19,7 @@ const ORGANIZER_SLUG = process.env.STARTGG_ORGANIZER_SLUG || '';
 // Keys en Redis
 const SEEN_KEY      = 'startgg:tournaments:seen';
 const CACHE_KEY     = 'startgg:tournaments:cache';
-const CACHE_TTL     = 1800; // 30 min
+const CACHE_TTL     = 3600; // 1 hora
 
 // Query para obtener un torneo específico por slug
 const TOURNAMENT_BY_SLUG_QUERY = `

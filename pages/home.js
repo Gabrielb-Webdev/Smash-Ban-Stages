@@ -1667,7 +1667,7 @@ function TabPerfil({ user }) {
       const token = stored.access_token;
       const slug = stored.user?.slug;
       if (token && slug) {
-        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug) + '&refresh=true', {
+        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), {
           headers: { 'Authorization': 'Bearer ' + token },
         }).then(r => {
           if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
