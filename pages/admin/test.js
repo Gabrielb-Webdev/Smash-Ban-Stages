@@ -74,7 +74,9 @@ export default function TestAdminPage() {
 
   // Iniciar torneo
   const [startState, setStartState] = useState(null); // null | 'loading' | 'ok' | 'error'
-  const [phaseStarted, setPhaseStarted] = useState(false);
+  const [phaseStarted, setPhaseStarted] = useState(() => {
+    try { return typeof window !== 'undefined' && localStorage.getItem('afk_phaseStarted') === '1'; } catch { return false; }
+  });
 
   // Match call timers: { [setupId]: { secondsLeft, intervalId } }
   const [matchTimers, setMatchTimers] = useState({});
@@ -121,7 +123,7 @@ export default function TestAdminPage() {
             }).catch(() => {});
           });
         }
-        if (localStorage.getItem('afk_phaseStarted') === '1') setPhaseStarted(true);
+
       } catch {}
     });
   }, []);
