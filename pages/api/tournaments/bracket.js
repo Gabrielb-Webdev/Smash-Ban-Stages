@@ -20,6 +20,8 @@ query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
         slots {
           id
           slotIndex
+          prereqType
+          prereqId
           entrant { id name }
           standing { placement stats { score { value } } }
         }
@@ -70,23 +72,53 @@ export default async function handler(req, res) {
       page++;
     }
 
+    // Build forward-reference map: setId → [{nextSetId, isLosers}]
+    const forwardRefs = {};
+    allSets.forEach(setY => {
+      (setY.slots || []).forEach(slot => {
+        if (slot.prereqType === 'set' && slot.prereqId) {
+          const key = String(slot.prereqId);
+          if (!forwardRefs[key]) forwardRefs[key] = [];
+          forwardRefs[key].push({
+            nextSetId: String(setY.id),
+            isLosers: (setY.fullRoundText || '').toLowerCase().includes('losers'),
+          });
+        }
+      });
+    });
+
     return res.status(200).json({
       phaseGroupId: String(phaseGroupId),
       phaseName,
-      sets: allSets.map(s => ({
-        id:           String(s.id),
-        round:        s.fullRoundText || '',
-        state:        s.state,
-        stateLabel:   SET_STATE_LABELS[s.state] || 'UNKNOWN',
-        completedAt:  s.completedAt ? new Date(s.completedAt * 1000).toISOString() : null,
-        slots: (s.slots || []).map(slot => ({
-          id:      slot.id,
-          index:   slot.slotIndex,
-          entrant: slot.entrant ? { id: String(slot.entrant.id), name: slot.entrant.name } : null,
-          score:   slot.standing?.stats?.score?.value ?? null,
-          placement: slot.standing?.placement ?? null,
-        })),
-      })),
+      sets: allSets.map(s => {
+        const refs = forwardRefs[String(s.id)] || [];
+        const isCurrentLosers = (s.fullRoundText || '').toLowerCase().includes('losers');
+        let nextMatchId = null;
+        let nextLooserMatchId = null;
+        for (const ref of refs) {
+          if (!isCurrentLosers && ref.isLosers) {
+            nextLooserMatchId = ref.nextSetId;
+          } else {
+            nextMatchId = ref.nextSetId;
+          }
+        }
+        return {
+          id:           String(s.id),
+          nextMatchId,
+          nextLooserMatchId,
+          round:        s.fullRoundText || '',
+          state:        s.state,
+          stateLabel:   SET_STATE_LABELS[s.state] || 'UNKNOWN',
+          completedAt:  s.completedAt ? new Date(s.completedAt * 1000).toISOString() : null,
+          slots: (s.slots || []).map(slot => ({
+            id:      slot.id,
+            index:   slot.slotIndex,
+            entrant: slot.entrant ? { id: String(slot.entrant.id), name: slot.entrant.name } : null,
+            score:   slot.standing?.stats?.score?.value ?? null,
+            placement: slot.standing?.placement ?? null,
+          })),
+        };
+      }),
     });
   } catch (err) {
     return res.status(500).json({ error: 'Error interno', detail: err.message });

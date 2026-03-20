@@ -9,6 +9,7 @@
     "server": "node server/server.js"
   },
   "dependencies": {
+    "@g-loot/react-tournament-brackets": "^1.0.31-rc",
     "@upstash/redis": "^1.37.0",
     "framer-motion": "^10.16.0",
     "next": "^14.0.0",

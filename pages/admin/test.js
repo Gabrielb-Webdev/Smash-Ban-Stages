@@ -3,6 +3,12 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
+import dynamic from 'next/dynamic';
+
+const TournamentBracket = dynamic(
+  () => import('../../src/components/TournamentBracket'),
+  { ssr: false }
+);
 
 const TEST_SETUPS = [
   { id: 'test-stream', label: 'Stream',  icon: '📡', color: '#DC2626' },
@@ -62,6 +68,9 @@ export default function TestAdminPage() {
 
   // Notificaciones
   const [notifyState, setNotifyState] = useState(null); // null | 'loading' | 'ok' | 'error'
+
+  // Iniciar torneo
+  const [startState, setStartState] = useState(null); // null | 'loading' | 'ok' | 'error'
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -143,6 +152,36 @@ export default function TestAdminPage() {
       setNotifyState('error');
     } finally {
       setTimeout(() => setNotifyState(null), 5000);
+    }
+  }
+
+  async function startPhase() {
+    if (!selectedPhaseGroupId) return;
+    setStartState('loading');
+    try {
+      const r = await fetch('/api/tournaments/start-phase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer afk-admin-2025',
+        },
+        body: JSON.stringify({ phaseGroupId: selectedPhaseGroupId }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error');
+      setStartState('ok');
+      // Recargar bracket para reflejar el nuevo estado
+      setTimeout(() => {
+        setBracketLoading(true);
+        fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+          .then(res => res.json())
+          .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
+          .finally(() => setBracketLoading(false));
+      }, 1200);
+    } catch {
+      setStartState('error');
+    } finally {
+      setTimeout(() => setStartState(null), 5000);
     }
   }
 
@@ -358,6 +397,22 @@ export default function TestAdminPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 16px', fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,140,0,0.35)' }}>🔄 Cambiar torneo</button>
+            <button
+              onClick={startPhase}
+              disabled={startState === 'loading' || !selectedPhaseGroupId}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: startState === 'ok' ? 'rgba(34,197,94,0.14)' : startState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(34,197,94,0.12)',
+                border: `1px solid ${startState === 'ok' ? 'rgba(34,197,94,0.45)' : startState === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`,
+                color: startState === 'ok' ? '#22C55E' : startState === 'error' ? '#F87171' : '#22C55E',
+                borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11,
+                fontFamily: "'Outfit',sans-serif",
+                cursor: startState === 'loading' ? 'wait' : 'pointer',
+              }}
+            >
+              {startState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
+              {startState === 'ok' ? '✅ Iniciado' : startState === 'error' ? '❌ Error' : startState === 'loading' ? 'Iniciando...' : '🚀 Iniciar'}
+            </button>
             <button onClick={notifyTournament} disabled={notifyState === 'loading'} style={{ display: 'flex', alignItems: 'center', gap: 5, background: notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.14)' : notifyState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(255,140,0,0.14)', border: `1px solid ${notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.35)' : notifyState === 'error' ? 'rgba(239,68,68,0.35)' : 'rgba(255,140,0,0.35)'}`, color: notifyState === 'ok' || notifyState === 'ok_no_new' ? '#22C55E' : notifyState === 'error' ? '#F87171' : '#FF8C00', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: notifyState === 'loading' ? 'wait' : 'pointer' }}>
               {notifyState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
               {notifyState === 'ok' || notifyState === 'ok_no_new' ? '✅ Enviado' : notifyState === 'error' ? '❌ Error' : notifyState === 'loading' ? 'Enviando...' : '🔔 Notificar'}
@@ -495,44 +550,15 @@ export default function TestAdminPage() {
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No se encontraron sets en este bracket.</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto', paddingBottom: 10 }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${totalBracketCols}, 218px)`,
-                gridTemplateRows: losersGroups.length > 0 ? 'auto 26px auto' : 'auto',
-                columnGap: 10,
-              }}>
-                {/* ── WINNERS — fila 1 ── */}
-                {winnersGroups.map(([rn, rs], i) => (
-                  <div key={rn} style={{ gridColumn: i + 1, gridRow: 1 }}>
-                    {renderBracketCol(rn, rs, '#22C55E')}
-                  </div>
-                ))}
-
-                {/* ── SEPARADOR con etiqueta Losers — fila 2 ── */}
-                {losersGroups.length > 0 && (
-                  <div style={{ gridColumn: `1 / ${maxWL + 1}`, gridRow: 2, display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px' }}>
-                    <div style={{ flex: 1, height: 1, background: 'rgba(129,140,248,0.22)' }} />
-                    <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(129,140,248,0.55)', textTransform: 'uppercase', letterSpacing: '0.16em', flexShrink: 0 }}>Losers</span>
-                    <div style={{ flex: 1, height: 1, background: 'rgba(129,140,248,0.22)' }} />
-                  </div>
-                )}
-
-                {/* ── LOSERS — fila 3 ── */}
-                {losersGroups.map(([rn, rs], i) => (
-                  <div key={rn} style={{ gridColumn: i + 1, gridRow: 3 }}>
-                    {renderBracketCol(rn, rs, '#818CF8')}
-                  </div>
-                ))}
-
-                {/* ── FINALS — abarca filas 1-3 ── */}
-                {allFinals.map(([rn, rs], i) => (
-                  <div key={rn} style={{ gridColumn: maxWL + i + 1, gridRow: losersGroups.length > 0 ? '1 / 4' : 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    {renderBracketCol(rn, rs, '#F5C518')}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TournamentBracket
+              bracketSets={bracketSets}
+              assignedSets={assignedSets}
+              draggedSet={draggedSet}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              TEST_SETUPS={TEST_SETUPS}
+              SET_STATE_STYLE={SET_STATE_STYLE}
+            />
           )}
         </div>
 
