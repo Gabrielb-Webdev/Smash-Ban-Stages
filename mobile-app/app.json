@@ -18,7 +18,20 @@
         "monochromeImage": "./assets/afk-favicon.png",
         "backgroundColor": "#000000"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
+        }
+      ]
+    ]
   }
 }
 
