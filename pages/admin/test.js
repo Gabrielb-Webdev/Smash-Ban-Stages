@@ -60,6 +60,9 @@ export default function TestAdminPage() {
   const [loadingEntrants, setLoadingEntrants] = useState(false);
   const [lastRefresh, setLastRefresh]         = useState(null);
 
+  // Notificaciones
+  const [notifyState, setNotifyState] = useState(null); // null | 'loading' | 'ok' | 'error'
+
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored?.access_token) { router.replace('/login'); return; }
@@ -122,6 +125,26 @@ export default function TestAdminPage() {
   }, []);
 
   function handleLogout() { logout(); router.replace('/login'); }
+
+  async function notifyTournament() {
+    setNotifyState('loading');
+    try {
+      const r = await fetch('/api/tournaments/sync-startgg', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer afk-admin-2025',
+        },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error');
+      setNotifyState(d.newTournaments?.length > 0 ? 'ok' : 'ok_no_new');
+    } catch {
+      setNotifyState('error');
+    } finally {
+      setTimeout(() => setNotifyState(null), 5000);
+    }
+  }
 
   function openTourPicker() {
     setTourPickerOpen(true);
@@ -195,218 +218,281 @@ export default function TestAdminPage() {
     ? new Date(tournament.startAt).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
     : null;
 
+  function getRoundPriority(name) {
+    const n = (name || '').toLowerCase();
+    if (n === 'grand final reset') return 99;
+    if (n === 'grand final') return 98;
+    if (n.includes('losers') && n.includes('final') && !n.includes('semi') && !n.includes('quarter')) return 80;
+    if (n.includes('losers') && n.includes('semi')) return 75;
+    if (n.includes('losers') && n.includes('quarter')) return 72;
+    const lm = n.match(/losers.*?(\d+)/); if (lm) return 50 + parseInt(lm[1]);
+    if (n.includes('winners') && n.includes('final') && !n.includes('semi') && !n.includes('quarter')) return 40;
+    if (n.includes('winners') && n.includes('semi')) return 35;
+    if (n.includes('winners') && n.includes('quarter')) return 30;
+    const wm = n.match(/winners.*?(\d+)/); if (wm) return 10 + parseInt(wm[1]);
+    return 60;
+  }
+  const roundGroups = (() => {
+    const map = {};
+    for (const s of bracketSets) {
+      const r = s.round || 'Sin ronda';
+      if (!map[r]) map[r] = [];
+      map[r].push(s);
+    }
+    return Object.entries(map).sort((a, b) => getRoundPriority(a[0]) - getRoundPriority(b[0]));
+  })();
+
   return (
     <>
-      <Head><title>Panel Test — Admin</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
+      <Head><title>Panel Torneo — Admin</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:#0B0B12;font-family:'Outfit',sans-serif}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .set-card{transition:transform .15s,box-shadow .15s,opacity .15s;cursor:grab;user-select:none}
-        .set-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.4)}
-        .set-card.is-dragging{opacity:.35;transform:scale(.96);cursor:grabbing}
-        .drop-zone{transition:background .15s,border-color .15s}
-        .drop-zone.over{background:rgba(255,140,0,0.07)!important;border-color:rgba(255,140,0,0.45)!important}
-        .btn-disabled{opacity:.4;cursor:not-allowed}
-        @media(max-width:768px){.main-grid{grid-template-columns:1fr!important}}
+        .bset{transition:transform .14s,box-shadow .14s,opacity .14s;cursor:grab;user-select:none}
+        .bset:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.45)}
+        .bset.dragging{opacity:.3;transform:scale(.95);cursor:grabbing}
+        .sdrop{transition:border-color .14s,background .14s,transform .12s}
+        .sdrop.hovered{border-color:rgba(255,140,0,0.55)!important;background:rgba(255,140,0,0.06)!important;transform:scale(1.01)}
+        .btn-disabled{opacity:.35;cursor:not-allowed}
+        @media(max-width:900px){.setups-grid{grid-template-columns:1fr 1fr!important}}
+        @media(max-width:560px){.setups-grid{grid-template-columns:1fr!important}}
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif" }}>
 
-        {/* HEADER */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(12px)', zIndex: 40 }}>
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.96)', backdropFilter: 'blur(14px)', zIndex: 40, gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 19 }}>🧪</span>
-            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.5px' }}>Panel Test</span>
+            <span style={{ fontSize: 17 }}>🏆</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 900, fontSize: 15, letterSpacing: '-0.3px', lineHeight: 1.2, color: '#fff' }}>{tournament?.name || 'Panel Torneo'}</p>
+              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{TEST_SETUPS.length} setups · {phaseName || 'Bracket'}</p>
+            </div>
           </div>
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <button onClick={() => setDropdownOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '6px 12px', cursor: 'pointer', color: '#fff', fontFamily: "'Outfit', sans-serif" }}>
-              {user?.avatar ? <img src={user.avatar} alt={user.name} style={{ width: 26, height: 26, borderRadius: '50%' }} /> : <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#374151' }} />}
-              <span style={{ fontSize: 13, color: '#D1D5DB' }}>{user?.name}</span>
-              <svg width={10} height={10} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#D1D5DB', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: 'pointer' }}>🔄 Cambiar</button>
+            <button onClick={notifyTournament} disabled={notifyState === 'loading'} style={{ display: 'flex', alignItems: 'center', gap: 5, background: notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.14)' : notifyState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(255,140,0,0.14)', border: `1px solid ${notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.35)' : notifyState === 'error' ? 'rgba(239,68,68,0.35)' : 'rgba(255,140,0,0.35)'}`, color: notifyState === 'ok' || notifyState === 'ok_no_new' ? '#22C55E' : notifyState === 'error' ? '#F87171' : '#FF8C00', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: notifyState === 'loading' ? 'wait' : 'pointer' }}>
+              {notifyState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
+              {notifyState === 'ok' || notifyState === 'ok_no_new' ? '✅ Enviado' : notifyState === 'error' ? '❌ Error' : notifyState === 'loading' ? 'Enviando...' : '🔔 Notificar'}
             </button>
-            {dropdownOpen && (
-              <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, width: 180, background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
-                <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', fontSize: 13, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🎮 Panel Admin</Link>
-                <Link href="/home" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', fontSize: 13, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🏠 Home</Link>
-                <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', fontSize: 13, color: '#F87171', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: "'Outfit', sans-serif" }}>🚪 Salir</button>
-              </div>
-            )}
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <button onClick={() => setDropdownOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '6px 11px', cursor: 'pointer', color: '#fff', fontFamily: "'Outfit',sans-serif" }}>
+                {user?.avatar ? <img src={user.avatar} alt={user.name} style={{ width: 24, height: 24, borderRadius: '50%' }} /> : <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#374151' }} />}
+                <span style={{ fontSize: 12, color: '#D1D5DB' }}>{user?.name}</span>
+                <svg width={9} height={9} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {dropdownOpen && (
+                <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, width: 178, background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+                  <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🎮 Panel Admin</Link>
+                  <Link href="/home" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🏠 Home</Link>
+                  <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#F87171', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: "'Outfit',sans-serif" }}>🚪 Salir</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* MAIN GRID */}
-        <div className="main-grid" style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px', display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20, alignItems: 'start' }}>
-
-          {/* LEFT */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-            {/* Torneo card */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden' }}>
-              {tournament?.image
-                ? <div style={{ height: 130, background: `url(${tournament.image}) center/cover no-repeat` }} />
-                : <div style={{ height: 60, background: 'linear-gradient(135deg,rgba(255,140,0,0.08),rgba(232,80,0,0.04))' }} />}
-              <div style={{ padding: '18px 18px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-                  <h3 style={{ fontWeight: 800, fontSize: 16, color: '#fff', lineHeight: 1.3 }}>{tournament?.name || 'Cargando...'}</h3>
-                  <span style={{ flexShrink: 0, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22C55E', borderRadius: 99, padding: '2px 9px', fontSize: 10, fontWeight: 700 }}>{tournament?.stateLabel || 'CREATED'}</span>
-                </div>
-                {startDate && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 5 }}>📅 {startDate}</p>}
-                {/* Attendees + toggle lista */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                    👥 {(tournament?.attendees ?? entrants.length) || '—'} inscriptos
-                    {lastRefresh && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>⟳ {timeAgo(lastRefresh)}</span>}
-                  </p>
-                  <button onClick={() => setEntrantsOpen(v => !v)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 11, padding: '2px 6px', fontFamily: "'Outfit', sans-serif", flexShrink: 0 }}>
-                    {entrantsOpen ? '▲ ocultar' : '▼ ver lista'}
-                  </button>
-                </div>
-
-                {/* Lista inscriptos */}
-                {entrantsOpen && (
-                  <div style={{ marginBottom: 12, maxHeight: 220, overflowY: 'auto', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    {loadingEntrants && entrants.length === 0 ? (
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '14px 0' }}>Cargando...</p>
-                    ) : entrants.length === 0 ? (
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '14px 0' }}>Sin inscriptos aún</p>
+        {/* ── SETUPS GRID ── */}
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 20px 12px' }}>
+          <p style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 12 }}>Setups · arrastrá un match del bracket</p>
+          <div className="setups-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {TEST_SETUPS.map(setup => {
+              const assigned = assignedSets[setup.id];
+              const isOver   = dragOverSetup === setup.id;
+              return (
+                <div
+                  key={setup.id}
+                  className={`sdrop${isOver ? ' hovered' : ''}`}
+                  onDragOver={e => onDragOver(e, setup.id)}
+                  onDragLeave={onDragLeave}
+                  onDrop={e => onDrop(e, setup.id)}
+                  style={{ background: '#0F0F1A', border: `1px solid ${assigned ? setup.color + '55' : 'rgba(255,255,255,0.06)'}`, borderRadius: 18, overflow: 'hidden', minHeight: 155 }}
+                >
+                  <div style={{ height: 3, background: `linear-gradient(90deg,${setup.color},${setup.color}55)` }} />
+                  <div style={{ padding: '13px 15px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 9, background: setup.color + '1E', border: `1px solid ${setup.color}3A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{setup.icon}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{setup.label}</p>
+                        {setup.id === 'test-stream' && <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.12em' }}>STREAM</span>}
+                      </div>
+                      {assigned && <button onClick={() => removeAssignment(setup.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>}
+                    </div>
+                    {assigned ? (
+                      <div style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${setup.color}20`, borderRadius: 11, padding: '9px 11px' }}>
+                        <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{assigned.round}</p>
+                        {assigned.slots.map((slot, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: i < assigned.slots.length - 1 ? 5 : 0 }}>
+                            <div style={{ width: 17, height: 17, borderRadius: 5, background: setup.color + '20', border: `1px solid ${setup.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: setup.color, flexShrink: 0 }}>{i + 1}</div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: slot?.entrant ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot?.entrant?.name || 'TBD'}</span>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
-                      entrants.map((e, i) => (
-                        <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderBottom: i < entrants.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 700, width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
-                          {e.avatar
-                            ? <img src={e.avatar} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                            : <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />}
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#E5E7EB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.tag || e.name}</span>
-                        </div>
-                      ))
+                      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.18)' }}>Sin match activo</p>
+                        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>↓ Arrastrá un match</p>
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-                {tournament?.owner && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>🏷️ {tournament.owner}</p>}
-
-                {/* Cambiar torneo */}
-                <button
-                  onClick={openTourPicker}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#D1D5DB', borderRadius: 12, padding: '10px 16px', fontWeight: 700, fontSize: 13, fontFamily: "'Outfit', sans-serif", cursor: 'pointer', marginBottom: 8 }}
-                >
-                  🔄 Cambiar torneo
-                </button>
-                <button
-                  disabled
-                  title="Funcionalidad en desarrollo"
-                  className="btn-disabled"
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', border: 'none', borderRadius: 13, padding: '12px 16px', fontWeight: 800, fontSize: 14, fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}
-                >
-                  🚀 Iniciar torneo en Start.GG
-                </button>
-                <p style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Próximamente — en pruebas</p>
+        {/* ── TORNEO INFO STRIP ── */}
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 20px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '12px 18px', flexWrap: 'wrap' }}>
+            {tournament?.image && <img src={tournament.image} alt="" style={{ width: 50, height: 50, borderRadius: 11, objectFit: 'cover', flexShrink: 0 }} />}
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                <p style={{ margin: 0, fontWeight: 900, fontSize: 15, color: '#fff' }}>{tournament?.name || 'Cargando...'}</p>
+                <span style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)', color: '#22C55E', borderRadius: 99, padding: '2px 8px', fontSize: 9, fontWeight: 800, flexShrink: 0 }}>{tournament?.stateLabel || '...'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                {startDate && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>📅 {startDate}</span>}
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>👥 {(tournament?.attendees ?? entrants.length) || '—'} inscriptos{lastRefresh && <span style={{ marginLeft: 5, fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>⟳ {timeAgo(lastRefresh)}</span>}</span>
+                {tournament?.owner && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>🏷️ {tournament.owner}</span>}
               </div>
             </div>
+            <button onClick={() => setEntrantsOpen(v => !v)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, padding: '6px 12px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
+              {entrantsOpen ? '▲ Lista' : `▼ ${entrants.length || tournament?.attendees || 0} inscriptos`}
+            </button>
+          </div>
 
-            {/* Setups (drop zones) */}
+          {/* Inscriptos grid (collapsible) */}
+          {entrantsOpen && (
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 13, padding: '12px 16px', marginTop: 8 }}>
+              {loadingEntrants && entrants.length === 0 ? (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Cargando inscriptos...</p>
+              ) : entrants.length === 0 ? (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Sin inscriptos aún</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '5px 14px' }}>
+                  {entrants.map((e, i) => (
+                    <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 0' }}>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)', fontWeight: 700, width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+                      {e.avatar ? <img src={e.avatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={ev => { ev.target.style.display = 'none'; }} /> : <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />}
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#D1D5DB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.tag || e.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── BRACKET POR RONDAS ── */}
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 20px 48px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>Setups</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {TEST_SETUPS.map(setup => {
-                  const assigned = assignedSets[setup.id];
-                  const isOver   = dragOverSetup === setup.id;
+              <h2 style={{ fontWeight: 900, fontSize: 18, color: '#fff', marginBottom: 3 }}>🎯 Bracket{phaseName ? ` — ${phaseName}` : ''}</h2>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                Arrastrá matches a los setups de arriba ·{' '}
+                <span style={{ color: '#60A5FA' }}>{pendingSets.length} pendientes</span> ·{' '}
+                <span style={{ color: '#22C55E' }}>{bracketSets.filter(s => s.stateLabel === 'ACTIVE').length} activos</span> ·{' '}
+                <span style={{ color: '#6B7280' }}>{completedSets.length} completados</span>
+              </p>
+            </div>
+            <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
+          </div>
+
+          {bracketLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '40px 0' }}>
+              <div style={{ width: 22, height: 22, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+              Cargando bracket desde start.gg...
+            </div>
+          ) : bracketSets.length === 0 ? (
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '44px 24px', textAlign: 'center' }}>
+              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No se encontraron sets en este bracket.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 14, minWidth: 'max-content', alignItems: 'flex-start' }}>
+                {roundGroups.map(([roundName, roundSets]) => {
+                  const allDone   = roundSets.every(s => s.stateLabel === 'COMPLETED' || s.stateLabel === 'BYE');
+                  const anyActive = roundSets.some(s => s.stateLabel === 'ACTIVE' || s.stateLabel === 'CALLED');
+                  const n = roundName.toLowerCase();
+                  const isGF     = n.includes('grand');
+                  const isLosers = n.includes('losers');
+                  const accentColor = isGF ? '#F5C518' : isLosers ? '#818CF8' : '#22C55E';
+                  const dotColor    = allDone ? '#4B5563' : anyActive ? '#22C55E' : accentColor;
+                  const pending = roundSets.filter(s => s.stateLabel !== 'COMPLETED' && s.stateLabel !== 'BYE').length;
                   return (
-                    <div
-                      key={setup.id}
-                      className={`drop-zone\${isOver ? ' over' : ''}`}
-                      onDragOver={e => onDragOver(e, setup.id)}
-                      onDragLeave={onDragLeave}
-                      onDrop={e => onDrop(e, setup.id)}
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '2px dashed rgba(255,255,255,0.09)', borderRadius: 16, padding: '13px 14px', minHeight: 68 }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: assigned ? 10 : 0 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: 9, background: `${setup.color}1A`, border: `1px solid ${setup.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{setup.icon}</div>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: '#E5E7EB' }}>{setup.label}</span>
-                        {assigned && <button onClick={() => removeAssignment(setup.id)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 2px' }}>×</button>}
+                    <div key={roundName} style={{ width: 218, flexShrink: 0 }}>
+                      {/* Round header */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '7px 10px', background: accentColor + '0F', border: `1px solid ${accentColor}22`, borderRadius: 10 }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0, boxShadow: anyActive ? `0 0 7px ${dotColor}` : 'none' }} />
+                        <p style={{ margin: 0, flex: 1, fontSize: 10, fontWeight: 900, color: allDone ? 'rgba(255,255,255,0.28)' : accentColor, textTransform: 'uppercase', letterSpacing: '0.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roundName}</p>
+                        {pending > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: accentColor, background: accentColor + '18', border: `1px solid ${accentColor}30`, borderRadius: 99, padding: '1px 6px', flexShrink: 0 }}>{pending}</span>}
                       </div>
-                      {assigned ? (
-                        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '9px 11px' }}>
-                          <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{assigned.round}</p>
-                          {assigned.slots.map((slot, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: i === 0 ? 4 : 0 }}>
-                              <div style={{ width: 17, height: 17, borderRadius: 5, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{i + 1}</div>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: slot?.entrant ? '#fff' : 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot?.entrant?.name || 'TBD'}</span>
+                      {/* Match cards */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {roundSets.map(set => {
+                          const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
+                          const isDone   = set.stateLabel === 'COMPLETED';
+                          const isBye    = set.stateLabel === 'BYE';
+                          const isAsgnd  = assignedSetIds.has(set.id);
+                          const aSetup   = TEST_SETUPS.find(s => assignedSets[s.id]?.id === set.id);
+                          return (
+                            <div
+                              key={set.id}
+                              className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
+                              draggable={!isDone && !isBye}
+                              onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
+                              onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
+                              style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 13, overflow: 'hidden', opacity: isDone ? 0.6 : 1, cursor: isDone || isBye ? 'default' : 'grab' }}
+                            >
+                              {/* Top bar: state + assigned badge */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: isDone ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                                <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
+                                {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
+                              </div>
+                              {/* Slots */}
+                              <div style={{ padding: '8px 10px' }}>
+                                {set.slots.map((slot, i) => {
+                                  const isWinner = isDone && slot?.placement === 1;
+                                  const isLoser  = isDone && slot?.placement === 2;
+                                  return (
+                                    <div key={i}>
+                                      {i === 1 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '6px 0' }}>
+                                          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                                          <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.14em' }}>VS</span>
+                                          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                                        </div>
+                                      )}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <div style={{ width: 16, height: 16, borderRadius: 4, background: isWinner ? accentColor + '22' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: isWinner ? accentColor : 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{i + 1}</div>
+                                        <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: isWinner ? '#fff' : isLoser ? 'rgba(255,255,255,0.3)' : (slot?.entrant ? '#E5E7EB' : 'rgba(255,255,255,0.22)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isLoser ? 'line-through' : 'none' }}>
+                                          {slot?.entrant?.name || 'TBD'}
+                                        </span>
+                                        {slot?.score != null && <span style={{ fontSize: 13, fontWeight: 900, color: isWinner ? '#4ADE80' : 'rgba(255,255,255,0.3)', flexShrink: 0, minWidth: 14, textAlign: 'right' }}>{slot.score}</span>}
+                                        {isWinner && <span style={{ fontSize: 10, flexShrink: 0 }}>🏆</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)', textAlign: 'center', marginTop: 4 }}>Arrastrá un match aquí</p>
-                      )}
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          </div>
-
-          {/* RIGHT — BRACKET */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <h2 style={{ fontWeight: 800, fontSize: 19, color: '#fff', marginBottom: 2 }}>
-                  🏆 Bracket {phaseName ? `— ${phaseName}` : '— Ultimate Singles'}
-                </h2>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Arrastrá los matches a los setups de la izquierda</p>
-              </div>
-              <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
-            </div>
-
-            {bracketLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.35)', fontSize: 13, padding: '32px 0' }}>
-                <div style={{ width: 20, height: 20, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                Cargando bracket desde start.gg...
-              </div>
-            ) : bracketSets.length === 0 ? (
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '40px 24px', textAlign: 'center' }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No se encontraron sets en este bracket.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                {pendingSets.length > 0 && (
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>Pendientes <span style={{ opacity: 0.5 }}>({pendingSets.length})</span></p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
-                      {pendingSets.map(set => <SetCard key={set.id} set={set} isDragging={draggedSet?.id === set.id} onDragStart={onDragStart} onDragEnd={onDragEnd} />)}
-                    </div>
-                  </div>
-                )}
-                {Object.keys(assignedSets).length > 0 && (
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>En setup <span style={{ opacity: 0.5 }}>({Object.keys(assignedSets).length})</span></p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
-                      {TEST_SETUPS.filter(s => assignedSets[s.id]).map(setup => (
-                        <AssignedSetCard key={setup.id} set={assignedSets[setup.id]} setup={setup} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {completedSets.length > 0 && (
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>Completados <span style={{ opacity: 0.5 }}>({completedSets.length})</span></p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
-                      {completedSets.map(set => <SetCard key={set.id} set={set} isDragging={false} onDragStart={() => {}} onDragEnd={() => {}} disabled />)}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* MODAL: SELECTOR DE TORNEO */}
+        {/* ── MODAL SELECTOR DE TORNEO ── */}
         {tourPickerOpen && (
           <div onClick={() => setTourPickerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <div onClick={e => e.stopPropagation()} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, width: '100%', maxWidth: 460, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.7)' }}>
-
-              {/* Header */}
               <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 {pickTour ? (
                   <button onClick={() => { setPickTour(null); setPickPhases(null); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, padding: 0, fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>← Volver</button>
@@ -415,23 +501,14 @@ export default function TestAdminPage() {
                 )}
                 <button onClick={() => setTourPickerOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
               </div>
-
-              {/* Body */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
                 {!pickTour ? (
                   <>
                     <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Slug manual</p>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                      <input
-                        value={slugInput}
-                        onChange={e => setSlugInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }}
-                        placeholder="tournament/mi-torneo"
-                        style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: 'none' }}
-                      />
+                      <input value={slugInput} onChange={e => setSlugInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }} placeholder="tournament/mi-torneo" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: 'none' }} />
                       <button onClick={() => { if (slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }} style={{ background: '#FF8C00', border: 'none', borderRadius: 10, padding: '9px 16px', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', flexShrink: 0 }}>→</button>
                     </div>
-
                     {loadingPickTours ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '20px 0' }}>
                         <div style={{ width: 18, height: 18, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
@@ -500,56 +577,5 @@ export default function TestAdminPage() {
 
       </div>
     </>
-  );
-}
-
-function SetCard({ set, isDragging, onDragStart, onDragEnd, disabled }) {
-  const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
-  return (
-    <div
-      className={`set-card\${isDragging ? ' is-dragging' : ''}`}
-      draggable={!disabled}
-      onDragStart={!disabled ? e => onDragStart(set, e) : undefined}
-      onDragEnd={!disabled ? onDragEnd : undefined}
-      style={{ background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,\${disabled ? '0.06' : '0.1'})`, borderRadius: 14, padding: '14px 15px', opacity: disabled ? 0.55 : 1 }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{set.round}</span>
-        <span style={{ fontSize: 10, fontWeight: 700, background: sc.bg, border: `1px solid \${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 9px' }}>{set.stateLabel}</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {set.slots.map((slot, i) => {
-          const winner = set.stateLabel === 'COMPLETED' && slot?.placement === 1;
-          return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: winner ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.05)', borderRadius: 9, padding: '7px 10px', border: winner ? '1px solid rgba(34,197,94,0.2)' : 'none' }}>
-              <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{i + 1}</div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: slot?.entrant ? (winner ? '#4ADE80' : '#fff') : 'rgba(255,255,255,0.3)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {slot?.entrant?.name || 'TBD'}
-              </span>
-              {slot?.score != null && <span style={{ fontSize: 14, fontWeight: 900, color: winner ? '#4ADE80' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>{slot.score}</span>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AssignedSetCard({ set, setup }) {
-  return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid \${setup.color}33`, borderRadius: 14, padding: '14px 15px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{set.round}</span>
-        <span style={{ fontSize: 10, fontWeight: 700, background: `\${setup.color}1A`, border: `1px solid \${setup.color}44`, color: setup.color, borderRadius: 99, padding: '2px 9px' }}>{setup.icon} {setup.label}</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {set.slots.map((slot, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 9, padding: '7px 10px' }}>
-            <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{i + 1}</div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: slot?.entrant ? '#fff' : 'rgba(255,255,255,0.3)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot?.entrant?.name || 'TBD'}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

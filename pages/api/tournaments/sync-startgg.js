@@ -15,7 +15,7 @@ const OWNER_SLUG    = process.env.STARTGG_OWNER_SLUG || 'user/ead8fa65';
 
 // Torneos adicionales a incluir siempre (independientemente del rol)
 // Ejemplo en .env: STARTGG_EXTRA_SLUGS=tournament/asd3,tournament/otro-torneo
-const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || '')
+const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || 'tournament/asd3')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
