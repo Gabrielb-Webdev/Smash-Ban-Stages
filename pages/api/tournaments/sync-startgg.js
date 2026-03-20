@@ -10,7 +10,7 @@ import { sendPushToAll } from '../../../lib/push';
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
 // Slugs de torneos "semilla" — se usan para descubrir organizadores y mostrar sus torneos
-const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1,asd2,true-combo-weeklies-61')
+const TOURNAMENT_SLUGS = (process.env.STARTGG_TOURNAMENT_SLUGS || 'choricup,un-torneo-mas-1-1')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 // Slugs adicionales de organizadores (usuarios de Start.gg) — opcional
