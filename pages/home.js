@@ -63,6 +63,8 @@ export default function HomePage() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifToast, setNotifToast] = useState(null);
   const [showIOSTip, setShowIOSTip] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
@@ -97,7 +99,38 @@ export default function HomePage() {
     }
   }, []);
 
-  // Heartbeat de presencia online (cada 30s, TTL 60s en el server)
+  // Capturar beforeinstallprompt (Android Chrome / Edge mobile)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isStandalone = window.navigator.standalone === true
+      || window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) return; // Ya instalada
+    const dismissed = sessionStorage.getItem('install_dismissed');
+    if (dismissed) return;
+
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  async function triggerInstall() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBanner(false);
+      setInstallPrompt(null);
+    }
+  }
+
+  function dismissInstall() {
+    setShowInstallBanner(false);
+    sessionStorage.setItem('install_dismissed', '1');
+  }
   useEffect(() => {
     if (!user?.id) return;
     const ping = () => {
@@ -413,17 +446,47 @@ export default function HomePage() {
             </button>
           </div>
         </header>
-        {/* iOS: tip para agregar a pantalla de inicio */}
-        {showIOSTip && (
-          <div style={{ background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 20, flexShrink: 0 }}>📲</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#FF8C00' }}>Activá las notificaciones</p>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
-                En iPhone, tocá <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Compartir →</strong> luego <strong style={{ color: 'rgba(255,255,255,0.7)' }}>"Agregar a inicio"</strong> y abrí la app desde ahí.
-              </p>
+        {/* Android Chrome: banner de instalar app */}
+        {showInstallBanner && (
+          <div style={{ background: 'linear-gradient(135deg,rgba(255,140,0,0.13),rgba(232,93,0,0.08))', border: '1px solid rgba(255,140,0,0.35)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📲</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00', letterSpacing: '-0.2px' }}>Instalá La app sin H</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>Acceso rápido desde tu pantalla de inicio, sin navegador.</p>
             </div>
-            <button onClick={() => setShowIOSTip(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 18, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button
+                onClick={triggerInstall}
+                style={{ background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '7px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+              >Instalar</button>
+              <button onClick={dismissInstall} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px' }}>✕</button>
+            </div>
+          </div>
+        )}
+        {/* iOS Safari: instrucciones para agregar a pantalla de inicio */}
+        {showIOSTip && (
+          <div style={{ background: 'rgba(232,142,0,0.10)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📲</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00' }}>Instalá La app sin H en iPhone</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Seguí estos 3 pasos rápidos</p>
+              </div>
+              <button onClick={() => setShowIOSTip(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { icon: '⎋', label: 'Tocá el botón', desc: 'Compartir (cuadrado con flecha)' },
+                { icon: '＋', label: 'Elegí', desc: '"Agregar a pantalla de inicio"' },
+                { icon: '✓', label: 'Confirmá', desc: 'Tocá "Agregar" arriba a la derecha' },
+              ].map((s, i) => (
+                <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 11, padding: '8px 7px', textAlign: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,140,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, margin: '0 auto 5px' }}>{s.icon}</div>
+                  <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 800, color: '#FF8C00' }}>{s.label}</p>
+                  <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3 }}>{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -533,7 +596,9 @@ export default function HomePage() {
               overflowY: 'auto',
             }}>
               {/* Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 20px' }} />
+              <div onClick={() => setShowNotifs(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowNotifs(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 -18px 12px', padding: '4px 0 12px', cursor: 'pointer', userSelect: 'none' }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Notificaciones</h2>
                 {unreadCount > 0 && (
@@ -1778,8 +1843,8 @@ function TabAmigos({ user }) {
                     {showCharsModalAmigos && (
                       <div onClick={() => setShowCharsModalAmigos(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                         <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-                            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+                          <div onClick={() => setShowCharsModalAmigos(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowCharsModalAmigos(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0', cursor: 'pointer', userSelect: 'none' }}>
+                            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
@@ -2210,8 +2275,8 @@ function TabPerfil({ user }) {
             {showCharsModal && (
               <div onClick={() => setShowCharsModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                 <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-                    <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+                  <div onClick={() => setShowCharsModal(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowCharsModal(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0', cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
@@ -3327,8 +3392,8 @@ function TabRankings({ user, setTab }) {
                     {showCharsModalRank && (
                       <div onClick={() => setShowCharsModalRank(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                         <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-                            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+                          <div onClick={() => setShowCharsModalRank(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowCharsModalRank(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0', cursor: 'pointer', userSelect: 'none' }}>
+                            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>

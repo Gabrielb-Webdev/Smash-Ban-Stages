@@ -215,8 +215,8 @@ export default function CharacterDetail({ ch, onClose, onBack }) {
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
         {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+        <div onClick={onClose} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) onClose(); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0', cursor: 'pointer', userSelect: 'none' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
         </div>
 
         {/* Header */}
