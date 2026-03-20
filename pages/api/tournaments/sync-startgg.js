@@ -13,10 +13,43 @@ const STARTGG_API = 'https://api.start.gg/gql/alpha';
 const OWNER_USER_ID = parseInt(process.env.STARTGG_OWNER_USER_ID || '2081350', 10);
 const OWNER_SLUG    = process.env.STARTGG_OWNER_SLUG || 'user/ead8fa65';
 
+// Torneos adicionales a incluir siempre (independientemente del rol)
+// Ejemplo en .env: STARTGG_EXTRA_SLUGS=tournament/asd3,tournament/otro-torneo
+const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
 // Keys en Redis
 const SEEN_KEY      = 'startgg:tournaments:seen';
 const CACHE_KEY     = 'startgg:tournaments:cache';
 const CACHE_TTL     = 600; // 10 minutos (se auto-refresca)
+
+// Query para obtener un torneo individual por slug
+const TOURNAMENT_BY_SLUG_QUERY = `
+query TournamentBySlug($slug: String!) {
+  tournament(slug: $slug) {
+    id
+    name
+    slug
+    startAt
+    endAt
+    numAttendees
+    state
+    isRegistrationOpen
+    url(relative: false)
+    images { url type }
+    owner { id }
+    admins { id }
+    events {
+      id
+      name
+      numEntrants
+      videogame { id name }
+    }
+  }
+}
+`;
 
 // Torneos donde el usuario está inscrito — filtramos luego por owner/admin
 const USER_TOURNAMENTS_QUERY = `
@@ -126,6 +159,28 @@ async function fetchStartggTournaments(token) {
     } catch (e) {
       debug.push({ page, error: e.message });
       break;
+    }
+  }
+
+  // Agregar torneos extra (STARTGG_EXTRA_SLUGS) — siempre incluidos sin importar el rol
+  for (const slug of EXTRA_SLUGS) {
+    try {
+      const resp = await fetch(STARTGG_API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query: TOURNAMENT_BY_SLUG_QUERY, variables: { slug } }),
+      });
+      const body = await resp.json();
+      const t = body.data?.tournament;
+      if (t && !seen.has(String(t.id))) {
+        seen.add(String(t.id));
+        results.push(t);
+        debug.push({ id: String(t.id), name: t.name, role: 'extra-slug' });
+      } else if (!t) {
+        debug.push({ slug, error: 'no encontrado en start.gg' });
+      }
+    } catch (e) {
+      debug.push({ slug, error: e.message });
     }
   }
 
