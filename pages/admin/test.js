@@ -4,10 +4,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
 
-const TOURNAMENT_SLUG = 'tournament/asd3';
-const PHASE_GROUP_ID  = '3244687';
-const BRACKET_URL     = 'https://www.start.gg/tournament/asd3/event/ultimate-singles/brackets/2237187/3244687';
-
 const TEST_SETUPS = [
   { id: 'test-stream', label: 'Stream',  icon: '📡', color: '#DC2626' },
   { id: 'test-1',     label: 'Setup 1', icon: '🎮', color: '#7C3AED' },
@@ -21,6 +17,13 @@ const SET_STATE_STYLE = {
   BYE:       { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.15)', text: '#6B7280' },
   CALLED:    { bg: 'rgba(255,140,0,0.12)',   border: 'rgba(255,140,0,0.3)',    text: '#FF8C00' },
 };
+
+function timeAgo(date) {
+  if (!date) return '';
+  const s = Math.round((Date.now() - date.getTime()) / 1000);
+  if (s < 60) return `hace ${s}s`;
+  return `hace ${Math.floor(s / 60)}m`;
+}
 
 export default function TestAdminPage() {
   const router = useRouter();
@@ -36,6 +39,27 @@ export default function TestAdminPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Selección dinámica de torneo
+  const [selectedSlug, setSelectedSlug]                     = useState('tournament/asd3');
+  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState('3244687');
+  const [selectedBracketUrl, setSelectedBracketUrl]         = useState('');
+  const [selectedEventId, setSelectedEventId]               = useState(null);
+
+  // Tournament picker
+  const [tourPickerOpen, setTourPickerOpen]         = useState(false);
+  const [pickTournaments, setPickTournaments]       = useState([]);
+  const [loadingPickTours, setLoadingPickTours]     = useState(false);
+  const [pickTour, setPickTour]                     = useState(null);
+  const [pickPhases, setPickPhases]                 = useState(null);
+  const [loadingPickPhases, setLoadingPickPhases]   = useState(false);
+  const [slugInput, setSlugInput]                   = useState('');
+
+  // Inscriptos & refresh
+  const [entrants, setEntrants]               = useState([]);
+  const [entrantsOpen, setEntrantsOpen]       = useState(true);
+  const [loadingEntrants, setLoadingEntrants] = useState(false);
+  const [lastRefresh, setLastRefresh]         = useState(null);
+
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored?.access_token) { router.replace('/login'); return; }
@@ -48,20 +72,46 @@ export default function TestAdminPage() {
   }, []);
 
   useEffect(() => {
-    if (checking) return;
-    fetch(`/api/tournaments/info?slug=${encodeURIComponent(TOURNAMENT_SLUG)}`)
-      .then(r => r.json())
-      .then(d => { if (!d.error) setTournament(d); });
-  }, [checking]);
+    if (checking || !selectedSlug) return;
+    function loadInfo() {
+      fetch(`/api/tournaments/info?slug=${encodeURIComponent(selectedSlug)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (!d.error) {
+            setTournament(d);
+            setLastRefresh(new Date());
+            if (d.events?.[0]?.id) setSelectedEventId(prev => prev || String(d.events[0].id));
+          }
+        });
+    }
+    loadInfo();
+    const iv = setInterval(loadInfo, 30000);
+    return () => clearInterval(iv);
+  }, [checking, selectedSlug]);
 
   useEffect(() => {
-    if (checking) return;
+    if (checking || !selectedPhaseGroupId) return;
     setBracketLoading(true);
-    fetch(`/api/tournaments/bracket?phaseGroupId=${PHASE_GROUP_ID}`)
+    setBracketSets([]);
+    fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
       .then(r => r.json())
       .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); } })
       .finally(() => setBracketLoading(false));
-  }, [checking]);
+  }, [checking, selectedPhaseGroupId]);
+
+  useEffect(() => {
+    if (!selectedEventId) return;
+    function loadEntrants() {
+      setLoadingEntrants(true);
+      fetch(`/api/tournaments/entrants?eventId=${selectedEventId}`)
+        .then(r => r.json())
+        .then(d => { if (d.entrants) setEntrants(d.entrants); })
+        .finally(() => setLoadingEntrants(false));
+    }
+    loadEntrants();
+    const iv = setInterval(loadEntrants, 30000);
+    return () => clearInterval(iv);
+  }, [selectedEventId]);
 
   useEffect(() => {
     function handleOut(e) {
@@ -72,6 +122,44 @@ export default function TestAdminPage() {
   }, []);
 
   function handleLogout() { logout(); router.replace('/login'); }
+
+  function openTourPicker() {
+    setTourPickerOpen(true);
+    setPickTour(null);
+    setPickPhases(null);
+    setSlugInput('');
+    setLoadingPickTours(true);
+    fetch('/api/tournaments/sync-startgg')
+      .then(r => r.json())
+      .then(d => setPickTournaments(d.tournaments || []))
+      .catch(() => {})
+      .finally(() => setLoadingPickTours(false));
+  }
+
+  function selectPickTournament(t) {
+    setPickTour(t);
+    setPickPhases(null);
+    setLoadingPickPhases(true);
+    fetch(`/api/tournaments/phases?slug=${encodeURIComponent(t.slug)}`)
+      .then(r => r.json())
+      .then(d => setPickPhases(d))
+      .catch(() => {})
+      .finally(() => setLoadingPickPhases(false));
+  }
+
+  function confirmPhaseGroup(slug, pgId, eventId) {
+    setSelectedSlug(slug);
+    setSelectedPhaseGroupId(String(pgId));
+    setSelectedEventId(String(eventId));
+    setSelectedBracketUrl(`https://www.start.gg/${slug}`);
+    setTournament(null);
+    setBracketSets([]);
+    setAssignedSets({});
+    setEntrants([]);
+    setTourPickerOpen(false);
+    setPickTour(null);
+    setPickPhases(null);
+  }
 
   function onDragStart(set, e) { setDraggedSet(set); e.dataTransfer.effectAllowed = 'move'; }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -165,8 +253,47 @@ export default function TestAdminPage() {
                   <span style={{ flexShrink: 0, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22C55E', borderRadius: 99, padding: '2px 9px', fontSize: 10, fontWeight: 700 }}>{tournament?.stateLabel || 'CREATED'}</span>
                 </div>
                 {startDate && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 5 }}>📅 {startDate}</p>}
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>👥 {tournament?.attendees ?? '—'} inscriptos</p>
-                {tournament?.owner && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>🏷️ {tournament.owner}</p>}
+                {/* Attendees + toggle lista */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                    👥 {(tournament?.attendees ?? entrants.length) || '—'} inscriptos
+                    {lastRefresh && <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>⟳ {timeAgo(lastRefresh)}</span>}
+                  </p>
+                  <button onClick={() => setEntrantsOpen(v => !v)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 11, padding: '2px 6px', fontFamily: "'Outfit', sans-serif", flexShrink: 0 }}>
+                    {entrantsOpen ? '▲ ocultar' : '▼ ver lista'}
+                  </button>
+                </div>
+
+                {/* Lista inscriptos */}
+                {entrantsOpen && (
+                  <div style={{ marginBottom: 12, maxHeight: 220, overflowY: 'auto', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    {loadingEntrants && entrants.length === 0 ? (
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '14px 0' }}>Cargando...</p>
+                    ) : entrants.length === 0 ? (
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '14px 0' }}>Sin inscriptos aún</p>
+                    ) : (
+                      entrants.map((e, i) => (
+                        <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderBottom: i < entrants.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 700, width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+                          {e.avatar
+                            ? <img src={e.avatar} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                            : <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />}
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#E5E7EB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.tag || e.name}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {tournament?.owner && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>🏷️ {tournament.owner}</p>}
+
+                {/* Cambiar torneo */}
+                <button
+                  onClick={openTourPicker}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#D1D5DB', borderRadius: 12, padding: '10px 16px', fontWeight: 700, fontSize: 13, fontFamily: "'Outfit', sans-serif", cursor: 'pointer', marginBottom: 8 }}
+                >
+                  🔄 Cambiar torneo
+                </button>
                 <button
                   disabled
                   title="Funcionalidad en desarrollo"
@@ -229,7 +356,7 @@ export default function TestAdminPage() {
                 </h2>
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Arrastrá los matches a los setups de la izquierda</p>
               </div>
-              <a href={BRACKET_URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
+              <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
             </div>
 
             {bracketLoading ? (
@@ -273,6 +400,104 @@ export default function TestAdminPage() {
             )}
           </div>
         </div>
+
+        {/* MODAL: SELECTOR DE TORNEO */}
+        {tourPickerOpen && (
+          <div onClick={() => setTourPickerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, width: '100%', maxWidth: 460, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.7)' }}>
+
+              {/* Header */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                {pickTour ? (
+                  <button onClick={() => { setPickTour(null); setPickPhases(null); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, padding: 0, fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>← Volver</button>
+                ) : (
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#fff' }}>🔄 Elegir torneo</h3>
+                )}
+                <button onClick={() => setTourPickerOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                {!pickTour ? (
+                  <>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Slug manual</p>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                      <input
+                        value={slugInput}
+                        onChange={e => setSlugInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }}
+                        placeholder="tournament/mi-torneo"
+                        style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: 'none' }}
+                      />
+                      <button onClick={() => { if (slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }} style={{ background: '#FF8C00', border: 'none', borderRadius: 10, padding: '9px 16px', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', flexShrink: 0 }}>→</button>
+                    </div>
+
+                    {loadingPickTours ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '20px 0' }}>
+                        <div style={{ width: 18, height: 18, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                        Buscando torneos...
+                      </div>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tus torneos</p>
+                        {pickTournaments.length === 0 ? (
+                          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '20px 0' }}>No se encontraron torneos</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {pickTournaments.map(t => (
+                              <button key={t.id} onClick={() => selectPickTournament(t)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: selectedSlug === t.slug ? 'rgba(255,140,0,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${selectedSlug === t.slug ? 'rgba(255,140,0,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: "'Outfit', sans-serif" }}>
+                                {t.image && <img src={t.image} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                                  <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>👥 {t.attendees} inscriptos · {t.slug}</p>
+                                </div>
+                                <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>›</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: '#fff' }}>{pickPhases?.name || pickTour.name}</p>
+                    {loadingPickPhases ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '20px 0' }}>
+                        <div style={{ width: 18, height: 18, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                        Cargando fases...
+                      </div>
+                    ) : !pickPhases?.events?.length ? (
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '20px 0' }}>No se encontraron eventos</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {pickPhases.events.map(ev => (
+                          <div key={ev.id}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>{ev.name} · {ev.entrants} jugadores</p>
+                            {(ev.phases || []).map(ph => (
+                              <div key={ph.id} style={{ marginBottom: 10 }}>
+                                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginBottom: 6, paddingLeft: 4 }}>{ph.name} · {ph.bracketType}</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 8 }}>
+                                  {(ph.phaseGroups || []).map(pg => (
+                                    <button key={pg.id} onClick={() => confirmPhaseGroup(pickTour.slug, pg.id, ev.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: selectedPhaseGroupId === String(pg.id) ? 'rgba(255,140,0,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${selectedPhaseGroupId === String(pg.id) ? 'rgba(255,140,0,0.45)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 11, padding: '10px 14px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: "'Outfit', sans-serif" }}>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Pool {pg.label}</span>
+                                      <span style={{ fontSize: 11, color: selectedPhaseGroupId === String(pg.id) ? '#FF8C00' : 'rgba(255,255,255,0.3)' }}>{selectedPhaseGroupId === String(pg.id) ? '✓ activo' : `ID: ${pg.id}`}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );
