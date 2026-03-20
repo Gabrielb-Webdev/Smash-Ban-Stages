@@ -80,9 +80,12 @@ html, body {
 /* ── Responsive grids ──────────────────────────── */
 .char-grid-5 {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   align-items: start;
+}
+@media (min-width: 360px) {
+  .char-grid-5 { grid-template-columns: repeat(5, 1fr); }
 }
 .tips-grid {
   display: grid;
@@ -90,7 +93,7 @@ html, body {
   gap: 8px;
 }
 @media (max-width: 340px) {
-  .char-grid-5 { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .char-grid-5 { gap: 4px; }
   .tips-grid   { grid-template-columns: 1fr; }
   .pill-switcher { gap: 2px !important; }
   .pill-switcher button { font-size: 10px !important; padding: 8px 4px !important; }

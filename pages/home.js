@@ -369,7 +369,7 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>AFK Smash</title>
+        <title>la app sin H</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
@@ -424,8 +424,8 @@ export default function HomePage() {
               🎮
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>AFK</span>
-              <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>SMASH</span>
+              <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>la app</span>
+              <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>sin H</span>
               <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', marginLeft: 5, alignSelf: 'center' }}>v{APP_VERSION}</span>
             </div>
           </div>
@@ -3191,12 +3191,12 @@ function TabRankings({ user, setTab }) {
                   <button key={c.id} onClick={() => setCharSel(c.id)} style={{
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
                     borderRadius: 12, padding: 4, cursor: 'pointer', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: 4, boxSizing: 'border-box', width: '100%',
+                    alignItems: 'center', gap: 4, boxSizing: 'border-box', width: '100%', minWidth: 0,
                   }}>
-                    <div style={{ width: '100%', aspectRatio: '1', overflow: 'hidden', borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <div style={{ width: '100%', aspectRatio: '1', overflow: 'hidden', borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                      <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                     </div>
-                    <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{c.name}</p>
+                    <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,0.45)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', minWidth: 0 }}>{c.name}</p>
                   </button>
                 ))}
               </div>
