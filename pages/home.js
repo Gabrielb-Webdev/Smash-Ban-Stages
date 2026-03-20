@@ -698,7 +698,6 @@ function BottomNav({ tab, setTab, bgMMStatus }) {
   ];
   const rightItems = [
     { id: 'tips',    label: 'Tips',    icon: ICO.bulb  },
-    { id: 'amigos',  label: 'Amigos',  icon: ICO.users },
     { id: 'perfil',  label: 'Perfil',  icon: ICO.user  },
   ];
   const matchActive = tab === 'match';
@@ -859,13 +858,11 @@ function RankBadge({ rankName }) {
 }
 
 function RankedPlayerRow({ position, player, onPlayerClick }) {
-  const hasRank     = !!player.rank;
   const isSmasher   = player.rank === 'Smasher';
   const rankObj     = RANKS.find(r => r.name === player.rank) || RANKS[0];
-  const inPlacement = hasRank ? !player.placementDone : false;
+  const inPlacement = !player.placementDone;
   const wins  = player.wins || 0;
   const losses = player.losses || 0;
-  const winRate = player.winRate != null ? player.winRate : (wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0);
   const total  = wins + losses;
   const wr     = total > 0 ? (wins / total).toFixed(4) : '0.0000';
 
@@ -918,18 +915,10 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
             <span style={{ fontSize: isTop3 ? 13 : 11, fontWeight: 700, marginLeft: 8, opacity: 0.7 }}>{wr}</span>
           )}
         </p>
-        {!inPlacement && hasRank && (
+        {!inPlacement && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <RankBadge rankName={player.rank} />
             {isSmasher && <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.6)' : '#FF8C00', fontWeight: 700 }}>{player.rankPoints || 0} RP</span>}
-          </div>
-        )}
-        {!inPlacement && !hasRank && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <div style={{ background: winRate >= 60 ? 'rgba(52,211,153,0.15)' : winRate >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winRate >= 60 ? 'rgba(52,211,153,0.3)' : winRate >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '3px 8px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: winRate >= 60 ? '#34D399' : winRate >= 40 ? '#FBBF24' : '#F87171' }}>{winRate}%</span>
-            </div>
-            <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)', fontWeight: 700 }}>{wins}W · {losses}L</span>
           </div>
         )}
         {inPlacement && (
