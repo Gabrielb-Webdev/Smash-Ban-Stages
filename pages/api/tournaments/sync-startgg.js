@@ -130,8 +130,24 @@ async function fetchStartggTournaments(token) {
       const data = await resp.json();
       if (data.data?.tournament) {
         addTournament(data.data.tournament);
+      } else {
+        // Try with tournament/ prefix
+        const resp2 = await fetch(STARTGG_API, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            query: TOURNAMENT_BY_SLUG_QUERY,
+            variables: { slug: `tournament/${slug}` },
+          }),
+        });
+        const data2 = await resp2.json();
+        if (data2.data?.tournament) {
+          addTournament(data2.data.tournament);
+        } else {
+          console.warn('[sync-startgg] Tournament not found for slug:', slug, 'errors:', JSON.stringify(data.errors || data2.errors || 'none').slice(0, 200));
+        }
       }
-    } catch { /* skip */ }
+    } catch (e) { console.error('[sync-startgg] fetch error for slug:', slug, e.message); }
   }
 
   // 2. If organizer slug is set, also fetch their tournaments
@@ -168,25 +184,32 @@ export default async function handler(req, res) {
 
   // ── GET: Devolver torneos cacheados del organizador ──
   if (req.method === 'GET') {
-    try {
-      const cached = await redis.get(CACHE_KEY);
-      if (cached) {
-        const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
-        return res.status(200).json({ tournaments: data, source: 'cache' });
-      }
-    } catch { /* sin cache, buscar */ }
+    const forceRefresh = req.query.refresh === 'true';
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(CACHE_KEY);
+        if (cached) {
+          const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+          if (Array.isArray(data) && data.length > 0) {
+            return res.status(200).json({ tournaments: data, source: 'cache' });
+          }
+        }
+      } catch { /* sin cache, buscar */ }
+    }
 
     try {
       const tournaments = await fetchStartggTournaments(startggToken);
 
-      // Guardar en cache
+      // Solo cachear si hay resultados
       if (tournaments.length > 0) {
         await redis.set(CACHE_KEY, JSON.stringify(tournaments), { ex: CACHE_TTL });
       }
 
-      return res.status(200).json({ tournaments, source: 'live' });
+      return res.status(200).json({ tournaments, source: 'live', slugs: TOURNAMENT_SLUGS, organizerSlug: ORGANIZER_SLUG || null });
     } catch (err) {
-      return res.status(500).json({ error: 'Error consultando Start.gg' });
+      console.error('[sync-startgg] handler error:', err.message);
+      return res.status(500).json({ error: 'Error consultando Start.gg', detail: err.message });
     }
   }
 

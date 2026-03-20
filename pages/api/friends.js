@@ -1,7 +1,7 @@
 // API de amigos — solicitudes, aceptar/rechazar, listar y eliminar
 // Sistema de solicitudes: POST envía solicitud, PUT acepta/rechaza
 
-import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey, presenceKey } from '../../lib/redis';
+import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey, presenceKey, userStatusKey } from '../../lib/redis';
 import { sendPush } from '../../lib/push.js';
 
 const MAX_FRIENDS = 50;
@@ -25,9 +25,13 @@ async function getOnlineStatus(userId) {
       return 'searching';
     }
   }
-  // 3. Tiene presencia (heartbeat)?
+  // 3. Tiene presencia (heartbeat)? Puede ser 'online', 'away' o 'dnd'
   const presence = await redis.get(presenceKey(userId));
-  if (presence) return 'online';
+  if (presence) {
+    if (presence === 'away') return 'away';
+    if (presence === 'dnd') return 'dnd';
+    return 'online';
+  }
   // 4. Desconectado
   return 'offline';
 }
@@ -69,8 +73,8 @@ export default async function handler(req, res) {
         placementDone: bestStats?.placementDone || false,
       };
     }));
-    const order = { in_match: 0, searching: 1, offline: 2 };
-    enriched.sort((a, b) => (order[a.online] ?? 2) - (order[b.online] ?? 2));
+    const order = { in_match: 0, searching: 1, online: 2, away: 3, dnd: 4, offline: 5 };
+    enriched.sort((a, b) => (order[a.online] ?? 5) - (order[b.online] ?? 5));
     return res.status(200).json(enriched);
   }
 

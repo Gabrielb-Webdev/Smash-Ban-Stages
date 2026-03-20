@@ -100,7 +100,10 @@ export default function HomePage() {
   // Heartbeat de presencia online (cada 30s, TTL 60s en el server)
   useEffect(() => {
     if (!user?.id) return;
-    const ping = () => fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: String(user.id) }) }).catch(() => {});
+    const ping = () => {
+      const status = localStorage.getItem('afk_my_status') || 'online';
+      fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: String(user.id), status }) }).catch(() => {});
+    };
     ping();
     const iv = setInterval(ping, 30000);
     return () => clearInterval(iv);
@@ -1170,7 +1173,7 @@ function TabAmigos({ user }) {
   const [friendResults, setFriendResults] = useState([]);
   const [friendSearching, setFriendSearching] = useState(false);
   const [friendAdding, setFriendAdding] = useState(null);
-  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, online: false, offline: false });
+  const [friendCollapsed, setFriendCollapsed] = useState({ in_match: false, searching: false, online: false, away: false, dnd: false, offline: false });
   const [friendRequests, setFriendRequests] = useState([]);
   const [chatOpen, setChatOpen]         = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -1178,6 +1181,8 @@ function TabAmigos({ user }) {
   const [chatSending, setChatSending]   = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
   const [partyState, setPartyState]     = useState(null);
+  const [myStatus, setMyStatus]         = useState(() => { try { return localStorage.getItem('afk_my_status') || 'online'; } catch { return 'online'; } });
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [viewProfile, setViewProfile]   = useState(null);
   const [profileData, setProfileData]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -1206,9 +1211,24 @@ function TabAmigos({ user }) {
       fetch('/api/friends?userId=' + uidEnc).then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setFriends(d); }).catch(() => {});
       fetch('/api/friends?userId=' + uidEnc + '&type=requests').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setFriendRequests(d); }).catch(() => {});
       fetch('/api/friends?userId=' + uidEnc + '&type=sent').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSentRequests(d); }).catch(() => {});
-    }, 12000);
+    }, 8000);
     return () => clearInterval(poll);
   }, [uid]);
+
+  // Load my current status
+  useEffect(() => {
+    if (!uid) return;
+    fetch('/api/heartbeat?userId=' + encodeURIComponent(uid)).then(r => r.ok ? r.json() : null).then(d => { if (d?.status) setMyStatus(d.status); }).catch(() => {});
+  }, [uid]);
+
+  const changeStatus = async (newStatus) => {
+    setMyStatus(newStatus);
+    setShowStatusMenu(false);
+    try { localStorage.setItem('afk_my_status', newStatus); } catch {}
+    try {
+      await fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, status: newStatus }) });
+    } catch {}
+  };
 
   // Chat polling
   useEffect(() => {
@@ -1290,7 +1310,7 @@ function TabAmigos({ user }) {
 
   const renderGroup = (label, icon, color, items, groupKey) => {
     if (items.length === 0) return null;
-    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando…' }, online: { color: '#22C55E', label: 'En línea' }, offline: { color: null, label: 'Desconectado' } };
+    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando…' }, online: { color: '#22C55E', label: 'En línea' }, away: { color: '#F59E0B', label: 'Ausente' }, dnd: { color: '#EF4444', label: 'No molestar' }, offline: { color: null, label: 'Desconectado' } };
     const s = statusMap[groupKey] || statusMap.offline;
     return (
       <div>
@@ -1316,10 +1336,36 @@ function TabAmigos({ user }) {
             <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Amigos</p>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
               {friends.length} amigo{friends.length !== 1 ? 's' : ''}
-              {friends.filter(f => f.online !== 'offline').length > 0 && (
-                <span style={{ color: '#22C55E', fontWeight: 700 }}> · {friends.filter(f => f.online !== 'offline').length} en línea</span>
+              {friends.filter(f => f.online && f.online !== 'offline').length > 0 && (
+                <span style={{ color: '#22C55E', fontWeight: 700 }}> · {friends.filter(f => f.online && f.online !== 'offline').length} en línea</span>
               )}
             </p>
+          </div>
+          {/* My status selector */}
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setShowStatusMenu(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : '#555', boxShadow: `0 0 4px ${myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : 'transparent'}` }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                {myStatus === 'online' ? 'En línea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
+              </span>
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>▼</span>
+            </button>
+            {showStatusMenu && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', zIndex: 50, minWidth: 150, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                {[
+                  { key: 'online', color: '#22C55E', label: 'En línea', icon: '🟢' },
+                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '🌙' },
+                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '⛔' },
+                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '👻' },
+                ].map(opt => (
+                  <button key={opt.key} onClick={() => changeStatus(opt.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: myStatus === opt.key ? 'rgba(255,255,255,0.06)' : 'transparent', cursor: 'pointer' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, boxShadow: opt.color !== '#555' ? `0 0 4px ${opt.color}` : 'none' }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: myStatus === opt.key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{opt.label}</span>
+                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1377,7 +1423,9 @@ function TabAmigos({ user }) {
                 {renderGroup('En partida', '⚔️', '#34D399', friends.filter(f => f.online === 'in_match'), 'in_match')}
                 {renderGroup('Buscando', '🔍', '#FBBF24', friends.filter(f => f.online === 'searching'), 'searching')}
                 {renderGroup('En línea', '🟢', '#22C55E', friends.filter(f => f.online === 'online'), 'online')}
-                {renderGroup('Desconectado', '💤', null, friends.filter(f => f.online !== 'in_match' && f.online !== 'searching' && f.online !== 'online'), 'offline')}
+                {renderGroup('Ausente', '🌙', '#F59E0B', friends.filter(f => f.online === 'away'), 'away')}
+                {renderGroup('No molestar', '⛔', '#EF4444', friends.filter(f => f.online === 'dnd'), 'dnd')}
+                {renderGroup('Desconectado', '💤', null, friends.filter(f => !f.online || f.online === 'offline'), 'offline')}
               </div>
             )}
           </div>
