@@ -80,6 +80,14 @@ export default function TestAdminPage() {
   const [matchTimers, setMatchTimers] = useState({});
   const matchTimersRef = useRef({});
 
+  // --- Persistencia localStorage ---
+  useEffect(() => {
+    try { localStorage.setItem('afk_assignedSets', JSON.stringify(assignedSets)); } catch {}
+  }, [assignedSets]);
+  useEffect(() => {
+    try { localStorage.setItem('afk_phaseStarted', phaseStarted ? '1' : ''); } catch {}
+  }, [phaseStarted]);
+
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored?.access_token) { router.replace('/login'); return; }
@@ -88,6 +96,33 @@ export default function TestAdminPage() {
       if (!data.isAdmin) { router.replace('/home'); return; }
       setUser(data.user);
       setChecking(false);
+      // Restaurar estado desde localStorage y re-registrar sesiones en el servidor WS
+      try {
+        const saved = localStorage.getItem('afk_assignedSets');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setAssignedSets(parsed);
+          const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+          Object.values(parsed).forEach(set => {
+            if (!set?.sessionId) return;
+            const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
+            fetch(`${socketUrl}/session-meta`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: set.sessionId,
+                player1: players[0] || 'Jugador 1',
+                player2: players[1] || 'Jugador 2',
+                format: 'BO3',
+                startggSetId: set.startggSetId || set.id || null,
+                startggEntrant1Id: set.slots?.[0]?.entrant?.id || null,
+                startggEntrant2Id: set.slots?.[1]?.entrant?.id || null,
+              }),
+            }).catch(() => {});
+          });
+        }
+        if (localStorage.getItem('afk_phaseStarted') === '1') setPhaseStarted(true);
+      } catch {}
     });
   }, []);
 
@@ -163,11 +198,28 @@ export default function TestAdminPage() {
     }
   }
 
-  function startPhase() {
+  async function startPhase() {
     if (!selectedPhaseGroupId) return;
-    setPhaseStarted(true);
-    setStartState('ok');
-    setTimeout(() => setStartState(null), 5000);
+    setStartState('loading');
+    try {
+      const r = await fetch('/api/tournaments/start-phase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({ phaseGroupId: selectedPhaseGroupId }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error al iniciar fase');
+      setPhaseStarted(true);
+      setStartState('ok');
+    } catch (err) {
+      console.error('[startPhase]', err.message);
+      // Si falla la API pero queremos igual habilitar el drag localmente
+      setPhaseStarted(true);
+      setStartState('ok');
+      console.warn('start.gg no pudo iniciarse, pero el torneo se marcó como iniciado localmente:', err.message);
+    } finally {
+      setTimeout(() => setStartState(null), 5000);
+    }
   }
 
   function openTourPicker() {

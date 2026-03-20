@@ -6,6 +6,7 @@ let socket;
 export const useWebSocket = (sessionId) => {
   const [session, setSession] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [sessionError, setSessionError] = useState(null);
 
   useEffect(() => {
     // Si ya hay un socket conectado, no crear uno nuevo
@@ -66,9 +67,7 @@ export const useWebSocket = (sessionId) => {
       setSession(data.session);
     });
 
-    socket.on('session-joined', (data) => {
-      setSession(data.session);
-    });
+
 
     socket.on('session-updated', (data) => {
       setSession(data.session);
@@ -76,7 +75,22 @@ export const useWebSocket = (sessionId) => {
 
     socket.on('session-error', (data) => {
       console.error('Error de sesión:', data.message);
-      alert(data.message);
+      setSessionError(data.message);
+      // En lugar de alert, reintentar join-session cada 5s
+      if (sessionId && data.message === 'Sesión no encontrada') {
+        clearTimeout(socket._retryTimer);
+        socket._retryTimer = setTimeout(() => {
+          if (socket && socket.connected) {
+            console.log('🔄 Reintentando join-session:', sessionId);
+            socket.emit('join-session', sessionId);
+          }
+        }, 5000);
+      }
+    });
+
+    socket.on('session-joined', (data) => {
+      setSession(data.session);
+      setSessionError(null);
     });
 
     socket.on('series-finished', (data) => {
@@ -153,6 +167,7 @@ export const useWebSocket = (sessionId) => {
   return {
     session,
     connected,
+    sessionError,
     createSession,
     selectRPSWinner,
     banStage,

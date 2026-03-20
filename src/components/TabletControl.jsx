@@ -6,8 +6,8 @@ import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 // Cache invalidation for Mendoza background - v1.1 - 2024-12-12T19:20:00
 
 export default function TabletControl({ sessionId }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
-  const error = session ? null : 'Conectando...';
+  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
+  const error = session ? null : (sessionError || 'Conectando...');
   
   // Obtener tema del torneo
   const theme = getTournamentTheme(sessionId);
@@ -163,20 +163,17 @@ export default function TabletControl({ sessionId }) {
                `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
              fontFamily: 'Anton, sans-serif',
              minHeight: '100vh',
-             minHeight: '100dvh' // Para tablets modernos
+             minHeight: '100dvh'
            }}>
         <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-3xl font-bold text-white mb-4" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Sesión no encontrada</h2>
-          <p className="text-white/70 text-lg mb-6" style={{ textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
-            Esta sesión no existe o ha expirado. Por favor, crea una nueva sesión desde el panel de administración.
+          <div className="animate-pulse text-6xl mb-4">⏳</div>
+          <h2 className="text-3xl font-bold text-white mb-3" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>Esperando match...</h2>
+          <p className="text-white/60 text-base mb-2" style={{ textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+            El admin está preparando tu match. Quedate en esta pantalla.
           </p>
-          <a
-            href="/"
-            className="inline-block px-6 py-3 bg-smash-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-all"
-          >
-            Ir al Panel de Administración
-          </a>
+          <p className="text-yellow-400/70 text-sm" style={{ textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)' }}>
+            ↻ Reintentando automáticamente...
+          </p>
         </div>
       </div>
     );

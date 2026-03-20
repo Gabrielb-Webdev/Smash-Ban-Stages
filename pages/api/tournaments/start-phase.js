@@ -4,9 +4,10 @@
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
+// La mutación correcta de start.gg es updatePhaseGroups (plural), recibe un array stateChanges
 const START_MUTATION = `
-mutation UpdatePhaseGroup($phaseGroupId: ID!) {
-  updatePhaseGroup(phaseGroupId: $phaseGroupId, phaseGroupData: { state: 2 }) {
+mutation UpdatePhaseGroups($stateChanges: [PhaseGroupStateInput]!) {
+  updatePhaseGroups(stateChanges: $stateChanges) {
     id
     state
   }
@@ -32,7 +33,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         query: START_MUTATION,
-        variables: { phaseGroupId: String(phaseGroupId) },
+        variables: { stateChanges: [{ phaseGroupId: Number(phaseGroupId), state: 2 }] },
       }),
     });
 
@@ -42,13 +43,14 @@ export default async function handler(req, res) {
     if (body.errors?.length) {
       const msg = body.errors[0].message || '';
       // Si ya estaba iniciado lo tratamos como éxito
-      if (/already|started|ALREADY/i.test(msg)) {
+      if (/already|started|ALREADY|ACTIVE/i.test(msg)) {
         return res.status(200).json({ id: String(phaseGroupId), state: 2, ok: true, alreadyStarted: true });
       }
       return res.status(400).json({ error: msg, startggErrors: body.errors });
     }
 
-    const pg = body.data?.updatePhaseGroup;
+    const pgs = body.data?.updatePhaseGroups;
+    const pg = Array.isArray(pgs) ? pgs[0] : null;
     if (!pg) return res.status(502).json({ error: 'Respuesta inesperada de start.gg' });
 
     return res.status(200).json({ id: String(pg.id), state: pg.state, ok: true });
