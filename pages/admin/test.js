@@ -42,7 +42,13 @@ export default function TestAdminPage() {
   const [bracketSets, setBracketSets] = useState([]);
   const [phaseName, setPhaseName]     = useState('');
   const [bracketLoading, setBracketLoading] = useState(false);
-  const [assignedSets, setAssignedSets] = useState({});
+  const [assignedSets, setAssignedSets] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return {};
+      const saved = localStorage.getItem('afk_assignedSets');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const [draggedSet, setDraggedSet]   = useState(null);
   const [dragOverSetup, setDragOverSetup] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -98,12 +104,11 @@ export default function TestAdminPage() {
       if (!data.isAdmin) { router.replace('/home'); return; }
       setUser(data.user);
       setChecking(false);
-      // Restaurar estado desde localStorage y re-registrar sesiones en el servidor WS
+      // Re-registrar sesiones activas en el servidor WS (en caso de restart del servidor)
       try {
         const saved = localStorage.getItem('afk_assignedSets');
         if (saved) {
           const parsed = JSON.parse(saved);
-          setAssignedSets(parsed);
           const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
           Object.values(parsed).forEach(set => {
             if (!set?.sessionId) return;
@@ -123,7 +128,6 @@ export default function TestAdminPage() {
             }).catch(() => {});
           });
         }
-
       } catch {}
     });
   }, []);
