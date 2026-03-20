@@ -47,40 +47,7 @@ query TournamentBySlug($slug: String!) {
 }
 `;
 
-// Query para obtener torneos que un usuario ADMINISTRA (no donde está inscrito)
-const TOURNAMENTS_BY_ADMIN_QUERY = `
-query TournamentsByAdmin($slug: String!, $page: Int!, $perPage: Int!) {
-  user(slug: $slug) {
-    id
-    tournaments(query: {
-      page: $page,
-      perPage: $perPage,
-      filter: { past: false, tournamentView: "admin" }
-    }) {
-      nodes {
-        id
-        name
-        slug
-        startAt
-        endAt
-        numAttendees
-        state
-        isRegistrationOpen
-        url(relative: false)
-        images { url type }
-        events {
-          id
-          name
-          numEntrants
-          videogame { id name }
-        }
-      }
-    }
-  }
-}
-`;
-
-// Fallback: query sin filtro tournamentView (por si no es soportado)
+// Query para obtener torneos de un usuario (con owner para filtrar los que creó)
 const TOURNAMENTS_BY_OWNER_QUERY = `
 query TournamentsByOwner($slug: String!, $page: Int!, $perPage: Int!) {
   user(slug: $slug) {
@@ -210,44 +177,48 @@ async function fetchStartggTournaments(token) {
     discoveredOwners.add(s);
   }
 
-  // 2. Fetch upcoming tournaments ADMINISTERED by each discovered owner
+  // 2. Fetch upcoming tournaments CREATED BY each discovered owner
   for (const ownerSlug of discoveredOwners) {
     try {
-      // Primero intentar con filtro "admin" (solo torneos que administra)
-      let resp = await fetch(STARTGG_API, {
+      // Normalizar slug para comparación (quitar prefijo "user/" si existe)
+      const normalizedOwner = ownerSlug.replace(/^user\//, '');
+
+      const resp = await fetch(STARTGG_API, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          query: TOURNAMENTS_BY_ADMIN_QUERY,
+          query: TOURNAMENTS_BY_OWNER_QUERY,
           variables: { slug: ownerSlug, page: 1, perPage: 25 },
         }),
       });
-      let data = await resp.json();
-      let nodes = data.data?.user?.tournaments?.nodes;
+      const data = await resp.json();
+      const allNodes = data.data?.user?.tournaments?.nodes || [];
 
-      // Si el filtro "admin" no funciona (error/null/vacío), fallback a query normal + filtro por owner.id
-      if (!nodes || nodes.length === 0) {
-        const adminFound = nodes ? nodes.length : null;
-        resp = await fetch(STARTGG_API, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            query: TOURNAMENTS_BY_OWNER_QUERY,
-            variables: { slug: ownerSlug, page: 1, perPage: 25 },
-          }),
-        });
-        data = await resp.json();
-        const allNodes = data.data?.user?.tournaments?.nodes || [];
-        // Filtrar por owner.slug (más confiable que owner.id)
-        nodes = allNodes.filter(n => n.owner && n.owner.slug === ownerSlug);
-        debug.push({ owner: ownerSlug, method: 'fallback-owner-filter', adminFound, total: allNodes.length, filtered: nodes.length });
-      } else {
-        debug.push({ owner: ownerSlug, method: 'admin-filter', found: nodes.length });
-      }
+      // Filtrar solo torneos creados por este owner (comparar normalizado)
+      const owned = allNodes.filter(n => {
+        if (!n.owner) return false;
+        const tOwner = (n.owner.slug || '').replace(/^user\//, '');
+        const tOwnerId = String(n.owner.id || '');
+        return tOwner === normalizedOwner || tOwnerId === normalizedOwner;
+      });
 
-      const added = nodes.filter(n => !seen.has(String(n.id)));
-      nodes.forEach(addTournament);
-      debug.push({ owner: ownerSlug, status: 'fetched', newAdded: added.length });
+      // Debug: mostrar sample de owners para diagnosticar
+      const sampleOwners = allNodes.slice(0, 3).map(n => ({
+        name: n.name,
+        ownerSlug: n.owner?.slug,
+        ownerId: n.owner?.id,
+      }));
+
+      const added = owned.filter(n => !seen.has(String(n.id)));
+      owned.forEach(addTournament);
+      debug.push({
+        owner: ownerSlug,
+        normalized: normalizedOwner,
+        total: allNodes.length,
+        owned: owned.length,
+        newAdded: added.length,
+        sampleOwners,
+      });
     } catch (e) {
       debug.push({ owner: ownerSlug, status: 'error', message: e.message });
     }
