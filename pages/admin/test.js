@@ -510,13 +510,26 @@ export default function TestAdminPage() {
     const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
     const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
 
-    // Marcar el set como "en progreso" en start.gg
+    // Marcar el set como "llamado" en start.gg + log de resultado
+    let calledOk = false;
     if (startggSetId) {
-      fetch('/api/tournaments/mark-set-called', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setId: startggSetId }),
-      }).catch(() => {});
+      try {
+        console.log(`[start.gg] markSetCalled → setId=${startggSetId}`);
+        const calledRes  = await fetch('/api/tournaments/mark-set-called', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setId: String(startggSetId) }),
+        });
+        const calledData = await calledRes.json();
+        if (!calledRes.ok || calledData.error) {
+          console.error('[start.gg] ❌ markSetCalled falló:', calledData);
+        } else {
+          console.log('[start.gg] ✅ markSetCalled OK:', calledData);
+          calledOk = true;
+        }
+      } catch (e) {
+        console.error('[start.gg] ❌ markSetCalled fetch error:', e);
+      }
     }
 
     // Log local: match llamado
@@ -525,7 +538,7 @@ export default function TestAdminPage() {
       setId: startggSetId,
       players: players.join(' vs '),
       round: set.fullRoundText || '',
-      score: '— llamado',
+      score: calledOk ? '— llamado ✓ start.gg' : (startggSetId ? '— llamado ⚠ sin startgg' : '— llamado (sin ID)'),
       called: true,
     }, ...prev].slice(0, 20));
 
