@@ -93,6 +93,7 @@ export default function TestAdminPage() {
   const elapsedTimersRef = useRef({});
   const checkedInSetups = useRef(new Set());
   const autoReleasedSetups = useRef(new Set());
+  const prevGamesRef      = useRef({});  // { [setupId]: número de games reportados }
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -220,6 +221,45 @@ export default function TestAdminPage() {
           }, 5000);
         }
       }
+      // ── DETECTAR NUEVOS GAMES → reportar a Start.gg (CREATED → ACTIVE) ──────
+      for (const [setupId, st] of Object.entries(updates)) {
+        if (autoReleasedSetups.current.has(setupId)) continue; // la serie ya terminó
+        const curGames  = st.games || [];
+        const prevCount = prevGamesRef.current[setupId] ?? -1;
+        if (curGames.length > 0 && curGames.length > prevCount) {
+          prevGamesRef.current[setupId] = curGames.length;
+          const aSet = assignedSets[setupId];
+          if (aSet?.startggSetId && aSet?.startggEntrant1Id && aSet?.startggEntrant2Id) {
+            const p1Name   = st.player1 || aSet.slots?.[0]?.entrant?.name || '';
+            const gameData = curGames.map(g => ({
+              gameNum:  g.gameNum,
+              winnerId: g.winnerName === p1Name
+                ? String(aSet.startggEntrant1Id)
+                : String(aSet.startggEntrant2Id),
+            })).filter(g => g.winnerId && g.winnerId !== 'null');
+            if (gameData.length > 0) {
+              console.log(`[start.gg] mid-series game ${curGames.length} → setId=${aSet.startggSetId} (debería ir a ACTIVE)`);
+              fetch('/api/tournaments/report-set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  setId:    String(aSet.startggSetId),
+                  winnerId: null,   // save progress, no completar
+                  gameData,
+                }),
+              })
+              .then(r => r.json())
+              .then(d => {
+                if (d.ok) console.log(`[start.gg] ✅ game ${curGames.length} reportado → set ACTIVE`);
+                else      console.error('[start.gg] ❌ mid-series report falló:', d);
+              })
+              .catch(e => console.error('[start.gg] ❌ mid-series fetch error:', e));
+            }
+          }
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────────────
+
       // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
       for (const [setupId, st] of Object.entries(updates)) {
         if ((st.checkIns || []).length >= 2 && !checkedInSetups.current.has(setupId)) {
@@ -549,36 +589,21 @@ export default function TestAdminPage() {
     const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
     const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
 
-    // Marcar el set como CALLED en start.gg (→ amarillo).
-    // Pasa a ACTIVE (verde) automáticamente cuando se reporte el 1er game.
-    let calledOk = false;
-    if (startggSetId) {
-      try {
-        console.log(`[start.gg] markSetCalled → setId=${startggSetId}`);
-        const calledRes  = await fetch('/api/tournaments/mark-set-called', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId) }),
-        });
-        const calledData = await calledRes.json();
-        if (!calledRes.ok || calledData.error) {
-          console.error('[start.gg] ❌ markSetCalled falló:', calledData);
-        } else {
-          console.log('[start.gg] ✅ markSetCalled OK:', calledData);
-          calledOk = true;
-        }
-      } catch (e) {
-        console.error('[start.gg] ❌ markSetCalled fetch error:', e);
-      }
-    }
+    // NO llamamos markSetCalled porque pone el set en CALLED (7/amarillo)
+    // y desde ese estado reportBracketSet NO puede transicionar a ACTIVE.
+    // El set va de CREATED → ACTIVE automáticamente cuando el polling
+    // detecte el primer game y llame reportBracketSet (ver polling loop arriba).
+    console.log(`[start.gg] match iniciado para setId=${startggSetId} — irá a ACTIVE al 1er game`);
+    // Reiniciar contador de games para este setup
+    prevGamesRef.current[setupId] = 0;
 
-    // Log local: match llamado
+    // Log local: match iniciado
     setReportLog(prev => [{
       time: new Date(),
       setId: startggSetId,
       players: players.join(' vs '),
       round: set.fullRoundText || '',
-      score: calledOk ? '— llamado ✓ start.gg' : (startggSetId ? '— llamado ⚠ sin startgg' : '— llamado (sin ID)'),
+      score: startggSetId ? '— iniciado (→ ACTIVE al 1er game)' : '— iniciado (sin ID start.gg)',
       called: true,
     }, ...prev].slice(0, 20));
 
