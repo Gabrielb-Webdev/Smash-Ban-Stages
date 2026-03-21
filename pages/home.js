@@ -3773,9 +3773,9 @@ function TabTorneos({ user }) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                  {t.state >= 2 && t.state < 3 ? (
+                  {(t.state === 2 || t.state === 'ACTIVE') ? (
                     <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>🚀 Torneo iniciado</span>
-                  ) : t.state >= 3 ? (
+                  ) : (t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED') ? (
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
                   ) : t.registrationOpen ? (
                     <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>

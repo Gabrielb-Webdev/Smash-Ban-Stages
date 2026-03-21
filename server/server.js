@@ -183,7 +183,7 @@ async function reportToStartGG(setId, winnerId, gameData) {
       variables: {
         setId: String(setId),
         winnerId: winnerId ? String(winnerId) : null,
-        gameData: (gameData || []).map(g => {
+        gameData: (gameData || []).filter(g => g.winnerId != null).map(g => {
           const gd = { gameNum: g.gameNum, winnerId: String(g.winnerId) };
           // Agregar selecciones de personajes si están disponibles
           const selections = [];
@@ -366,6 +366,8 @@ const httpServer = createServer((req, res) => {
           found.push({ sessionId, player1: session.player1?.name, player2: session.player2?.name, phase: session.phase, checkIns: session.checkIns || [] });
         }
       });
+      // Ordenar por sessionId descendente (los IDs contienen timestamp base-36 al final → más nuevo primero)
+      found.sort((a, b) => b.sessionId.localeCompare(a.sessionId));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(found));
     } catch (e) {

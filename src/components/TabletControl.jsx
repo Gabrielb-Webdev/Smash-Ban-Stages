@@ -33,7 +33,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
   );
 }
 
-export default function TabletControl({ sessionId, playerName }) {
+export default function TabletControl({ sessionId, playerName, playerIndex }) {
   const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, playerCheckin, getPlayerHistory } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
@@ -173,11 +173,12 @@ export default function TabletControl({ sessionId, playerName }) {
   };
 
   // Identidad del jugador en este dispositivo (null = admin / espectador)
-  const myPlayer = session && playerName
+  // playerIndex (prop con ?p=player1/player2 en la URL) tiene prioridad sobre detección por nombre
+  const myPlayer = playerIndex || (session && playerName
     ? (session.player1?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player1'
       : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
       : null)
-    : null;
+    : null);
 
   // Guard para evitar renders mientras sessionId no está disponible
   if (!sessionId) {

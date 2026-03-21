@@ -88,6 +88,11 @@ export default function TestAdminPage() {
   const [matchTimers, setMatchTimers] = useState({});
   const matchTimersRef = useRef({});
 
+  // Elapsed timers tras check-in completo: { [setupId]: secondsElapsed }
+  const [elapsedTimers, setElapsedTimers] = useState({});
+  const elapsedTimersRef = useRef({});
+  const checkedInSetups = useRef(new Set());
+
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
     try { const s = localStorage.getItem('afk_setupFormats'); return s ? JSON.parse(s) : {}; } catch { return {}; }
@@ -153,6 +158,27 @@ export default function TestAdminPage() {
         } catch {}
       }
       setSessionStatuses(prev => ({ ...prev, ...updates }));
+      // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
+      for (const [setupId, st] of Object.entries(updates)) {
+        if ((st.checkIns || []).length >= 2 && !checkedInSetups.current.has(setupId)) {
+          checkedInSetups.current.add(setupId);
+          // Detener countdown
+          const tm = matchTimersRef.current[setupId];
+          if (tm?.intervalId) clearInterval(tm.intervalId);
+          delete matchTimersRef.current[setupId];
+          setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          // Iniciar elapsed timer
+          elapsedTimersRef.current[setupId] = { secondsElapsed: 0 };
+          setElapsedTimers(prev => ({ ...prev, [setupId]: 0 }));
+          const iv = setInterval(() => {
+            if (!elapsedTimersRef.current[setupId]) { clearInterval(iv); return; }
+            const next = (elapsedTimersRef.current[setupId].secondsElapsed || 0) + 1;
+            elapsedTimersRef.current[setupId].secondsElapsed = next;
+            setElapsedTimers(prev => ({ ...prev, [setupId]: next }));
+          }, 1000);
+          elapsedTimersRef.current[setupId].intervalId = iv;
+        }
+      }
     };
     poll();
     const iv = setInterval(poll, 3000);
@@ -379,6 +405,12 @@ export default function TestAdminPage() {
     if (t?.intervalId) clearInterval(t.intervalId);
     delete matchTimersRef.current[setupId];
     setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+    // También detener elapsed timer
+    const et = elapsedTimersRef.current[setupId];
+    if (et?.intervalId) clearInterval(et.intervalId);
+    delete elapsedTimersRef.current[setupId];
+    setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+    checkedInSetups.current.delete(setupId);
   }
 
   async function callMatch(setupId) {
@@ -388,7 +420,12 @@ export default function TestAdminPage() {
     const format = setupFormats[setupId] || 'BO3';
     const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
-    const banUrl = `${origin}/tablet/${sessionId}`;
+    const banUrl  = `${origin}/tablet/${sessionId}`;
+    const banUrl1 = `${banUrl}?p=player1`;
+    const banUrl2 = `${banUrl}?p=player2`;
+
+    // Limpiar timers anteriores del mismo setup (si había un retry)
+    stopMatchTimer(setupId);
 
     // IDs de start.gg del set seleccionado (para reportar resultados automáticamente)
     const startggSetId      = set.id;
@@ -425,22 +462,28 @@ export default function TestAdminPage() {
       });
     } catch {}
 
-    // Guardar sessionId + timestamp en el state para poder restaurar el timer tras F5
-    setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, timerStartedAt: Date.now() } }));
+    // Guardar sessionId + datos startgg + timestamp en el state
+    setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, banUrl1, banUrl2, startggSetId, startggEntrant1Id, startggEntrant2Id, timerStartedAt: Date.now() } }));
 
-    // Notificar a los jugadores con URL al sistema de ban
+    // Notificar a cada jugador con su URL específica (para identificación automática sin login)
+    const notifTitle = `📢 Match llamado — ${setupId.replace('test-', '').replace('stream', 'Stream')}`;
+    const notifBody  = `${players.join(' vs ')} — ¡Tienen 5 min para hacer check-in!`;
     try {
       await fetch('/api/notifications/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-        body: JSON.stringify({
-          title: `📢 Match llamado — ${setupId.replace('test-', '').replace('stream', 'Stream')}`,
-          body: `${players.join(' vs ')} — ¡Tienen 5 min para hacer check-in!`,
-          targetUserNames: players,
-          data: { url: banUrl },
-        }),
+        body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[0]].filter(Boolean), data: { url: banUrl1 } }),
       });
     } catch {}
+    if (players[1]) {
+      try {
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+          body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[1]], data: { url: banUrl2 } }),
+        });
+      } catch {}
+    }
     // Iniciar countdown 5min
     const SECONDS = 5 * 60;
     matchTimersRef.current[setupId] = { secondsLeft: SECONDS };
@@ -697,10 +740,14 @@ export default function TestAdminPage() {
                           );
                         })}
                         {/* Botón Iniciar match / countdown / ban link */}
-                        {matchTimers[setup.id] != null ? (
+                        {(matchTimers[setup.id] != null || elapsedTimers[setup.id] != null) ? (
                           <div style={{ marginTop: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 8, padding: '7px 10px', marginBottom: 6 }}>
-                              <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00', flex: 1 }}>⏳ Check-in: {Math.floor(matchTimers[setup.id] / 60)}:{String(matchTimers[setup.id] % 60).padStart(2, '0')}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: elapsedTimers[setup.id] != null ? 'rgba(34,197,94,0.08)' : 'rgba(255,140,0,0.08)', border: `1px solid ${elapsedTimers[setup.id] != null ? 'rgba(34,197,94,0.3)' : 'rgba(255,140,0,0.3)'}`, borderRadius: 8, padding: '7px 10px', marginBottom: 6 }}>
+                              {elapsedTimers[setup.id] != null ? (
+                                <span style={{ fontSize: 11, fontWeight: 800, color: '#4ADE80', flex: 1 }}>⏱️ Jugando: {Math.floor(elapsedTimers[setup.id] / 60)}:{String(elapsedTimers[setup.id] % 60).padStart(2, '0')}</span>
+                              ) : (
+                                <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00', flex: 1 }}>⏳ Check-in: {Math.floor(matchTimers[setup.id] / 60)}:{String(matchTimers[setup.id] % 60).padStart(2, '0')}</span>
+                              )}
                               <button onClick={() => stopMatchTimer(setup.id)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 6, padding: '3px 8px', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>Cancelar</button>
                             </div>
                             {/* Live game info */}
@@ -740,15 +787,28 @@ export default function TestAdminPage() {
                                 <a href={assigned.banUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: setup.color, background: setup.color + '15', border: `1px solid ${setup.color}35`, borderRadius: 7, padding: '5px 8px', textDecoration: 'none', marginBottom: 8 }}>
                                   🎯 Abrir sistema de ban →
                                 </a>
-                                {/* QR code para que el jugador escanee con su celu */}
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                  <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=ffffff&bgcolor=0B0B12&data=${encodeURIComponent(assigned.banUrl)}`}
-                                    alt="QR ban"
-                                    style={{ width: 110, height: 110, borderRadius: 8, border: `1px solid ${setup.color}40` }}
-                                  />
-                                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>📱 Escaneá para entrar</span>
-                                </div>
+                                {/* Dos QR codes: J1 y J2 con URL específica por jugador */}
+                                {(() => {
+                                  const q1 = assigned.banUrl1 || (assigned.banUrl + '?p=player1');
+                                  const q2 = assigned.banUrl2 || (assigned.banUrl + '?p=player2');
+                                  const p1name = assigned.slots?.[0]?.entrant?.name || 'J1';
+                                  const p2name = assigned.slots?.[1]?.entrant?.name || 'J2';
+                                  return (
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1 }}>
+                                        <span style={{ fontSize: 8, color: setup.color, fontWeight: 800 }}>🔴 J1</span>
+                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=ffffff&bgcolor=0B0B12&data=${encodeURIComponent(q1)}`} alt="QR J1" style={{ width: 90, height: 90, borderRadius: 6, border: `1px solid ${setup.color}40` }} />
+                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p1name}</span>
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1 }}>
+                                        <span style={{ fontSize: 8, color: '#818CF8', fontWeight: 800 }}>🔵 J2</span>
+                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=ffffff&bgcolor=0B0B12&data=${encodeURIComponent(q2)}`} alt="QR J2" style={{ width: 90, height: 90, borderRadius: 6, border: '1px solid rgba(129,140,248,0.4)' }} />
+                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p2name}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                <p style={{ margin: '5px 0 0', textAlign: 'center', fontSize: 8, color: 'rgba(255,255,255,0.2)' }}>📱 Cada jugador escanea su QR</p>
                               </div>
                             )}
                           </div>
