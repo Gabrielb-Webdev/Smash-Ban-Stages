@@ -290,20 +290,22 @@ export default function TabletControl({ sessionId, playerName }) {
 
   const handleBanStage = (stageId) => {
     if (isActionBlocked) return;
+    if (myPlayer && session.currentTurn !== myPlayer) return;
     
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
-      setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: session.currentTurn });
+      setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: myPlayer || session.currentTurn });
       startCooldown();
     }
   };
 
   const handleSelectStage = (stageId) => {
     if (isActionBlocked) return;
+    if (myPlayer && session.currentTurn !== myPlayer) return;
     
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
-      setPendingAction({ type: 'select', stageId, stageName: stage.name });
+      setPendingAction({ type: 'select', stageId, stageName: stage.name, player: myPlayer || session.currentTurn });
       // No activar cooldown después de seleccionar stage
     }
   };
