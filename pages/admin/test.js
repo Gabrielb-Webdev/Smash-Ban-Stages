@@ -549,26 +549,26 @@ export default function TestAdminPage() {
     const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
     const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
 
-    // Activar el set en start.gg directamente a ACTIVE (verde),
-    // en vez de CALLED (amarillo). Llamar reportBracketSet vacío lo activa.
+    // Marcar el set como CALLED en start.gg (→ amarillo).
+    // Pasa a ACTIVE (verde) automáticamente cuando se reporte el 1er game.
     let calledOk = false;
     if (startggSetId) {
       try {
-        console.log(`[start.gg] activateSet → setId=${startggSetId}`);
-        const calledRes  = await fetch('/api/tournaments/report-set', {
+        console.log(`[start.gg] markSetCalled → setId=${startggSetId}`);
+        const calledRes  = await fetch('/api/tournaments/mark-set-called', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId), winnerId: null, gameData: [] }),
+          body: JSON.stringify({ setId: String(startggSetId) }),
         });
         const calledData = await calledRes.json();
         if (!calledRes.ok || calledData.error) {
-          console.error('[start.gg] ❌ activateSet falló:', calledData);
+          console.error('[start.gg] ❌ markSetCalled falló:', calledData);
         } else {
-          console.log('[start.gg] ✅ activateSet OK (set ahora ACTIVE/verde):', calledData);
+          console.log('[start.gg] ✅ markSetCalled OK:', calledData);
           calledOk = true;
         }
       } catch (e) {
-        console.error('[start.gg] ❌ activateSet fetch error:', e);
+        console.error('[start.gg] ❌ markSetCalled fetch error:', e);
       }
     }
 
@@ -578,7 +578,7 @@ export default function TestAdminPage() {
       setId: startggSetId,
       players: players.join(' vs '),
       round: set.fullRoundText || '',
-      score: calledOk ? '— activo ✓ start.gg' : (startggSetId ? '— llamado ⚠ sin startgg' : '— llamado (sin ID)'),
+      score: calledOk ? '— llamado ✓ start.gg' : (startggSetId ? '— llamado ⚠ sin startgg' : '— llamado (sin ID)'),
       called: true,
     }, ...prev].slice(0, 20));
 
