@@ -88,6 +88,11 @@ export default function TestAdminPage() {
   const [matchTimers, setMatchTimers] = useState({});
   const matchTimersRef = useRef({});
 
+  // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
+  const [setupFormats, setSetupFormats] = useState(() => {
+    try { const s = localStorage.getItem('afk_setupFormats'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+
   // Check-in status: { [setupId]: { phase, checkIns: [], player1, player2 } }
   const [sessionStatuses, setSessionStatuses] = useState({});
 
@@ -102,6 +107,7 @@ export default function TestAdminPage() {
   useEffect(() => { try { localStorage.setItem('afk_selectedPhaseGroupId', selectedPhaseGroupId); } catch {} }, [selectedPhaseGroupId]);
   useEffect(() => { try { if (selectedEventId) localStorage.setItem('afk_selectedEventId', selectedEventId); } catch {} }, [selectedEventId]);
   useEffect(() => { try { localStorage.setItem('afk_selectedBracketUrl', selectedBracketUrl); } catch {} }, [selectedBracketUrl]);
+  useEffect(() => { try { localStorage.setItem('afk_setupFormats', JSON.stringify(setupFormats)); } catch {} }, [setupFormats]);
 
   // Restaurar timers activos tras F5
   useEffect(() => {
@@ -158,7 +164,8 @@ export default function TestAdminPage() {
     if (!stored?.access_token) { router.replace('/login'); return; }
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      if (!data.isAdmin) { router.replace('/home'); return; }
+      const hasAccess = data.isAdmin || data.adminCommunities?.includes('test');
+      if (!hasAccess) { router.replace('/home'); return; }
       setUser(data.user);
       setChecking(false);
       // Re-registrar sesiones activas en el servidor WS (en caso de restart del servidor)
@@ -378,8 +385,7 @@ export default function TestAdminPage() {
     const set = assignedSets[setupId];
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
-
-    // Generar sessionId único para el ban
+    const format = setupFormats[setupId] || 'BO3'; único para el ban
     const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
     const banUrl = `${origin}/tablet/${sessionId}`;
@@ -397,7 +403,7 @@ export default function TestAdminPage() {
         body: JSON.stringify({
           player1: players[0] || 'Jugador 1',
           player2: players[1] || 'Jugador 2',
-          format: 'BO3',
+          format,
           startggSetId,
           startggEntrant1Id,
           startggEntrant2Id,
@@ -405,7 +411,7 @@ export default function TestAdminPage() {
       });
     } catch {}
 
-    // Enviar datos de start.gg al servidor WebSocket (para que pueda reportar cuando termine cada game)
+    // Enviar datos de start.gg al servidor WebSocket
     try {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
       fetch(`${socketUrl}/session-meta`, {
@@ -414,7 +420,7 @@ export default function TestAdminPage() {
         body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id,
           player1: players[0] || 'Jugador 1',
           player2: players[1] || 'Jugador 2',
-          format: 'BO3',
+          format,
         }),
       });
     } catch {}
@@ -697,6 +703,38 @@ export default function TestAdminPage() {
                               <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00', flex: 1 }}>⏳ Check-in: {Math.floor(matchTimers[setup.id] / 60)}:{String(matchTimers[setup.id] % 60).padStart(2, '0')}</span>
                               <button onClick={() => stopMatchTimer(setup.id)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 6, padding: '3px 8px', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>Cancelar</button>
                             </div>
+                            {/* Live game info */}
+                            {(() => {
+                              const st = sessionStatuses[setup.id];
+                              if (!st || !st.currentGame) return null;
+                              const PHASE_LABEL = { CHECKIN:'Check-in', RPS:'RPS', CHARACTER_SELECT:'Eligiendo personaje', STAGE_BAN:'Baneando stage', STAGE_SELECT:'Eligiendo stage', PLAYING:'Jugando', FINISHED:'Finalizado' };
+                              return (
+                                <div style={{ marginBottom: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 9px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                    <span style={{ fontSize: 9, fontWeight: 800, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Game {st.currentGame} · {st.format || 'BO3'} · {PHASE_LABEL[st.phase] || st.phase}</span>
+                                    <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{st.score1 ?? 0} – {st.score2 ?? 0}</span>
+                                  </div>
+                                  {(st.char1 || st.char2) && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>
+                                      <span>P1: {st.char1 || '—'}</span>
+                                      <span>P2: {st.char2 || '—'}</span>
+                                    </div>
+                                  )}
+                                  {st.selectedStage && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>🗺️ {st.selectedStage}</div>}
+                                  {(st.games || []).length > 0 && (
+                                    <div style={{ marginTop: 5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                      {st.games.map(g => (
+                                        <div key={g.gameNum} style={{ display: 'flex', gap: 4, fontSize: 9, color: 'rgba(255,255,255,0.45)', alignItems: 'center' }}>
+                                          <span style={{ color: setup.color, fontWeight: 800, flexShrink: 0 }}>G{g.gameNum}</span>
+                                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.char1 || '?'} vs {g.char2 || '?'} · {g.stage || '—'}</span>
+                                          <span style={{ color: '#4ADE80', fontWeight: 700, flexShrink: 0 }}>✓ {g.winnerName || '?'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {assigned?.banUrl && (
                               <div style={{ marginTop: 8 }}>
                                 <a href={assigned.banUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: setup.color, background: setup.color + '15', border: `1px solid ${setup.color}35`, borderRadius: 7, padding: '5px 8px', textDecoration: 'none', marginBottom: 8 }}>
@@ -715,12 +753,24 @@ export default function TestAdminPage() {
                             )}
                           </div>
                         ) : (
-                          <button
-                            onClick={() => callMatch(setup.id)}
-                            style={{ marginTop: 10, width: '100%', background: `linear-gradient(135deg,${setup.color},${setup.color}AA)`, border: 'none', color: '#fff', borderRadius: 8, padding: '8px 0', fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", letterSpacing: '0.04em', boxShadow: `0 2px 10px ${setup.color}44` }}
-                          >
-                            🎮 Iniciar match
-                          </button>
+                          <div style={{ marginTop: 10 }}>
+                            {/* Selector BO3 / BO5 */}
+                            <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
+                              {['BO3','BO5'].map(fmt => (
+                                <button
+                                  key={fmt}
+                                  onClick={() => setSetupFormats(prev => ({ ...prev, [setup.id]: fmt }))}
+                                  style={{ flex: 1, padding: '5px 0', fontSize: 10, fontWeight: 900, borderRadius: 7, border: `1px solid ${(setupFormats[setup.id]||'BO3') === fmt ? setup.color : 'rgba(255,255,255,0.1)'}`, background: (setupFormats[setup.id]||'BO3') === fmt ? setup.color + '22' : 'transparent', color: (setupFormats[setup.id]||'BO3') === fmt ? setup.color : 'rgba(255,255,255,0.35)', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}
+                                >{fmt}</button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => callMatch(setup.id)}
+                              style={{ width: '100%', background: `linear-gradient(135deg,${setup.color},${setup.color}AA)`, border: 'none', color: '#fff', borderRadius: 8, padding: '8px 0', fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", letterSpacing: '0.04em', boxShadow: `0 2px 10px ${setup.color}44` }}
+                            >
+                              🎮 Iniciar match ({setupFormats[setup.id] || 'BO3'})
+                            </button>
+                          </div>
                         )}
                       </div>
                     ) : (

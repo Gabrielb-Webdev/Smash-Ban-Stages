@@ -328,6 +328,23 @@ const httpServer = createServer((req, res) => {
         checkIns: session.checkIns || [],
         player1: session.player1?.name,
         player2: session.player2?.name,
+        score1: session.player1?.score || 0,
+        score2: session.player2?.score || 0,
+        char1: session.player1?.character || null,
+        char2: session.player2?.character || null,
+        selectedStage: session.selectedStage || null,
+        currentGame: session.currentGame || 1,
+        format: session.format || 'BO3',
+        games: (session.games || []).map(g => ({
+          gameNum: g.gameNum,
+          winnerName: g.winnerName || null,
+          p1Name: g.p1Name || session.player1?.name,
+          p2Name: g.p2Name || session.player2?.name,
+          char1: g.p1CharacterId,
+          char2: g.p2CharacterId,
+          stage: g.stageId,
+        })),
+        currentTurn: session.currentTurn || null,
       }));
     } else {
       // Devolver 200 con ok:false para evitar errores en consola del navegador
@@ -622,6 +639,7 @@ io.on('connection', (socket) => {
   socket.on('ban-stage', ({ sessionId, stage, player }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'STAGE_BAN') {
+      if (session.currentTurn !== player) return; // solo el jugador con turno puede banear
       // Agregar al historial
       session.banHistory.push({
         game: session.currentGame,
@@ -664,6 +682,7 @@ io.on('connection', (socket) => {
   socket.on('select-stage', ({ sessionId, stage, player }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'STAGE_SELECT') {
+      if (session.currentTurn !== player) return; // solo el jugador con turno puede seleccionar
       session.selectedStage = stage;
       // Ir directo a PLAYING ya que los personajes ya están seleccionados
       session.phase = 'PLAYING';
@@ -698,6 +717,7 @@ io.on('connection', (socket) => {
   socket.on('select-character', ({ sessionId, character, player }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'CHARACTER_SELECT') {
+      if (session.currentTurn !== player) return; // solo el jugador con turno puede seleccionar
       // Guardar en historial por nombre de jugador
       recordCharacterPick(session[player].name, character);
       session[player].character = character;
@@ -781,6 +801,9 @@ io.on('connection', (socket) => {
       session.games.push({
         gameNum: session.currentGame,
         winnerId: winnerEntrantId,
+        winnerName: session[winner].name,
+        p1Name: session.player1.name,
+        p2Name: session.player2.name,
         p1EntrantId: session.startggEntrant1Id,
         p2EntrantId: session.startggEntrant2Id,
         p1CharacterId: session.player1.character,

@@ -7,6 +7,7 @@ const COMMUNITIES = [
   { id: 'afk',      label: 'Smash AFK',      color: '#06B6D4', icon: '🎮' },
   { id: 'cordoba',  label: 'Smash Córdoba',   color: '#EC4899', icon: '🎮' },
   { id: 'mendoza',  label: 'Smash Mendoza',   color: '#9CA3AF', icon: '🎮' },
+  { id: 'test',     label: 'Panel Torneo',    color: '#FF8C00', icon: '🏆' },
 ];
 
 export default function ManageAdmins() {

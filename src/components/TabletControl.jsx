@@ -136,23 +136,25 @@ export default function TabletControl({ sessionId, playerName }) {
       });
 
       // Mostrar modal para player1
+      // Solo si ES player1 o es admin (myPlayer=null)
       if (session.currentTurn === 'player1' && 
+          (!myPlayer || myPlayer === 'player1') &&
           !hasAskedRepeat.player1 && 
           !session.player1.character && 
           previousCharacters.player1 &&
           !showRepeatModal.player1) {
-        console.log('🎮 Mostrando modal para player1, personaje anterior:', previousCharacters.player1);
         setShowRepeatModal({ player1: true, player2: false });
         setHasAskedRepeat(prev => ({ ...prev, player1: true }));
       }
       
       // Mostrar modal para player2
+      // Solo si ES player2 o es admin (myPlayer=null)
       if (session.currentTurn === 'player2' && 
+          (!myPlayer || myPlayer === 'player2') &&
           !hasAskedRepeat.player2 && 
           !session.player2.character && 
           previousCharacters.player2 &&
           !showRepeatModal.player2) {
-        console.log('🎮 Mostrando modal para player2, personaje anterior:', previousCharacters.player2);
         setShowRepeatModal({ player1: false, player2: true });
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
@@ -307,16 +309,21 @@ export default function TabletControl({ sessionId, playerName }) {
   };
 
   const handleSelectCharacter = (characterId) => {
-    if (session.currentTurn) {
-      const character = CHARACTERS.find(c => c.id === characterId);
-      setPendingAction({ 
-        type: 'character', 
-        characterId, 
-        characterName: character.name, 
-        characterImage: character.image,
-        player: session.currentTurn 
-      });
-    }
+    // Si es un jugador identificado, solo puede seleccionar para sí mismo
+    // Si es admin/espectador (myPlayer=null), selecciona para quien tenga el turno
+    const targetPlayer = myPlayer || session.currentTurn;
+    if (!targetPlayer) return;
+    // Validar que sea el turno del jugador (si está identificado)
+    if (myPlayer && session.currentTurn !== myPlayer) return;
+    const character = CHARACTERS.find(c => c.id === characterId);
+    if (!character) return;
+    setPendingAction({ 
+      type: 'character', 
+      characterId, 
+      characterName: character.name, 
+      characterImage: character.image,
+      player: targetPlayer,
+    });
   };
 
   const confirmAction = () => {
