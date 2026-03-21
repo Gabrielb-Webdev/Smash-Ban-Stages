@@ -167,6 +167,45 @@ export default function TestAdminPage() {
       for (const [setupId, st] of Object.entries(updates)) {
         if (st.phase === 'FINISHED' && !autoReleasedSetups.current.has(setupId)) {
           autoReleasedSetups.current.add(setupId);
+
+          // ── AUTO-REPORTAR RESULTADO FINAL A START.GG ──────────────────
+          // El admin panel tiene los IDs correctos del bracket, así que
+          // reporta directamente (sin depender del servidor Render).
+          const aSet = assignedSets[setupId];
+          if (aSet?.startggSetId) {
+            const winnerEntrantId = (st.score1 || 0) >= (st.score2 || 0)
+              ? aSet.startggEntrant1Id
+              : aSet.startggEntrant2Id;
+            if (winnerEntrantId) {
+              console.log(`[start.gg] Reportando resultado final → setId=${aSet.startggSetId} winner=${winnerEntrantId}`);
+              fetch('/api/tournaments/report-set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  setId: String(aSet.startggSetId),
+                  winnerId: String(winnerEntrantId),
+                }),
+              })
+                .then(r => r.json())
+                .then(d => {
+                  if (d.ok) {
+                    console.log('[start.gg] ✅ Resultado final enviado correctamente:', d);
+                    setReportLog(prev => [{
+                      time: new Date(),
+                      setId: aSet.startggSetId,
+                      players: `${aSet.slots?.[0]?.entrant?.name || st.player1 || '?'} vs ${aSet.slots?.[1]?.entrant?.name || st.player2 || '?'}`,
+                      round: aSet.fullRoundText || '',
+                      score: `${st.score1}-${st.score2} ✅ enviado`,
+                    }, ...prev].slice(0, 20));
+                  } else {
+                    console.error('[start.gg] ❌ Error reportando resultado final:', d);
+                  }
+                })
+                .catch(e => console.error('[start.gg] ❌ fetch error resultado final:', e));
+            }
+          }
+          // ──────────────────────────────────────────────────────────────
+
           setTimeout(() => {
             const t = matchTimersRef.current[setupId];
             if (t?.intervalId) clearInterval(t.intervalId);
@@ -510,25 +549,26 @@ export default function TestAdminPage() {
     const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
     const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
 
-    // Marcar el set como "llamado" en start.gg + log de resultado
+    // Activar el set en start.gg directamente a ACTIVE (verde),
+    // en vez de CALLED (amarillo). Llamar reportBracketSet vacío lo activa.
     let calledOk = false;
     if (startggSetId) {
       try {
-        console.log(`[start.gg] markSetCalled → setId=${startggSetId}`);
-        const calledRes  = await fetch('/api/tournaments/mark-set-called', {
+        console.log(`[start.gg] activateSet → setId=${startggSetId}`);
+        const calledRes  = await fetch('/api/tournaments/report-set', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId) }),
+          body: JSON.stringify({ setId: String(startggSetId), winnerId: null, gameData: [] }),
         });
         const calledData = await calledRes.json();
         if (!calledRes.ok || calledData.error) {
-          console.error('[start.gg] ❌ markSetCalled falló:', calledData);
+          console.error('[start.gg] ❌ activateSet falló:', calledData);
         } else {
-          console.log('[start.gg] ✅ markSetCalled OK:', calledData);
+          console.log('[start.gg] ✅ activateSet OK (set ahora ACTIVE/verde):', calledData);
           calledOk = true;
         }
       } catch (e) {
-        console.error('[start.gg] ❌ markSetCalled fetch error:', e);
+        console.error('[start.gg] ❌ activateSet fetch error:', e);
       }
     }
 
@@ -538,7 +578,7 @@ export default function TestAdminPage() {
       setId: startggSetId,
       players: players.join(' vs '),
       round: set.fullRoundText || '',
-      score: calledOk ? '— llamado ✓ start.gg' : (startggSetId ? '— llamado ⚠ sin startgg' : '— llamado (sin ID)'),
+      score: calledOk ? '— activo ✓ start.gg' : (startggSetId ? '— llamado ⚠ sin startgg' : '— llamado (sin ID)'),
       called: true,
     }, ...prev].slice(0, 20));
 
