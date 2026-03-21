@@ -620,26 +620,20 @@ export default function TestAdminPage() {
                     {assigned ? (
                       <div style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${setup.color}20`, borderRadius: 11, padding: '9px 11px' }}>
                         <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{assigned.round}</p>
-                        {assigned.slots.map((slot, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: i < assigned.slots.length - 1 ? 5 : 0 }}>
-                            <div style={{ width: 17, height: 17, borderRadius: 5, background: setup.color + '20', border: `1px solid ${setup.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: setup.color, flexShrink: 0 }}>{i + 1}</div>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: slot?.entrant ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot?.entrant?.name || 'TBD'}</span>
-                          </div>
-                        ))}
-                        {/* Check-in status */}
-                        {assigned.sessionId && sessionStatuses[setup.id] && (
-                          <div style={{ marginTop: 8, display: 'flex', gap: 5 }}>
-                            {[sessionStatuses[setup.id].player1, sessionStatuses[setup.id].player2].filter(Boolean).map(name => {
-                              const checked = (sessionStatuses[setup.id].checkIns || []).includes(name);
-                              return (
-                                <div key={name} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, background: checked ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${checked ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 6, padding: '3px 6px', overflow: 'hidden' }}>
-                                  <span style={{ fontSize: 10, flexShrink: 0 }}>{checked ? '✅' : '⏳'}</span>
-                                  <span style={{ fontSize: 9, fontWeight: 700, color: checked ? '#4ADE80' : 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                        {assigned.slots.map((slot, i) => {
+                          const slotName = slot?.entrant?.name;
+                          const status = sessionStatuses[setup.id];
+                          const checked = assigned.sessionId && status
+                            ? (status.checkIns || []).includes(slotName)
+                            : false;
+                          return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: i < assigned.slots.length - 1 ? 5 : 0, background: checked ? 'rgba(34,197,94,0.08)' : 'transparent', borderRadius: 6, padding: checked ? '2px 5px' : 0, transition: 'all 0.2s' }}>
+                              <div style={{ width: 17, height: 17, borderRadius: 5, background: checked ? 'rgba(34,197,94,0.25)' : setup.color + '20', border: `1px solid ${checked ? 'rgba(34,197,94,0.5)' : setup.color + '33'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: checked ? '#4ADE80' : setup.color, flexShrink: 0 }}>{checked ? '✓' : i + 1}</div>
+                              <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: checked ? '#4ADE80' : slotName ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slotName || 'TBD'}</span>
+                              {assigned.sessionId && status && !checked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>⏳</span>}
+                            </div>
+                          );
+                        })}
                         {/* Botón Iniciar match / countdown / ban link */}
                         {matchTimers[setup.id] != null ? (
                           <div style={{ marginTop: 10 }}>

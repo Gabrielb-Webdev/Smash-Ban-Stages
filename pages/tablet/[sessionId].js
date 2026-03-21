@@ -12,7 +12,7 @@ export default function Tablet() {
   // Leer el nombre del jugador logueado en este dispositivo (del localStorage)
   const [playerName] = useState(() => {
     if (typeof window === 'undefined') return null;
-    try { const u = localStorage.getItem('afk_user'); return u ? JSON.parse(u).name || null : null; } catch { return null; }
+    try { const u = localStorage.getItem('afk_user'); if (!u) return null; const d = JSON.parse(u); return d.user?.name || d.name || null; } catch { return null; }
   });
 
   const s = (sessionId || '').toLowerCase();
