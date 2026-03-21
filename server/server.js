@@ -277,8 +277,9 @@ const httpServer = createServer((req, res) => {
         player2: session.player2?.name,
       }));
     } else {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Sesión no encontrada' }));
+      // Devolver 200 con ok:false para evitar errores en consola del navegador
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, reason: 'session_not_found' }));
     }
   } else if (req.method === 'GET' && req.url.startsWith('/sessions/player')) {
     // GET /sessions/player?name=... — busca sesiones activas de un jugador por nombre

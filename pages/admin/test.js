@@ -55,10 +55,10 @@ export default function TestAdminPage() {
   const dropdownRef = useRef(null);
 
   // Selección dinámica de torneo
-  const [selectedSlug, setSelectedSlug]                     = useState('tournament/asd3');
-  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState('3244687');
-  const [selectedBracketUrl, setSelectedBracketUrl]         = useState('');
-  const [selectedEventId, setSelectedEventId]               = useState(null);
+  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedSlug')) || 'tournament/asd3'; } catch { return 'tournament/asd3'; } });
+  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedPhaseGroupId')) || '3244687'; } catch { return '3244687'; } });
+  const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedBracketUrl')) || ''; } catch { return ''; } });
+  const [selectedEventId, setSelectedEventId]               = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedEventId')) || null; } catch { return null; } });
 
   // Tournament picker
   const [tourPickerOpen, setTourPickerOpen]         = useState(false);
@@ -98,6 +98,39 @@ export default function TestAdminPage() {
   useEffect(() => {
     try { localStorage.setItem('afk_phaseStarted', phaseStarted ? '1' : ''); } catch {}
   }, [phaseStarted]);
+  useEffect(() => { try { localStorage.setItem('afk_selectedSlug', selectedSlug); } catch {} }, [selectedSlug]);
+  useEffect(() => { try { localStorage.setItem('afk_selectedPhaseGroupId', selectedPhaseGroupId); } catch {} }, [selectedPhaseGroupId]);
+  useEffect(() => { try { if (selectedEventId) localStorage.setItem('afk_selectedEventId', selectedEventId); } catch {} }, [selectedEventId]);
+  useEffect(() => { try { localStorage.setItem('afk_selectedBracketUrl', selectedBracketUrl); } catch {} }, [selectedBracketUrl]);
+
+  // Restaurar timers activos tras F5
+  useEffect(() => {
+    Object.entries(assignedSets).forEach(([setupId, set]) => {
+      if (!set?.timerStartedAt) return;
+      const elapsed = Math.floor((Date.now() - set.timerStartedAt) / 1000);
+      const remaining = 300 - elapsed;
+      if (remaining <= 0) {
+        setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+        return;
+      }
+      matchTimersRef.current[setupId] = { secondsLeft: remaining };
+      setMatchTimers(prev => ({ ...prev, [setupId]: remaining }));
+      const iv = setInterval(() => {
+        const cur = matchTimersRef.current[setupId];
+        if (!cur) { clearInterval(iv); return; }
+        const next = cur.secondsLeft - 1;
+        matchTimersRef.current[setupId] = { secondsLeft: next, intervalId: iv };
+        setMatchTimers(prev => ({ ...prev, [setupId]: next }));
+        if (next <= 0) {
+          clearInterval(iv);
+          delete matchTimersRef.current[setupId];
+          setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+        }
+      }, 1000);
+      matchTimersRef.current[setupId].intervalId = iv;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Polling check-in de sesiones activas ---
   useEffect(() => {
@@ -110,7 +143,7 @@ export default function TestAdminPage() {
         if (!set?.sessionId) continue;
         try {
           const r = await fetch(`${socketUrl}/session/${encodeURIComponent(set.sessionId)}`);
-          if (r.ok) updates[setupId] = await r.json();
+          if (r.ok) { const d = await r.json(); if (d.ok) updates[setupId] = d; }
         } catch {}
       }
       setSessionStatuses(prev => ({ ...prev, ...updates }));
@@ -369,8 +402,8 @@ export default function TestAdminPage() {
       });
     } catch {}
 
-    // Guardar sessionId en el state para mostrarlo en la card
-    setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl } }));
+    // Guardar sessionId + timestamp en el state para poder restaurar el timer tras F5
+    setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, timerStartedAt: Date.now() } }));
 
     // Notificar a los jugadores con URL al sistema de ban
     try {
@@ -586,9 +619,15 @@ export default function TestAdminPage() {
           </div>
         </div>
 
-        {/* ── SETUPS GRID ── */}
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 20px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        {/* ── MAIN BODY: izquierda setups + derecha bracket ── */}
+        <div style={{ display: 'flex', gap: 16, padding: '16px 20px 48px', alignItems: 'flex-start' }}>
+
+          {/* ◀ COLUMNA IZQUIERDA: Setups + Info torneo */}
+          <div style={{ width: 560, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* ── SETUPS GRID ── */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <p style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>Setups · arrastrá un match del bracket</p>
             {!tournamentStarted && bracketSets.length > 0 && (
               <span style={{ fontSize: 9, fontWeight: 800, color: '#F59E0B', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 99, padding: '2px 8px' }}>⚠ Iniciá el torneo para poder arrastrar matches</span>
@@ -678,10 +717,10 @@ export default function TestAdminPage() {
               );
             })}
           </div>
-        </div>
+            </div>{/* /setups grid */}
 
-        {/* ── TORNEO INFO STRIP ── */}
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 20px 16px' }}>
+            {/* ── TORNEO INFO STRIP ── */}
+            <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '12px 18px', flexWrap: 'wrap' }}>
             {tournament?.image && <img src={tournament.image} alt="" style={{ width: 50, height: 50, borderRadius: 11, objectFit: 'cover', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 180 }}>
@@ -720,10 +759,14 @@ export default function TestAdminPage() {
               )}
             </div>
           )}
-        </div>
+            </div>{/* /torneo info strip */}
 
-        {/* ── BRACKET POR RONDAS ── */}
-        <div style={{ padding: '0 20px 48px', display: 'flex', flexDirection: 'column' }}>
+          </div>{/* /columna izquierda */}
+
+          {/* ▶ COLUMNA DERECHA: Bracket */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* ── BRACKET POR RONDAS ── */}
+        <div style={{ padding: '0', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h2 style={{ fontWeight: 900, fontSize: 18, color: '#fff', marginBottom: 3 }}>🎯 Bracket{phaseName ? ` — ${phaseName}` : ''}</h2>
@@ -758,8 +801,10 @@ export default function TestAdminPage() {
                 SET_STATE_STYLE={SET_STATE_STYLE}
               />
             )}
-          </div>
-        </div>
+          </div>{/* bracket content */}
+        </div>{/* bracket outer */}
+          </div>{/* /columna derecha */}
+        </div>{/* /main body */}
 
         {/* ── MODAL SELECTOR DE TORNEO ── */}
         {tourPickerOpen && (
