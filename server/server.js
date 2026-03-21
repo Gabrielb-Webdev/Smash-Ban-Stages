@@ -316,6 +316,20 @@ const httpServer = createServer((req, res) => {
       sessions: sessions.size,
       timestamp: new Date().toISOString()
     }));
+  } else if (req.method === 'DELETE' && req.url.startsWith('/session/')) {
+    // DELETE /session/:sessionId — cancela una sesión (admin la cancela desde el panel)
+    const sessionId = decodeURIComponent(req.url.slice('/session/'.length));
+    const session = sessions.get(sessionId);
+    if (session) {
+      session.phase = 'FINISHED';
+      sessions.set(sessionId, session);
+      // Notificar a los jugadores conectados que el match fue cancelado
+      io.to(sessionId).emit('match-cancelled', { sessionId });
+      io.to(sessionId).emit('session-updated', { session });
+      console.log(`❌ Sesión cancelada por admin: ${sessionId}`);
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
   } else if (req.method === 'GET' && req.url.startsWith('/session/')) {
     // GET /session/:sessionId — devuelve estado de check-in de una sesión
     const sessionId = decodeURIComponent(req.url.slice('/session/'.length));
@@ -785,10 +799,32 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Registrar ganador del game
+  // Proponer ganador del game (requiere confirmación del otro jugador)
+  socket.on('propose-game-winner', ({ sessionId, winner, proposedBy }) => {
+    const session = sessions.get(sessionId);
+    if (session && session.phase === 'PLAYING') {
+      session.winnerProposal = { winner, proposedBy: proposedBy || null };
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
+  // Rechazar propuesta de ganador
+  socket.on('reject-game-winner', ({ sessionId }) => {
+    const session = sessions.get(sessionId);
+    if (session && session.winnerProposal) {
+      session.winnerProposal = null;
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
+  // Registrar ganador del game (confirmado por el otro jugador)
   socket.on('game-winner', ({ sessionId, winner }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'PLAYING') {
+      // Limpiar propuesta pendiente
+      session.winnerProposal = null;
       // Incrementar score
       session[winner].score++;
       
@@ -850,9 +886,11 @@ io.on('connection', (socket) => {
           p2CharacterId: g.p2CharacterId,
           stageId: g.stageId,
         }));
-        const setWinnerId = seriesFinished ? winnerEntrantId : null;
-        reportToStartGG(session.startggSetId, setWinnerId, gameData)
-          .catch(e => console.error('⚠️ Error reportando a start.gg:', e.message));
+        // Solo reportar a start.gg cuando la serie termina (incluye todos los games acumulados)
+        if (seriesFinished) {
+          reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
+            .catch(e => console.error('⚠️ Error reportando a start.gg:', e.message));
+        }
       }
     }
   });

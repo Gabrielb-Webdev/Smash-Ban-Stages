@@ -34,7 +34,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 export default function TabletControl({ sessionId, playerName, playerIndex }) {
-  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, playerCheckin, getPlayerHistory } = useWebSocket(sessionId);
+  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, playerCheckin, getPlayerHistory } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
   // Obtener tema del torneo
@@ -358,7 +358,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         selectCharacter(sessionId, pendingAction.characterId, pendingAction.player);
         break;
       case 'winner':
-        setGameWinner(sessionId, pendingAction.winner);
+        proposeGameWinner(sessionId, pendingAction.winner, myPlayer);
         break;
       default:
         break;
@@ -2046,22 +2046,67 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 <p className="text-white text-center font-bold text-sm mb-2" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
                   🏆 ¿Quién ganó el Game {session.currentGame}?
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setPendingAction({ type: 'winner', winner: 'player1', winnerName: session.player1.name })}
-                    className="py-4 rounded-xl border-2 border-red-400/50 font-black text-sm sm:text-base active:scale-95 touch-manipulation transition-all"
-                    style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.3), rgba(239,68,68,0.2))', color: '#fff', fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)', cursor: 'pointer' }}
-                  >
-                    🔴 {session.player1.name}
-                  </button>
-                  <button
-                    onClick={() => setPendingAction({ type: 'winner', winner: 'player2', winnerName: session.player2.name })}
-                    className="py-4 rounded-xl border-2 border-blue-400/50 font-black text-sm sm:text-base active:scale-95 touch-manipulation transition-all"
-                    style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.3), rgba(59,130,246,0.2))', color: '#fff', fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)', cursor: 'pointer' }}
-                  >
-                    🔵 {session.player2.name}
-                  </button>
-                </div>
+
+                {/* Si hay propuesta pendiente y soy el otro jugador: confirmar/rechazar */
+                session.winnerProposal && myPlayer && session.winnerProposal.proposedBy !== myPlayer ? (
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🤔</div>
+                    <p className="text-white/80 text-sm mb-3">
+                      <span className="font-bold text-yellow-400">{session[session.winnerProposal.proposedBy]?.name}</span> dice que{' '}
+                      <span className="font-bold text-white">{session[session.winnerProposal.winner]?.name}</span> ganó el Game {session.currentGame}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setGameWinner(sessionId, session.winnerProposal.winner)}
+                        className="py-4 rounded-xl border-2 border-green-400/60 font-black text-sm active:scale-95 touch-manipulation transition-all"
+                        style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.25))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+                      >
+                        ✅ Confirmar
+                      </button>
+                      <button
+                        onClick={() => rejectGameWinner(sessionId)}
+                        className="py-4 rounded-xl border-2 border-red-400/60 font-black text-sm active:scale-95 touch-manipulation transition-all"
+                        style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.35), rgba(185,28,28,0.25))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+                      >
+                        ❌ Rechazar
+                      </button>
+                    </div>
+                  </div>
+                ) : session.winnerProposal && myPlayer && session.winnerProposal.proposedBy === myPlayer ? (
+                  /* Ya propuse, esperando confirmación del otro */
+                  <div className="text-center py-2">
+                    <div className="text-4xl mb-2 animate-pulse">⏳</div>
+                    <p className="text-white/80 text-sm mb-1">
+                      Propusiste que <span className="font-bold text-yellow-400">{session[session.winnerProposal.winner]?.name}</span> ganó
+                    </p>
+                    <p className="text-white/40 text-xs mb-3">Esperando confirmación del rival...</p>
+                    <button
+                      onClick={() => rejectGameWinner(sessionId)}
+                      className="px-4 py-2 rounded-xl border border-white/20 text-white/50 text-xs font-bold active:scale-95 touch-manipulation"
+                      style={{ background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}
+                    >
+                      Cancelar propuesta
+                    </button>
+                  </div>
+                ) : (
+                  /* Vista normal: proponer ganador */
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setPendingAction({ type: 'winner', winner: 'player1', winnerName: session.player1.name })}
+                      className="py-4 rounded-xl border-2 border-red-400/50 font-black text-sm sm:text-base active:scale-95 touch-manipulation transition-all"
+                      style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.3), rgba(239,68,68,0.2))', color: '#fff', fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)', cursor: 'pointer' }}
+                    >
+                      🔴 {session.player1.name}
+                    </button>
+                    <button
+                      onClick={() => setPendingAction({ type: 'winner', winner: 'player2', winnerName: session.player2.name })}
+                      className="py-4 rounded-xl border-2 border-blue-400/50 font-black text-sm sm:text-base active:scale-95 touch-manipulation transition-all"
+                      style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.3), rgba(59,130,246,0.2))', color: '#fff', fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)', cursor: 'pointer' }}
+                    >
+                      🔵 {session.player2.name}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2085,6 +2130,18 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               <p className="text-white/90 text-base">
                 ✨ El administrador configurará la próxima serie
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Cancelled Phase */}
+        {session.phase === 'CANCELLED' && (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
+            <div className="text-7xl mb-4">⚠️</div>
+            <h3 className="text-3xl font-bold text-white mb-3">Match cancelado</h3>
+            <p className="text-white/60 text-base mb-6">El administrador canceló o pospuso este match.</p>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <p className="text-white/70 text-sm">Esperá instrucciones del admin para continuar.</p>
             </div>
           </div>
         )}

@@ -411,6 +411,12 @@ export default function TestAdminPage() {
     delete elapsedTimersRef.current[setupId];
     setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
     checkedInSetups.current.delete(setupId);
+    // Cancelar la sesión en el servidor WS para que los jugadores dejen de verla como activa
+    const sessionId = assignedSets[setupId]?.sessionId;
+    if (sessionId) {
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+      fetch(`${socketUrl}/session/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(() => {});
+    }
   }
 
   async function callMatch(setupId) {

@@ -98,6 +98,11 @@ export const useWebSocket = (sessionId) => {
       setSession(data.session);
     });
 
+    socket.on('match-cancelled', () => {
+      // El admin canceló el match: marcar la sesión como FINISHED localmente
+      setSession(prev => prev ? { ...prev, phase: 'CANCELLED' } : prev);
+    });
+
     socket.on('rps-conflict', (data) => {
       console.warn('⚠️ RPS conflicto:', data.message);
     });
@@ -149,6 +154,18 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const proposeGameWinner = (sessionId, winner, proposedBy) => {
+    if (socket) {
+      socket.emit('propose-game-winner', { sessionId, winner, proposedBy });
+    }
+  };
+
+  const rejectGameWinner = (sessionId) => {
+    if (socket) {
+      socket.emit('reject-game-winner', { sessionId });
+    }
+  };
+
   const repeatStage = (sessionId, bannedStages, selectedStage) => {
     if (socket) {
       socket.emit('repeat-stage', { sessionId, bannedStages, selectedStage });
@@ -184,6 +201,8 @@ export const useWebSocket = (sessionId) => {
     selectStage,
     selectCharacter,
     setGameWinner,
+    proposeGameWinner,
+    rejectGameWinner,
     repeatStage,
     getPlayerHistory,
     resetSession,
