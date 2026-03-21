@@ -63,6 +63,8 @@ export default function HomePage() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifToast, setNotifToast] = useState(null);
   const [showIOSTip, setShowIOSTip] = useState(false);
+  const [showIOSPushBtn, setShowIOSPushBtn] = useState(false);
+  const [iosPushState, setIosPushState] = useState(null); // null | 'loading' | 'ok' | 'error'
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -171,6 +173,45 @@ export default function HomePage() {
   }, [user]);
 
   // Registrar Service Worker y suscribirse a Web Push
+  const registerPush = async (uid, userName) => {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+    if (!vapidKey) { console.warn('[PUSH] VAPID key no configurada'); return; }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { console.warn('[PUSH] Push no soportado en este navegador'); return; }
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { console.warn('[PUSH] Permiso denegado'); return; }
+
+      // urlBase64ToUint8Array
+      const padding = '='.repeat((4 - vapidKey.length % 4) % 4);
+      const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+      // Si ya hay una suscripción con otra key, desuscribir primero
+      const existingSub = await reg.pushManager.getSubscription();
+      if (existingSub) {
+        await existingSub.unsubscribe();
+        console.log('[PUSH] Suscripción anterior eliminada');
+      }
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: arr,
+      });
+
+      const regRes = await fetch('/api/notifications/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, name: userName, subscription: sub.toJSON() }),
+      });
+      const regData = await regRes.json();
+      console.log('[PUSH] Web push registrado:', regData);
+      return true;
+    } catch (e) { console.error('[PUSH] Error registrando web push:', e.message); return false; }
+  };
+
   useEffect(() => {
     if (!user || typeof window === 'undefined') return;
 
@@ -184,47 +225,24 @@ export default function HomePage() {
       return;
     }
 
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-    if (!vapidKey) { console.warn('[PUSH] VAPID key no configurada'); return; }
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { console.warn('[PUSH] Push no soportado en este navegador'); return; }
+    // iOS en standalone: Notification.requestPermission() DEBE ser llamado desde un gesto del usuario
+    // Por eso mostramos un botón en lugar de llamarlo automáticamente
+    if (isIOS && isStandalone) {
+      // Solo mostrar el botón si aún no tiene permiso
+      if (Notification.permission !== 'granted') {
+        setShowIOSPushBtn(true);
+      } else {
+        // Ya tiene permiso: re-registrar la suscripción silenciosamente
+        const uid = String(user?.id || user?.slug || '');
+        if (uid) registerPush(uid, user.name);
+      }
+      return;
+    }
 
+    // Android / Desktop: auto-suscribir
     const uid = String(user?.id || user?.slug || '');
     if (!uid) { console.warn('[PUSH] No hay userId'); return; }
-
-    (async () => {
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') { console.warn('[PUSH] Permiso denegado'); return; }
-
-        // urlBase64ToUint8Array
-        const padding = '='.repeat((4 - vapidKey.length % 4) % 4);
-        const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw = atob(base64);
-        const arr = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-
-        // Si ya hay una suscripción con otra key, desuscribir primero
-        const existingSub = await reg.pushManager.getSubscription();
-        if (existingSub) {
-          await existingSub.unsubscribe();
-          console.log('[PUSH] Suscripción anterior eliminada');
-        }
-
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: arr,
-        });
-
-        const regRes = await fetch('/api/notifications/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: uid, name: user.name, subscription: sub.toJSON() }),
-        });
-        const regData = await regRes.json();
-        console.log('[PUSH] Web push registrado:', regData);
-      } catch (e) { console.error('[PUSH] Error registrando web push:', e.message); }
-    })();
+    registerPush(uid, user.name);
   }, [user]);
 
   // Polling global de matchmaking (persiste entre tabs)
@@ -463,6 +481,36 @@ export default function HomePage() {
             </div>
           </div>
         )}
+        {/* iOS Standalone: botón para activar notificaciones (debe ser gesto del usuario) */}
+        {showIOSPushBtn && (
+          <div style={{ background: 'rgba(124,58,237,0.10)', border: '1px solid rgba(124,58,237,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🔔</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#A78BFA' }}>Activar notificaciones</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Recibí alertas cuando te llamen a jugar</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (iosPushState === 'loading') return;
+                setIosPushState('loading');
+                const uid = String(user?.id || user?.slug || '');
+                const ok = await registerPush(uid, user?.name);
+                if (ok) { setIosPushState('ok'); setShowIOSPushBtn(false); }
+                else setIosPushState('error');
+              }}
+              style={{
+                background: iosPushState === 'error' ? 'rgba(239,68,68,0.2)' : 'linear-gradient(135deg,#7C3AED,#5B21B6)',
+                border: 'none', color: '#fff', borderRadius: 10, padding: '8px 14px',
+                fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0,
+                opacity: iosPushState === 'loading' ? 0.6 : 1,
+              }}
+            >
+              {iosPushState === 'loading' ? '...' : iosPushState === 'error' ? '❌ Error' : 'Activar'}
+            </button>
+            <button onClick={() => setShowIOSPushBtn(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+          </div>
+        )}
+
         {/* iOS Safari: instrucciones para agregar a pantalla de inicio */}
         {showIOSTip && (
           <div style={{ background: 'rgba(232,142,0,0.10)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px' }}>
@@ -1484,18 +1532,18 @@ function TabAmigos({ user }) {
       <div style={{ margin: '0 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}>
         {/* Tab switcher */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <button onClick={() => setFriendTab('list')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #6366F1' : '2px solid transparent', transition: 'all 0.15s' }}>
+          <button onClick={() => { setFriendTab('list'); setFriendSearch(''); }}  style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #6366F1' : '2px solid transparent', transition: 'all 0.15s' }}>
             <span style={{ fontSize: 14 }}>👥</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Lista</span>
           </button>
-          <button onClick={() => setFriendTab('requests')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
+          <button onClick={() => { setFriendTab('requests'); setFriendSearch(''); }} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
             <span style={{ fontSize: 14 }}>📩</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Solicitudes</span>
             {friendRequests.length > 0 && (
               <span style={{ position: 'absolute', top: 4, right: '10%', minWidth: 18, height: 18, borderRadius: 9, background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', boxShadow: '0 0 8px rgba(239,68,68,0.4)' }}>{friendRequests.length}</span>
             )}
           </button>
-          <button onClick={() => setFriendTab('add')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #22C55E' : '2px solid transparent', transition: 'all 0.15s' }}>
+          <button onClick={() => { setFriendTab('add'); setFriendSearch(''); }} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #22C55E' : '2px solid transparent', transition: 'all 0.15s' }}>
             <span style={{ fontSize: 14 }}>➕</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Agregar</span>
           </button>
@@ -1506,7 +1554,7 @@ function TabAmigos({ user }) {
             <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px' }}>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>🔍</span>
-                <input value={friendSearch} onChange={e => { setFriendSearch(e.target.value); setFriendTab('add'); }} placeholder="Buscar amigo…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
+                <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Buscar amigo…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
               </div>
             </div>
             {friends.length === 0 ? (
@@ -1517,12 +1565,23 @@ function TabAmigos({ user }) {
               </div>
             ) : (
               <div>
-                {renderGroup('En partida', '⚔️', '#34D399', friends.filter(f => f.online === 'in_match'), 'in_match')}
-                {renderGroup('Buscando', '🔍', '#FBBF24', friends.filter(f => f.online === 'searching'), 'searching')}
-                {renderGroup('En línea', '🟢', '#22C55E', friends.filter(f => f.online === 'online'), 'online')}
-                {renderGroup('Ausente', '🌙', '#F59E0B', friends.filter(f => f.online === 'away'), 'away')}
-                {renderGroup('No molestar', '⛔', '#EF4444', friends.filter(f => f.online === 'dnd'), 'dnd')}
-                {renderGroup('Desconectado', '💤', null, friends.filter(f => !f.online || f.online === 'offline'), 'offline')}
+                {(() => {
+                  const q = friendSearch.trim().toLowerCase();
+                  const filtered = q ? friends.filter(f => (f.userName || '').toLowerCase().includes(q)) : friends;
+                  if (filtered.length === 0 && q) return (
+                    <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>No se encontraron amigos con ese nombre</p>
+                    </div>
+                  );
+                  return (<>
+                    {renderGroup('En partida', '⚔️', '#34D399', filtered.filter(f => f.online === 'in_match'), 'in_match')}
+                    {renderGroup('Buscando', '🔍', '#FBBF24', filtered.filter(f => f.online === 'searching'), 'searching')}
+                    {renderGroup('En línea', '🟢', '#22C55E', filtered.filter(f => f.online === 'online'), 'online')}
+                    {renderGroup('Ausente', '🌙', '#F59E0B', filtered.filter(f => f.online === 'away'), 'away')}
+                    {renderGroup('No molestar', '⛔', '#EF4444', filtered.filter(f => f.online === 'dnd'), 'dnd')}
+                    {renderGroup('Desconectado', '💤', null, filtered.filter(f => !f.online || f.online === 'offline'), 'offline')}
+                  </>);
+                })()}
               </div>
             )}
           </div>
