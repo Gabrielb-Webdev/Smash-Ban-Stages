@@ -186,9 +186,15 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   // Prioridad: URL param (?p=) → sessionStorage (elección manual) → nombre de login
   // 'spectator' en sessionStorage = sin restricciones (admin mode)
   const _rawIdentity = playerIndex || manualIdentity || (session && playerName
-    ? (session.player1?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player1'
-      : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
-      : null)
+    ? (() => {
+        const uLow = playerName.toLowerCase().trim();
+        const p1Low = (session.player1?.name || '').toLowerCase().trim();
+        const p2Low = (session.player2?.name || '').toLowerCase().trim();
+        // Coincidencia exacta o parcial (manejar team tags como "BNK satoruu" vs "satoruu")
+        if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
+        if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
+        return null;
+      })()
     : null);
   const myPlayer = (_rawIdentity === 'spectator') ? null : _rawIdentity;
 
@@ -2131,6 +2137,13 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 ✨ El administrador configurará la próxima serie
               </p>
             </div>
+            <button
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
+              className="mt-6 w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 touch-manipulation transition-all border-2 border-white/20"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              🏠 Volver al Home
+            </button>
           </div>
         )}
 
@@ -2143,6 +2156,13 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             <div className="bg-white/5 rounded-lg p-4 border border-white/10">
               <p className="text-white/70 text-sm">Esperá instrucciones del admin para continuar.</p>
             </div>
+            <button
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
+              className="mt-6 w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 touch-manipulation transition-all border-2 border-white/20"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              🏠 Volver al Home
+            </button>
           </div>
         )}
 

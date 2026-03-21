@@ -92,6 +92,7 @@ export default function TestAdminPage() {
   const [elapsedTimers, setElapsedTimers] = useState({});
   const elapsedTimersRef = useRef({});
   const checkedInSetups = useRef(new Set());
+  const autoReleasedSetups = useRef(new Set());
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -158,6 +159,24 @@ export default function TestAdminPage() {
         } catch {}
       }
       setSessionStatuses(prev => ({ ...prev, ...updates }));
+      // Auto-liberar setup cuando la sesión termina (phase FINISHED)
+      for (const [setupId, st] of Object.entries(updates)) {
+        if (st.phase === 'FINISHED' && !autoReleasedSetups.current.has(setupId)) {
+          autoReleasedSetups.current.add(setupId);
+          setTimeout(() => {
+            const t = matchTimersRef.current[setupId];
+            if (t?.intervalId) clearInterval(t.intervalId);
+            delete matchTimersRef.current[setupId];
+            setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            const et = elapsedTimersRef.current[setupId];
+            if (et?.intervalId) clearInterval(et.intervalId);
+            delete elapsedTimersRef.current[setupId];
+            setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            checkedInSetups.current.delete(setupId);
+            setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          }, 5000);
+        }
+      }
       // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
       for (const [setupId, st] of Object.entries(updates)) {
         if ((st.checkIns || []).length >= 2 && !checkedInSetups.current.has(setupId)) {

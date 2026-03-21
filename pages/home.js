@@ -551,7 +551,15 @@ export default function HomePage() {
         {/* Banner match activo de torneo */}
         {activeTournamentMatch && (
           <div
-            onClick={() => router.push(`/tablet/${activeTournamentMatch.sessionId}`)}
+            onClick={() => {
+              const uName = (user?.name || '').toLowerCase().trim();
+              const p1Name = (activeTournamentMatch.player1 || '').toLowerCase().trim();
+              const p2Name = (activeTournamentMatch.player2 || '').toLowerCase().trim();
+              let pParam = '';
+              if (uName && p1Name && (p1Name === uName || p1Name.includes(uName) || uName.includes(p1Name))) pParam = '?p=player1';
+              else if (uName && p2Name && (p2Name === uName || p2Name.includes(uName) || uName.includes(p2Name))) pParam = '?p=player2';
+              router.push(`/tablet/${activeTournamentMatch.sessionId}${pParam}`);
+            }}
             style={{ background: activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.10)', border: `1px solid ${activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`, margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
             <div style={{ width: 42, height: 42, borderRadius: 12, background: activeTournamentMatch.phase === 'CHECKIN' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#22C55E,#16A34A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
               {activeTournamentMatch.phase === 'CHECKIN' ? '🔔' : '⚔️'}
