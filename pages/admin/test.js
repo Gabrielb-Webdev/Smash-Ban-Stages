@@ -88,6 +88,9 @@ export default function TestAdminPage() {
   const [matchTimers, setMatchTimers] = useState({});
   const matchTimersRef = useRef({});
 
+  // Check-in status: { [setupId]: { phase, checkIns: [], player1, player2 } }
+  const [sessionStatuses, setSessionStatuses] = useState({});
+
   // --- Persistencia localStorage ---
   useEffect(() => {
     try { localStorage.setItem('afk_assignedSets', JSON.stringify(assignedSets)); } catch {}
@@ -95,6 +98,27 @@ export default function TestAdminPage() {
   useEffect(() => {
     try { localStorage.setItem('afk_phaseStarted', phaseStarted ? '1' : ''); } catch {}
   }, [phaseStarted]);
+
+  // --- Polling check-in de sesiones activas ---
+  useEffect(() => {
+    const active = Object.entries(assignedSets).filter(([, set]) => set?.sessionId);
+    if (active.length === 0) { setSessionStatuses({}); return; }
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const poll = async () => {
+      const updates = {};
+      for (const [setupId, set] of active) {
+        if (!set?.sessionId) continue;
+        try {
+          const r = await fetch(`${socketUrl}/session/${encodeURIComponent(set.sessionId)}`);
+          if (r.ok) updates[setupId] = await r.json();
+        } catch {}
+      }
+      if (Object.keys(updates).length > 0) setSessionStatuses(prev => ({ ...prev, ...updates }));
+    };
+    poll();
+    const iv = setInterval(poll, 3000);
+    return () => clearInterval(iv);
+  }, [assignedSets]);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -602,6 +626,20 @@ export default function TestAdminPage() {
                             <span style={{ fontSize: 13, fontWeight: 700, color: slot?.entrant ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot?.entrant?.name || 'TBD'}</span>
                           </div>
                         ))}
+                        {/* Check-in status */}
+                        {assigned.sessionId && sessionStatuses[setup.id] && (
+                          <div style={{ marginTop: 8, display: 'flex', gap: 5 }}>
+                            {[sessionStatuses[setup.id].player1, sessionStatuses[setup.id].player2].filter(Boolean).map(name => {
+                              const checked = (sessionStatuses[setup.id].checkIns || []).includes(name);
+                              return (
+                                <div key={name} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, background: checked ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${checked ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 6, padding: '3px 6px', overflow: 'hidden' }}>
+                                  <span style={{ fontSize: 10, flexShrink: 0 }}>{checked ? '✅' : '⏳'}</span>
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: checked ? '#4ADE80' : 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                         {/* Botón Iniciar match / countdown / ban link */}
                         {matchTimers[setup.id] != null ? (
                           <div style={{ marginTop: 10 }}>

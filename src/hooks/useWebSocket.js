@@ -164,6 +164,12 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const playerCheckin = (sessionId, playerName) => {
+    if (socket) {
+      socket.emit('player-checkin', { sessionId, playerName });
+    }
+  };
+
   return {
     session,
     connected,
@@ -177,5 +183,6 @@ export const useWebSocket = (sessionId) => {
     repeatStage,
     getPlayerHistory,
     resetSession,
+    playerCheckin,
   };
 };

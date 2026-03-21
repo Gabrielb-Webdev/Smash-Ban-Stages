@@ -158,6 +158,30 @@ async function reportToStartGG(setId, winnerId, gameData) {
   console.log(`✅ start.gg set ${setId} reportado (winner: ${winnerId || 'en curso'}):`, data.data?.reportBracketSet);
   return data.data?.reportBracketSet;
 }
+
+async function markSetCalled(setId) {
+  if (!START_GG_TOKEN) return;
+  const mutation = `
+    mutation MarkSetCalled($setId: ID!) {
+      markSetInProgress(setId: $setId) {
+        id
+        state
+      }
+    }
+  `;
+  try {
+    const res = await fetch('https://api.start.gg/gql/alpha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${START_GG_TOKEN}` },
+      body: JSON.stringify({ query: mutation, variables: { setId: String(setId) } }),
+    });
+    const data = await res.json();
+    if (data.errors) console.warn('⚠️ start.gg markSetCalled errors:', JSON.stringify(data.errors));
+    else console.log(`✅ start.gg set ${setId} marcado en progreso:`, data.data?.markSetInProgress);
+  } catch (e) {
+    console.warn('⚠️ Error en markSetCalled:', e.message);
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 const httpServer = createServer((req, res) => {
@@ -194,7 +218,8 @@ const httpServer = createServer((req, res) => {
             player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
             format: format || 'BO3',
             currentGame: 1,
-            phase: 'RPS',
+            phase: 'CHECKIN',
+            checkIns: [],
             rpsWinner: null,
             lastGameWinner: null,
             currentTurn: null,
@@ -210,7 +235,7 @@ const httpServer = createServer((req, res) => {
             startggEntrant2Id: startggEntrant2Id || null,
           };
           sessions.set(sessionId, session);
-          console.log('📝 Sesión pre-creada desde /session-meta:', sessionId);
+          console.log('📝 Sesión pre-creada (CHECKIN) desde /session-meta:', sessionId);
         } else if (session) {
           // Actualizar datos start.gg en sesión existente
           session.startggSetId = startggSetId;
@@ -238,6 +263,43 @@ const httpServer = createServer((req, res) => {
       sessions: sessions.size,
       timestamp: new Date().toISOString()
     }));
+  } else if (req.method === 'GET' && req.url.startsWith('/session/')) {
+    // GET /session/:sessionId — devuelve estado de check-in de una sesión
+    const sessionId = decodeURIComponent(req.url.slice('/session/'.length));
+    const session = sessions.get(sessionId);
+    if (session) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        phase: session.phase,
+        checkIns: session.checkIns || [],
+        player1: session.player1?.name,
+        player2: session.player2?.name,
+      }));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sesión no encontrada' }));
+    }
+  } else if (req.method === 'GET' && req.url.startsWith('/sessions/player')) {
+    // GET /sessions/player?name=... — busca sesiones activas de un jugador por nombre
+    try {
+      const urlObj = new URL(req.url, 'http://localhost');
+      const name = (urlObj.searchParams.get('name') || '').toLowerCase().trim();
+      if (!name) { res.writeHead(400); res.end(JSON.stringify({ error: 'name requerido' })); return; }
+      const found = [];
+      sessions.forEach((session, sessionId) => {
+        if (session.phase === 'FINISHED') return;
+        const p1 = (session.player1?.name || '').toLowerCase().trim();
+        const p2 = (session.player2?.name || '').toLowerCase().trim();
+        if (p1.includes(name) || p2.includes(name) || (name.length > 2 && (p1.startsWith(name) || p2.startsWith(name)))) {
+          found.push({ sessionId, player1: session.player1?.name, player2: session.player2?.name, phase: session.phase, checkIns: session.checkIns || [] });
+        }
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(found));
+    } catch (e) {
+      res.writeHead(500); res.end(JSON.stringify({ error: e.message }));
+    }
   } else {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not Found' }));
@@ -343,8 +405,7 @@ io.on('connection', (socket) => {
     }
     // También reiniciar games al crear/resetear sesión
     session.games = [];
-
-    sessions.set(sessionId, session);
+      session.checkIns = session.checkIns || [];
     
     // Unir al cliente a la sala de la sesión
     socket.join(sessionId);
@@ -385,6 +446,32 @@ io.on('connection', (socket) => {
       console.log('Cliente unido a sesión:', sessionId);
     } else {
       socket.emit('session-error', { message: 'Sesión no encontrada' });
+    }
+  });
+
+  // Check-in de jugador para match de torneo
+  socket.on('player-checkin', ({ sessionId, playerName }) => {
+    const session = sessions.get(sessionId);
+    if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
+    if (!session.checkIns) session.checkIns = [];
+    if (!session.checkIns.includes(playerName)) {
+      session.checkIns.push(playerName);
+      console.log(`✅ Check-in: ${playerName} en sesión ${sessionId} (${session.checkIns.length}/2)`);
+    }
+    // Cuando ambos hicieron check-in → iniciar la fase RPS
+    if (session.checkIns.length >= 2 && session.phase === 'CHECKIN') {
+      session.phase = 'RPS';
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+      io.to(sessionId).emit('both-checked-in', { session });
+      console.log(`🚀 Ambos check-in en ${sessionId} → iniciando match`);
+      // Marcar el set como en progreso en start.gg
+      if (session.startggSetId) {
+        markSetCalled(session.startggSetId).catch(e => console.warn('⚠️ markSetCalled error:', e.message));
+      }
+    } else {
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
     }
   });
 

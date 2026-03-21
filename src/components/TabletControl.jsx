@@ -6,7 +6,7 @@ import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 // Cache invalidation for Mendoza background - v1.1 - 2024-12-12T19:20:00
 
 export default function TabletControl({ sessionId }) {
-  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
+  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, playerCheckin } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
   // Obtener tema del torneo
@@ -406,6 +406,74 @@ export default function TabletControl({ sessionId }) {
             </div>
           )}
         </div>
+
+        {/* CHECKIN Phase */}
+        {session.phase === 'CHECKIN' && (
+          <div style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            borderRadius: 24,
+            padding: '32px 24px',
+            border: '2px solid rgba(255,255,255,0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 24,
+            flex: 1,
+            justifyContent: 'center',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 52, marginBottom: 12 }}>🎮</div>
+              <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)', letterSpacing: '-0.5px' }}>¡Es tu match!</h2>
+              <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.6)', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>Tocá tu nombre para confirmar presencia</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
+              {[
+                { key: 'player1', name: session.player1?.name },
+                { key: 'player2', name: session.player2?.name },
+              ].map(({ key, name }) => {
+                const checked = (session.checkIns || []).includes(name);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => !checked && playerCheckin(sessionId, name)}
+                    disabled={checked}
+                    style={{
+                      width: '100%',
+                      padding: '18px 20px',
+                      borderRadius: 16,
+                      border: checked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.25)',
+                      background: checked ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.08)',
+                      color: checked ? '#4ADE80' : '#fff',
+                      fontSize: 18,
+                      fontWeight: 900,
+                      cursor: checked ? 'default' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 12,
+                      transition: 'all 0.2s',
+                      boxShadow: checked ? '0 0 20px rgba(34,197,94,0.3)' : '0 4px 16px rgba(0,0,0,0.3)',
+                      fontFamily: 'inherit',
+                      textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+                    }}
+                  >
+                    <span style={{ fontSize: 22 }}>{checked ? '✅' : '⏳'}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                    {checked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', opacity: 0.8, marginLeft: 'auto' }}>Confirmado</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {(session.checkIns || []).length === 1 && (
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+                Esperando que el otro jugador confirme...
+              </p>
+            )}
+          </div>
+        )}
 
         {/* RPS Phase - Optimizado para móvil */}
         {session.phase === 'RPS' && (

@@ -67,6 +67,7 @@ export default function HomePage() {
   const [iosPushState, setIosPushState] = useState(null); // null | 'loading' | 'ok' | 'error'
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [activeTournamentMatch, setActiveTournamentMatch] = useState(null);
 
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
@@ -243,6 +244,26 @@ export default function HomePage() {
     const uid = String(user?.id || user?.slug || '');
     if (!uid) { console.warn('[PUSH] No hay userId'); return; }
     registerPush(uid, user.name);
+  }, [user]);
+
+  // Polling match activo de torneo
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return;
+    const playerName = user.name || user.player?.gamerTag;
+    if (!playerName) return;
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const fetchMatch = async () => {
+      try {
+        const r = await fetch(`${socketUrl}/sessions/player?name=${encodeURIComponent(playerName)}`);
+        if (!r.ok) return;
+        const list = await r.json();
+        const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED') : null;
+        setActiveTournamentMatch(active || null);
+      } catch {}
+    };
+    fetchMatch();
+    const iv = setInterval(fetchMatch, 8000);
+    return () => clearInterval(iv);
   }, [user]);
 
   // Polling global de matchmaking (persiste entre tabs)
@@ -508,6 +529,31 @@ export default function HomePage() {
               {iosPushState === 'loading' ? '...' : iosPushState === 'error' ? '❌ Error' : 'Activar'}
             </button>
             <button onClick={() => setShowIOSPushBtn(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+          </div>
+        )}
+
+        {/* Banner match activo de torneo */}
+        {activeTournamentMatch && (
+          <div
+            onClick={() => router.push(`/tablet/${activeTournamentMatch.sessionId}`)}
+            style={{ background: activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.10)', border: `1px solid ${activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`, margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: activeTournamentMatch.phase === 'CHECKIN' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#22C55E,#16A34A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+              {activeTournamentMatch.phase === 'CHECKIN' ? '🔔' : '⚔️'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: activeTournamentMatch.phase === 'CHECKIN' ? '#F87171' : '#4ADE80' }}>
+                {activeTournamentMatch.phase === 'CHECKIN' ? '¡Hacé check-in en tu match!' : '¡Tens más match activo!'}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeTournamentMatch.player1} vs {activeTournamentMatch.player2}
+              </p>
+              {activeTournamentMatch.phase === 'CHECKIN' && (
+                <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                  Check-in: {(activeTournamentMatch.checkIns || []).length}/2 confirmados
+                </p>
+              )}
+            </div>
+            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>❯</span>
           </div>
         )}
 
