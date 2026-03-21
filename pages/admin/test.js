@@ -457,6 +457,15 @@ export default function TestAdminPage() {
     const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
     const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
 
+    // Marcar el set como "en progreso" en start.gg
+    if (startggSetId) {
+      fetch('/api/tournaments/mark-set-called', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: startggSetId }),
+      }).catch(() => {});
+    }
+
     // Pre-crear la sesión de baneos con los jugadores y datos start.gg
     try {
       await fetch(`/api/session/${sessionId}`, {
