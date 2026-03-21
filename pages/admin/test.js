@@ -385,7 +385,7 @@ export default function TestAdminPage() {
     const set = assignedSets[setupId];
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
-    const format = setupFormats[setupId] || 'BO3'; único para el ban
+    const format = setupFormats[setupId] || 'BO3';
     const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
     const banUrl = `${origin}/tablet/${sessionId}`;
