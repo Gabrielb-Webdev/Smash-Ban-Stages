@@ -432,11 +432,22 @@ export default function TestAdminPage() {
     checkedInSetups.current.delete(setupId);
     // Cancelar la sesión en el servidor WS para que los jugadores dejen de verla como activa
     const sessionId = assignedSets[setupId]?.sessionId;
+    const startggSetId = assignedSets[setupId]?.startggSetId;
     if (sessionId) {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
       fetch(`${socketUrl}/session/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(() => {});
     }
-  }
+    // Reset del set en start.gg para que vuelva a estado CREATED
+    if (startggSetId) {
+      fetch('/api/tournaments/reset-set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: startggSetId }),
+      }).catch(() => {});
+    }
+    // Liberar el setup del panel admin
+    setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+    autoReleasedSetups.current.delete(setupId);
 
   async function callMatch(setupId) {
     const set = assignedSets[setupId];
