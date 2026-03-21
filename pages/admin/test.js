@@ -584,7 +584,7 @@ export default function TestAdminPage() {
         @media(max-width:560px){.setups-grid{grid-template-columns:1fr!important}}
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
         {/* ── HEADER ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.96)', backdropFilter: 'blur(14px)', zIndex: 40, gap: 10, flexWrap: 'wrap' }}>
@@ -637,7 +637,7 @@ export default function TestAdminPage() {
         </div>
 
         {/* ── MAIN BODY: izquierda setups + derecha bracket ── */}
-        <div style={{ display: 'flex', gap: 16, padding: '16px 20px 48px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 16, padding: '16px 20px 24px', alignItems: 'stretch', flex: 1 }}>
 
           {/* ◀ COLUMNA IZQUIERDA: Setups + Info torneo */}
           <div style={{ flex: '0 0 55%', maxWidth: '55%', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -661,7 +661,7 @@ export default function TestAdminPage() {
                   onDragOver={e => onDragOver(e, setup.id)}
                   onDragLeave={onDragLeave}
                   onDrop={e => onDrop(e, setup.id)}
-                  style={{ background: '#0F0F1A', border: `1px solid ${assigned ? setup.color + '55' : 'rgba(255,255,255,0.06)'}`, borderRadius: 18, overflow: 'hidden', minHeight: 155 }}
+                  style={{ background: '#0F0F1A', border: `1px solid ${assigned ? setup.color + '55' : 'rgba(255,255,255,0.06)'}`, borderRadius: 18, overflow: 'hidden', minHeight: 200 }}
                 >
                   <div style={{ height: 3, background: `linear-gradient(90deg,${setup.color},${setup.color}55)` }} />
                   <div style={{ padding: '13px 15px' }}>
@@ -781,9 +781,9 @@ export default function TestAdminPage() {
           </div>{/* /columna izquierda */}
 
           {/* ▶ COLUMNA DERECHA: Bracket */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             {/* ── BRACKET POR RONDAS ── */}
-        <div style={{ padding: '0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '0', display: 'flex', flexDirection: 'column', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h2 style={{ fontWeight: 900, fontSize: 18, color: '#fff', marginBottom: 3 }}>🎯 Bracket{phaseName ? ` — ${phaseName}` : ''}</h2>
@@ -797,7 +797,7 @@ export default function TestAdminPage() {
             <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
           </div>
 
-          <div style={{ height: 520, overflowY: 'auto', overflowX: 'hidden', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
+          <div style={{ flex: 1, minHeight: 400, overflowY: 'auto', overflowX: 'hidden', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
             {bracketLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '40px 0' }}>
                 <div style={{ width: 22, height: 22, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
