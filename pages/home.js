@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
@@ -73,7 +73,6 @@ export default function HomePage() {
   const [showMenu, setShowMenu] = useState(false);
   const [notifs, setNotifs]       = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
-  const [notifToast, setNotifToast] = useState(null);
   const [showIOSTip, setShowIOSTip] = useState(false);
   const [showIOSPushBtn, setShowIOSPushBtn] = useState(false);
   const [iosPushState, setIosPushState] = useState(null); // null | 'loading' | 'ok' | 'error'
@@ -169,12 +168,6 @@ export default function HomePage() {
         const data = await r.json();
         if (!Array.isArray(data)) return;
         setNotifs(prev => {
-          const prevIds = new Set(prev.map(n => n.id));
-          const newUnread = data.filter(n => !prevIds.has(n.id) && !n.readAt);
-          if (newUnread.length > 0) {
-            setNotifToast(newUnread[newUnread.length - 1]);
-            setTimeout(() => setNotifToast(null), 6000);
-          }
           return data;
         });
       } catch {}
@@ -391,6 +384,17 @@ export default function HomePage() {
       });
     } catch {}
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+  };
+
+  const dismissAllNotifs = async () => {
+    try {
+      await fetch('/api/notifications/send', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: displayName, action: 'mark-all-read' }),
+      });
+    } catch {}
+    setNotifs(prev => prev.map(n => n.readAt ? n : { ...n, readAt: new Date().toISOString() }));
   };
 
   const uid        = user?.id ? String(user.id) : (user?.slug || '');
@@ -708,9 +712,9 @@ export default function HomePage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Notificaciones</h2>
                 {unreadCount > 0 && (
-                  <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '4px 10px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#EF4444' }}>{unreadCount} {unreadCount === 1 ? 'nueva' : 'nuevas'}</span>
-                  </div>
+                  <button onClick={dismissAllNotifs} style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8' }}>Marcar todas como leídas</span>
+                  </button>
                 )}
               </div>
               {notifs.length === 0 ? (
@@ -721,38 +725,21 @@ export default function HomePage() {
                 </div>
               ) : (
                 [...notifs].reverse().map(n => (
-                  <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={uName} />
+                  <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={uName}
+                    onNavigate={(route) => {
+                      setShowNotifs(false);
+                      if (route.external) { router.push(route.external); }
+                      else if (route.tab) { setTab(route.tab); if (route.friendTab) setPendingFriendTab(route.friendTab); }
+                    }}
+                  />
                 ))
               )}
             </div>
           </>
         )}
 
-        {/* â”€â”€ NOTIF TOAST â”€â”€ */}
-        {notifToast && (
-          <div style={{
-            position: 'fixed', top: 76,
-            left: 'max(16px, calc(50% - 224px))',
-            right: 'max(16px, calc(50% - 224px))',
-            zIndex: 100,
-            background: '#1c1c1c',
-            border: '1px solid rgba(232,142,0,0.35)',
-            borderRadius: 20,
-            padding: '14px 16px',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
-            display: 'flex', alignItems: 'center', gap: 12,
-            animation: 'fadeUp 0.2s ease',
-          }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(232,142,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🎮</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#fff' }}>¡Es tu turno!</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notifToast.setup} — {notifToast.sentBy}</p>
-            </div>
-            <button onClick={() => setNotifToast(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
-          </div>
-        )}
 
-        {/* â”€â”€ CONTENT â”€â”€ */}
+        {/* -- CONTENT -- */}
         <main key={tab} className="tab-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
           {/* Banner sala activa (fuera del tab match) */}
           {tab !== 'match' && bgMM && ['searching','waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
@@ -763,10 +750,9 @@ export default function HomePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                  {bgMM.status === 'searching'      ? 'Buscando rival\u2026'    :
-                   bgMM.status === 'waiting'        ? 'Esperando rival\u2026'    :
-                   bgMM.status === 'pending_accept' ? '\u00a1Match encontrado!'  :
-                   bgMM.status === 'active'         ? '\u00a1Partida en juego!'  :
+                  {bgMM.status === 'searching'       ? 'Buscando partida...'     :
+                   bgMM.status === 'waiting'          ? 'Esperando confirmación'  :
+                   bgMM.status === 'active'           ? '¡Partida en juego!'      :
                    bgMM.status === 'pending_confirm' ? 'Confirm\u00e1 el resultado' :
                                                       'Resultado en disputa'}
                 </span>
@@ -775,7 +761,7 @@ export default function HomePage() {
             </button>
           )}
           {tab === 'rankings' && <TabRankings user={user} setTab={setTab} />}
-          {tab === 'torneos'  && <TabTorneos  />}
+          {tab === 'torneos'  && <TabTorneos user={user} />}
           {tab === 'tips'     && <TabTips     />}
           {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} />}
           {tab === 'amigos'   && <TabAmigos user={user} />}
@@ -2965,7 +2951,7 @@ function TabPerfil({ user }) {
 
 
 /* â”€â”€â”€ NOTIF CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function NotifCard({ notif, onDismiss, userId, userName }) {
+function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
   const isRead = !!notif.readAt;
   const t = new Date(notif.sentAt);
   const timeStr = t.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
@@ -2977,6 +2963,12 @@ function NotifCard({ notif, onDismiss, userId, userName }) {
 
   const icon = isFriendReq ? '📩' : isPartyInvite ? '👥' : '🎮';
   const accentColor = isFriendReq ? 'rgba(99,102,241,' : isPartyInvite ? 'rgba(124,58,237,' : 'rgba(232,142,0,';
+
+  const handleClick = () => {
+    if (hasActions) return; // don't navigate if there are pending actions
+    if (!isRead) onDismiss(notif.id);
+    if (onNavigate) onNavigate(getNotifRoute(notif));
+  };
 
   const handleAction = async (action) => {
     if (acting) return;
@@ -2999,11 +2991,12 @@ function NotifCard({ notif, onDismiss, userId, userName }) {
   };
 
   return (
-    <div style={{
+    <div onClick={handleClick} style={{
       background: isRead ? '#10101A' : accentColor + '0.06)',
       border: `1px solid ${isRead ? 'rgba(255,255,255,0.05)' : accentColor + '0.22)'}`,
       borderRadius: 16, padding: '14px 16px', marginBottom: 10,
       display: 'flex', gap: 14, alignItems: 'flex-start',
+      cursor: hasActions ? 'default' : 'pointer',
     }}>
       <div style={{ width: 44, height: 44, borderRadius: 14, background: isRead ? 'rgba(255,255,255,0.04)' : accentColor + '0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
         {icon}
@@ -3035,13 +3028,7 @@ function NotifCard({ notif, onDismiss, userId, userName }) {
         )}
       </div>
       {!isRead && !hasActions && (
-        <button onClick={() => onDismiss(notif.id)} style={{
-          flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8, padding: '5px 10px', color: 'rgba(255,255,255,0.5)',
-          fontSize: 11, cursor: 'pointer', fontWeight: 600,
-        }}>
-          Leído
-        </button>
+        <div style={{ flexShrink: 0, width: 8, height: 8, borderRadius: '50%', background: '#FF8C00', marginTop: 6 }} />
       )}
     </div>
   );
@@ -3721,9 +3708,10 @@ function TabRankings({ user, setTab }) {
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB — TORNEOS
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function TabTorneos() {
+function TabTorneos({ user }) {
   const [startggTorneos, setStartggTorneos] = useState([]);
   const [startggLoading, setStartggLoading] = useState(true);
+  const [enrolledEvents, setEnrolledEvents] = useState({}); // { eventId: true/false }
 
   useEffect(() => {
     fetch('/api/tournaments/sync-startgg')
@@ -3731,6 +3719,23 @@ function TabTorneos() {
       .then(d => { setStartggTorneos(Array.isArray(d.tournaments) ? d.tournaments : []); setStartggLoading(false); })
       .catch(() => setStartggLoading(false));
   }, []);
+
+  // Check enrollment for each event
+  useEffect(() => {
+    if (!user?.slug || startggTorneos.length === 0) return;
+    const userSlug = user.slug;
+    const allEvents = startggTorneos.flatMap(t => (t.events || []).map(e => e.id));
+    allEvents.forEach(eventId => {
+      if (enrolledEvents[eventId] !== undefined) return;
+      fetch(`/api/tournaments/entrants?eventId=${eventId}`)
+        .then(r => r.json())
+        .then(d => {
+          const isEnrolled = (d.entrants || []).some(e => e.slug === userSlug);
+          setEnrolledEvents(prev => ({ ...prev, [eventId]: isEnrolled }));
+        })
+        .catch(() => {});
+    });
+  }, [user?.slug, startggTorneos]);
 
   const formatStartggDate = (iso) => {
     if (!iso) return 'Fecha por confirmar';
@@ -3773,13 +3778,28 @@ function TabTorneos() {
                     <Svg size={16} sw={2}>{ICO.chevron}</Svg>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                    {t.registrationOpen && (
+                    {t.state >= 2 && t.state < 3 ? (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>🚀 Torneo iniciado</span>
+                    ) : t.state >= 3 ? (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
+                    ) : t.registrationOpen ? (
                       <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
-                    )}
+                    ) : null}
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
                     {t.events?.map(e => (
                       <span key={e.id} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>{e.name}</span>
                     ))}
+                    {(() => {
+                      const evIds = (t.events || []).map(e => e.id);
+                      const isEnrolled = evIds.some(id => enrolledEvents[id] === true);
+                      const checked = evIds.some(id => enrolledEvents[id] !== undefined);
+                      if (!checked) return null;
+                      return isEnrolled ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#818CF8', padding: '3px 8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>🎟️ Inscrito</span>
+                      ) : t.registrationOpen ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#FBBF24', padding: '3px 8px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 8 }}>📝 Inscribite</span>
+                      ) : null;
+                    })()}
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>Ver en Start.GG →</span>

@@ -98,6 +98,10 @@ export const useWebSocket = (sessionId) => {
       setSession(data.session);
     });
 
+    socket.on('rps-conflict', (data) => {
+      console.warn('⚠️ RPS conflicto:', data.message);
+    });
+
     socket.on('player-history', (data) => {
       // Dispatched to listeners registered via getPlayerHistory
       socket._playerHistoryHandler && socket._playerHistoryHandler(data);
@@ -115,9 +119,9 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
-  const selectRPSWinner = (sessionId, winner) => {
+  const selectRPSWinner = (sessionId, winner, proposedBy) => {
     if (socket) {
-      socket.emit('select-rps-winner', { sessionId, winner });
+      socket.emit('select-rps-winner', { sessionId, winner, proposedBy });
     }
   };
 

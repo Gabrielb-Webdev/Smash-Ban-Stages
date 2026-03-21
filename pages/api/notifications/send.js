@@ -89,18 +89,32 @@ export default async function handler(req, res) {
     return res.status(200).json([]);
   }
 
-  // PATCH: Marcar notificación como leída
+  // PATCH: Marcar notificación(es) como leída(s)
   if (req.method === 'PATCH') {
-    const { id, name } = req.body || {};
+    const { id, name, action } = req.body || {};
 
-    if (!id || !name) return res.status(400).json({ error: 'id y name requeridos' });
+    if (!name) return res.status(400).json({ error: 'name requerido' });
+
+    const key = notifsKey(sanitize(name));
+
+    // Marcar todas como leídas
+    if (action === 'mark-all-read') {
+      const notifs = (await redis.get(key)) || [];
+      const now = new Date().toISOString();
+      let changed = false;
+      notifs.forEach(n => { if (!n.readAt) { n.readAt = now; changed = true; } });
+      if (changed) await redis.set(key, notifs);
+      return res.status(200).json({ success: true });
+    }
+
+    // Marcar una sola
+    if (!id) return res.status(400).json({ error: 'id requerido' });
 
     // Validar formato de ID para evitar inyección
     if (!/^n-\d+-[a-z0-9]+$/.test(String(id))) {
       return res.status(400).json({ error: 'id inválido' });
     }
 
-    const key = notifsKey(sanitize(name));
     const notifs = (await redis.get(key)) || [];
     const idx = notifs.findIndex(n => n.id === id);
     if (idx !== -1) {

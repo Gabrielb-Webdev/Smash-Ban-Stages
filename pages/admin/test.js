@@ -268,6 +268,23 @@ export default function TestAdminPage() {
     setPhaseStarted(true);
     setStartState('ok');
     setTimeout(() => setStartState(null), 5000);
+
+    // Notificar a todos los inscriptos
+    const names = entrants.map(e => e.tag || e.name).filter(Boolean);
+    if (names.length > 0) {
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserNames: names,
+          title: '🏆 Torneo iniciado',
+          body: `¡El torneo ${tournament?.name || ''} ha comenzado!`,
+          setup: 'Torneo iniciado',
+          sentBy: 'Admin',
+          data: {},
+        }),
+      }).catch(() => {});
+    }
   }
 
   function openTourPicker() {
@@ -623,7 +640,7 @@ export default function TestAdminPage() {
         <div style={{ display: 'flex', gap: 16, padding: '16px 20px 48px', alignItems: 'flex-start' }}>
 
           {/* ◀ COLUMNA IZQUIERDA: Setups + Info torneo */}
-          <div style={{ width: 560, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ flex: '0 0 55%', maxWidth: '55%', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* ── SETUPS GRID ── */}
             <div>

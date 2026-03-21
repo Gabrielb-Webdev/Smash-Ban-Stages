@@ -125,6 +125,40 @@ function getStagesForTournament(sessionId, currentGame) {
 // ── start.gg integration ─────────────────────────────────────────────────────
 const START_GG_TOKEN = process.env.START_GG_API_TOKEN || process.env.START_GG_CLIENT_SECRET;
 
+// Mapeo de character slugs internos → IDs de Start.gg para SSBU (videogame 1386)
+const STARTGG_CHARACTER_IDS = {
+  'banjo-kazooie': 1747, 'bayonetta': 1279, 'bowser': 1272, 'bowser-jr': 1283,
+  'byleth': 1749, 'captain-falcon': 1281, 'chrom': 1741, 'cloud': 1285,
+  'corrin': 1287, 'daisy': 1739, 'dark-pit': 1289, 'dark-samus': 1740,
+  'diddy-kong': 1291, 'donkey-kong': 1275, 'dr-mario': 1293, 'duck-hunt': 1295,
+  'falco': 1297, 'fox': 1299, 'ganondorf': 1301, 'greninja': 1303,
+  'hero': 1748, 'ice-climbers': 1305, 'ike': 1307, 'incineroar': 1743,
+  'inkling': 1738, 'isabelle': 1742, 'jigglypuff': 1309, 'joker': 1746,
+  'kazuya': 1753, 'ken': 1744, 'king-dedede': 1311, 'king-k-rool': 1745,
+  'kirby': 1313, 'link': 1315, 'little-mac': 1317, 'lucario': 1319,
+  'lucas': 1321, 'lucina': 1323, 'luigi': 1325, 'mario': 1273,
+  'marth': 1327, 'mega-man': 1329, 'meta-knight': 1331, 'mewtwo': 1333,
+  'mii-brawler': 1335, 'mii-gunner': 1337, 'mii-swordfighter': 1339,
+  'min-min': 1750, 'mr-game-watch': 1341, 'ness': 1343, 'olimar': 1345,
+  'pac-man': 1347, 'palutena': 1349, 'peach': 1351, 'pichu': 1353,
+  'pikachu': 1355, 'piranha-plant': 1756, 'pit': 1357,
+  'pokemon-trainer': 1359, 'pyra-mythra': 1752, 'rob': 1361, 'richter': 1736,
+  'ridley': 1737, 'robin': 1363, 'rosalina-luma': 1365, 'roy': 1367,
+  'ryu': 1369, 'samus': 1371, 'sephiroth': 1751, 'sheik': 1373,
+  'shulk': 1375, 'simon': 1735, 'snake': 1377, 'sonic': 1379,
+  'sora': 1755, 'steve': 1754, 'terry': 1758, 'toon-link': 1381,
+  'villager': 1383, 'wario': 1385, 'wii-fit-trainer': 1387, 'wolf': 1389,
+  'yoshi': 1391, 'young-link': 1393, 'zelda': 1395, 'zero-suit-samus': 1397,
+};
+
+// Mapeo de stage slugs internos → IDs de Start.gg para SSBU
+const STARTGG_STAGE_IDS = {
+  'battlefield': 317, 'small-battlefield': 467, 'final-destination': 318,
+  'pokemon-stadium-2': 316, 'smashville': 327, 'town-and-city': 336,
+  'kalos': 340, 'hollow-bastion': 468, 'northern-cave': 469,
+  'yoshi-story': 328, 'lylat': 325, 'yoshis-island': 329,
+};
+
 // Datos de start.gg pendientes de ser asociados a una sesión (llegan antes que el create-session)
 const pendingStartggData = new Map();
 
@@ -149,7 +183,26 @@ async function reportToStartGG(setId, winnerId, gameData) {
       variables: {
         setId: String(setId),
         winnerId: winnerId ? String(winnerId) : null,
-        gameData: (gameData || []).map(g => ({ gameNum: g.gameNum, winnerId: String(g.winnerId) })),
+        gameData: (gameData || []).map(g => {
+          const gd = { gameNum: g.gameNum, winnerId: String(g.winnerId) };
+          // Agregar selecciones de personajes si están disponibles
+          const selections = [];
+          if (g.p1EntrantId && g.p1CharacterId) {
+            const charId = STARTGG_CHARACTER_IDS[g.p1CharacterId];
+            if (charId) selections.push({ entrantId: String(g.p1EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
+          }
+          if (g.p2EntrantId && g.p2CharacterId) {
+            const charId = STARTGG_CHARACTER_IDS[g.p2CharacterId];
+            if (charId) selections.push({ entrantId: String(g.p2EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
+          }
+          if (selections.length > 0) gd.selections = selections;
+          // Agregar stage si está disponible
+          if (g.stageId) {
+            const stageId = STARTGG_STAGE_IDS[g.stageId];
+            if (stageId) gd.stageId = stageId;
+          }
+          return gd;
+        }),
       },
     }),
   });
@@ -351,6 +404,7 @@ io.on('connection', (socket) => {
       session.currentGame = 1;
       session.phase = 'RPS';
       session.rpsWinner = null;
+      session.rpsProposal = null;
       session.lastGameWinner = null;
       session.currentTurn = null;
       session.availableStages = [];
@@ -380,6 +434,7 @@ io.on('connection', (socket) => {
         currentGame: 1,
         phase: 'RPS', // "RPS", "STAGE_BAN", "STAGE_SELECT", "CHARACTER_SELECT", "PLAYING", "FINISHED"
         rpsWinner: null,
+        rpsProposal: null,
         lastGameWinner: null,
         currentTurn: null,
         availableStages: [],
@@ -490,10 +545,42 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Seleccionar ganador de RPS
-  socket.on('select-rps-winner', ({ sessionId, winner }) => {
+  // Seleccionar ganador de RPS (con confirmación bidireccional)
+  socket.on('select-rps-winner', ({ sessionId, winner, proposedBy }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'RPS') {
+      // Sistema de confirmación bidireccional
+      if (!session.rpsProposal) {
+        // Primera propuesta: guardar y esperar confirmación del otro jugador
+        session.rpsProposal = { winner, proposedBy };
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
+        console.log(`🤜 RPS propuesta: ${proposedBy} dice que ganó ${winner} en ${sessionId}`);
+        return;
+      }
+      
+      // Ya hay una propuesta, verificar si coincide
+      if (session.rpsProposal.winner === winner && session.rpsProposal.proposedBy !== proposedBy) {
+        // ¡Confirmado! Ambos dicen lo mismo → aplicar resultado
+        console.log(`✅ RPS confirmada: ambos coinciden en ${winner} para ${sessionId}`);
+        session.rpsProposal = null;
+      } else if (session.rpsProposal.proposedBy === proposedBy) {
+        // El mismo jugador cambió su respuesta
+        session.rpsProposal = { winner, proposedBy };
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
+        return;
+      } else {
+        // No coinciden → reiniciar propuesta (conflicto)
+        console.log(`❌ RPS conflicto: ${proposedBy} dice ${winner} pero propuesta era ${session.rpsProposal.winner}`);
+        session.rpsProposal = null;
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('rps-conflict', { message: 'No coinciden las respuestas. Volvé a seleccionar.' });
+        io.to(sessionId).emit('session-updated', { session });
+        return;
+      }
+
+      // Aplicar el resultado de RPS (solo cuando ambos confirmaron)
       session.rpsWinner = winner;
       // Ir directo a selección de personajes
       session.phase = 'CHARACTER_SELECT';
@@ -688,10 +775,18 @@ io.on('connection', (socket) => {
       
       session.lastGameWinner = winner;
 
-      // Registrar resultado de este game para start.gg
+      // Registrar resultado de este game para start.gg (con personajes y stage)
       if (!session.games) session.games = [];
       const winnerEntrantId = winner === 'player1' ? session.startggEntrant1Id : session.startggEntrant2Id;
-      session.games.push({ gameNum: session.currentGame, winnerId: winnerEntrantId });
+      session.games.push({
+        gameNum: session.currentGame,
+        winnerId: winnerEntrantId,
+        p1EntrantId: session.startggEntrant1Id,
+        p2EntrantId: session.startggEntrant2Id,
+        p1CharacterId: session.player1.character,
+        p2CharacterId: session.player2.character,
+        stageId: session.selectedStage,
+      });
       
       // Verificar si la serie terminó
       const fmt = (session.format || '').toUpperCase();
@@ -721,7 +816,15 @@ io.on('connection', (socket) => {
 
       // Reportar a start.gg si tenemos el setId
       if (session.startggSetId && winnerEntrantId) {
-        const gameData = session.games.map(g => ({ gameNum: g.gameNum, winnerId: g.winnerId }));
+        const gameData = session.games.map(g => ({
+          gameNum: g.gameNum,
+          winnerId: g.winnerId,
+          p1EntrantId: g.p1EntrantId,
+          p2EntrantId: g.p2EntrantId,
+          p1CharacterId: g.p1CharacterId,
+          p2CharacterId: g.p2CharacterId,
+          stageId: g.stageId,
+        }));
         const setWinnerId = seriesFinished ? winnerEntrantId : null;
         reportToStartGG(session.startggSetId, setWinnerId, gameData)
           .catch(e => console.error('⚠️ Error reportando a start.gg:', e.message));
@@ -757,6 +860,7 @@ io.on('connection', (socket) => {
       session.currentGame = 1;
       session.phase = 'RPS';
       session.rpsWinner = null;
+      session.rpsProposal = null;
       session.lastGameWinner = null;
       session.currentTurn = null;
       session.availableStages = [];

@@ -34,7 +34,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 export default function TabletControl({ sessionId, playerName }) {
-  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, playerCheckin } = useWebSocket(sessionId);
+  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, playerCheckin, getPlayerHistory } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
   // Obtener tema del torneo
@@ -69,6 +69,7 @@ export default function TabletControl({ sessionId, playerName }) {
   const [lastGameSaved, setLastGameSaved] = useState(0);
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
+  const [playerPickHistory, setPlayerPickHistory] = useState([]);
 
   // Guardar personajes cuando ambos han seleccionado (se ejecuta al terminar CHARACTER_SELECT)
   useEffect(() => {
@@ -92,6 +93,17 @@ export default function TabletControl({ sessionId, playerName }) {
       setLastGameSaved(session.currentGame);
     }
   }, [session?.player1?.character, session?.player2?.character, session?.currentGame, lastGameSaved]);
+
+  // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
+  useEffect(() => {
+    if (!session || session.phase !== 'CHARACTER_SELECT' || !session.currentTurn) return;
+    const playerName = session[session.currentTurn]?.name;
+    if (!playerName) return;
+    setPlayerPickHistory([]);
+    getPlayerHistory(playerName, (data) => {
+      setPlayerPickHistory(data.characters || []);
+    });
+  }, [session?.phase, session?.currentTurn]);
 
   // Detectar cuando comienza nuevo game y resetear estados
   useEffect(() => {
@@ -254,7 +266,8 @@ export default function TabletControl({ sessionId, playerName }) {
 
   const handleRPSWinner = (winner) => {
     const playerName = session[winner].name;
-    setPendingAction({ type: 'rps', winner, playerName });
+    const proposedBy = myPlayer || 'admin';
+    setPendingAction({ type: 'rps', winner, playerName, proposedBy });
   };
 
   const startCooldown = () => {
@@ -311,7 +324,7 @@ export default function TabletControl({ sessionId, playerName }) {
 
     switch (pendingAction.type) {
       case 'rps':
-        selectRPSWinner(sessionId, pendingAction.winner);
+        selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy);
         break;
       case 'ban':
         banStage(sessionId, pendingAction.stageId, pendingAction.player);
@@ -463,7 +476,7 @@ export default function TabletControl({ sessionId, playerName }) {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 52, marginBottom: 12 }}>🎮</div>
               <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)', letterSpacing: '-0.5px' }}>¡Es tu match!</h2>
-              <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.6)', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>Tocá tu nombre para confirmar presencia</p>
+              <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.6)', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>Hacé check-in para confirmar</p>
             </div>
 
             {myPlayer ? (
@@ -501,10 +514,10 @@ export default function TabletControl({ sessionId, playerName }) {
                     >
                       <span style={{ fontSize: 26 }}>{myChecked ? '✅' : '👤'}</span>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.65 }}>Soy yo</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.65 }}>Check-in</span>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myName}</span>
                       </div>
-                      {myChecked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', marginLeft: 'auto' }}>¡Confirmado!</span>}
+                      {myChecked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', marginLeft: 'auto' }}>✅ Listo</span>}
                     </button>
                     <div style={{
                       width: '100%',
@@ -588,53 +601,100 @@ export default function TabletControl({ sessionId, playerName }) {
               <div className="absolute bottom-2 sm:bottom-5 left-1/2 transform -translate-x-1/2 text-3xl sm:text-6xl">✌️</div>
             </div>
 
-            {/* Content */}
-            <div className="text-center mb-4 sm:mb-6 relative z-10">
-              <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-1 sm:mb-2">
-                <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
+            {/* Si hay propuesta pendiente y soy el otro jugador: mostrar confirmar/rechazar */}
+            {session.rpsProposal && myPlayer && session.rpsProposal.proposedBy !== myPlayer ? (
+              <div className="text-center relative z-10">
+                <div className="text-5xl mb-4">🤔</div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
+                  ¿Confirmás el resultado?
+                </h3>
+                <p className="text-base text-white/70 mb-6">
+                  {session[session.rpsProposal.proposedBy]?.name} dice que <span className="font-bold text-yellow-400">{session[session.rpsProposal.winner]?.name}</span> ganó el RPS
+                </p>
+                <div className="flex gap-4 max-w-sm mx-auto">
+                  <button
+                    onClick={() => handleRPSWinner(session.rpsProposal.winner)}
+                    className="flex-1 py-4 bg-gradient-to-br from-green-500 to-green-700 text-white font-black text-lg rounded-2xl active:scale-95 transition-all shadow-xl border-2 border-white/30 touch-manipulation"
+                  >
+                    ✅ Confirmar
+                  </button>
+                  <button
+                    onClick={() => {
+                      const otherWinner = session.rpsProposal.winner === 'player1' ? 'player2' : 'player1';
+                      handleRPSWinner(otherWinner);
+                    }}
+                    className="flex-1 py-4 bg-gradient-to-br from-red-500 to-red-700 text-white font-black text-lg rounded-2xl active:scale-95 transition-all shadow-xl border-2 border-white/30 touch-manipulation"
+                  >
+                    ❌ No, gané yo
+                  </button>
+                </div>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">
-                Piedra, Papel o Tijera
-              </h3>
-              <p className="text-base sm:text-lg text-white/80 font-semibold">
-                ¿Quién ganó el RPS? 🏆
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto relative z-10 w-full px-2 sm:px-0">
-              <button
-                onClick={() => handleRPSWinner('player1')}
-                className={useOriginalStyles ? 
-                  "group py-12 sm:py-16 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation" :
-                  "group py-12 sm:py-16 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
-                }
-                style={useOriginalStyles ? {} : {
-                  background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                <div className="relative z-10">
-                  <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 group-active:scale-110 transition-transform">🔴</div>
-                  <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player1.name}</div>
+            ) : session.rpsProposal && myPlayer && session.rpsProposal.proposedBy === myPlayer ? (
+              /* Ya propuse, esperando confirmación */
+              <div className="text-center relative z-10">
+                <div className="text-5xl mb-4 animate-pulse">⏳</div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
+                  Esperando confirmación
+                </h3>
+                <p className="text-base text-white/70 mb-4">
+                  Dijiste que <span className="font-bold text-yellow-400">{session[session.rpsProposal.winner]?.name}</span> ganó el RPS
+                </p>
+                <p className="text-sm text-white/40">
+                  Tu rival debe confirmar...
+                </p>
+              </div>
+            ) : (
+              /* Vista normal: seleccionar quién ganó */
+              <>
+                {/* Content */}
+                <div className="text-center mb-4 sm:mb-6 relative z-10">
+                  <div className="inline-block bg-gradient-to-r from-smash-yellow via-amber-400 to-smash-yellow text-transparent bg-clip-text mb-1 sm:mb-2">
+                    <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">
+                    Piedra, Papel o Tijera
+                  </h3>
+                  <p className="text-base sm:text-lg text-white/80 font-semibold">
+                    ¿Quién ganó el RPS? 🏆
+                  </p>
                 </div>
-              </button>
-              <button
-                onClick={() => handleRPSWinner('player2')}
-                className={useOriginalStyles ? 
-                  "group py-12 sm:py-16 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation" :
-                  "group py-12 sm:py-16 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
-                }
-                style={useOriginalStyles ? {} : {
-                  background: `linear-gradient(135deg, ${theme.colors.secondary}, ${theme.colors.primary})`
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                <div className="relative z-10">
-                  <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 group-active:scale-110 transition-transform">🔵</div>
-                  <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player2.name}</div>
+                
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto relative z-10 w-full px-2 sm:px-0">
+                  <button
+                    onClick={() => handleRPSWinner('player1')}
+                    className={useOriginalStyles ? 
+                      "group py-12 sm:py-16 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation" :
+                      "group py-12 sm:py-16 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
+                    }
+                    style={useOriginalStyles ? {} : {
+                      background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="relative z-10">
+                      <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 group-active:scale-110 transition-transform">🔴</div>
+                      <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player1.name}</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleRPSWinner('player2')}
+                    className={useOriginalStyles ? 
+                      "group py-12 sm:py-16 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation" :
+                      "group py-12 sm:py-16 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
+                    }
+                    style={useOriginalStyles ? {} : {
+                      background: `linear-gradient(135deg, ${theme.colors.secondary}, ${theme.colors.primary})`
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                    <div className="relative z-10">
+                      <div className="text-5xl sm:text-6xl mb-2 sm:mb-3 group-active:scale-110 transition-transform">🔵</div>
+                      <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player2.name}</div>
+                    </div>
+                  </button>
                 </div>
-              </button>
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1721,6 +1781,33 @@ export default function TabletControl({ sessionId, playerName }) {
                   </p>
                 </div>
               </div>
+              {/* Picks anteriores del jugador */}
+              {playerPickHistory.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1.5 font-semibold">Últimos jugados</p>
+                  <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    {playerPickHistory.map((charId) => {
+                      const char = CHARACTERS.find(c => c.id === charId);
+                      if (!char) return null;
+                      return (
+                        <button
+                          key={charId}
+                          onClick={() => handleSelectCharacter(charId)}
+                          title={char.name}
+                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-yellow-400/60 active:scale-95 touch-manipulation overflow-hidden"
+                        >
+                          <img
+                            src={char.image}
+                            alt={char.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <input
                 type="text"
                 placeholder="Buscar personaje..."
