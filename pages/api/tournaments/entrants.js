@@ -70,7 +70,7 @@ export default async function handler(req, res) {
           avatar: e.participants?.[0]?.user?.images?.find(i => i.type === 'profile')?.url
                || e.participants?.[0]?.user?.images?.[0]?.url
                || null,
-          slug:   e.participants?.[0]?.user?.slug || null,
+          slug:   e.participants?.[0]?.user?.slug?.replace(/^\/user\//, '').replace(/^user\//, '') || null,
         });
       }
       page++;

@@ -44,6 +44,7 @@ query TournamentBySlug($slug: String!) {
     events {
       id
       name
+      slug
       numEntrants
       videogame { id name }
     }
@@ -73,6 +74,7 @@ query UserTournaments($slug: String!, $page: Int!) {
         events {
           id
           name
+          slug
           numEntrants
           videogame { id name }
         }
@@ -97,6 +99,7 @@ function formatTournament(t) {
     events: (t.events || []).map(e => ({
       id: String(e.id),
       name: e.name,
+      slug: e.slug || null,
       entrants: e.numEntrants || 0,
       game: e.videogame?.name || 'Unknown',
     })),

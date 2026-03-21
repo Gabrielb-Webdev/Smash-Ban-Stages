@@ -3760,53 +3760,49 @@ function TabTorneos({ user }) {
       ) : startggTorneos.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {startggTorneos.map(t => (
-            <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={{
-                background: '#10101A', border: '1px solid rgba(232,142,0,0.15)',
-                borderRadius: 18, overflow: 'hidden',
-              }}>
-                {t.image && (
-                  <div style={{ height: 100, background: `url(${t.image}) center/cover no-repeat`, borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
-                )}
-                <div style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
-                    </div>
-                    <Svg size={16} sw={2}>{ICO.chevron}</Svg>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                    {t.state >= 2 && t.state < 3 ? (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>🚀 Torneo iniciado</span>
-                    ) : t.state >= 3 ? (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
-                    ) : t.registrationOpen ? (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
-                    ) : null}
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
-                    {t.events?.map(e => (
-                      <span key={e.id} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>{e.name}</span>
-                    ))}
-                    {(() => {
-                      const evIds = (t.events || []).map(e => e.id);
-                      const isEnrolled = evIds.some(id => enrolledEvents[id] === true);
-                      const checked = evIds.some(id => enrolledEvents[id] !== undefined);
-                      if (!checked) return null;
-                      return isEnrolled ? (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#818CF8', padding: '3px 8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8 }}>🎟️ Inscrito</span>
-                      ) : t.registrationOpen ? (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#FBBF24', padding: '3px 8px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 8 }}>📝 Inscribite</span>
-                      ) : null;
-                    })()}
-                  </div>
-                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>Ver en Start.GG →</span>
+            <div key={t.id} style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden' }}>
+              {t.image && (
+                <div style={{ height: 100, background: `url(${t.image}) center/cover no-repeat`, borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
+              )}
+              <div style={{ padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
                   </div>
                 </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  {t.state >= 2 && t.state < 3 ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>🚀 Torneo iniciado</span>
+                  ) : t.state >= 3 ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
+                  ) : t.registrationOpen ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
+                  ) : null}
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
+                </div>
+                {(t.events || []).map(e => {
+                  const eventUrl = e.slug ? `${t.url}/events/${e.slug}` : t.url;
+                  const registerUrl = e.slug ? `${t.url}/events/${e.slug}/register` : `${t.url}/register`;
+                  const enrolled = enrolledEvents[e.id];
+                  const checked = enrolled !== undefined;
+                  return (
+                    <div key={e.id} style={{ marginTop: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '10px 12px' }}>
+                      <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{e.name}</p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento →</a>
+                        {checked && enrolled ? (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#818CF8', padding: '6px 14px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 10 }}>🎟️ Inscrito</span>
+                        ) : t.registrationOpen ? (
+                          <a href={registerUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'linear-gradient(135deg,#E88E00,#E85000)', borderRadius: 10 }}>📝 Inscribirse</a>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </a>
+            </div>
           ))}
         </div>
       ) : (
