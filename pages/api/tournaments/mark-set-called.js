@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   const mutation = `
     mutation MarkSetCalled($setId: ID!) {
-      markSetInProgress(setId: $setId) {
+      markSetCalled(setId: $setId) {
         id
         state
       }
@@ -39,12 +39,12 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.errors) {
-      console.warn('⚠️ start.gg markSetInProgress errors:', JSON.stringify(data.errors));
+      console.warn('⚠️ start.gg markSetCalled errors:', JSON.stringify(data.errors));
       return res.status(400).json({ error: data.errors[0]?.message || 'Error de start.gg', details: data.errors });
     }
 
-    console.log(`✅ start.gg set ${setId} marcado en progreso:`, data.data?.markSetInProgress);
-    return res.status(200).json({ ok: true, set: data.data?.markSetInProgress });
+    console.log(`✅ start.gg set ${setId} marcado en progreso:`, data.data?.markSetCalled);
+    return res.status(200).json({ ok: true, set: data.data?.markSetCalled });
   } catch (e) {
     console.error('❌ Error llamando a start.gg:', e.message);
     return res.status(500).json({ error: e.message });

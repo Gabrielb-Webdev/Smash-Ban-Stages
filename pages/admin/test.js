@@ -102,6 +102,10 @@ export default function TestAdminPage() {
   // Check-in status: { [setupId]: { phase, checkIns: [], player1, player2 } }
   const [sessionStatuses, setSessionStatuses] = useState({});
 
+  // Log de reportes Start.gg: [{ time, setId, players, type }]
+  const [reportLog, setReportLog] = useState([]);
+  const prevCompletedIdsRef = useRef(new Set());
+
   // --- Persistencia localStorage ---
   useEffect(() => {
     try { localStorage.setItem('afk_assignedSets', JSON.stringify(assignedSets)); } catch {}
@@ -271,7 +275,27 @@ export default function TestAdminPage() {
     const iv = setInterval(() => {
       fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
         .then(r => r.json())
-        .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
+        .then(d => {
+          if (d.sets) {
+            setBracketSets(d.sets);
+            setPhaseName(d.phaseName || '');
+            if (d.phaseGroupState >= 2) setPhaseStarted(true);
+            // Detectar sets recién completados para el log
+            d.sets.forEach(s => {
+              if (s.stateLabel === 'COMPLETED' && !prevCompletedIdsRef.current.has(s.id)) {
+                const names = (s.slots || []).map(sl => sl?.entrant?.name).filter(Boolean);
+                setReportLog(prev => [{
+                  time: new Date(),
+                  setId: s.id,
+                  players: names.join(' vs '),
+                  round: s.fullRoundText || '',
+                  score: names.map((n, i) => `${n} ${s.slots?.[i]?.standing?.stats?.score?.value ?? ''}`).join(' · '),
+                }, ...prev].slice(0, 20));
+              }
+            });
+            prevCompletedIdsRef.current = new Set(d.sets.filter(s => s.stateLabel === 'COMPLETED').map(s => s.id));
+          }
+        })
         .catch(() => {});
     }, 10000);
     return () => clearInterval(iv);
@@ -494,6 +518,16 @@ export default function TestAdminPage() {
         body: JSON.stringify({ setId: startggSetId }),
       }).catch(() => {});
     }
+
+    // Log local: match llamado
+    setReportLog(prev => [{
+      time: new Date(),
+      setId: startggSetId,
+      players: players.join(' vs '),
+      round: set.fullRoundText || '',
+      score: '— llamado',
+      called: true,
+    }, ...prev].slice(0, 20));
 
     // Pre-crear la sesión de baneos con los jugadores y datos start.gg
     try {
@@ -992,6 +1026,35 @@ export default function TestAdminPage() {
               />
             )}
           </div>{/* bracket content */}
+
+          {/* ── LOG DE REPORTES START.GG ── */}
+          {reportLog.length > 0 && (
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '12px 16px', marginTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Actividad Start.gg
+                </h3>
+                <button onClick={() => setReportLog([])} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 11, padding: 0, fontFamily: "'Outfit', sans-serif" }}>
+                  limpiar
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {reportLog.map((entry, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 12 }}>
+                    <span style={{ color: entry.called ? '#FBBF24' : '#22C55E', flexShrink: 0 }}>
+                      {entry.called ? '📢' : '✅'}
+                    </span>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{entry.players}</span>
+                    {entry.round && <span style={{ color: 'rgba(255,255,255,0.35)', marginLeft: 2 }}>{entry.round}</span>}
+                    {entry.score && !entry.called && <span style={{ color: '#22C55E', marginLeft: 4, fontWeight: 700 }}>{entry.score}</span>}
+                    <span style={{ color: 'rgba(255,255,255,0.18)', marginLeft: 'auto', fontSize: 10, flexShrink: 0 }}>
+                      {entry.time?.toLocaleTimeString?.() || ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>{/* bracket outer */}
           </div>{/* /columna derecha */}
         </div>{/* /main body */}

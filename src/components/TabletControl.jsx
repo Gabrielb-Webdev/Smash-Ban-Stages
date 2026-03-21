@@ -1851,6 +1851,12 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                       : `Turno: ${session[session.currentTurn]?.name} | Stage: ${getStageData(session.selectedStage)?.name}`}
                   </p>
                 </div>
+                <button
+                  onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
+                  className="flex-shrink-0 ml-2 px-2 py-1 rounded-lg bg-white/10 border border-white/20 text-white text-xs active:scale-95 touch-manipulation"
+                >
+                  🏠 Home
+                </button>
               </div>
               {/* Picks anteriores del jugador */}
               {playerPickHistory.length > 0 && (

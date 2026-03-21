@@ -151,12 +151,11 @@ const STARTGG_CHARACTER_IDS = {
   'yoshi': 1391, 'young-link': 1393, 'zelda': 1395, 'zero-suit-samus': 1397,
 };
 
-// Mapeo de stage slugs internos → IDs de Start.gg para SSBU
+// Mapeo de stage slugs internos → IDs de Start.gg para SSBU (solo stages validados)
 const STARTGG_STAGE_IDS = {
   'battlefield': 317, 'small-battlefield': 467, 'final-destination': 318,
   'pokemon-stadium-2': 316, 'smashville': 327, 'town-and-city': 336,
-  'kalos': 340, 'hollow-bastion': 468, 'northern-cave': 469,
-  'yoshi-story': 328, 'lylat': 325, 'yoshis-island': 329,
+  'kalos': 340, 'hollow-bastion': 468,
 };
 
 // Datos de start.gg pendientes de ser asociados a una sesión (llegan antes que el create-session)
@@ -170,11 +169,11 @@ async function reportToStartGG(setId, winnerId, gameData) {
     const selections = [];
     if (g.p1EntrantId && g.p1CharacterId) {
       const charId = STARTGG_CHARACTER_IDS[g.p1CharacterId];
-      if (charId) selections.push({ entrantId: String(g.p1EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
+      if (charId) selections.push({ entrantId: String(g.p1EntrantId), characterId: charId });
     }
     if (g.p2EntrantId && g.p2CharacterId) {
       const charId = STARTGG_CHARACTER_IDS[g.p2CharacterId];
-      if (charId) selections.push({ entrantId: String(g.p2EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
+      if (charId) selections.push({ entrantId: String(g.p2EntrantId), characterId: charId });
     }
     if (selections.length > 0) gd.selections = selections;
     if (g.stageId) {
@@ -195,24 +194,17 @@ async function reportToStartGG(setId, winnerId, gameData) {
 }
 
 async function markSetCalled(setId) {
-  if (!START_GG_TOKEN) return;
-  const mutation = `
-    mutation MarkSetCalled($setId: ID!) {
-      markSetInProgress(setId: $setId) {
-        id
-        state
-      }
-    }
-  `;
+  // Delegamos a Vercel (que tiene el token) igual que reportToStartGG
+  const vercelUrl = process.env.NEXTJS_URL || 'https://smash-ban-stages.vercel.app';
   try {
-    const res = await fetch('https://api.start.gg/gql/alpha', {
+    const res = await fetch(`${vercelUrl}/api/tournaments/mark-set-called`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${START_GG_TOKEN}` },
-      body: JSON.stringify({ query: mutation, variables: { setId: String(setId) } }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setId: String(setId) }),
     });
     const data = await res.json();
-    if (data.errors) console.warn('⚠️ start.gg markSetCalled errors:', JSON.stringify(data.errors));
-    else console.log(`✅ start.gg set ${setId} marcado en progreso:`, data.data?.markSetInProgress);
+    if (data.ok) console.log(`✅ start.gg set ${setId} marcado como llamado`);
+    else console.warn('⚠️ markSetCalled error:', data.error);
   } catch (e) {
     console.warn('⚠️ Error en markSetCalled:', e.message);
   }
