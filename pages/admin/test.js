@@ -229,14 +229,21 @@ export default function TestAdminPage() {
         if (curGames.length > 0 && curGames.length > prevCount) {
           prevGamesRef.current[setupId] = curGames.length;
           const aSet = assignedSets[setupId];
-          if (aSet?.startggSetId && aSet?.startggEntrant1Id && aSet?.startggEntrant2Id) {
-            const p1Name   = st.player1 || aSet.slots?.[0]?.entrant?.name || '';
-            const gameData = curGames.map(g => ({
-              gameNum:  g.gameNum,
-              winnerId: g.winnerName === p1Name
-                ? String(aSet.startggEntrant1Id)
-                : String(aSet.startggEntrant2Id),
-            })).filter(g => g.winnerId && g.winnerId !== 'null');
+          if (aSet?.startggSetId) {
+            // Usar los entrant IDs que el servidor ya guardó en cada game (fuente primaria)
+            // Si faltan, fallback al bracket del admin (fuente secundaria)
+            const fallback1 = String(aSet.startggEntrant1Id || '');
+            const fallback2 = String(aSet.startggEntrant2Id || '');
+            const p1Name    = st.player1 || aSet.slots?.[0]?.entrant?.name || '';
+            const gameData  = curGames.map(g => {
+              // 1) ID directo del servidor
+              let wid = g.winnerEntrantId ? String(g.winnerEntrantId) : null;
+              // 2) Fallback: comparar nombre
+              if (!wid || wid === 'null') {
+                wid = (g.winnerName && g.winnerName === p1Name) ? fallback1 : fallback2;
+              }
+              return { gameNum: g.gameNum, winnerId: wid };
+            }).filter(g => g.winnerId && g.winnerId !== 'null' && g.winnerId !== 'undefined');
             if (gameData.length > 0) {
               console.log(`[start.gg] mid-series game ${curGames.length} → setId=${aSet.startggSetId} (debería ir a ACTIVE)`);
               fetch('/api/tournaments/report-set', {

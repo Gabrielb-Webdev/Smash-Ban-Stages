@@ -324,10 +324,13 @@ const httpServer = createServer((req, res) => {
         currentGame: session.currentGame || 1,
         format: session.format || 'BO3',
         games: (session.games || []).map(g => ({
-          gameNum: g.gameNum,
-          winnerName: g.winnerName || null,
-          p1Name: g.p1Name || session.player1?.name,
-          p2Name: g.p2Name || session.player2?.name,
+          gameNum:        g.gameNum,
+          winnerName:     g.winnerName    || null,
+          winnerEntrantId: g.winnerId     || null,  // entrant ID del ganador
+          p1Name:         g.p1Name        || session.player1?.name,
+          p2Name:         g.p2Name        || session.player2?.name,
+          p1EntrantId:    g.p1EntrantId   || session.startggEntrant1Id || null,
+          p2EntrantId:    g.p2EntrantId   || session.startggEntrant2Id || null,
           char1: g.p1CharacterId,
           char2: g.p2CharacterId,
           stage: g.stageId,
