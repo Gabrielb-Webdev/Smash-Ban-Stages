@@ -448,6 +448,7 @@ export default function TestAdminPage() {
     // Liberar el setup del panel admin
     setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
     autoReleasedSetups.current.delete(setupId);
+  }
 
   async function callMatch(setupId) {
     const set = assignedSets[setupId];
