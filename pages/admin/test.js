@@ -113,7 +113,7 @@ export default function TestAdminPage() {
           if (r.ok) updates[setupId] = await r.json();
         } catch {}
       }
-      if (Object.keys(updates).length > 0) setSessionStatuses(prev => ({ ...prev, ...updates }));
+      setSessionStatuses(prev => ({ ...prev, ...updates }));
     };
     poll();
     const iv = setInterval(poll, 3000);

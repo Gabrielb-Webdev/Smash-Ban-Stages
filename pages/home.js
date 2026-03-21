@@ -53,11 +53,23 @@ function countryFlag(country) {
   return String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
 }
 
+function getNotifRoute(notif) {
+  const type = notif?.type || '';
+  if (type === 'friend_request') return { tab: 'amigos', friendTab: 'requests' };
+  if (type === 'friend_accepted') return { tab: 'amigos', friendTab: 'list' };
+  if (type === 'party_invite')   return { tab: 'amigos', friendTab: 'list' };
+  // call_to_play or unknown → match tab, or external url if provided
+  const url = notif?.url || '';
+  if (url && url.startsWith('/') && !url.startsWith('/home')) return { external: url };
+  return { tab: 'match' };
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tab, setTab]         = useState('rankings');
+  const [pendingFriendTab, setPendingFriendTab] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [notifs, setNotifs]       = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);

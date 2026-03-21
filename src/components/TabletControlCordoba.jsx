@@ -64,8 +64,21 @@ const GAME1_STAGES_CORDOBA = [
   { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
 ];
 
-// ─────────────────────────────────────────────────────────────
-export default function TabletControlCordoba({ sessionId }) {
+// ── Pantalla de espera de turno ──
+function WaitingTurnCard({ icon, turnPlayerName, action }) {
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', borderRadius: 24, padding: '40px 24px', border: '2px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 18, textAlign: 'center' }}>
+      <div style={{ fontSize: 56, lineHeight: 1 }}>{icon || '⏳'}</div>
+      <div>
+        <h3 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>Esperando...</h3>
+        <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}><span style={{ color: '#E8A000', fontWeight: 800 }}>{turnPlayerName}</span>{' está '}{action}</p>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+export default function TabletControlCordoba({ sessionId, playerName }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
@@ -117,6 +130,13 @@ export default function TabletControlCordoba({ sessionId }) {
       selectCharacter(sessionId, previousCharacters[player], player);
     }
   };
+
+  // Identidad del jugador en este dispositivo (null = admin / espectador)
+  const myPlayer = session && playerName
+    ? (session.player1?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player1'
+      : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
+      : null)
+    : null;
 
   if (!sessionId) {
     return (
@@ -203,6 +223,7 @@ export default function TabletControlCordoba({ sessionId }) {
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player); break;
+      case 'winner':    setGameWinner(sessionId, pendingAction.winner); break;
     }
     setPendingAction(null);
   };
@@ -298,7 +319,11 @@ export default function TabletControlCordoba({ sessionId }) {
         )}
 
         {/* ── Stage Ban Phase ── */}
-        {session.phase === 'STAGE_BAN' && (
+        {session.phase === 'STAGE_BAN' && myPlayer && session.currentTurn !== myPlayer && (
+          <WaitingTurnCard icon="❌" turnPlayerName={session[session.currentTurn]?.name}
+            action={`baneando${session.bansRemaining > 0 ? ` (${session.bansRemaining} restante${session.bansRemaining !== 1 ? 's' : ''})` : ''}`} />
+        )}
+        {session.phase === 'STAGE_BAN' && (!myPlayer || session.currentTurn === myPlayer) && (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
@@ -311,7 +336,7 @@ export default function TabletControlCordoba({ sessionId }) {
             <div className="text-center mb-2 sm:mb-3 flex-shrink-0">
               <h3 className="text-lg sm:text-xl font-bold text-white mb-1" style={{ textShadow: '3px 3px 6px rgba(0,0,0,0.9)' }}>❌ Banear Stage</h3>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-                <p className="text-white text-sm sm:text-base font-semibold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>Turno: {session[session.currentTurn]?.name}</p>
+                <p className={myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 text-sm sm:text-base font-black' : 'text-white text-sm sm:text-base font-semibold'} style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>{myPlayer && myPlayer === session.currentTurn ? '⚡ ¡Es tu turno! Baneá' : `Turno: ${session[session.currentTurn]?.name}`}</p>
                 <span className="hidden sm:inline text-white">|</span>
                 <p className="text-smash-yellow text-sm sm:text-base font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>Baneos restantes: {session.bansRemaining}</p>
               </div>
@@ -361,7 +386,10 @@ export default function TabletControlCordoba({ sessionId }) {
         )}
 
         {/* ── Stage Select Phase ── */}
-        {session.phase === 'STAGE_SELECT' && (
+        {session.phase === 'STAGE_SELECT' && myPlayer && session.currentTurn !== myPlayer && (
+          <WaitingTurnCard icon="🎯" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo el escenario" />
+        )}
+        {session.phase === 'STAGE_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
           <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
@@ -373,7 +401,7 @@ export default function TabletControlCordoba({ sessionId }) {
             )}
             <div className="text-center mb-1.5 sm:mb-2 flex-shrink-0">
               <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">🎯 Seleccionar Stage</h3>
-              <p className="text-white text-sm sm:text-lg font-semibold truncate">Turno: {session[session.currentTurn]?.name}</p>
+              <p className={`text-sm sm:text-lg font-semibold truncate ${myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 font-black' : 'text-white'}`}>{myPlayer && myPlayer === session.currentTurn ? '⚡ ¡Elegí el escenario!' : `Turno: ${session[session.currentTurn]?.name}`}</p>
             </div>
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
@@ -420,14 +448,17 @@ export default function TabletControlCordoba({ sessionId }) {
         )}
 
         {/* ── Character Select Phase ── */}
-        {session.phase === 'CHARACTER_SELECT' && (
+        {session.phase === 'CHARACTER_SELECT' && myPlayer && session.currentTurn !== myPlayer && (
+          <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
+        )}
+        {session.phase === 'CHARACTER_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
           <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
             <div className="flex-shrink-0 mb-2 sm:mb-3">
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
                   <h3 className="text-lg sm:text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
-                  <p className="text-white text-xs sm:text-base font-semibold truncate">
-                    Turno: {session[session.currentTurn]?.name} | Stage: {getStageData(session.selectedStage)?.name}
+                  <p className={`text-xs sm:text-base font-semibold truncate ${myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 font-black' : 'text-white'}`}>
+                    {myPlayer && myPlayer === session.currentTurn ? `⚡ ¡Elegí tu personaje! | Stage: ${getStageData(session.selectedStage)?.name}` : `Turno: ${session[session.currentTurn]?.name} | Stage: ${getStageData(session.selectedStage)?.name}`}
                   </p>
                 </div>
               </div>
@@ -506,9 +537,17 @@ export default function TabletControlCordoba({ sessionId }) {
                 </div>
               </div>
             </div>
-            <div className="mt-3 text-center">
-              <div className="inline-block bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
-                <p className="text-white/90 text-sm font-semibold">💡 El administrador marcará al ganador desde el panel</p>
+            <div className="mt-3">
+              <p className="text-white text-center font-bold text-sm mb-2" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
+                🏆 ¿Quién ganó el Game {session.currentGame}?
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setPendingAction({ type: 'winner', winner: 'player1', winnerName: session.player1.name })} className="py-4 rounded-xl border-2 border-red-400/50 font-black text-sm sm:text-base active:scale-95 touch-manipulation transition-all" style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.3), rgba(239,68,68,0.2))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  🔴 {session.player1.name}
+                </button>
+                <button onClick={() => setPendingAction({ type: 'winner', winner: 'player2', winnerName: session.player2.name })} className="py-4 rounded-xl border-2 border-blue-400/50 font-black text-sm sm:text-base active:scale-95 touch-manipulation transition-all" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.3), rgba(59,130,246,0.2))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  🔵 {session.player2.name}
+                </button>
               </div>
             </div>
           </div>
@@ -535,7 +574,7 @@ export default function TabletControlCordoba({ sessionId }) {
         )}
 
         {/* ── Modal: Repetir personaje - Player 1 ── */}
-        {showRepeatModal.player1 && previousCharacters.player1 && (
+        {showRepeatModal.player1 && previousCharacters.player1 && (!myPlayer || myPlayer === 'player1') && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-red/90 to-red-700/90 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full">
               <div className="text-center mb-6">
@@ -557,7 +596,7 @@ export default function TabletControlCordoba({ sessionId }) {
         )}
 
         {/* ── Modal: Repetir personaje - Player 2 ── */}
-        {showRepeatModal.player2 && previousCharacters.player2 && (
+        {showRepeatModal.player2 && previousCharacters.player2 && (!myPlayer || myPlayer === 'player2') && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-blue/90 to-blue-700/90 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full">
               <div className="text-center mb-6">
@@ -594,6 +633,7 @@ export default function TabletControlCordoba({ sessionId }) {
                       {pendingAction.type === 'ban' && '❌'}
                       {pendingAction.type === 'select' && '🎯'}
                       {pendingAction.type === 'character' && '👤'}
+                      {pendingAction.type === 'winner' && '🏆'}
                     </div>
                   )}
                 </div>
@@ -603,6 +643,7 @@ export default function TabletControlCordoba({ sessionId }) {
                   {pendingAction.type === 'ban' && <p className="text-white text-base">Banear <span className="text-red-400 font-bold">{pendingAction.stageName}</span></p>}
                   {pendingAction.type === 'select' && <p className="text-white text-base">Seleccionar <span className="text-green-400 font-bold">{pendingAction.stageName}</span></p>}
                   {pendingAction.type === 'character' && <p className="text-white text-base">Seleccionar <span className="text-smash-blue font-bold">{pendingAction.characterName}</span></p>}
+                  {pendingAction.type === 'winner' && <p className="text-white text-base"><span className="text-smash-yellow font-bold">{pendingAction.winnerName}</span> ganó el Game {session.currentGame}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
