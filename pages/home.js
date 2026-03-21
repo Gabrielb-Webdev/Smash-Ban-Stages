@@ -445,7 +445,7 @@ export default function HomePage() {
         `}</style>
       </Head>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', background: '#0B0B12', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', background: '#0B0B12', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
 
         {/* â”€â”€ TOP BAR â”€â”€ */}
         <header id="app-top-header" style={{
@@ -4225,12 +4225,14 @@ function TabTips() {
     : CHARS;
 
   return (
-    <div style={{ padding: '24px 18px' }}>
-      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Tips</h1>
-      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí un personaje · {CHARS.length} disponibles</p>
+    <div style={{ padding: '0 18px 24px' }}>
+      {/* Sticky header: título + buscador */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0B0B12', padding: '24px 0 12px' }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Tips</h1>
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí un personaje · {CHARS.length} disponibles</p>
 
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 16 }}>
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}>
             <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -4250,7 +4252,8 @@ function TabTips() {
         {query && (
           <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
         )}
-      </div>
+        </div>
+      </div>{/* /sticky header */}
 
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
