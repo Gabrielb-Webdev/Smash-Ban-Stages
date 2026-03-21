@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TabletControl from '../../src/components/TabletControl';
 import TabletControlAfk from '../../src/components/TabletControlAfk';
 import TabletControlCordoba from '../../src/components/TabletControlCordoba';
@@ -7,7 +7,7 @@ import TabletControlMendoza from '../../src/components/TabletControlMendoza';
 
 export default function Tablet() {
   const router = useRouter();
-  const { sessionId, p } = router.query;
+  const { sessionId } = router.query;
 
   // Leer el nombre del jugador logueado en este dispositivo (del localStorage)
   const [playerName] = useState(() => {
@@ -16,8 +16,14 @@ export default function Tablet() {
   });
 
   // ?p=player1 o ?p=player2 en la URL identifica al jugador directamente (sin necesitar login)
-  // Esto resuelve el problema de iOS donde el localStorage puede no estar disponible
-  const playerIndex = (p === 'player1' || p === 'player2') ? p : null;
+  // Se lee con useEffect para evitar problemas de hidratación en Next.js (router.query está vacío
+  // en el primer render en páginas dinámicas)
+  const [playerIndex, setPlayerIndex] = useState(null);
+  useEffect(() => {
+    if (!router.isReady) return;
+    const p = router.query.p;
+    if (p === 'player1' || p === 'player2') setPlayerIndex(p);
+  }, [router.isReady, router.query.p]);
 
   const s = (sessionId || '').toLowerCase();
   const props = { sessionId, playerName, playerIndex };

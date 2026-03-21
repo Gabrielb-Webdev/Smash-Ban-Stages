@@ -3708,6 +3708,22 @@ function TabRankings({ user, setTab }) {
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TAB — TORNEOS
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+// Componente contador de tiempo transcurrido (para torneos iniciados)
+function ElapsedTimer({ startAt }) {
+  const [elapsed, setElapsed] = useState(() => Math.max(0, Math.floor((Date.now() - new Date(startAt).getTime()) / 1000)));
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - new Date(startAt).getTime()) / 1000)));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [startAt]);
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  if (h > 0) return <>{h}h {String(m).padStart(2,'0')}m</>;
+  return <>{m}m {String(s).padStart(2,'0')}s</>;
+}
+
 function TabTorneos({ user }) {
   const [startggTorneos, setStartggTorneos] = useState([]);
   const [startggLoading, setStartggLoading] = useState(true);
@@ -3773,13 +3789,25 @@ function TabTorneos({ user }) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                  {(t.state === 2 || t.state === 'ACTIVE') ? (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>🚀 Torneo iniciado</span>
-                  ) : (t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED') ? (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
-                  ) : t.registrationOpen ? (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
-                  ) : null}
+                  {(() => {
+                    const isActive = t.state === 2 || t.state === 'ACTIVE';
+                    // Si la fecha de inicio ya pasó aunque el state sea CREATED (1), lo mostramos como iniciado
+                    const startedByTime = t.startAt && new Date(t.startAt) <= new Date();
+                    const isStarted = isActive || startedByTime;
+                    const isFinished = t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED';
+                    if (isFinished) return (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
+                    );
+                    if (isStarted) return (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>
+                        🚀 En curso{t.startAt ? <> · <ElapsedTimer startAt={t.startAt} /></> : ''}
+                      </span>
+                    );
+                    if (t.registrationOpen) return (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
+                    );
+                    return null;
+                  })()}
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
                 </div>
                 {(t.events || []).map(e => {

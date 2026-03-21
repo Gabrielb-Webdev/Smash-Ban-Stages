@@ -71,6 +71,16 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   const [isActionBlocked, setIsActionBlocked] = useState(false);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
 
+  // Identidad manual: guardada en sessionStorage para persistir en la pestaña sin login
+  const [manualIdentity, setManualIdentity] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try { return sessionStorage.getItem(`tablet_identity_${sessionId}`) || null; } catch { return null; }
+  });
+  const chooseIdentity = (p) => {
+    try { sessionStorage.setItem(`tablet_identity_${sessionId}`, p); } catch {}
+    setManualIdentity(p);
+  };
+
   // Guardar personajes cuando ambos han seleccionado (se ejecuta al terminar CHARACTER_SELECT)
   useEffect(() => {
     if (!session) return;
@@ -173,12 +183,14 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   };
 
   // Identidad del jugador en este dispositivo (null = admin / espectador)
-  // playerIndex (prop con ?p=player1/player2 en la URL) tiene prioridad sobre detección por nombre
-  const myPlayer = playerIndex || (session && playerName
+  // Prioridad: URL param (?p=) → sessionStorage (elección manual) → nombre de login
+  // 'spectator' en sessionStorage = sin restricciones (admin mode)
+  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
     ? (session.player1?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player1'
       : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
       : null)
     : null);
+  const myPlayer = (_rawIdentity === 'spectator') ? null : _rawIdentity;
 
   // Guard para evitar renders mientras sessionId no está disponible
   if (!sessionId) {
@@ -376,6 +388,49 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   const filteredCharacters = CHARACTERS.filter(char =>
     char.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Pantalla de identificación: si la sesión cargó, hay dos jugadores, y este dispositivo no está identificado
+  // Se muestra antes de cualquier otra cosa para forzar que cada jugador sepa quién es
+  if (session && session.player1?.name && session.player2?.name && !myPlayer) {
+    const bgStyle = {
+      background: theme.customBackground
+        ? `url(${theme.customBackground}) center center / cover no-repeat fixed, #1a1a2e`
+        : useOriginalStyles
+        ? 'url(/images/paperbg.jpg) center center / cover no-repeat fixed'
+        : `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+      fontFamily: 'Anton, sans-serif',
+      minHeight: '100dvh',
+    };
+    return (
+      <div style={{ ...bgStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', borderRadius: 24, padding: 32, maxWidth: 360, width: '100%', border: '1px solid rgba(255,255,255,0.15)', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🎮</div>
+          <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 900, margin: '0 0 6px', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>¿Quién sos?</h2>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: '0 0 28px' }}>Elegí tu jugador para controlar tus acciones</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <button
+              onClick={() => chooseIdentity('player1')}
+              style={{ padding: '18px 24px', borderRadius: 16, border: '2px solid rgba(239,68,68,0.5)', background: 'linear-gradient(135deg,rgba(220,38,38,0.25),rgba(239,68,68,0.15))', color: '#fff', fontSize: 17, fontWeight: 900, cursor: 'pointer', fontFamily: 'Anton, sans-serif', textShadow: '1px 1px 4px rgba(0,0,0,0.8)', transition: 'all 0.15s', letterSpacing: '0.02em' }}
+            >
+              🔴 {session.player1.name}
+            </button>
+            <button
+              onClick={() => chooseIdentity('player2')}
+              style={{ padding: '18px 24px', borderRadius: 16, border: '2px solid rgba(59,130,246,0.5)', background: 'linear-gradient(135deg,rgba(37,99,235,0.25),rgba(59,130,246,0.15))', color: '#fff', fontSize: 17, fontWeight: 900, cursor: 'pointer', fontFamily: 'Anton, sans-serif', textShadow: '1px 1px 4px rgba(0,0,0,0.8)', transition: 'all 0.15s', letterSpacing: '0.02em' }}
+            >
+              🔵 {session.player2.name}
+            </button>
+            <button
+              onClick={() => chooseIdentity('spectator')}
+              style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              👁️ Entrar como espectador / admin
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-3 md:p-4 overflow-hidden"
