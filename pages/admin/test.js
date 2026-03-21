@@ -267,6 +267,14 @@ export default function TestAdminPage() {
       .then(r => r.json())
       .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
       .finally(() => setBracketLoading(false));
+    // Polling automático del bracket cada 10 segundos
+    const iv = setInterval(() => {
+      fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+        .then(r => r.json())
+        .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
+        .catch(() => {});
+    }, 10000);
+    return () => clearInterval(iv);
   }, [checking, selectedPhaseGroupId]);
 
   useEffect(() => {
@@ -448,6 +456,15 @@ export default function TestAdminPage() {
     // Liberar el setup del panel admin
     setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
     autoReleasedSetups.current.delete(setupId);
+    // Refrescar el bracket para reflejar el cambio
+    if (selectedPhaseGroupId) {
+      setTimeout(() => {
+        fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+          .then(r => r.json())
+          .then(d => { if (d.sets) setBracketSets(d.sets); })
+          .catch(() => {});
+      }, 1500);
+    }
   }
 
   async function callMatch(setupId) {
@@ -629,7 +646,7 @@ export default function TestAdminPage() {
                   {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
                 </div>
                 <div style={{ padding: '7px 9px' }}>
-                  {set.slots.map((slot, i) => {
+                  {(set.slots || []).map((slot, i) => {
                     const isWinner = isDone && slot?.placement === 1;
                     const isLoser  = isDone && slot?.placement === 2;
                     return (
@@ -771,7 +788,7 @@ export default function TestAdminPage() {
                     {assigned ? (
                       <div style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${setup.color}20`, borderRadius: 11, padding: '9px 11px' }}>
                         <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{assigned.round}</p>
-                        {assigned.slots.map((slot, i) => {
+                        {(assigned.slots || []).map((slot, i) => {
                           const slotName = slot?.entrant?.name;
                           const status = sessionStatuses[setup.id];
                           const checked = assigned.sessionId && status
