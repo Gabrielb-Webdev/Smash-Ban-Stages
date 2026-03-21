@@ -163,53 +163,35 @@ const STARTGG_STAGE_IDS = {
 const pendingStartggData = new Map();
 
 async function reportToStartGG(setId, winnerId, gameData) {
-  if (!START_GG_TOKEN) {
-    console.warn('⚠️ START_GG_API_TOKEN no configurado, no se reportará a start.gg');
-    return;
-  }
-  const mutation = `
-    mutation ReportSet($setId: ID!, $winnerId: ID, $gameData: [BracketSetGameDataInput]) {
-      reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: false, gameData: $gameData) {
-        id
-        state
-      }
+  // Delegar al API de Next.js (Vercel) que tiene el token configurado
+  const vercelUrl = process.env.NEXTJS_URL || 'https://smash-ban-stages.vercel.app';
+  const filteredGameData = (gameData || []).filter(g => g.winnerId != null).map(g => {
+    const gd = { gameNum: g.gameNum, winnerId: String(g.winnerId) };
+    const selections = [];
+    if (g.p1EntrantId && g.p1CharacterId) {
+      const charId = STARTGG_CHARACTER_IDS[g.p1CharacterId];
+      if (charId) selections.push({ entrantId: String(g.p1EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
     }
-  `;
-  const res = await fetch('https://api.start.gg/gql/alpha', {
+    if (g.p2EntrantId && g.p2CharacterId) {
+      const charId = STARTGG_CHARACTER_IDS[g.p2CharacterId];
+      if (charId) selections.push({ entrantId: String(g.p2EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
+    }
+    if (selections.length > 0) gd.selections = selections;
+    if (g.stageId) {
+      const stageId = STARTGG_STAGE_IDS[g.stageId];
+      if (stageId) gd.stageId = stageId;
+    }
+    return gd;
+  });
+  const res = await fetch(`${vercelUrl}/api/tournaments/report-set`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${START_GG_TOKEN}` },
-    body: JSON.stringify({
-      query: mutation,
-      variables: {
-        setId: String(setId),
-        winnerId: winnerId ? String(winnerId) : null,
-        gameData: (gameData || []).filter(g => g.winnerId != null).map(g => {
-          const gd = { gameNum: g.gameNum, winnerId: String(g.winnerId) };
-          // Agregar selecciones de personajes si están disponibles
-          const selections = [];
-          if (g.p1EntrantId && g.p1CharacterId) {
-            const charId = STARTGG_CHARACTER_IDS[g.p1CharacterId];
-            if (charId) selections.push({ entrantId: String(g.p1EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
-          }
-          if (g.p2EntrantId && g.p2CharacterId) {
-            const charId = STARTGG_CHARACTER_IDS[g.p2CharacterId];
-            if (charId) selections.push({ entrantId: String(g.p2EntrantId), selectionType: 'CHARACTER', selectionValue: charId });
-          }
-          if (selections.length > 0) gd.selections = selections;
-          // Agregar stage si está disponible
-          if (g.stageId) {
-            const stageId = STARTGG_STAGE_IDS[g.stageId];
-            if (stageId) gd.stageId = stageId;
-          }
-          return gd;
-        }),
-      },
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ setId: String(setId), winnerId: winnerId ? String(winnerId) : null, gameData: filteredGameData }),
   });
   const data = await res.json();
-  if (data.errors) throw new Error(JSON.stringify(data.errors));
-  console.log(`✅ start.gg set ${setId} reportado (winner: ${winnerId || 'en curso'}):`, data.data?.reportBracketSet);
-  return data.data?.reportBracketSet;
+  if (!data.ok) throw new Error(data.error || 'Error reportando a start.gg');
+  console.log(`✅ start.gg set ${setId} reportado (winner: ${winnerId || 'en curso'}):`, data.set);
+  return data.set;
 }
 
 async function markSetCalled(setId) {

@@ -262,7 +262,7 @@ export default function HomePage() {
         const r = await fetch(`${socketUrl}/sessions/player?name=${encodeURIComponent(playerName)}`);
         if (!r.ok) return;
         const list = await r.json();
-        const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED') : null;
+        const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED' && s.phase !== 'CANCELLED') : null;
         setActiveTournamentMatch(active || null);
       } catch {}
     };

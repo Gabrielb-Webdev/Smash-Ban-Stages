@@ -45,10 +45,12 @@ export default async function handler(req, res) {
         variables: {
           setId: String(setId),
           winnerId: winnerId ? String(winnerId) : null,
-          gameData: (gameData || []).map(g => ({
-            gameNum: g.gameNum,
-            winnerId: String(g.winnerId),
-          })),
+          gameData: (gameData || []).map(g => {
+            const gd = { gameNum: g.gameNum, winnerId: String(g.winnerId) };
+            if (g.selections?.length) gd.selections = g.selections;
+            if (g.stageId != null) gd.stageId = g.stageId;
+            return gd;
+          }),
         },
       }),
     });
