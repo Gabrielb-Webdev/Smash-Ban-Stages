@@ -885,10 +885,11 @@ io.on('connection', (socket) => {
           reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
             .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
         } else {
-          // Mid-series → reportar progreso (winnerId=null)
-          // reportBracketSet con gameData transiciona CREATED→ACTIVE automáticamente
-          // y se mantiene en ACTIVE para games subsiguientes (como en el notebook)
+          // Mid-series → reportar progreso (winnerId=null) + volver a ACTIVE
+          // reportBracketSet con winnerId=null siempre deja en CALLED (amarillo)
+          // Así que después lo forzamos a ACTIVE (verde) con markSetInProgress
           reportToStartGG(session.startggSetId, null, gameData)
+            .then(() => markSetInProgress(session.startggSetId))
             .catch(e => console.error('⚠️ Error reportando mid-series a start.gg:', e.message));
         }
       }
