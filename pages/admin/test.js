@@ -113,7 +113,7 @@ export default function TestAdminPage() {
   // Matches que pidieron más tiempo: [{ ...setData, delayedAt, requestedBy }]
   const [delayedMatches, setDelayedMatches] = useState([]);
   // Jugadores bloqueados por delay: { [nombreJugador]: timestamp del bloqueo }
-  const [blockedPlayers, setBlockedPlayers] = useState({});
+  const [blockedSetIds, setBlockedSetIds] = useState({});  // { [setId]: timestamp del bloqueo }
   const DELAY_BLOCK_MS = 5 * 60 * 1000; // 5 minutos
   // Ticker para re-renderizar el countdown de matches en espera
   const [, setDelayTick] = useState(0);
@@ -302,21 +302,21 @@ export default function TestAdminPage() {
           // Agregar a la cola de espera con timer de 5 min
           if (aSet) {
             const now = Date.now();
+            // Guardar nombres explícitos como fallback si slots no tuviera entrant.name
+            const _p1 = aSet.slots?.[0]?.entrant?.name || st.player1 || '';
+            const _p2 = aSet.slots?.[1]?.entrant?.name || st.player2 || '';
             setDelayedMatches(prev => [...prev, {
               ...aSet,
               sessionId: undefined,
               delayedAt: now,
               requestedBy: (st.delayRequests || [])[0] || '?',
+              _p1,
+              _p2,
             }]);
-            // Bloquear los jugadores del match por 5 minutos
-            const p1 = aSet.slots?.[0]?.entrant?.name || st.player1;
-            const p2 = aSet.slots?.[1]?.entrant?.name || st.player2;
-            setBlockedPlayers(prev => {
-              const next = { ...prev };
-              if (p1) next[p1] = now;
-              if (p2) next[p2] = now;
-              return next;
-            });
+            // Bloquear el set por ID durante 5 minutos
+            if (aSet.id) {
+              setBlockedSetIds(prev => ({ ...prev, [aSet.id]: now }));
+            }
           }
           // Refrescar bracket para reflejar el cambio
           if (selectedPhaseGroupId) {
@@ -577,6 +577,16 @@ export default function TestAdminPage() {
 
   function onDragStart(set, e) {
     if (!tournamentStarted) { e.preventDefault(); return; }
+    // Bloquear drag si el set tiene un delay activo (5 min)
+    const bl = blockedSetIds[set.id];
+    if (bl && (Date.now() - bl) < DELAY_BLOCK_MS) {
+      e.preventDefault();
+      const secsLeft = Math.ceil((DELAY_BLOCK_MS - (Date.now() - bl)) / 1000);
+      const mins = Math.floor(secsLeft / 60);
+      const secs = String(secsLeft % 60).padStart(2, '0');
+      alert(`🔒 Este match está bloqueado por ${mins}:${secs} más. Esperá que el timer llegue a cero en la sección "⏱️ Matches en espera".`);
+      return;
+    }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -589,15 +599,14 @@ export default function TestAdminPage() {
     e.preventDefault();
     if (!draggedSet || !tournamentStarted) return;
     const fromDelayedIdx = draggedSet._fromDelayedIdx;
-    // Verificar si alguno de los jugadores del set está bloqueado (5 min)
-    const setPlayers = (draggedSet.slots || []).map(s => s?.entrant?.name).filter(Boolean);
+    // Bloquear si el set tiene un delay activo (verificado por ID del set)
     const now = Date.now();
-    const blockedPlayer = setPlayers.find(p => blockedPlayers[p] && (now - blockedPlayers[p]) < DELAY_BLOCK_MS);
-    if (blockedPlayer) {
-      const secsLeft = Math.ceil((DELAY_BLOCK_MS - (now - blockedPlayers[blockedPlayer])) / 1000);
+    const bl = blockedSetIds[draggedSet.id];
+    if (bl && (now - bl) < DELAY_BLOCK_MS && fromDelayedIdx == null) {
+      const secsLeft = Math.ceil((DELAY_BLOCK_MS - (now - bl)) / 1000);
       const mins = Math.floor(secsLeft / 60);
       const secs = String(secsLeft % 60).padStart(2, '0');
-      alert(`⚠️ ${blockedPlayer} está bloqueado por ${mins}:${secs} minutos más. Arrastrá el match desde la cola de espera cuando el timer llegue a cero.`);
+      alert(`🔒 Este match está bloqueado ${mins}:${secs} más. Esperá que el timer llegue a cero.`);
       setDraggedSet(null); setDragOverSetup(null);
       return;
     }
@@ -611,14 +620,9 @@ export default function TestAdminPage() {
     });
     if (fromDelayedIdx != null) {
       setDelayedMatches(prev => prev.filter((_, i) => i !== fromDelayedIdx));
-      // Liberar el bloqueo de estos jugadores al reasignar desde la cola de espera
-      const setPlayers2 = (cleanSet.slots || []).map(s => s?.entrant?.name).filter(Boolean);
-      if (setPlayers2.length > 0) {
-        setBlockedPlayers(prev => {
-          const next = { ...prev };
-          setPlayers2.forEach(p => delete next[p]);
-          return next;
-        });
+      // Liberar el bloqueo del set al reasignar desde la cola de espera
+      if (cleanSet.id) {
+        setBlockedSetIds(prev => { const n = { ...prev }; delete n[cleanSet.id]; return n; });
       }
     }
     setDraggedSet(null); setDragOverSetup(null);
@@ -859,15 +863,26 @@ export default function TestAdminPage() {
             const isDone  = set.stateLabel === 'COMPLETED';
             const isBye   = set.stateLabel === 'BYE';
             const aSetup  = SETUPS.find(s => assignedSets[s.id]?.id === set.id);
+            const blTs = blockedSetIds[set.id];
+            const isBlocked = blTs && (Date.now() - blTs) < DELAY_BLOCK_MS;
+            const blRemaining = isBlocked ? Math.max(0, 300 - Math.floor((Date.now() - blTs) / 1000)) : 0;
+            const blMins = Math.floor(blRemaining / 60);
+            const blSecs = String(blRemaining % 60).padStart(2, '0');
             return (
               <div
                 key={set.id}
                 className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                draggable={!isDone && !isBye}
-                onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
+                draggable={!isDone && !isBye && !isBlocked}
+                onDragStart={!isDone && !isBye && !isBlocked ? e => onDragStart(set, e) : undefined}
                 onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : 'grab' }}
+                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : isBlocked ? 'rgba(251,176,64,0.05)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isBlocked ? 'rgba(251,176,64,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye || isBlocked ? 'default' : 'grab', position: 'relative' }}
               >
+                {isBlocked && (
+                  <div style={{ position: 'absolute', top: 4, right: 6, display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(251,176,64,0.15)', border: '1px solid rgba(251,176,64,0.35)', borderRadius: 99, padding: '2px 6px', zIndex: 3 }}>
+                    <span style={{ fontSize: 9 }}>🔒</span>
+                    <span style={{ fontSize: 9, fontWeight: 900, color: '#FBB040', fontFamily: 'monospace' }}>{blMins}:{blSecs}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
                   {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
@@ -1149,29 +1164,61 @@ export default function TestAdminPage() {
                     const remaining = Math.max(0, 300 - Math.floor((Date.now() - match.delayedAt) / 1000));
                     const mins = Math.floor(remaining / 60);
                     const secs = String(remaining % 60).padStart(2, '0');
+                    const isReady = remaining === 0;
+                    // Obtener nombres de jugadores (primero de slots, fallback a _p1/_p2 guardados)
+                    const p1name = match.slots?.[0]?.entrant?.name || match._p1 || 'TBD';
+                    const p2name = match.slots?.[1]?.entrant?.name || match._p2 || 'TBD';
                     return (
                       <div
                         key={idx}
-                        draggable={tournamentStarted && remaining === 0}
-                        onDragStart={() => remaining === 0 && setDraggedSet({ ...match, _fromDelayedIdx: idx })}
-                        style={{ background: '#0F0F1A', border: `1px solid ${remaining === 0 ? 'rgba(74,222,128,0.4)' : 'rgba(251,176,64,0.3)'}`, borderRadius: 14, padding: '12px 14px', cursor: remaining === 0 && tournamentStarted ? 'grab' : 'default', transition: 'border-color 0.3s', opacity: remaining > 0 ? 0.8 : 1 }}
+                        draggable={tournamentStarted && isReady}
+                        onDragStart={() => isReady && setDraggedSet({ ...match, _fromDelayedIdx: idx })}
+                        style={{
+                          background: isReady ? 'rgba(74,222,128,0.06)' : '#0F0F1A',
+                          border: `2px solid ${isReady ? 'rgba(74,222,128,0.5)' : 'rgba(251,176,64,0.4)'}`,
+                          borderRadius: 14,
+                          padding: '12px 14px',
+                          cursor: isReady && tournamentStarted ? 'grab' : 'default',
+                          transition: 'all 0.3s',
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-                          <span style={{ fontSize: 10, fontWeight: 900, color: '#FBB040', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{match.round}</span>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: remaining === 0 ? '#4ADE80' : remaining <= 60 ? '#F87171' : '#FBB040' }}>
-                            {remaining === 0 ? '✅ Listo' : `⏱️ ${mins}:${secs}`}
+                        {/* Overlay de bloqueo mientras el timer corre */}
+                        {!isReady && (
+                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 2 }}>
+                            <span style={{ fontSize: 22 }}>🔒</span>
+                            <span style={{ fontSize: 20, fontWeight: 900, color: remaining <= 60 ? '#F87171' : '#FBB040', fontFamily: 'monospace', letterSpacing: 2 }}>{mins}:{secs}</span>
+                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: 700 }}>BLOQUEADO</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 10, fontWeight: 900, color: '#FBB040', textTransform: 'uppercase', letterSpacing: '0.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{match.round || 'Match'}</span>
+                          <span style={{ fontSize: 12, fontWeight: 900, color: isReady ? '#4ADE80' : 'rgba(255,255,255,0.25)' }}>
+                            {isReady ? '✅ Listo para jugar' : ''}
                           </span>
                         </div>
-                        {(match.slots || []).map((slot, i) => (
-                          <div key={i} style={{ fontSize: 13, color: '#D1D5DB', fontWeight: 700, padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {slot?.entrant?.name || 'TBD'}
-                          </div>
-                        ))}
-                        <p style={{ margin: '6px 0 5px', fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+                        {/* Jugadores */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#F87171', flexShrink: 0 }}>1</span>
+                          <span style={{ fontSize: 13, color: '#E5E7EB', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p1name}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <div style={{ marginLeft: 8, width: 1, height: 0 }} />
+                          <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)', fontWeight: 900, letterSpacing: '0.1em', marginLeft: 4 }}>VS</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                          <span style={{ width: 16, height: 16, borderRadius: 4, background: 'rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#60A5FA', flexShrink: 0 }}>2</span>
+                          <span style={{ fontSize: 13, color: '#E5E7EB', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p2name}</span>
+                        </div>
+                        <p style={{ margin: '0 0 6px', fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
                           Pedido por: <span style={{ color: 'rgba(251,176,64,0.7)' }}>{match.requestedBy}</span>
                         </p>
                         <button
-                          onClick={() => setDelayedMatches(prev => prev.filter((_, i) => i !== idx))}
+                          onClick={() => {
+                            setDelayedMatches(prev => prev.filter((_, i) => i !== idx));
+                            if (match.id) setBlockedSetIds(prev => { const n = { ...prev }; delete n[match.id]; return n; });
+                          }}
                           style={{ width: '100%', padding: '4px', fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}
                         >Descartar</button>
                       </div>

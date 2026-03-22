@@ -970,15 +970,73 @@ io.on('connection', (socket) => {
   });
 
   // Proponer ganador del game (requiere confirmación del otro jugador)
+  // Helper: procesar el ganador del game (lógica compartida entre game-winner y singleDeviceMode)
+  function applyGameWinner(sessionId, winner) {
+    const session = sessions.get(sessionId);
+    if (!session || session.phase !== 'PLAYING') return;
+
+    session.winnerProposal = null;
+    session[winner].score++;
+    session[winner].wonStages.push(session.selectedStage);
+    session.lastGameWinner = winner;
+
+    if (!session.games) session.games = [];
+    const winnerEntrantId = winner === 'player1' ? session.startggEntrant1Id : session.startggEntrant2Id;
+    session.games.push({
+      gameNum: session.currentGame,
+      winnerId: winnerEntrantId,
+      winnerName: session[winner].name,
+      p1Name: session.player1.name,
+      p2Name: session.player2.name,
+      p1EntrantId: session.startggEntrant1Id,
+      p2EntrantId: session.startggEntrant2Id,
+      p1CharacterId: session.player1.character,
+      p2CharacterId: session.player2.character,
+      stageId: session.selectedStage,
+    });
+
+    const fmt = (session.format || '').toUpperCase();
+    const maxScore = fmt === 'BO5' ? 3 : 2;
+    const seriesFinished = session[winner].score >= maxScore;
+
+    if (seriesFinished) {
+      session.phase = 'FINISHED';
+      io.to(sessionId).emit('series-finished', { winner, session });
+    } else {
+      session.currentGame++;
+      session.phase = 'CHARACTER_SELECT';
+      session.selectedStage = null;
+      session.bannedStages = [];
+      session.player1.character = null;
+      session.player2.character = null;
+      session.currentTurn = winner;
+    }
+
+    sessions.set(sessionId, session);
+    io.to(sessionId).emit('session-updated', { session });
+
+    console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
+    if (session.startggSetId && seriesFinished) {
+      const gameData = session.games.map(g => ({
+        gameNum: g.gameNum,
+        winnerId: g.winnerId,
+        p1EntrantId: g.p1EntrantId,
+        p2EntrantId: g.p2EntrantId,
+        p1CharacterId: g.p1CharacterId,
+        p2CharacterId: g.p2CharacterId,
+        stageId: g.stageId,
+      }));
+      reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
+        .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
+    }
+  }
+
   socket.on('propose-game-winner', ({ sessionId, winner, proposedBy }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'PLAYING') {
       // En modo 1 dispositivo: aplicar el resultado directo sin confirmación del rival
       if (session.singleDeviceMode) {
-        session.winnerProposal = null;
-        sessions.set(sessionId, session);
-        // Reutilizar el handler game-winner emitiendo internamente
-        socket.emit('game-winner', { sessionId, winner });
+        applyGameWinner(sessionId, winner);
         return;
       }
       session.winnerProposal = { winner, proposedBy: proposedBy || null };
@@ -999,78 +1057,7 @@ io.on('connection', (socket) => {
 
   // Registrar ganador del game (confirmado por el otro jugador)
   socket.on('game-winner', ({ sessionId, winner }) => {
-    const session = sessions.get(sessionId);
-    if (session && session.phase === 'PLAYING') {
-      // Limpiar propuesta pendiente
-      session.winnerProposal = null;
-      // Incrementar score
-      session[winner].score++;
-      
-      // Agregar stage a la lista de stages ganados (para DSR)
-      session[winner].wonStages.push(session.selectedStage);
-      
-      session.lastGameWinner = winner;
-
-      // Registrar resultado de este game para start.gg (con personajes y stage)
-      if (!session.games) session.games = [];
-      const winnerEntrantId = winner === 'player1' ? session.startggEntrant1Id : session.startggEntrant2Id;
-      session.games.push({
-        gameNum: session.currentGame,
-        winnerId: winnerEntrantId,
-        winnerName: session[winner].name,
-        p1Name: session.player1.name,
-        p2Name: session.player2.name,
-        p1EntrantId: session.startggEntrant1Id,
-        p2EntrantId: session.startggEntrant2Id,
-        p1CharacterId: session.player1.character,
-        p2CharacterId: session.player2.character,
-        stageId: session.selectedStage,
-      });
-      
-      // Verificar si la serie terminó
-      const fmt = (session.format || '').toUpperCase();
-      const maxScore = fmt === 'BO5' ? 3 : 2; // default BO3
-      const seriesFinished = session[winner].score >= maxScore;
-
-      if (seriesFinished) {
-        session.phase = 'FINISHED';
-        io.to(sessionId).emit('series-finished', { winner, session });
-      } else {
-        // Continuar a siguiente game
-        session.currentGame++;
-        session.phase = 'CHARACTER_SELECT';
-        session.selectedStage = null;
-        session.bannedStages = [];
-        
-        // Resetear personajes para permitir counter-pick
-        session.player1.character = null;
-        session.player2.character = null;
-        
-        // El ganador del game anterior elige personaje primero
-        session.currentTurn = winner;
-      }
-      
-      sessions.set(sessionId, session);
-      io.to(sessionId).emit('session-updated', { session });
-
-      // SOLO reportar a Start.gg cuando la serie TERMINA.
-      // Durante la serie no tocamos Start.gg para nada (el admin ya lo puso en verde).
-      // Al final enviamos todos los games de una vez con personajes, stages y winnerId.
-      console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
-      if (session.startggSetId && seriesFinished) {
-        const gameData = session.games.map(g => ({
-          gameNum: g.gameNum,
-          winnerId: g.winnerId,
-          p1EntrantId: g.p1EntrantId,
-          p2EntrantId: g.p2EntrantId,
-          p1CharacterId: g.p1CharacterId,
-          p2CharacterId: g.p2CharacterId,
-          stageId: g.stageId,
-        }));
-        reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
-          .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
-      }
-    }
+    applyGameWinner(sessionId, winner);
   });
 
   // Actualizar nombres de jugadores
