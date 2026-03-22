@@ -599,42 +599,46 @@ export default function TestAdminPage() {
     // Reiniciar contador de games para este setup
     prevGamesRef.current[setupId] = 0;
 
-    // Activar el set en Start.gg: llamar reportBracketSet con gameData=null
-    // (sin array vacío — null real). Start.gg lo trata como "match iniciado"
-    // y transiciona CREATED → ACTIVE directamente.
-    let activateOk = false;
-    let activateState = null;
+    // PASO 1: markSetCalled → CREATED → CALLED (7)
+    // PASO 2: reportBracketSet desde CALLED → ACTIVE (2)
+    let finalState = null;
     if (startggSetId) {
       try {
-        console.log(`[start.gg] activando set ${startggSetId} → reportBracketSet(gameData=null)...`);
-        const activateRes  = await fetch('/api/tournaments/report-set', {
+        // Paso 1: CREATED → CALLED
+        console.log(`[start.gg] PASO 1: markSetCalled → setId=${startggSetId}`);
+        const calledRes = await fetch('/api/tournaments/mark-set-called', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // No incluir gameData en el body → el endpoint lo recibe como undefined → pasa null a Start.gg
+          body: JSON.stringify({ setId: String(startggSetId) }),
+        });
+        const calledData = await calledRes.json();
+        console.log(`[start.gg] markSetCalled →`, calledData);
+
+        // Paso 2: CALLED → ACTIVE (reportBracketSet desde estado CALLED)
+        console.log(`[start.gg] PASO 2: reportBracketSet (desde CALLED) → setId=${startggSetId}`);
+        const activeRes = await fetch('/api/tournaments/report-set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ setId: String(startggSetId), winnerId: null }),
         });
-        const activateData = await activateRes.json();
-        activateState = activateData.stateLabel || activateData.state;
-        if (!activateRes.ok || activateData.error) {
-          console.error('[start.gg] ❌ activación falló:', activateData);
-        } else {
-          console.log(`[start.gg] ✅ activación OK → state=${activateState}`, activateData);
-          activateOk = true;
-        }
+        const activeData = await activeRes.json();
+        finalState = activeData.stateLabel || activeData.state;
+        console.log(`[start.gg] reportBracketSet → state=${finalState}`, activeData);
       } catch (e) {
-        console.error('[start.gg] ❌ activación fetch error:', e);
+        console.error('[start.gg] ❌ error en secuencia de activación:', e);
       }
     }
 
-    // Log local: match iniciado
+    const STATE_NAMES = { 1: 'CREATED', 2: 'ACTIVE ✅', 3: 'COMPLETED', 6: 'BYE', 7: 'CALLED' };
+    const stateDisplay = STATE_NAMES[finalState] || finalState || '?';
+
+    // Log local: match llamado
     setReportLog(prev => [{
       time: new Date(),
       setId: startggSetId,
       players: players.join(' vs '),
       round: set.fullRoundText || '',
-      score: activateOk
-        ? `— iniciado · start.gg=${activateState}`
-        : (startggSetId ? '— iniciado ⚠ sin activar en start.gg' : '— iniciado (sin ID)'),
+      score: startggSetId ? `— start.gg: ${stateDisplay}` : '— iniciado (sin ID)',
       called: true,
     }, ...prev].slice(0, 20));
 
