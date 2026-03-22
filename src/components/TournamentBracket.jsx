@@ -79,7 +79,7 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
               {aSetup.icon} {aSetup.label}
             </span>
           )}
-          {!isDone && !isBye && toggleLock && (
+          {!isDone && !isBye && !aSetup && toggleLock && (
             <button
               onClick={e => toggleLock(set.id, e)}
               title={isLocked ? 'Clic para desbloquear' : 'Clic para bloquear 1 minuto'}

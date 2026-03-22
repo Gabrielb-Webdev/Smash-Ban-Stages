@@ -34,7 +34,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 export default function TabletControl({ sessionId, playerName, playerIndex }) {
-  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, playerCheckin, getPlayerHistory, requestMatchDelay, enableSingleDevice } = useWebSocket(sessionId);
+  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, playerCheckin, getPlayerHistory, requestMatchDelay, playerUnavailable, enableSingleDevice } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
   // Obtener tema del torneo
@@ -702,6 +702,31 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                       }}>
                         📱 Modo 1 dispositivo activo
                       </div>
+                    )}
+
+                    {/* Botón "No estoy disponible" — solo si no lo usó antes para este match */}
+                    {!myChecked && !(session.unavailableUsedBy || []).includes(myName) && (
+                      <button
+                        onClick={() => playerUnavailable(sessionId, myName)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: 14,
+                          border: '1.5px solid rgba(239,68,68,0.4)',
+                          background: 'rgba(239,68,68,0.09)',
+                          color: '#F87171',
+                          fontSize: 14,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>🚫</span> No estoy disponible ahora
+                      </button>
                     )}
                   </div>
                 );

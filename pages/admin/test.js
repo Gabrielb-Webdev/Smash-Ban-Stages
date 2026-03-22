@@ -284,6 +284,47 @@ export default function TestAdminPage() {
             setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
           }, 5000);
         }
+
+        // Auto-liberar + auto-lock cuando un jugador usa "No disponible" (phase POSTPONED)
+        if (st.phase === 'POSTPONED' && !autoReleasedSetups.current.has(setupId)) {
+          autoReleasedSetups.current.add(setupId);
+          const aSet = assignedSets[setupId];
+          const setId = aSet?.id;
+          // Bloquear el set en el bracket
+          if (setId) {
+            setLockedSets(prev => ({ ...prev, [setId]: Date.now() + 60000 }));
+          }
+          // Reset en start.gg
+          if (aSet?.startggSetId) {
+            fetch('/api/tournaments/reset-set', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ setId: aSet.startggSetId }),
+            }).catch(() => {});
+          }
+          // Liberar timers y setup
+          setTimeout(() => {
+            const t = matchTimersRef.current[setupId];
+            if (t?.intervalId) clearInterval(t.intervalId);
+            delete matchTimersRef.current[setupId];
+            setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            const et = elapsedTimersRef.current[setupId];
+            if (et?.intervalId) clearInterval(et.intervalId);
+            delete elapsedTimersRef.current[setupId];
+            setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            checkedInSetups.current.delete(setupId);
+            setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          }, 1000);
+          // Refrescar bracket
+          if (selectedPhaseGroupId) {
+            setTimeout(() => {
+              fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+                .then(r => r.json())
+                .then(d => { if (d.sets) setBracketSets(d.sets); })
+                .catch(() => {});
+            }, 2000);
+          }
+        }
       }
       // (Mid-series reporting desactivado: el servidor reporta automáticamente
       //  al finalizar la serie con toda la data de games/personajes/stages)
@@ -973,7 +1014,8 @@ export default function TestAdminPage() {
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: i < assigned.slots.length - 1 ? 5 : 0, background: checked ? 'rgba(34,197,94,0.08)' : 'transparent', borderRadius: 6, padding: checked ? '2px 5px' : 0, transition: 'all 0.2s' }}>
                               <div style={{ width: 17, height: 17, borderRadius: 5, background: checked ? 'rgba(34,197,94,0.25)' : setup.color + '20', border: `1px solid ${checked ? 'rgba(34,197,94,0.5)' : setup.color + '33'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: checked ? '#4ADE80' : setup.color, flexShrink: 0 }}>{checked ? '✓' : i + 1}</div>
                               <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: checked ? '#4ADE80' : slotName ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slotName || 'TBD'}</span>
-                              {assigned.sessionId && status && !checked && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>⏳</span>}
+                              {status && (status.score1 != null || status.score2 != null) && <span style={{ fontSize: 12, fontWeight: 900, color: '#fff', flexShrink: 0, fontFamily: "'Outfit',sans-serif" }}>{i === 0 ? (status.score1 ?? 0) : (status.score2 ?? 0)}</span>}
+                              {assigned.sessionId && status && !checked && !(status.score1 != null || status.score2 != null) && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>⏳</span>}
                             </div>
                           );
                         })}

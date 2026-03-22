@@ -225,6 +225,10 @@ const STARTGG_STAGE_IDS = {
 // Datos de start.gg pendientes de ser asociados a una sesión (llegan antes que el create-session)
 const pendingStartggData = new Map();
 
+// Historial de "No disponible": { matchKey: Set<playerName> }
+// matchKey = nombres de jugadores ordenados, ej: "BET0|Gabriel Sin H"
+const unavailableHistory = new Map();
+
 async function reportToStartGG(setId, winnerId, gameData) {
   // Delegar al API de Next.js (Vercel) que tiene el token configurado
   const vercelUrl = process.env.NEXTJS_URL || 'https://smash-ban-stages.vercel.app';
@@ -330,6 +334,11 @@ const httpServer = createServer(async (req, res) => {
             checkIns: [],
             delayRequests: [],
             singleDeviceMode: false,
+            unavailableUsedBy: (() => {
+              const key = [player1 || 'Jugador 1', player2 || 'Jugador 2'].sort().join('|');
+              const used = unavailableHistory.get(key);
+              return used ? [...used] : [];
+            })(),
             rpsWinner: null,
             lastGameWinner: null,
             currentTurn: null,
@@ -424,6 +433,14 @@ const httpServer = createServer(async (req, res) => {
         })),
         currentTurn: session.currentTurn || null,
         delayRequests: session.delayRequests || [],
+        postponedBy: session.postponedBy || null,
+        unavailableUsedBy: (() => {
+          const p1 = session.player1?.name || '';
+          const p2 = session.player2?.name || '';
+          const key = [p1, p2].sort().join('|');
+          const used = unavailableHistory.get(key);
+          return used ? [...used] : [];
+        })(),
       }));
     } else {
       // Devolver 200 con ok:false para evitar errores en consola del navegador
@@ -681,8 +698,36 @@ io.on('connection', (socket) => {
 
   // Jugador pide más tiempo (sale del setup por 5 minutos)
 
+  // Jugador indica que no está disponible → cancela el match + bloquea en bracket
+  socket.on('player-unavailable', ({ sessionId, playerName }) => {
+    const session = sessions.get(sessionId);
+    if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
+    if (session.phase !== 'CHECKIN') { socket.emit('session-error', { message: 'Solo se puede usar en fase CHECK-IN' }); return; }
 
-  // Habilitar modo un solo dispositivo → auto check-in de ambos jugadores
+    const p1 = session.player1?.name || '';
+    const p2 = session.player2?.name || '';
+    const matchKey = [p1, p2].sort().join('|');
+    const used = unavailableHistory.get(matchKey) || new Set();
+
+    if (used.has(playerName)) {
+      socket.emit('session-error', { message: 'Ya usaste esta opción para este match' });
+      return;
+    }
+
+    // Registrar uso
+    used.add(playerName);
+    unavailableHistory.set(matchKey, used);
+
+    // Marcar sesión como postponed
+    session.phase = 'POSTPONED';
+    session.postponedBy = playerName;
+    session.unavailableUsedBy = [...used];
+    sessions.set(sessionId, session);
+
+    io.to(sessionId).emit('match-cancelled', { sessionId, postponedBy: playerName });
+    io.to(sessionId).emit('session-updated', { session });
+    console.log(`⏸️ ${playerName} no disponible en ${sessionId} (${p1} vs ${p2}) → match pospuesto`);
+  });
   socket.on('enable-single-device', ({ sessionId }) => {
     const session = sessions.get(sessionId);
     if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }

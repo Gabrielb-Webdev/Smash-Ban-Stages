@@ -227,6 +227,12 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const playerUnavailable = (sessionId, playerName) => {
+    if (socket) {
+      socket.emit('player-unavailable', { sessionId, playerName });
+    }
+  };
+
   const enableSingleDevice = (sessionId) => {
     if (socket) {
       socket.emit('enable-single-device', { sessionId });
@@ -250,6 +256,7 @@ export const useWebSocket = (sessionId) => {
     resetSession,
     playerCheckin,
     requestMatchDelay,
+    playerUnavailable,
     enableSingleDevice,
   };
 };
