@@ -250,6 +250,9 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
       });
     }, 1000);
   };
+
+  const handleBanStage = (stageId) => {
+    if (isActionBlocked) return;
     if (session.currentTurn) {
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage?.name || stageId, player: session.currentTurn });
