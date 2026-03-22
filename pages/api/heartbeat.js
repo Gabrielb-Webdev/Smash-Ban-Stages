@@ -1,6 +1,6 @@
 // POST /api/heartbeat — registra presencia online del usuario (TTL 60s)
-// También soporta GET/POST para estado manual
-import redis, { presenceKey, userStatusKey } from '../../lib/redis';
+// Al hacer POST también devuelve notificaciones (consolida round-trips)
+import redis, { presenceKey, userStatusKey, notifsKey } from '../../lib/redis';
 
 const PRESENCE_TTL = 60; // segundos
 const VALID_STATUSES = ['online', 'away', 'dnd', 'invisible'];
@@ -41,5 +41,13 @@ export default async function handler(req, res) {
     await redis.set(presenceKey(userId), currentStatus, { ex: PRESENCE_TTL });
   }
 
-  return res.status(200).json({ ok: true, status: currentStatus });
+  // Devolver también las notificaciones para evitar un fetch extra
+  const userName = String(req.body?.userName ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100).toLowerCase();
+  let notifs = [];
+  if (userName) {
+    notifs = (await redis.get(notifsKey(userName))) || [];
+    notifs = notifs.slice(-20);
+  }
+
+  return res.status(200).json({ ok: true, status: currentStatus, notifs });
 }

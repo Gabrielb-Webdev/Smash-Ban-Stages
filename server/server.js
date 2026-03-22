@@ -4,6 +4,50 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
+// ── Persistencia de sesiones en Redis (Upstash REST) ─────────────────────────
+const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const SESSION_TTL = 4 * 60 * 60; // 4 horas en segundos
+
+async function redisSessionSet(sessionId, session) {
+  if (!REDIS_URL || !REDIS_TOKEN) return;
+  try {
+    await fetch(`${REDIS_URL}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([['SET', `tournament:session:${sessionId}`, JSON.stringify(session), 'EX', String(SESSION_TTL)]]),
+    });
+  } catch (e) {
+    console.error('⚠️ Redis session save error:', e.message);
+  }
+}
+
+async function redisSessionGet(sessionId) {
+  if (!REDIS_URL || !REDIS_TOKEN) return null;
+  try {
+    const r = await fetch(`${REDIS_URL}/get/${encodeURIComponent(`tournament:session:${sessionId}`)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+    });
+    const data = await r.json();
+    if (!data.result) return null;
+    return JSON.parse(data.result);
+  } catch (e) {
+    console.error('⚠️ Redis session fetch error:', e.message);
+    return null;
+  }
+}
+
+// Wrapper del Map que persiste automáticamente en Redis en cada set()
+class PersistentSessionMap {
+  constructor() { this._map = new Map(); }
+  get(key) { return this._map.get(key); }
+  set(key, value) { this._map.set(key, value); redisSessionSet(key, value); return this; }
+  delete(key) { this._map.delete(key); return this; }
+  has(key) { return this._map.has(key); }
+  forEach(fn) { this._map.forEach(fn); }
+  get size() { return this._map.size; }
+}
+
 // ── Historial de picks por jugador (persistido en disco) ──────────────
 const HISTORY_FILE = path.join(__dirname, 'player-history.json');
 
@@ -229,7 +273,8 @@ async function markSetInProgress(setId) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-const httpServer = createServer((req, res) => {
+const httpServer = createServer(async (req, res) => {
+  try {
   // Health check endpoint para Railway y otros servicios
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -327,7 +372,11 @@ const httpServer = createServer((req, res) => {
   } else if (req.method === 'GET' && req.url.startsWith('/session/')) {
     // GET /session/:sessionId — devuelve estado de check-in de una sesión
     const sessionId = decodeURIComponent(req.url.slice('/session/'.length));
-    const session = sessions.get(sessionId);
+    let session = sessions.get(sessionId);
+    if (!session) {
+      session = await redisSessionGet(sessionId);
+      if (session) sessions._map.set(sessionId, session); // re-hidratar sin doble guardado
+    }
     if (session) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
@@ -384,9 +433,37 @@ const httpServer = createServer((req, res) => {
     } catch (e) {
       res.writeHead(500); res.end(JSON.stringify({ error: e.message }));
     }
+  } else if (req.url === '/emit-event' && req.method === 'POST') {
+    // Endpoint interno para que las API routes de Vercel envíen eventos WS a usuarios conectados
+    const expectedSecret = process.env.WS_INTERNAL_SECRET;
+    const authHeader = req.headers.authorization || '';
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      res.writeHead(401); res.end(JSON.stringify({ error: 'Unauthorized' })); return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { event, userId, data } = JSON.parse(body);
+        if (!event || !userId) { res.writeHead(400); res.end(JSON.stringify({ error: 'event y userId requeridos' })); return; }
+        const targetSocket = userSockets.get(String(userId));
+        if (targetSocket && targetSocket.connected) {
+          targetSocket.emit(event, data);
+          console.log(`📡 emit-event: ${event} → userId ${userId}`);
+        }
+        res.writeHead(200); res.end(JSON.stringify({ ok: true, delivered: !!(targetSocket && targetSocket.connected) }));
+      } catch (e) {
+        res.writeHead(400); res.end(JSON.stringify({ error: 'Body inválido' }));
+      }
+    });
+    return;
   } else {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not Found' }));
+  }
+  } catch (e) {
+    console.error('HTTP handler error:', e.message);
+    if (!res.headersSent) res.writeHead(500).end(JSON.stringify({ error: 'Internal Server Error' }));
   }
 });
 
@@ -402,8 +479,24 @@ const io = new Server(httpServer, {
   allowEIO3: true
 });
 
-// Almacenamiento en memoria de las sesiones activas
-const sessions = new Map();
+// Almacenamiento en memoria de las sesiones activas (con persistencia en Redis)
+const sessions = new PersistentSessionMap();
+
+// Mapa userId → socketId para presencia en tiempo real
+const userSockets = new Map(); // userId → socket
+
+// ── Helpers de presencia ─────────────────────────────────────────────────────
+// Notifica a todos los amigos conectados que el estado de un usuario cambió.
+// friendIds: string[] de userIds amigos (leídos desde Redis por el propio cliente al registrarse)
+async function broadcastPresence(userId, status, friendIds) {
+  if (!friendIds || friendIds.length === 0) return;
+  for (const fid of friendIds) {
+    const fSocket = userSockets.get(String(fid));
+    if (fSocket && fSocket.connected) {
+      fSocket.emit('friend-status-changed', { userId, status });
+    }
+  }
+}
 
 io.on('connection', (socket) => {
   console.log('Cliente conectado:', socket.id);
@@ -524,8 +617,16 @@ io.on('connection', (socket) => {
   });
 
   // Unirse a una sesión existente
-  socket.on('join-session', (sessionId) => {
-    const session = sessions.get(sessionId);
+  socket.on('join-session', async (sessionId) => {
+    let session = sessions.get(sessionId);
+    if (!session) {
+      // Intentar recuperar desde Redis (resiste reinicios del servidor)
+      session = await redisSessionGet(sessionId);
+      if (session) {
+        sessions._map.set(sessionId, session); // re-hidratar sin doble guardado
+        console.log('📥 Sesión recuperada desde Redis:', sessionId);
+      }
+    }
     if (session) {
       socket.join(sessionId);
       socket.emit('session-joined', { session });
@@ -973,8 +1074,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── Presencia en tiempo real ───────────────────────────────────────────────
+  // El cliente emite este evento nada más conectar (desde home.js via useWebSocket)
+  socket.on('register-presence', ({ userId, friendIds }) => {
+    if (!userId) return;
+    socket._presenceUserId = String(userId);
+    socket._presenceFriendIds = Array.isArray(friendIds) ? friendIds.map(String) : [];
+    userSockets.set(String(userId), socket);
+    console.log(`👤 Presencia registrada: ${userId} (${socket._presenceFriendIds.length} amigos)`);
+    // Notificar a amigos que este usuario está online
+    broadcastPresence(String(userId), 'online', socket._presenceFriendIds);
+  });
+
+  // El cliente puede actualizar la lista de amigos (cuando agrega/elimina uno)
+  socket.on('update-friend-list', ({ friendIds }) => {
+    if (socket._presenceUserId) {
+      socket._presenceFriendIds = Array.isArray(friendIds) ? friendIds.map(String) : [];
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
+    // Limpiar presencia y notificar offline a amigos
+    if (socket._presenceUserId) {
+      userSockets.delete(socket._presenceUserId);
+      broadcastPresence(socket._presenceUserId, 'offline', socket._presenceFriendIds || []);
+    }
   });
 });
 

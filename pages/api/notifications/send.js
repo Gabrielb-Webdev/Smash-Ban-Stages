@@ -7,7 +7,7 @@ function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`]/g, '').trim().slice(0, 200);
 }
 
-/** Guarda una notif en el inbox Redis + envía web push si hay suscripción registrada */
+/** Guarda una notif en el inbox Redis + envía web push si hay suscripción registrada + WS en tiempo real */
 async function storeAndPush(playerName, notif, pushPayload) {
   const key = notifsKey(sanitize(playerName).toLowerCase());
   const existing = (await redis.get(key)) || [];
@@ -15,10 +15,22 @@ async function storeAndPush(playerName, notif, pushPayload) {
   const sliced = existing.length > 100 ? existing.slice(-100) : existing;
   await redis.set(key, sliced);
 
-  // Intentar enviar web push (no bloquea si falla)
+  // Intentar enviar web push + WS real-time (no bloquea si falla)
   try {
     const uid = await redis.hget('push:name_to_uid', sanitize(playerName).toLowerCase());
-    if (uid) await sendPush(uid, pushPayload);
+    if (uid) {
+      await sendPush(uid, pushPayload).catch(() => {});
+      // Notificar en tiempo real si el usuario está conectado al servidor WS
+      const wsUrl = process.env.SOCKET_SERVER_URL;
+      const wsSecret = process.env.WS_INTERNAL_SECRET;
+      if (wsUrl && wsSecret) {
+        fetch(`${wsUrl}/emit-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${wsSecret}` },
+          body: JSON.stringify({ event: 'new-notification', userId: uid, data: notif }),
+        }).catch(() => {});
+      }
+    }
   } catch { /* no interrumpir */ }
 }
 

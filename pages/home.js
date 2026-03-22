@@ -5,6 +5,7 @@ import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
 import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
+import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback } from '../src/hooks/useWebSocket';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -147,36 +148,29 @@ export default function HomePage() {
   }
   useEffect(() => {
     if (!user?.id) return;
-    const ping = () => {
+    const userName = (user.name || (user.slug || '').replace(/^\/user\//, '') || '').toLowerCase();
+    const ping = async () => {
       const status = localStorage.getItem('afk_my_status') || 'online';
-      fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: String(user.id), status }) }).catch(() => {});
+      try {
+        const r = await fetch('/api/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: String(user.id), status, userName }),
+        });
+        if (r.ok) {
+          const d = await r.json();
+          // Actualizar notificaciones desde la respuesta del heartbeat
+          if (Array.isArray(d.notifs)) setNotifs(d.notifs);
+        }
+      } catch {}
     };
     ping();
     const iv = setInterval(ping, 30000);
     return () => clearInterval(iv);
   }, [user?.id]);
 
-  // Polling de notificaciones
-  useEffect(() => {
-    if (!user) return;
-    const name = user.name || (user.slug || '').replace(/^user\//, '') || 'Usuario';
-
-    const fetchNotifs = async () => {
-      try {
-        const r = await fetch(`/api/notifications/inbox?name=${encodeURIComponent(name)}`);
-        if (!r.ok) return;
-        const data = await r.json();
-        if (!Array.isArray(data)) return;
-        setNotifs(prev => {
-          return data;
-        });
-      } catch {}
-    };
-
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 15000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Polling de notificaciones — eliminado, ahora vienen en el heartbeat
+  // y en tiempo real vía WebSocket (new-notification)
 
   // Registrar Service Worker y suscribirse a Web Push
   const registerPush = async (uid, userName) => {
@@ -1372,17 +1366,34 @@ function TabAmigos({ user }) {
     fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []).then(h => setHistory(Array.isArray(h) ? h : []));
   }, [uid]);
 
-  // Polling friends/requests/sent (12s)
+  // Registrar presencia WS y callbacks de tiempo real una vez que tengamos amigos + userId
   useEffect(() => {
     if (!uid) return;
-    const uidEnc = encodeURIComponent(uid);
-    const poll = setInterval(() => {
-      fetch('/api/friends?userId=' + uidEnc).then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setFriends(d); }).catch(() => {});
-      fetch('/api/friends?userId=' + uidEnc + '&type=requests').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setFriendRequests(d); }).catch(() => {});
-      fetch('/api/friends?userId=' + uidEnc + '&type=sent').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSentRequests(d); }).catch(() => {});
-    }, 8000);
-    return () => clearInterval(poll);
+    // Callback: cuando un amigo cambia de estado → actualizar solo ese amigo en la lista
+    setPresenceCallback(({ userId, status }) => {
+      setFriends(prev => prev.map(f =>
+        String(f.userId) === String(userId) ? { ...f, onlineStatus: status } : f
+      ));
+    });
+    // Callback: notificación en tiempo real
+    setNotificationCallback((notif) => {
+      setNotifs(prev => {
+        const exists = prev.some(n => n.id === notif.id);
+        return exists ? prev : [notif, ...prev].slice(0, 20);
+      });
+    });
   }, [uid]);
+
+  // Registrar presencia cuando la lista de amigos cargue
+  useEffect(() => {
+    if (!uid || friends.length === 0) return;
+    const friendIds = friends.map(f => String(f.userId)).filter(Boolean);
+    registerPresence(uid, friendIds);
+  }, [uid, friends.length]);
+
+  // Refrescar solicitudes pendientes cuando estemos en la tab de amigos (sin polling)
+  // El polling agresivo de 8s se reemplaza por un refresh manual al abrir la tab
+  // + Los cambios de estado de presencia llegan en tiempo real por WS
 
   // Load my current status
   useEffect(() => {
@@ -1432,16 +1443,16 @@ function TabAmigos({ user }) {
       const r = await fetch('/api/friends', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, friendId, friendName }) });
       const data = await r.json();
       if (r.ok) {
-        if (data.autoAccepted) { setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]); setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId)); setSentRequests(prev => prev.filter(s => s.toId !== friendId)); }
+        if (data.autoAccepted) { setFriends(prev => [...prev, { userId: friendId, userName: friendName, online: 'offline' }]); setFriendRequests(prev => prev.filter(rq => rq.fromId !== friendId)); setSentRequests(prev => prev.filter(s => s.toId !== friendId)); updateFriendList([...friends.map(f => String(f.userId)), String(friendId)]); }
         else if (data.requestSent) { setSentRequests(prev => [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]); }
         setFriendSearch(''); setFriendResults([]);
       } else if (r.status === 409) { setSentRequests(prev => prev.some(s => s.toId === friendId) ? prev : [...prev, { toId: friendId, toName: friendName, sentAt: new Date().toISOString() }]); }
     } catch {}
     setFriendAdding(null);
   };
-  const acceptRequest = async (fromId, fromName) => { try { await fetch('/api/friends', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'accept' }) }); setFriendRequests(prev => prev.filter(r => r.fromId !== fromId)); setFriends(prev => [...prev, { userId: fromId, userName: fromName, online: 'offline' }]); } catch {} };
+  const acceptRequest = async (fromId, fromName) => { try { await fetch('/api/friends', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'accept' }) }); setFriendRequests(prev => prev.filter(r => r.fromId !== fromId)); setFriends(prev => [...prev, { userId: fromId, userName: fromName, online: 'offline' }]); updateFriendList([...friends.map(f => String(f.userId)), String(fromId)]); } catch {} };
   const rejectRequest = async (fromId) => { try { await fetch('/api/friends', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, userName: uName, fromId, action: 'reject' }) }); setFriendRequests(prev => prev.filter(r => r.fromId !== fromId)); } catch {} };
-  const removeFriend = async (friendId) => { try { await fetch('/api/friends', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, friendId }) }); setFriends(prev => prev.filter(f => f.userId !== friendId)); } catch {} };
+  const removeFriend = async (friendId) => { try { await fetch('/api/friends', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, friendId }) }); setFriends(prev => prev.filter(f => f.userId !== friendId)); updateFriendList(friends.filter(f => String(f.userId) !== String(friendId)).map(f => String(f.userId))); } catch {} };
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatSending || !chatOpen) return;
     setChatSending(true); const msg = chatInput.trim(); setChatInput('');

@@ -2,6 +2,28 @@ import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
 let socket;
+// Callbacks globales para presencia y notificaciones (registrados desde home.js)
+let _onFriendStatusChanged = null;
+let _onNewNotification = null;
+
+export function setPresenceCallback(fn) { _onFriendStatusChanged = fn; }
+export function setNotificationCallback(fn) { _onNewNotification = fn; }
+
+// Registrar presencia del usuario logueado
+export function registerPresence(userId, friendIds) {
+  const payload = { userId: String(userId), friendIds: (friendIds || []).map(String) };
+  if (socket) {
+    socket._pendingPresence = payload; // persiste para reconexiones
+    if (socket.connected) socket.emit('register-presence', payload);
+  }
+}
+
+// Actualizar lista de amigos en el servidor (cuando agrega/remueve uno)
+export function updateFriendList(friendIds) {
+  if (socket && socket.connected) {
+    socket.emit('update-friend-list', { friendIds: (friendIds || []).map(String) });
+  }
+}
 
 export const useWebSocket = (sessionId) => {
   const [session, setSession] = useState(null);
@@ -47,8 +69,10 @@ export const useWebSocket = (sessionId) => {
         // Si hay un sessionId, unirse a la sesión
         if (sessionId) {
           socket.emit('join-session', sessionId);
-        }
-      });
+        }        // Re-registrar presencia si ya estaba registrada (reconexiones)
+        if (socket._pendingPresence) {
+          socket.emit('register-presence', socket._pendingPresence);
+        }      });
 
       socket.on('connect_error', (error) => {
         console.error('❌ Error de conexión WebSocket:', error.message);
@@ -106,7 +130,13 @@ export const useWebSocket = (sessionId) => {
     socket.on('rps-conflict', (data) => {
       console.warn('⚠️ RPS conflicto:', data.message);
     });
+    socket.on('friend-status-changed', (data) => {
+      if (_onFriendStatusChanged) _onFriendStatusChanged(data);
+    });
 
+    socket.on('new-notification', (data) => {
+      if (_onNewNotification) _onNewNotification(data);
+    });
     socket.on('player-history', (data) => {
       // Dispatched to listeners registered via getPlayerHistory
       socket._playerHistoryHandler && socket._playerHistoryHandler(data);
