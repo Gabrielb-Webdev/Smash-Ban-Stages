@@ -521,14 +521,27 @@ export default function TestAdminPage() {
     // Reiniciar contador de games para este setup
     prevGamesRef.current[setupId] = 0;
 
-    // NO llamamos markSetCalled/markSetInProgress aquí.
-    // Siguiendo el enfoque del notebook: el set se activa naturalmente
-    // cuando el servidor reporta el primer game via reportBracketSet.
-    // Esto evita que Start.gg vuelva al estado CALLED (amarillo) al reportar games.
+    // Poner el set en ACTIVE (verde) en Start.gg al iniciar match.
+    // NO tocamos Start.gg durante la serie — solo al final se envía todo.
     let finalState = null;
+    if (startggSetId) {
+      try {
+        console.log(`[start.gg] markSetInProgress → setId=${startggSetId}`);
+        const res = await fetch('/api/tournaments/mark-set-in-progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setId: String(startggSetId) }),
+        });
+        const data = await res.json();
+        finalState = data.set?.state || data.stateLabel;
+        console.log(`[start.gg] → state=${finalState}`, data);
+      } catch (e) {
+        console.error('[start.gg] ❌ error activando set:', e);
+      }
+    }
 
     const STATE_NAMES = { 1: 'CREATED', 2: 'ACTIVE ✅', 3: 'COMPLETED', 6: 'BYE', 7: 'CALLED' };
-    const stateDisplay = startggSetId ? 'Match iniciado (CREATED → se activará con Game 1)' : '— iniciado (sin ID)';
+    const stateDisplay = STATE_NAMES[finalState] || finalState || '?';
 
     // Log local: match llamado
     setReportLog(prev => [{
