@@ -596,13 +596,35 @@ export default function TestAdminPage() {
     const startggEntrant1Id = set.slots?.[0]?.entrant?.id || null;
     const startggEntrant2Id = set.slots?.[1]?.entrant?.id || null;
 
-    // NO llamamos markSetCalled porque pone el set en CALLED (7/amarillo)
-    // y desde ese estado reportBracketSet NO puede transicionar a ACTIVE.
-    // El set va de CREATED → ACTIVE automáticamente cuando el polling
-    // detecte el primer game y llame reportBracketSet (ver polling loop arriba).
-    console.log(`[start.gg] match iniciado para setId=${startggSetId} — irá a ACTIVE al 1er game`);
     // Reiniciar contador de games para este setup
     prevGamesRef.current[setupId] = 0;
+
+    // Activar el set en Start.gg: llamar reportBracketSet con gameData=null
+    // (sin array vacío — null real). Start.gg lo trata como "match iniciado"
+    // y transiciona CREATED → ACTIVE directamente.
+    let activateOk = false;
+    let activateState = null;
+    if (startggSetId) {
+      try {
+        console.log(`[start.gg] activando set ${startggSetId} → reportBracketSet(gameData=null)...`);
+        const activateRes  = await fetch('/api/tournaments/report-set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // No incluir gameData en el body → el endpoint lo recibe como undefined → pasa null a Start.gg
+          body: JSON.stringify({ setId: String(startggSetId), winnerId: null }),
+        });
+        const activateData = await activateRes.json();
+        activateState = activateData.stateLabel || activateData.state;
+        if (!activateRes.ok || activateData.error) {
+          console.error('[start.gg] ❌ activación falló:', activateData);
+        } else {
+          console.log(`[start.gg] ✅ activación OK → state=${activateState}`, activateData);
+          activateOk = true;
+        }
+      } catch (e) {
+        console.error('[start.gg] ❌ activación fetch error:', e);
+      }
+    }
 
     // Log local: match iniciado
     setReportLog(prev => [{
@@ -610,7 +632,9 @@ export default function TestAdminPage() {
       setId: startggSetId,
       players: players.join(' vs '),
       round: set.fullRoundText || '',
-      score: startggSetId ? '— iniciado (→ ACTIVE al 1er game)' : '— iniciado (sin ID start.gg)',
+      score: activateOk
+        ? `— iniciado · start.gg=${activateState}`
+        : (startggSetId ? '— iniciado ⚠ sin activar en start.gg' : '— iniciado (sin ID)'),
       called: true,
     }, ...prev].slice(0, 20));
 
