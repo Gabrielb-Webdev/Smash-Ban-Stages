@@ -600,7 +600,7 @@ export default function TestAdminPage() {
     prevGamesRef.current[setupId] = 0;
 
     // PASO 1: markSetCalled → CREATED → CALLED (7)
-    // PASO 2: reportBracketSet desde CALLED → ACTIVE (2)
+    // PASO 2: markSetInProgress → CALLED → ACTIVE (2) verde
     let finalState = null;
     if (startggSetId) {
       try {
@@ -614,16 +614,16 @@ export default function TestAdminPage() {
         const calledData = await calledRes.json();
         console.log(`[start.gg] markSetCalled →`, calledData);
 
-        // Paso 2: CALLED → ACTIVE (reportBracketSet desde estado CALLED)
-        console.log(`[start.gg] PASO 2: reportBracketSet (desde CALLED) → setId=${startggSetId}`);
-        const activeRes = await fetch('/api/tournaments/report-set', {
+        // Paso 2: CALLED → ACTIVE (verde) usando markSetInProgress
+        console.log(`[start.gg] PASO 2: markSetInProgress → setId=${startggSetId}`);
+        const activeRes = await fetch('/api/tournaments/mark-set-in-progress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId), winnerId: null }),
+          body: JSON.stringify({ setId: String(startggSetId) }),
         });
         const activeData = await activeRes.json();
-        finalState = activeData.stateLabel || activeData.state;
-        console.log(`[start.gg] reportBracketSet → state=${finalState}`, activeData);
+        finalState = activeData.set?.state || activeData.stateLabel;
+        console.log(`[start.gg] markSetInProgress → state=${finalState}`, activeData);
       } catch (e) {
         console.error('[start.gg] ❌ error en secuencia de activación:', e);
       }
