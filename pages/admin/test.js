@@ -602,7 +602,7 @@ export default function TestAdminPage() {
     // Bloquear si el set tiene un delay activo (verificado por ID del set)
     const now = Date.now();
     const bl = blockedSetIds[draggedSet.id];
-    if (bl && (now - bl) < DELAY_BLOCK_MS && fromDelayedIdx == null) {
+    if (bl && (now - bl) < DELAY_BLOCK_MS) {
       const secsLeft = Math.ceil((DELAY_BLOCK_MS - (now - bl)) / 1000);
       const mins = Math.floor(secsLeft / 60);
       const secs = String(secsLeft % 60).padStart(2, '0');
