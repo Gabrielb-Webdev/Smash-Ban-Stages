@@ -1,12 +1,16 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-// Redirige al panel unificado test.js con community=afk-multi
+// Carga el panel test.js con community=afk-multi manteniendo la URL /admin/afk-multi
 export default function AfkMultiPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/admin/test?community=afk-multi');
+    // router.replace con segundo argumento = URL visible en browser (sin cambiarla)
+    router.replace(
+      { pathname: '/admin/test', query: { community: 'afk-multi' } },
+      '/admin/afk-multi'
+    );
   }, []);
 
   return (
@@ -16,3 +20,4 @@ export default function AfkMultiPage() {
     </div>
   );
 }
+

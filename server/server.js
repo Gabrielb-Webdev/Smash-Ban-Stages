@@ -95,6 +95,10 @@ function recordCharacterPick(playerName, characterId) {
 const playerHistory = loadPlayerHistory();
 console.log(`📚 Historial cargado: ${playerHistory.size} jugadores`);
 
+// Constantes para stages - AFK (Buenos Aires)
+const AFK_STAGES_GAME1      = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'battlefield', 'smashville'];
+const AFK_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
+
 // Constantes para stages - Mendoza (Team Anexo)
 const MENDOZA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'smashville', 'battlefield'];
 const MENDOZA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
@@ -111,16 +115,24 @@ function detectTournament(sessionId) {
     console.log('❌ No sessionId provided, defaulting to cordoba');
     return 'cordoba';
   }
-  
+
+  const s = sessionId.toLowerCase();
+
+  // Detectar AFK
+  if (s === 'afk' || s.startsWith('afk-') || s.includes('/afk')) {
+    console.log('✅ AFK detected');
+    return 'afk';
+  }
+
   // Caso 1: sessionId directo (ej: "mendoza" desde /tablet/mendoza)
-  if (sessionId === 'mendoza') {
+  if (s === 'mendoza') {
     console.log('✅ Direct match: mendoza detected');
     return 'mendoza';
   }
   
   // Caso 2: sessionId con formato session-torneo (ej: "abc123-mendoza")
-  if (sessionId.includes('-')) {
-    const parts = sessionId.split('-');
+  if (s.includes('-')) {
+    const parts = s.split('-');
     const lastPart = parts[parts.length - 1];
     console.log('🔍 Checking hyphenated sessionId:', { parts, lastPart });
     if (lastPart === 'mendoza') {
@@ -130,8 +142,8 @@ function detectTournament(sessionId) {
   }
   
   // Caso 3: sessionId con URL path (ej: "path/mendoza")
-  if (sessionId.includes('/')) {
-    const lastPart = sessionId.split('/').pop();
+  if (s.includes('/')) {
+    const lastPart = s.split('/').pop();
     console.log('🔍 Checking path sessionId:', { lastPart });
     if (lastPart === 'mendoza') {
       console.log('✅ Path match: mendoza detected');
@@ -154,6 +166,12 @@ function getStagesForTournament(sessionId, currentGame) {
     isMendoza: tournament === 'mendoza'
   });
   
+  if (tournament === 'afk') {
+    const stages = currentGame === 1 ? AFK_STAGES_GAME1 : AFK_STAGES_GAME2_PLUS;
+    console.log('✅ AFK ruleset selected:', stages);
+    return stages;
+  }
+
   if (tournament === 'mendoza') {
     const stages = currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
     console.log('✅ Mendoza ruleset selected:', stages);
