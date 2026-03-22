@@ -209,6 +209,22 @@ async function markSetCalled(setId) {
     console.warn('⚠️ Error en markSetCalled:', e.message);
   }
 }
+
+async function markSetInProgress(setId) {
+  const vercelUrl = process.env.NEXTJS_URL || 'https://smash-ban-stages.vercel.app';
+  try {
+    const res = await fetch(`${vercelUrl}/api/tournaments/mark-set-in-progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setId: String(setId) }),
+    });
+    const data = await res.json();
+    if (data.ok) console.log(`✅ start.gg set ${setId} → ACTIVE (verde)`);
+    else console.warn('⚠️ markSetInProgress error:', data.error);
+  } catch (e) {
+    console.warn('⚠️ Error en markSetInProgress:', e.message);
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 const httpServer = createServer((req, res) => {
@@ -852,9 +868,8 @@ io.on('connection', (socket) => {
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
 
-      // Reportar a start.gg SOLO cuando la serie termina (con todos los games de una vez)
-      // No reportamos mid-series porque cambia el estado de ACTIVE → CALLED
-      if (session.startggSetId && seriesFinished) {
+      // Reportar cada game a start.gg con personajes, stage y ganador
+      if (session.startggSetId) {
         const gameData = session.games.map(g => ({
           gameNum: g.gameNum,
           winnerId: g.winnerId,
@@ -864,8 +879,21 @@ io.on('connection', (socket) => {
           p2CharacterId: g.p2CharacterId,
           stageId: g.stageId,
         }));
-        reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
-          .catch(e => console.error('⚠️ Error reportando a start.gg:', e.message));
+
+        if (seriesFinished) {
+          // Serie terminó → reportar con winnerId → COMPLETED
+          reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
+            .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
+        } else {
+          // Mid-series → reportar progreso (winnerId=null) y luego re-activar para mantener verde
+          reportToStartGG(session.startggSetId, null, gameData)
+            .then(() => {
+              // reportBracketSet con winnerId=null cambia a CALLED (amarillo)
+              // Re-activar a ACTIVE (verde) inmediatamente
+              return markSetInProgress(session.startggSetId);
+            })
+            .catch(e => console.error('⚠️ Error reportando mid-series a start.gg:', e.message));
+        }
       }
     }
   });
