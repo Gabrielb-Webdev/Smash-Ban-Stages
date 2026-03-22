@@ -216,8 +216,16 @@ export default function TestAdminPage() {
                   gameData: gameData.length > 0 ? gameData : undefined,
                 }),
               })
-                .then(r => r.json())
+                .then(async r => {
+                  if (!r.ok) {
+                    // El servidor (Railway) ya reportó el set exitosamente — ignorar
+                    console.log('[start.gg] ℹ️ Set ya reportado por el servidor, respaldo innecesario');
+                    return null;
+                  }
+                  return r.json();
+                })
                 .then(d => {
+                  if (!d) return;
                   if (d.ok) {
                     console.log('[start.gg] ✅ Resultado final enviado (admin respaldo):', d);
                     setReportLog(prev => [{
@@ -227,9 +235,6 @@ export default function TestAdminPage() {
                       round: aSet.fullRoundText || '',
                       score: `${st.score1}-${st.score2} ✅ COMPLETED`,
                     }, ...prev].slice(0, 20));
-                  } else if (d.error?.includes('completed set')) {
-                    // El servidor ya reportó exitosamente — ignorar
-                    console.log('[start.gg] ℹ️ Set ya completado por el servidor, respaldo innecesario');
                   } else {
                     console.error('[start.gg] ❌ Error en respaldo:', d);
                   }
