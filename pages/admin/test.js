@@ -110,18 +110,16 @@ export default function TestAdminPage() {
   const delayReleasedSetups = useRef(new Set());
   const prevGamesRef      = useRef({});  // { [setupId]: número de games reportados }
 
-  // Matches que pidieron más tiempo: [{ ...setData, delayedAt, requestedBy }]
-  const [delayedMatches, setDelayedMatches] = useState([]);
-  // Jugadores bloqueados por delay: { [nombreJugador]: timestamp del bloqueo }
+  // Sets bloqueados por delay: { [setId]: timestamp del bloqueo }
   const [blockedSetIds, setBlockedSetIds] = useState({});  // { [setId]: timestamp del bloqueo }
   const DELAY_BLOCK_MS = 5 * 60 * 1000; // 5 minutos
-  // Ticker para re-renderizar el countdown de matches en espera
+  // Ticker para re-renderizar el countdown de bloqueos en el bracket
   const [, setDelayTick] = useState(0);
   useEffect(() => {
-    if (delayedMatches.length === 0) return;
+    if (Object.keys(blockedSetIds).length === 0) return;
     const iv = setInterval(() => setDelayTick(t => t + 1), 1000);
     return () => clearInterval(iv);
-  }, [delayedMatches.length]);
+  }, [Object.keys(blockedSetIds).length]);
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -299,24 +297,9 @@ export default function TestAdminPage() {
           }
           // Liberar el setup del panel
           setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-          // Agregar a la cola de espera con timer de 5 min
-          if (aSet) {
-            const now = Date.now();
-            // Guardar nombres explícitos como fallback si slots no tuviera entrant.name
-            const _p1 = aSet.slots?.[0]?.entrant?.name || st.player1 || '';
-            const _p2 = aSet.slots?.[1]?.entrant?.name || st.player2 || '';
-            setDelayedMatches(prev => [...prev, {
-              ...aSet,
-              sessionId: undefined,
-              delayedAt: now,
-              requestedBy: (st.delayRequests || [])[0] || '?',
-              _p1,
-              _p2,
-            }]);
-            // Bloquear el set por ID durante 5 minutos
-            if (aSet.id) {
-              setBlockedSetIds(prev => ({ ...prev, [aSet.id]: now }));
-            }
+          // Bloquear el set en el bracket por 5 minutos
+          if (aSet?.id) {
+            setBlockedSetIds(prev => ({ ...prev, [aSet.id]: Date.now() }));
           }
           // Refrescar bracket para reflejar el cambio
           if (selectedPhaseGroupId) {
@@ -584,7 +567,7 @@ export default function TestAdminPage() {
       const secsLeft = Math.ceil((DELAY_BLOCK_MS - (Date.now() - bl)) / 1000);
       const mins = Math.floor(secsLeft / 60);
       const secs = String(secsLeft % 60).padStart(2, '0');
-      alert(`🔒 Este match está bloqueado por ${mins}:${secs} más. Esperá que el timer llegue a cero en la sección "⏱️ Matches en espera".`);
+      alert(`🔒 Este match está bloqueado por ${mins}:${secs} más. Esperá que el timer llegue a cero.`);
       return;
     }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
@@ -598,7 +581,6 @@ export default function TestAdminPage() {
   function onDrop(e, setupId) {
     e.preventDefault();
     if (!draggedSet || !tournamentStarted) return;
-    const fromDelayedIdx = draggedSet._fromDelayedIdx;
     // Bloquear si el set tiene un delay activo (verificado por ID del set)
     const now = Date.now();
     const bl = blockedSetIds[draggedSet.id];
@@ -611,20 +593,12 @@ export default function TestAdminPage() {
       return;
     }
     const cleanSet = { ...draggedSet };
-    delete cleanSet._fromDelayedIdx;
     setAssignedSets(prev => {
       const next = { ...prev };
       for (const k of Object.keys(next)) { if (next[k]?.id === cleanSet.id) delete next[k]; }
       next[setupId] = cleanSet;
       return next;
     });
-    if (fromDelayedIdx != null) {
-      setDelayedMatches(prev => prev.filter((_, i) => i !== fromDelayedIdx));
-      // Liberar el bloqueo del set al reasignar desde la cola de espera
-      if (cleanSet.id) {
-        setBlockedSetIds(prev => { const n = { ...prev }; delete n[cleanSet.id]; return n; });
-      }
-    }
     setDraggedSet(null); setDragOverSetup(null);
   }
   function removeAssignment(setupId) {
@@ -1151,28 +1125,21 @@ export default function TestAdminPage() {
           </div>
             </div>{/* /setups grid */}
 
-            {/* ── MATCHES EN ESPERA ── */}
-            {delayedMatches.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 14, fontWeight: 900, color: '#FBB040' }}>⏱️ Matches en espera</span>
-                  <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(251,176,64,0.12)', border: '1px solid rgba(251,176,64,0.3)', color: '#FBB040', borderRadius: 99, padding: '2px 6px' }}>{delayedMatches.length}</span>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Arrastrá el match a un setup cuando esté listo</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
-                  {delayedMatches.map((match, idx) => {
-                    const remaining = Math.max(0, 300 - Math.floor((Date.now() - match.delayedAt) / 1000));
-                    const mins = Math.floor(remaining / 60);
-                    const secs = String(remaining % 60).padStart(2, '0');
-                    const isReady = remaining === 0;
-                    // Obtener nombres de jugadores (primero de slots, fallback a _p1/_p2 guardados)
-                    const p1name = match.slots?.[0]?.entrant?.name || match._p1 || 'TBD';
-                    const p2name = match.slots?.[1]?.entrant?.name || match._p2 || 'TBD';
+            {/* ── TORNEO INFO STRIP (placeholder para mantener estructura) ── */}
+            {false && (
+                <div style={{ display: 'none' }}>
+                  {[].map((match, idx) => {
+                    const remaining = 0;
+                    const mins = 0;
+                    const secs = '00';
+                    const isReady = true;
+                    const p1name = 'TBD';
+                    const p2name = 'TBD';
                     return (
                       <div
                         key={idx}
-                        draggable={tournamentStarted && isReady}
-                        onDragStart={() => isReady && setDraggedSet({ ...match, _fromDelayedIdx: idx })}
+                        draggable={false}
+                        onDragStart={undefined}
                         style={{
                           background: isReady ? 'rgba(74,222,128,0.06)' : '#0F0F1A',
                           border: `2px solid ${isReady ? 'rgba(74,222,128,0.5)' : 'rgba(251,176,64,0.4)'}`,
@@ -1215,10 +1182,7 @@ export default function TestAdminPage() {
                           Pedido por: <span style={{ color: 'rgba(251,176,64,0.7)' }}>{match.requestedBy}</span>
                         </p>
                         <button
-                          onClick={() => {
-                            setDelayedMatches(prev => prev.filter((_, i) => i !== idx));
-                            if (match.id) setBlockedSetIds(prev => { const n = { ...prev }; delete n[match.id]; return n; });
-                          }}
+                          onClick={() => {}}
                           style={{ width: '100%', padding: '4px', fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}
                         >Descartar</button>
                       </div>
