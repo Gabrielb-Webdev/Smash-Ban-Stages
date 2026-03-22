@@ -110,17 +110,6 @@ export default function TestAdminPage() {
   const delayReleasedSetups = useRef(new Set());
   const prevGamesRef      = useRef({});  // { [setupId]: número de games reportados }
 
-  // Sets bloqueados por delay: { [setId]: timestamp del bloqueo }
-  const [blockedSetIds, setBlockedSetIds] = useState({});  // { [setId]: timestamp del bloqueo }
-  const DELAY_BLOCK_MS = 5 * 60 * 1000; // 5 minutos
-  // Ticker para re-renderizar el countdown de bloqueos en el bracket
-  const [, setDelayTick] = useState(0);
-  useEffect(() => {
-    if (Object.keys(blockedSetIds).length === 0) return;
-    const iv = setInterval(() => setDelayTick(t => t + 1), 1000);
-    return () => clearInterval(iv);
-  }, [Object.keys(blockedSetIds).length]);
-
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
     try { const c = _communitySync(); const s = localStorage.getItem(lsk('setupFormats', c)); return s ? JSON.parse(s) : {}; } catch { return {}; }
@@ -265,53 +254,6 @@ export default function TestAdminPage() {
       }
       // (Mid-series reporting desactivado: el servidor reporta automáticamente
       //  al finalizar la serie con toda la data de games/personajes/stages)
-
-      // Si algún jugador pidió más tiempo (phase DELAYED), cancelar setup automáticamente
-      for (const [setupId, st] of Object.entries(updates)) {
-        if ((st.phase === 'DELAYED' || (st.delayRequests || []).length > 0) && !delayReleasedSetups.current.has(setupId)) {
-          delayReleasedSetups.current.add(setupId);
-          const aSet = assignedSets[setupId];
-          // Limpiar timers
-          const t = matchTimersRef.current[setupId];
-          if (t?.intervalId) clearInterval(t.intervalId);
-          delete matchTimersRef.current[setupId];
-          setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-          const et = elapsedTimersRef.current[setupId];
-          if (et?.intervalId) clearInterval(et.intervalId);
-          delete elapsedTimersRef.current[setupId];
-          setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-          checkedInSetups.current.delete(setupId);
-          autoReleasedSetups.current.delete(setupId);
-          // Cancelar sesión WebSocket
-          const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-          if (aSet?.sessionId) {
-            fetch(`${socketUrl}/session/${encodeURIComponent(aSet.sessionId)}`, { method: 'DELETE' }).catch(() => {});
-          }
-          // Resetear set en start.gg → vuelve a CREATED
-          if (aSet?.startggSetId) {
-            fetch('/api/tournaments/reset-set', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ setId: aSet.startggSetId }),
-            }).catch(() => {});
-          }
-          // Liberar el setup del panel
-          setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-          // Bloquear el set en el bracket por 5 minutos
-          if (aSet?.id) {
-            setBlockedSetIds(prev => ({ ...prev, [aSet.id]: Date.now() }));
-          }
-          // Refrescar bracket para reflejar el cambio
-          if (selectedPhaseGroupId) {
-            setTimeout(() => {
-              fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
-                .then(r => r.json())
-                .then(d => { if (d.sets) setBracketSets(d.sets); })
-                .catch(() => {});
-            }, 2000);
-          }
-        }
-      }
 
       // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
       for (const [setupId, st] of Object.entries(updates)) {
@@ -560,16 +502,6 @@ export default function TestAdminPage() {
 
   function onDragStart(set, e) {
     if (!tournamentStarted) { e.preventDefault(); return; }
-    // Bloquear drag si el set tiene un delay activo (5 min)
-    const bl = blockedSetIds[set.id];
-    if (bl && (Date.now() - bl) < DELAY_BLOCK_MS) {
-      e.preventDefault();
-      const secsLeft = Math.ceil((DELAY_BLOCK_MS - (Date.now() - bl)) / 1000);
-      const mins = Math.floor(secsLeft / 60);
-      const secs = String(secsLeft % 60).padStart(2, '0');
-      alert(`🔒 Este match está bloqueado por ${mins}:${secs} más. Esperá que el timer llegue a cero.`);
-      return;
-    }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -581,17 +513,6 @@ export default function TestAdminPage() {
   function onDrop(e, setupId) {
     e.preventDefault();
     if (!draggedSet || !tournamentStarted) return;
-    // Bloquear si el set tiene un delay activo (verificado por ID del set)
-    const now = Date.now();
-    const bl = blockedSetIds[draggedSet.id];
-    if (bl && (now - bl) < DELAY_BLOCK_MS) {
-      const secsLeft = Math.ceil((DELAY_BLOCK_MS - (now - bl)) / 1000);
-      const mins = Math.floor(secsLeft / 60);
-      const secs = String(secsLeft % 60).padStart(2, '0');
-      alert(`🔒 Este match está bloqueado ${mins}:${secs} más. Esperá que el timer llegue a cero.`);
-      setDraggedSet(null); setDragOverSetup(null);
-      return;
-    }
     const cleanSet = { ...draggedSet };
     setAssignedSets(prev => {
       const next = { ...prev };
@@ -837,26 +758,15 @@ export default function TestAdminPage() {
             const isDone  = set.stateLabel === 'COMPLETED';
             const isBye   = set.stateLabel === 'BYE';
             const aSetup  = SETUPS.find(s => assignedSets[s.id]?.id === set.id);
-            const blTs = blockedSetIds[set.id];
-            const isBlocked = blTs && (Date.now() - blTs) < DELAY_BLOCK_MS;
-            const blRemaining = isBlocked ? Math.max(0, 300 - Math.floor((Date.now() - blTs) / 1000)) : 0;
-            const blMins = Math.floor(blRemaining / 60);
-            const blSecs = String(blRemaining % 60).padStart(2, '0');
             return (
               <div
                 key={set.id}
                 className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                draggable={!isDone && !isBye && !isBlocked}
-                onDragStart={!isDone && !isBye && !isBlocked ? e => onDragStart(set, e) : undefined}
+                draggable={!isDone && !isBye}
+                onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
                 onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : isBlocked ? 'rgba(251,176,64,0.05)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isBlocked ? 'rgba(251,176,64,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye || isBlocked ? 'default' : 'grab', position: 'relative' }}
+                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : 'grab', position: 'relative' }}
               >
-                {isBlocked && (
-                  <div style={{ position: 'absolute', top: 4, right: 6, display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(251,176,64,0.15)', border: '1px solid rgba(251,176,64,0.35)', borderRadius: 99, padding: '2px 6px', zIndex: 3 }}>
-                    <span style={{ fontSize: 9 }}>🔒</span>
-                    <span style={{ fontSize: 9, fontWeight: 900, color: '#FBB040', fontFamily: 'monospace' }}>{blMins}:{blSecs}</span>
-                  </div>
-                )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
                   {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}

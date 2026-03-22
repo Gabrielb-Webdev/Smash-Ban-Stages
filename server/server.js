@@ -662,23 +662,7 @@ io.on('connection', (socket) => {
   });
 
   // Jugador pide más tiempo (sale del setup por 5 minutos)
-  socket.on('request-match-delay', ({ sessionId, playerName }) => {
-    const session = sessions.get(sessionId);
-    if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
-    if (!session.delayRequests) session.delayRequests = [];
-    if (session.delayRequests.includes(playerName)) {
-      socket.emit('delay-request-denied', { reason: 'Ya usaste esta opción en este match' });
-      return;
-    }
-    session.delayRequests.push(playerName);
-    // Marcar la sesión como DELAYED automáticamente: libera el setup sin intervención del admin
-    session.phase = 'DELAYED';
-    sessions.set(sessionId, session);
-    io.to(sessionId).emit('session-updated', { session });
-    // Emitir a todos los observadores (admin panel) para que liberen el setup
-    io.emit('match-auto-delayed', { sessionId, player1: session.player1?.name, player2: session.player2?.name, requestedBy: playerName });
-    console.log(`⏱️ Match auto-delayed por ${playerName} en sesión ${sessionId}`);
-  });
+
 
   // Habilitar modo un solo dispositivo → auto check-in de ambos jugadores
   socket.on('enable-single-device', ({ sessionId }) => {
