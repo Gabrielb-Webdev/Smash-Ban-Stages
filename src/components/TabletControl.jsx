@@ -586,7 +586,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
       {/* ── Contenido scrollable ── */}
       <div className="p-3 md:p-4 max-w-7xl mx-auto flex flex-col gap-3 md:gap-4 pb-24">
 
-        {/* CHECKIN Phase */
+        {/* CHECKIN Phase */}
         {session.phase === 'CHECKIN' && (
           <div style={{
             background: 'rgba(255,255,255,0.06)',
