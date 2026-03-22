@@ -212,6 +212,9 @@ export default function TestAdminPage() {
                       round: aSet.fullRoundText || '',
                       score: `${st.score1}-${st.score2} ✅ COMPLETED`,
                     }, ...prev].slice(0, 20));
+                  } else if (d.error?.includes('completed set')) {
+                    // El servidor ya reportó exitosamente — ignorar
+                    console.log('[start.gg] ℹ️ Set ya completado por el servidor, respaldo innecesario');
                   } else {
                     console.error('[start.gg] ❌ Error en respaldo:', d);
                   }
