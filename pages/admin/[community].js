@@ -1,74 +1,27 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import AdminPanel from '../../src/components/AdminPanel';
-import Link from 'next/link';
-import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
+import { useEffect } from 'react';
 
+// Redirige al panel unificado test.js con el community como query param.
+// Con esto, cordoba/mendoza/afk usan exactamente el mismo panel de administración
+// que "test", con sus propios setups (cordoba-1..5, mendoza-1..5, afk-1..5).
 export default function CommunityAdmin() {
   const router = useRouter();
   const { community } = router.query;
-  const [authUser, setAuthUser] = useState(null);
-  const [checking, setChecking] = useState(true);
 
-  const validCommunities = ['cordoba', 'afk', 'mendoza'];
-
-  // Auth guard — isAdmin se verifica en el servidor, no en localStorage
   useEffect(() => {
-    const stored = getStoredUser();
-    if (!stored?.access_token) { router.replace('/login'); return; }
-
-    verifySession().then(data => {
-      if (!data) { router.replace('/login'); return; }
-      const hasAccess = data.isAdmin || data.adminCommunities?.includes(community);
-      if (!hasAccess && community) { router.replace('/home'); return; }
-      setAuthUser(data.user);
-      setChecking(false);
-    });
-  }, [community]);
-
-  // Redirigir rutas especiales que tienen su propia página
-  useEffect(() => {
+    if (!community) return;
     if (community === 'afk-multi') {
       router.replace('/admin/afk-multi');
+    } else {
+      router.replace(`/admin/test?community=${community}`);
     }
   }, [community]);
 
-  // Loading mientras el router resuelve o chequea auth
-  if (checking || !community) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  // Redirigiendo afk-multi
-  if (community === 'afk-multi') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Redirigiendo...</div>
-      </div>
-    );
-  }
-
-  // Comunidad no válida
-  if (!validCommunities.includes(community)) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">❌ Comunidad no encontrada</h1>
-          <p className="text-xl text-gray-300 mb-8">
-            La comunidad "{community}" no existe.
-          </p>
-          <Link href="/">
-            <span className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all cursor-pointer">
-              ← Volver a la lista de comunidades
-            </span>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return <AdminPanel defaultCommunity={community} />;
+  return (
+    <div style={{ minHeight: '100vh', background: '#0B0B12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, border: '3px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 }
+

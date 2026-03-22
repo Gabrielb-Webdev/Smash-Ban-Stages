@@ -701,24 +701,30 @@ export default function HomePage() {
               zIndex: 46,
               background: '#0F0F18',
               borderRadius: '24px 24px 0 0',
-              padding: '20px 18px 48px',
               boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
               animation: 'slideUp 0.22s ease',
               maxHeight: '80dvh',
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}>
-              {/* Handle */}
-              <div onClick={() => setShowNotifs(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowNotifs(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 -18px 12px', padding: '4px 0 12px', cursor: 'pointer', userSelect: 'none' }}>
-                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
+              {/* ── Sticky header: handle + título (no hace scroll) ── */}
+              <div style={{ flexShrink: 0, padding: '20px 18px 0', background: '#0F0F18' }}>
+                {/* Handle */}
+                <div onClick={() => setShowNotifs(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowNotifs(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 -18px 12px', padding: '4px 0 12px', cursor: 'pointer', userSelect: 'none' }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.22)' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Notificaciones</h2>
+                  {unreadCount > 0 && (
+                    <button onClick={dismissAllNotifs} style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8' }}>Marcar todas como leídas</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Notificaciones</h2>
-                {unreadCount > 0 && (
-                  <button onClick={dismissAllNotifs} style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8' }}>Marcar todas como leídas</span>
-                  </button>
-                )}
-              </div>
+              {/* ── Área scrolleable ── */}
+              <div style={{ overflowY: 'auto', flex: 1, padding: '4px 18px 48px' }}>
               {notifs.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{ fontSize: 40 }}>🔔</div>
@@ -736,6 +742,7 @@ export default function HomePage() {
                   />
                 ))
               )}
+              </div>
             </div>
           </>
         )}

@@ -45,7 +45,17 @@ export default async function handler(req, res) {
   const userName = String(req.body?.userName ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100).toLowerCase();
   let notifs = [];
   if (userName) {
-    notifs = (await redis.get(notifsKey(userName))) || [];
+    const rawNotifs = (await redis.get(notifsKey(userName))) || [];
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+    const now = Date.now();
+    notifs = rawNotifs.filter(n => {
+      if (!n?.sentAt) return true;
+      return (now - new Date(n.sentAt).getTime()) < TWELVE_HOURS;
+    });
+    // Limpiar notificaciones viejas si se filtraron algunas
+    if (notifs.length !== rawNotifs.length) {
+      await redis.set(notifsKey(userName), notifs);
+    }
     notifs = notifs.slice(-20);
   }
 

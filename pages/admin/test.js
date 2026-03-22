@@ -10,14 +10,25 @@ const TournamentBracket = dynamic(
   { ssr: false }
 );
 
-const TEST_SETUPS = [
-  { id: 'test-stream', label: 'Stream',  icon: '📡', color: '#DC2626' },
-  { id: 'test-1',     label: 'Setup 1', icon: '🎮', color: '#7C3AED' },
-  { id: 'test-2',     label: 'Setup 2', icon: '🎮', color: '#2563EB' },
-  { id: 'test-3',     label: 'Setup 3', icon: '🎮', color: '#059669' },
-  { id: 'test-4',     label: 'Setup 4', icon: '🎮', color: '#D97706' },
-  { id: 'test-5',     label: 'Setup 5', icon: '🎮', color: '#DB2777' },
-];
+// Genera los setups para una comunidad dada (prefija los IDs con el nombre)
+function getCommunitySetups(comunidad) {
+  const p = comunidad || 'test';
+  return [
+    { id: `${p}-stream`, label: 'Stream',  icon: '📡', color: '#DC2626' },
+    { id: `${p}-1`,     label: 'Setup 1', icon: '🎮', color: '#7C3AED' },
+    { id: `${p}-2`,     label: 'Setup 2', icon: '🎮', color: '#2563EB' },
+    { id: `${p}-3`,     label: 'Setup 3', icon: '🎮', color: '#059669' },
+    { id: `${p}-4`,     label: 'Setup 4', icon: '🎮', color: '#D97706' },
+    { id: `${p}-5`,     label: 'Setup 5', icon: '🎮', color: '#DB2777' },
+  ];
+}
+// Clave localStorage con namespace de comunidad (backward-compat: 'test' usa claves legacy)
+function lsk(base, c) { return c === 'test' ? `afk_${base}` : `${c}_${base}`; }
+// Obtiene la comunidad del query string de forma sincrónica (para useState initializers)
+function _communitySync() {
+  if (typeof window === 'undefined') return 'test';
+  return new URLSearchParams(window.location.search).get('community') || 'test';
+}
 
 const SET_STATE_STYLE = {
   CREATED:   { bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.35)',  text: '#60A5FA' },
@@ -36,6 +47,9 @@ function timeAgo(date) {
 
 export default function TestAdminPage() {
   const router = useRouter();
+  // Comunidad dinámica: soporta ?community=cordoba|mendoza|afk|test (default: 'test')
+  const community = router.query.community || _communitySync();
+  const SETUPS = getCommunitySetups(community);
   const [user, setUser]               = useState(null);
   const [checking, setChecking]       = useState(true);
   const [tournament, setTournament]   = useState(null);
@@ -45,7 +59,7 @@ export default function TestAdminPage() {
   const [assignedSets, setAssignedSets] = useState(() => {
     try {
       if (typeof window === 'undefined') return {};
-      const saved = localStorage.getItem('afk_assignedSets');
+      const saved = localStorage.getItem(lsk('assignedSets', _communitySync()));
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
@@ -55,10 +69,10 @@ export default function TestAdminPage() {
   const dropdownRef = useRef(null);
 
   // Selección dinámica de torneo
-  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedSlug')) || 'tournament/asd3'; } catch { return 'tournament/asd3'; } });
-  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedPhaseGroupId')) || '3244687'; } catch { return '3244687'; } });
-  const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedBracketUrl')) || ''; } catch { return ''; } });
-  const [selectedEventId, setSelectedEventId]               = useState(() => { try { return (typeof window !== 'undefined' && localStorage.getItem('afk_selectedEventId')) || null; } catch { return null; } });
+  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || 'tournament/asd3'; } catch { return 'tournament/asd3'; } });
+  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || '3244687'; } catch { return '3244687'; } });
+  const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedBracketUrl', c))) || ''; } catch { return ''; } });
+  const [selectedEventId, setSelectedEventId]               = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedEventId', c))) || null; } catch { return null; } });
 
   // Tournament picker
   const [tourPickerOpen, setTourPickerOpen]         = useState(false);
@@ -81,7 +95,7 @@ export default function TestAdminPage() {
   // Iniciar torneo
   const [startState, setStartState] = useState(null); // null | 'loading' | 'ok' | 'error'
   const [phaseStarted, setPhaseStarted] = useState(() => {
-    try { return typeof window !== 'undefined' && localStorage.getItem('afk_phaseStarted') === '1'; } catch { return false; }
+    try { const c = _communitySync(); return typeof window !== 'undefined' && localStorage.getItem(lsk('phaseStarted', c)) === '1'; } catch { return false; }
   });
 
   // Match call timers: { [setupId]: { secondsLeft, intervalId } }
@@ -108,7 +122,7 @@ export default function TestAdminPage() {
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
-    try { const s = localStorage.getItem('afk_setupFormats'); return s ? JSON.parse(s) : {}; } catch { return {}; }
+    try { const c = _communitySync(); const s = localStorage.getItem(lsk('setupFormats', c)); return s ? JSON.parse(s) : {}; } catch { return {}; }
   });
 
   // Check-in status: { [setupId]: { phase, checkIns: [], player1, player2 } }
@@ -118,18 +132,18 @@ export default function TestAdminPage() {
   const [reportLog, setReportLog] = useState([]);
   const prevCompletedIdsRef = useRef(new Set());
 
-  // --- Persistencia localStorage ---
+  // --- Persistencia localStorage (con namespace de comunidad) ---
   useEffect(() => {
-    try { localStorage.setItem('afk_assignedSets', JSON.stringify(assignedSets)); } catch {}
-  }, [assignedSets]);
+    try { localStorage.setItem(lsk('assignedSets', community), JSON.stringify(assignedSets)); } catch {}
+  }, [assignedSets, community]);
   useEffect(() => {
-    try { localStorage.setItem('afk_phaseStarted', phaseStarted ? '1' : ''); } catch {}
-  }, [phaseStarted]);
-  useEffect(() => { try { localStorage.setItem('afk_selectedSlug', selectedSlug); } catch {} }, [selectedSlug]);
-  useEffect(() => { try { localStorage.setItem('afk_selectedPhaseGroupId', selectedPhaseGroupId); } catch {} }, [selectedPhaseGroupId]);
-  useEffect(() => { try { if (selectedEventId) localStorage.setItem('afk_selectedEventId', selectedEventId); } catch {} }, [selectedEventId]);
-  useEffect(() => { try { localStorage.setItem('afk_selectedBracketUrl', selectedBracketUrl); } catch {} }, [selectedBracketUrl]);
-  useEffect(() => { try { localStorage.setItem('afk_setupFormats', JSON.stringify(setupFormats)); } catch {} }, [setupFormats]);
+    try { localStorage.setItem(lsk('phaseStarted', community), phaseStarted ? '1' : ''); } catch {}
+  }, [phaseStarted, community]);
+  useEffect(() => { try { localStorage.setItem(lsk('selectedSlug', community), selectedSlug); } catch {} }, [selectedSlug, community]);
+  useEffect(() => { try { localStorage.setItem(lsk('selectedPhaseGroupId', community), selectedPhaseGroupId); } catch {} }, [selectedPhaseGroupId, community]);
+  useEffect(() => { try { if (selectedEventId) localStorage.setItem(lsk('selectedEventId', community), selectedEventId); } catch {} }, [selectedEventId, community]);
+  useEffect(() => { try { localStorage.setItem(lsk('selectedBracketUrl', community), selectedBracketUrl); } catch {} }, [selectedBracketUrl, community]);
+  useEffect(() => { try { localStorage.setItem(lsk('setupFormats', community), JSON.stringify(setupFormats)); } catch {} }, [setupFormats, community]);
 
   // Restaurar timers activos tras F5
   useEffect(() => {
@@ -316,13 +330,14 @@ export default function TestAdminPage() {
     if (!stored?.access_token) { router.replace('/login'); return; }
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      const hasAccess = data.isAdmin || data.adminCommunities?.includes('test');
+      const comm = _communitySync();
+      const hasAccess = data.isAdmin || data.adminCommunities?.includes(comm);
       if (!hasAccess) { router.replace('/home'); return; }
       setUser(data.user);
       setChecking(false);
       // Re-registrar sesiones activas en el servidor WS (en caso de restart del servidor)
       try {
-        const saved = localStorage.getItem('afk_assignedSets');
+        const saved = localStorage.getItem(lsk('assignedSets', comm));
         if (saved) {
           const parsed = JSON.parse(saved);
           const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
@@ -605,7 +620,7 @@ export default function TestAdminPage() {
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
     const format = setupFormats[setupId] || 'BO3';
-    const sessionId = `ban-${setupId.replace('test-', '')}-${Date.now().toString(36)}`;
+    const sessionId = `ban-${setupId.replace(`${community}-`, '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
     const banUrl  = `${origin}/tablet/${sessionId}`;
     const banUrl1 = `${banUrl}?p=player1`;
@@ -688,7 +703,7 @@ export default function TestAdminPage() {
     setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, banUrl1, banUrl2, startggSetId, startggEntrant1Id, startggEntrant2Id, timerStartedAt: Date.now() } }));
 
     // Notificar a cada jugador con su URL específica (para identificación automática sin login)
-    const notifTitle = `📢 Match llamado — ${setupId.replace('test-', '').replace('stream', 'Stream')}`;
+    const notifTitle = `📢 Match llamado — ${setupId.replace(`${community}-`, '').replace('stream', 'Stream')}`;
     const notifBody  = `${players.join(' vs ')} — ¡Tienen 5 min para hacer check-in!`;
     try {
       await fetch('/api/notifications/send', {
@@ -790,7 +805,7 @@ export default function TestAdminPage() {
             const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
             const isDone  = set.stateLabel === 'COMPLETED';
             const isBye   = set.stateLabel === 'BYE';
-            const aSetup  = TEST_SETUPS.find(s => assignedSets[s.id]?.id === set.id);
+            const aSetup  = SETUPS.find(s => assignedSets[s.id]?.id === set.id);
             return (
               <div
                 key={set.id}
@@ -863,7 +878,7 @@ export default function TestAdminPage() {
             <span style={{ fontSize: 17 }}>🏆</span>
             <div>
               <p style={{ margin: 0, fontWeight: 900, fontSize: 15, letterSpacing: '-0.3px', lineHeight: 1.2, color: '#fff' }}>{tournament?.name || 'Panel Torneo'}</p>
-              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{TEST_SETUPS.length} setups · {phaseName || 'Bracket'}</p>
+              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{SETUPS.length} setups · {phaseName || 'Bracket'}</p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -922,7 +937,7 @@ export default function TestAdminPage() {
             )}
           </div>
           <div className="setups-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {TEST_SETUPS.map(setup => {
+            {SETUPS.map(setup => {
               const assigned = assignedSets[setup.id];
               const isOver   = dragOverSetup === setup.id;
               return (
@@ -940,7 +955,7 @@ export default function TestAdminPage() {
                       <div style={{ width: 30, height: 30, borderRadius: 9, background: setup.color + '1E', border: `1px solid ${setup.color}3A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{setup.icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{setup.label}</p>
-                        {setup.id === 'test-stream' && <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.12em' }}>STREAM</span>}
+                        {setup.id === `${community}-stream` && <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.12em' }}>STREAM</span>}
                       </div>
                       {assigned && <button onClick={() => removeAssignment(setup.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>}
                     </div>
@@ -1191,7 +1206,7 @@ export default function TestAdminPage() {
                 draggedSet={draggedSet}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
-                TEST_SETUPS={TEST_SETUPS}
+                TEST_SETUPS={SETUPS}
                 SET_STATE_STYLE={SET_STATE_STYLE}
               />
             )}
