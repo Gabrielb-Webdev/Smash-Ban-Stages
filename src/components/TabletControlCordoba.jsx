@@ -193,6 +193,8 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
       : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
       : null)
     : null;
+  // En modo 1 dispositivo los controles de turno no se restringen por jugador
+  const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
   if (!sessionId) {
     return (
@@ -383,11 +385,11 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
         )}
 
         {/* ── Stage Ban Phase ── */}
-        {session.phase === 'STAGE_BAN' && myPlayer && session.currentTurn !== myPlayer && (
+        {session.phase === 'STAGE_BAN' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="❌" turnPlayerName={session[session.currentTurn]?.name}
             action={`baneando${session.bansRemaining > 0 ? ` (${session.bansRemaining} restante${session.bansRemaining !== 1 ? 's' : ''})` : ''}`} />
         )}
-        {session.phase === 'STAGE_BAN' && (!myPlayer || session.currentTurn === myPlayer) && (
+        {session.phase === 'STAGE_BAN' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
@@ -450,10 +452,10 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
         )}
 
         {/* ── Stage Select Phase ── */}
-        {session.phase === 'STAGE_SELECT' && myPlayer && session.currentTurn !== myPlayer && (
+        {session.phase === 'STAGE_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="🎯" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo el escenario" />
         )}
-        {session.phase === 'STAGE_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
+        {session.phase === 'STAGE_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
@@ -512,10 +514,10 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
         )}
 
         {/* ── Character Select Phase ── */}
-        {session.phase === 'CHARACTER_SELECT' && myPlayer && session.currentTurn !== myPlayer && (
+        {session.phase === 'CHARACTER_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
         )}
-        {session.phase === 'CHARACTER_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
+        {session.phase === 'CHARACTER_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="rounded-xl border border-white/20">
             {/* Sub-header sticky */}
             <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl">

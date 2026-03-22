@@ -191,6 +191,18 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const requestMatchDelay = (sessionId, playerName) => {
+    if (socket) {
+      socket.emit('request-match-delay', { sessionId, playerName });
+    }
+  };
+
+  const enableSingleDevice = (sessionId) => {
+    if (socket) {
+      socket.emit('enable-single-device', { sessionId });
+    }
+  };
+
   return {
     session,
     connected,
@@ -207,5 +219,7 @@ export const useWebSocket = (sessionId) => {
     getPlayerHistory,
     resetSession,
     playerCheckin,
+    requestMatchDelay,
+    enableSingleDevice,
   };
 };

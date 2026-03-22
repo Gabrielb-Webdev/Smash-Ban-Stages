@@ -265,6 +265,8 @@ const httpServer = createServer((req, res) => {
             currentGame: 1,
             phase: 'CHECKIN',
             checkIns: [],
+            delayRequests: [],
+            singleDeviceMode: false,
             rpsWinner: null,
             lastGameWinner: null,
             currentTurn: null,
@@ -555,6 +557,32 @@ io.on('connection', (socket) => {
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
     }
+  });
+
+  // Jugador pide más tiempo (sale del setup por 5 minutos)
+  socket.on('request-match-delay', ({ sessionId, playerName }) => {
+    const session = sessions.get(sessionId);
+    if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
+    if (!session.delayRequests) session.delayRequests = [];
+    if (session.delayRequests.includes(playerName)) {
+      socket.emit('delay-request-denied', { reason: 'Ya usaste esta opción en este match' });
+      return;
+    }
+    session.delayRequests.push(playerName);
+    sessions.set(sessionId, session);
+    io.to(sessionId).emit('session-updated', { session });
+    io.to(sessionId).emit('match-delay-requested', { sessionId, requestedBy: playerName });
+    console.log(`⏱️ Match delay solicitado por ${playerName} en sesión ${sessionId}`);
+  });
+
+  // Habilitar modo un solo dispositivo para el match actual
+  socket.on('enable-single-device', ({ sessionId }) => {
+    const session = sessions.get(sessionId);
+    if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
+    session.singleDeviceMode = true;
+    sessions.set(sessionId, session);
+    io.to(sessionId).emit('session-updated', { session });
+    console.log(`📱 Modo 1 dispositivo activado en sesión ${sessionId}`);
   });
 
   // Actualizar estado de la sesión

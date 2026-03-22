@@ -93,7 +93,18 @@ export default function TestAdminPage() {
   const elapsedTimersRef = useRef({});
   const checkedInSetups = useRef(new Set());
   const autoReleasedSetups = useRef(new Set());
+  const delayReleasedSetups = useRef(new Set());
   const prevGamesRef      = useRef({});  // { [setupId]: número de games reportados }
+
+  // Matches que pidieron más tiempo: [{ ...setData, delayedAt, requestedBy }]
+  const [delayedMatches, setDelayedMatches] = useState([]);
+  // Ticker para re-renderizar el countdown de matches en espera
+  const [, setDelayTick] = useState(0);
+  useEffect(() => {
+    if (delayedMatches.length === 0) return;
+    const iv = setInterval(() => setDelayTick(t => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, [delayedMatches.length]);
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -239,6 +250,39 @@ export default function TestAdminPage() {
       }
       // (Mid-series reporting desactivado: el servidor reporta automáticamente
       //  al finalizar la serie con toda la data de games/personajes/stages)
+
+      // Si algún jugador pidió más tiempo, liberar el setup y mover a cola de espera
+      for (const [setupId, st] of Object.entries(updates)) {
+        if ((st.delayRequests || []).length > 0 && !delayReleasedSetups.current.has(setupId)) {
+          delayReleasedSetups.current.add(setupId);
+          const aSet = assignedSets[setupId];
+          setTimeout(() => {
+            const t = matchTimersRef.current[setupId];
+            if (t?.intervalId) clearInterval(t.intervalId);
+            delete matchTimersRef.current[setupId];
+            setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            const et = elapsedTimersRef.current[setupId];
+            if (et?.intervalId) clearInterval(et.intervalId);
+            delete elapsedTimersRef.current[setupId];
+            setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            checkedInSetups.current.delete(setupId);
+            // Cancelar sesión en el servidor para que los jugadores queden libres
+            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+            if (aSet?.sessionId) {
+              fetch(`${socketUrl}/session/${encodeURIComponent(aSet.sessionId)}`, { method: 'DELETE' }).catch(() => {});
+            }
+            setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            if (aSet) {
+              setDelayedMatches(prev => [...prev, {
+                ...aSet,
+                sessionId: undefined,
+                delayedAt: Date.now(),
+                requestedBy: st.delayRequests[0],
+              }]);
+            }
+          }, 1500);
+        }
+      }
 
       // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
       for (const [setupId, st] of Object.entries(updates)) {
@@ -497,12 +541,18 @@ export default function TestAdminPage() {
   function onDrop(e, setupId) {
     e.preventDefault();
     if (!draggedSet || !tournamentStarted) return;
+    const fromDelayedIdx = draggedSet._fromDelayedIdx;
+    const cleanSet = { ...draggedSet };
+    delete cleanSet._fromDelayedIdx;
     setAssignedSets(prev => {
       const next = { ...prev };
-      for (const k of Object.keys(next)) { if (next[k]?.id === draggedSet.id) delete next[k]; }
-      next[setupId] = draggedSet;
+      for (const k of Object.keys(next)) { if (next[k]?.id === cleanSet.id) delete next[k]; }
+      next[setupId] = cleanSet;
       return next;
     });
+    if (fromDelayedIdx != null) {
+      setDelayedMatches(prev => prev.filter((_, i) => i !== fromDelayedIdx));
+    }
     setDraggedSet(null); setDragOverSetup(null);
   }
   function removeAssignment(setupId) {
@@ -1017,6 +1067,51 @@ export default function TestAdminPage() {
             })}
           </div>
             </div>{/* /setups grid */}
+
+            {/* ── MATCHES EN ESPERA ── */}
+            {delayedMatches.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: '#FBB040' }}>⏱️ Matches en espera</span>
+                  <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(251,176,64,0.12)', border: '1px solid rgba(251,176,64,0.3)', color: '#FBB040', borderRadius: 99, padding: '2px 6px' }}>{delayedMatches.length}</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Arrastrá el match a un setup cuando esté listo</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+                  {delayedMatches.map((match, idx) => {
+                    const remaining = Math.max(0, 300 - Math.floor((Date.now() - match.delayedAt) / 1000));
+                    const mins = Math.floor(remaining / 60);
+                    const secs = String(remaining % 60).padStart(2, '0');
+                    return (
+                      <div
+                        key={idx}
+                        draggable={tournamentStarted}
+                        onDragStart={() => setDraggedSet({ ...match, _fromDelayedIdx: idx })}
+                        style={{ background: '#0F0F1A', border: `1px solid ${remaining === 0 ? 'rgba(74,222,128,0.4)' : 'rgba(251,176,64,0.3)'}`, borderRadius: 14, padding: '12px 14px', cursor: tournamentStarted ? 'grab' : 'default', transition: 'border-color 0.3s' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+                          <span style={{ fontSize: 10, fontWeight: 900, color: '#FBB040', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{match.round}</span>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: remaining === 0 ? '#4ADE80' : remaining <= 60 ? '#F87171' : '#FBB040' }}>
+                            {remaining === 0 ? '✅ Listo' : `⏱️ ${mins}:${secs}`}
+                          </span>
+                        </div>
+                        {(match.slots || []).map((slot, i) => (
+                          <div key={i} style={{ fontSize: 13, color: '#D1D5DB', fontWeight: 700, padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {slot?.entrant?.name || 'TBD'}
+                          </div>
+                        ))}
+                        <p style={{ margin: '6px 0 5px', fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+                          Pedido por: <span style={{ color: 'rgba(251,176,64,0.7)' }}>{match.requestedBy}</span>
+                        </p>
+                        <button
+                          onClick={() => setDelayedMatches(prev => prev.filter((_, i) => i !== idx))}
+                          style={{ width: '100%', padding: '4px', fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.2)', background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}
+                        >Descartar</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* ── TORNEO INFO STRIP ── */}
             <div>

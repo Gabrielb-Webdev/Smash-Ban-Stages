@@ -34,7 +34,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 export default function TabletControl({ sessionId, playerName, playerIndex }) {
-  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, playerCheckin, getPlayerHistory } = useWebSocket(sessionId);
+  const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, playerCheckin, getPlayerHistory, requestMatchDelay, enableSingleDevice } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
   // Obtener tema del torneo
@@ -241,6 +241,8 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
       })()
     : null);
   const myPlayer = (_rawIdentity === 'spectator') ? null : _rawIdentity;
+  // En modo 1 dispositivo los controles de turno no se restringen por jugador
+  const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
   // Guard para evitar renders mientras sessionId no está disponible
   if (!sessionId) {
@@ -356,22 +358,22 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
 
   const handleBanStage = (stageId) => {
     if (isActionBlocked) return;
-    if (myPlayer && session.currentTurn !== myPlayer) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
-      setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: myPlayer || session.currentTurn });
+      setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: effectivePlayer || session.currentTurn });
       startCooldown();
     }
   };
 
   const handleSelectStage = (stageId) => {
     if (isActionBlocked) return;
-    if (myPlayer && session.currentTurn !== myPlayer) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
-      setPendingAction({ type: 'select', stageId, stageName: stage.name, player: myPlayer || session.currentTurn });
+      setPendingAction({ type: 'select', stageId, stageName: stage.name, player: effectivePlayer || session.currentTurn });
       // No activar cooldown después de seleccionar stage
     }
   };
@@ -379,10 +381,10 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   const handleSelectCharacter = (characterId) => {
     // Si es un jugador identificado, solo puede seleccionar para sí mismo
     // Si es admin/espectador (myPlayer=null), selecciona para quien tenga el turno
-    const targetPlayer = myPlayer || session.currentTurn;
+    const targetPlayer = effectivePlayer || session.currentTurn;
     if (!targetPlayer) return;
     // Validar que sea el turno del jugador (si está identificado)
-    if (myPlayer && session.currentTurn !== myPlayer) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     const character = CHARACTERS.find(c => c.id === characterId);
     if (!character) return;
     setPendingAction({ 
@@ -662,6 +664,84 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                         {otherChecked ? 'Listo' : 'Esperando...'}
                       </span>
                     </div>
+
+                    {/* Feature: "Necesito más tiempo" */}
+                    {!session.delayRequests?.includes(myName) ? (
+                      <button
+                        onClick={() => requestMatchDelay(sessionId, myName)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: 14,
+                          border: '1.5px solid rgba(251,176,64,0.45)',
+                          background: 'rgba(251,176,64,0.10)',
+                          color: '#FBB040',
+                          fontSize: 14,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>⏱️</span> Necesito más tiempo
+                      </button>
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        border: '1.5px solid rgba(251,176,64,0.3)',
+                        background: 'rgba(251,176,64,0.07)',
+                        color: '#FBB040',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        textAlign: 'center',
+                      }}>
+                        ⏱️ Solicitud enviada — el admin será notificado
+                      </div>
+                    )}
+
+                    {/* Feature: Modo 1 dispositivo */}
+                    {!session.singleDeviceMode ? (
+                      <button
+                        onClick={() => enableSingleDevice(sessionId)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: 14,
+                          border: '1.5px solid rgba(96,165,250,0.4)',
+                          background: 'rgba(96,165,250,0.09)',
+                          color: '#93C5FD',
+                          fontSize: 14,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>📱</span> Mi rival no tiene dispositivo — usar este
+                      </button>
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        border: '1.5px solid rgba(96,165,250,0.35)',
+                        background: 'rgba(96,165,250,0.08)',
+                        color: '#60A5FA',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        textAlign: 'center',
+                      }}>
+                        📱 Modo 1 dispositivo activo
+                      </div>
+                    )}
                   </div>
                 );
               })()
@@ -825,11 +905,11 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         )}
 
         {/* Stage Ban Phase - Optimizado para móvil */}
-        {session.phase === 'STAGE_BAN' && myPlayer && session.currentTurn !== myPlayer && (
+        {session.phase === 'STAGE_BAN' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="❌" turnPlayerName={session[session.currentTurn]?.name}
             action={`baneando${session.bansRemaining > 0 ? ` (${session.bansRemaining} restante${session.bansRemaining !== 1 ? 's' : ''})` : ''}`} />
         )}
-        {session.phase === 'STAGE_BAN' && (!myPlayer || session.currentTurn === myPlayer) && (
+        {session.phase === 'STAGE_BAN' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex-1 flex flex-col overflow-hidden">
             {/* Cooldown Overlay */}
             {cooldown > 0 && (
@@ -1423,10 +1503,10 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         )}
 
         {/* Stage Select Phase */}
-        {session.phase === 'STAGE_SELECT' && myPlayer && session.currentTurn !== myPlayer && (
+        {session.phase === 'STAGE_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="🎯" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo el escenario" />
         )}
-        {session.phase === 'STAGE_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
+        {session.phase === 'STAGE_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
             {/* Cooldown Overlay */}
             {cooldown > 0 && (
@@ -1889,10 +1969,10 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         )}
 
         {/* Character Select Phase */}
-        {session.phase === 'CHARACTER_SELECT' && myPlayer && session.currentTurn !== myPlayer && (
+        {session.phase === 'CHARACTER_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
         )}
-        {session.phase === 'CHARACTER_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
+        {session.phase === 'CHARACTER_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="rounded-xl border border-white/20">
             {/* Sub-header sticky */}
             <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl">
