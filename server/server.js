@@ -547,10 +547,8 @@ io.on('connection', (socket) => {
       io.to(sessionId).emit('session-updated', { session });
       io.to(sessionId).emit('both-checked-in', { session });
       console.log(`🚀 Ambos check-in en ${sessionId} → iniciando match`);
-      // Marcar el set como en progreso en start.gg
-      if (session.startggSetId) {
-        markSetCalled(session.startggSetId).catch(e => console.warn('⚠️ markSetCalled error:', e.message));
-      }
+      // El set ya fue puesto en ACTIVE (verde) por el admin panel.
+      // NO llamar markSetCalled aquí porque lo regresaría a CALLED (amarillo).
     } else {
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
