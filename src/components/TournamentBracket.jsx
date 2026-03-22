@@ -39,7 +39,7 @@ function getRoundPriority(name) {
   return 60;
 }
 
-function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle }) {
+function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock }) {
   const isDone     = set.stateLabel === 'COMPLETED';
   const isBye      = set.stateLabel === 'BYE';
   const isActive   = set.stateLabel === 'ACTIVE' || set.stateLabel === 'CALLED';
@@ -49,19 +49,21 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
   const slots      = set.slots || [];
   const p1Won      = isDone && slots[0]?.placement === 1;
   const p2Won      = isDone && slots[1]?.placement === 1;
+  const isLocked   = !isDone && !isBye && !!(lockedSets && lockedSets[set.id]);
+  const lockRemaining = isLocked ? Math.max(0, Math.ceil((lockedSets[set.id] - Date.now()) / 1000)) : 0;
 
   return (
     <div
       className="bset"
-      draggable={!isDone && !isBye}
-      onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
+      draggable={!isDone && !isBye && !isLocked}
+      onDragStart={!isDone && !isBye && !isLocked ? e => onDragStart(set, e) : undefined}
       onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
       style={{
         background: isActive ? 'rgba(255,140,0,0.06)' : isDone ? 'rgba(255,255,255,0.025)' : '#13131E',
-        border: `1px solid ${aSetup ? aSetup.color + '66' : isActive ? 'rgba(255,140,0,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`,
+        border: `1px solid ${aSetup ? aSetup.color + '66' : isActive ? 'rgba(255,140,0,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`,
         borderRadius: 10,
         opacity: isDragging ? 0.35 : 1,
-        cursor: isDone || isBye ? 'default' : 'grab',
+        cursor: isDone || isBye ? 'default' : isLocked ? 'not-allowed' : 'grab',
         overflow: 'hidden',
         boxShadow: isActive ? '0 0 0 1px rgba(255,140,0,0.2), 0 4px 12px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.3)',
         transition: 'opacity 0.15s',
@@ -71,11 +73,23 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
         <span style={{ fontSize: 8, fontWeight: 900, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '1px 6px', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.04em' }}>
           {set.stateLabel}
         </span>
-        {aSetup && (
-          <span style={{ fontSize: 8, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '1px 5px', fontFamily: 'Outfit, sans-serif' }}>
-            {aSetup.icon} {aSetup.label}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {aSetup && (
+            <span style={{ fontSize: 8, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '1px 5px', fontFamily: 'Outfit, sans-serif' }}>
+              {aSetup.icon} {aSetup.label}
+            </span>
+          )}
+          {!isDone && !isBye && toggleLock && (
+            <button
+              onClick={e => toggleLock(set.id, e)}
+              title={isLocked ? 'Clic para desbloquear' : 'Clic para bloquear 1 minuto'}
+              style={{ background: isLocked ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isLocked ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 6, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: isLocked ? '#F87171' : 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'Outfit, sans-serif', flexShrink: 0, lineHeight: 1 }}
+            >
+              {isLocked ? '🔒' : '🔓'}
+              {isLocked && <span style={{ fontSize: 9, fontWeight: 800 }}>{lockRemaining}s</span>}
+            </button>
+          )}
+        </div>
       </div>
       {[{ p: slots[0]?.entrant, pw: p1Won, score: slots[0]?.score }, { p: slots[1]?.entrant, pw: p2Won, score: slots[1]?.score }].map(({ p, pw, score }, i) => {
         const lost = isDone && !pw && p?.name && p.name !== 'TBD';
@@ -93,23 +107,23 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
   );
 }
 
-function RoundCol({ roundName, sets, accentColor, ...matchProps }) {
+function RoundCol({ roundName, sets, accentColor, lockedSets, toggleLock, ...matchProps }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 210 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: accentColor + '12', border: `1px solid ${accentColor}28`, borderRadius: 9 }}>
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
         <span style={{ fontSize: 10, fontWeight: 900, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Outfit, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roundName}</span>
       </div>
-      {sets.map(set => <MatchCard key={set.id} set={set} {...matchProps} />)}
+      {sets.map(set => <MatchCard key={set.id} set={set} lockedSets={lockedSets} toggleLock={toggleLock} {...matchProps} />)}
     </div>
   );
 }
 
-function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle }) {
+function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock }) {
   if (!Array.isArray(bracketSets) || bracketSets.length === 0) return null;
 
   const sStyle = extStyle || SET_STATE_STYLE_DEFAULT;
-  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle };
+  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock };
 
   // Agrupar por ronda y ordenar
   const roundsMap = {};

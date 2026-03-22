@@ -1161,6 +1161,8 @@ export default function TestAdminPage() {
                 onDragEnd={onDragEnd}
                 TEST_SETUPS={SETUPS}
                 SET_STATE_STYLE={SET_STATE_STYLE}
+                lockedSets={lockedSets}
+                toggleLock={toggleLock}
               />
             )}
           </div>{/* bracket content */}
