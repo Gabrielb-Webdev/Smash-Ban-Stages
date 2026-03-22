@@ -521,38 +521,14 @@ export default function TestAdminPage() {
     // Reiniciar contador de games para este setup
     prevGamesRef.current[setupId] = 0;
 
-    // PASO 1: markSetCalled → CREATED → CALLED (7)
-    // PASO 2: markSetInProgress → CALLED → ACTIVE (2) verde
+    // NO llamamos markSetCalled/markSetInProgress aquí.
+    // Siguiendo el enfoque del notebook: el set se activa naturalmente
+    // cuando el servidor reporta el primer game via reportBracketSet.
+    // Esto evita que Start.gg vuelva al estado CALLED (amarillo) al reportar games.
     let finalState = null;
-    if (startggSetId) {
-      try {
-        // Paso 1: CREATED → CALLED
-        console.log(`[start.gg] PASO 1: markSetCalled → setId=${startggSetId}`);
-        const calledRes = await fetch('/api/tournaments/mark-set-called', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId) }),
-        });
-        const calledData = await calledRes.json();
-        console.log(`[start.gg] markSetCalled →`, calledData);
-
-        // Paso 2: CALLED → ACTIVE (verde) usando markSetInProgress
-        console.log(`[start.gg] PASO 2: markSetInProgress → setId=${startggSetId}`);
-        const activeRes = await fetch('/api/tournaments/mark-set-in-progress', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId) }),
-        });
-        const activeData = await activeRes.json();
-        finalState = activeData.set?.state || activeData.stateLabel;
-        console.log(`[start.gg] markSetInProgress → state=${finalState}`, activeData);
-      } catch (e) {
-        console.error('[start.gg] ❌ error en secuencia de activación:', e);
-      }
-    }
 
     const STATE_NAMES = { 1: 'CREATED', 2: 'ACTIVE ✅', 3: 'COMPLETED', 6: 'BYE', 7: 'CALLED' };
-    const stateDisplay = STATE_NAMES[finalState] || finalState || '?';
+    const stateDisplay = startggSetId ? 'Match iniciado (CREATED → se activará con Game 1)' : '— iniciado (sin ID)';
 
     // Log local: match llamado
     setReportLog(prev => [{
