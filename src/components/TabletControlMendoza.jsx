@@ -3,7 +3,7 @@
 // Archivo exclusivo para Mendoza. No tocar para Córdoba.
 // Stages Game 1: Small Battlefield, Town and City, Pokemon Stadium 2, Smashville, Battlefield
 // ============================================================
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
 
@@ -90,7 +90,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 
 // ───────────────────────────────────────────────────────────────
 export default function TabletControlMendoza({ sessionId, playerName }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, getPlayerHistory } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const bgStyle = {
@@ -107,6 +107,11 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
   const [lastGameSaved, setLastGameSaved] = useState(0);
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
+  const [turnModal, setTurnModal] = useState(null);
+  const [playerPickHistory, setPlayerPickHistory] = useState([]);
+  const isFirstRender = useRef(true);
+  const prevPhaseRef = useRef(null);
+  const prevTurnRef = useRef(null);
 
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
@@ -140,6 +145,57 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
       }
     }
   }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
+
+  // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
+  useEffect(() => {
+    if (!session || session.phase !== 'CHARACTER_SELECT' || !session.currentTurn) return;
+    const pName = session[session.currentTurn]?.name;
+    if (!pName) return;
+    setPlayerPickHistory([]);
+    getPlayerHistory(pName, (data) => {
+      setPlayerPickHistory(data.characters || []);
+    });
+  }, [session?.phase, session?.currentTurn]);
+
+  // Detectar cambios de fase/turno para mostrar modal de anuncio
+  useEffect(() => {
+    if (!session) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevPhaseRef.current = session.phase;
+      prevTurnRef.current = session.currentTurn;
+      return;
+    }
+    const prevPhase = prevPhaseRef.current;
+    const prevTurn = prevTurnRef.current;
+    const turn = session.currentTurn;
+    const name = turn ? session[turn]?.name : '';
+    if (prevPhase !== session.phase) {
+      if (session.phase === 'STAGE_BAN' && turn) {
+        setTurnModal({ icon: '🚫', subtitle: 'Le toca BANEAR stage a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
+      } else if (session.phase === 'STAGE_SELECT' && turn) {
+        setTurnModal({ icon: '🎯', subtitle: 'Le toca ELEGIR stage a', playerName: name, gradient: 'linear-gradient(160deg,#020d1a 0%,#0c2340 50%,#1d4ed8 100%)', accent: '#60a5fa' });
+      } else if (session.phase === 'CHARACTER_SELECT' && turn) {
+        setTurnModal({ icon: '🎮', subtitle: 'Elige tu personaje', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+      }
+    } else if (prevTurn !== turn && turn && session.phase !== 'RPS') {
+      if (session.phase === 'STAGE_BAN') {
+        setTurnModal({ icon: '🚫', subtitle: 'Ahora le toca BANEAR a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
+      } else if (session.phase === 'CHARACTER_SELECT') {
+        setTurnModal({ icon: '🎮', subtitle: 'Ahora te toca elegir a vos', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+      }
+    }
+    prevPhaseRef.current = session.phase;
+    prevTurnRef.current = session.currentTurn;
+  }, [session?.phase, session?.currentTurn]);
+
+  // Auto-dismiss del modal de turno después de 4s
+  useEffect(() => {
+    if (turnModal) {
+      const t = setTimeout(() => setTurnModal(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [turnModal]);
 
   const handleRepeatCharacter = (player, repeat) => {
     setShowRepeatModal({ player1: false, player2: false });
@@ -233,6 +289,12 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
     }
   };
 
+  const handleRandomCharacter = () => {
+    if (session.currentTurn) {
+      setPendingAction({ type: 'character', characterId: 'random', characterName: '?', characterImage: null, player: session.currentTurn, isRandom: true });
+    }
+  };
+
   const confirmAction = () => {
     if (!pendingAction || !sessionId) return;
     switch (pendingAction.type) {
@@ -253,11 +315,10 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
 
   // ── Render ──────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 md:p-4 overflow-hidden" style={bgStyle}>
-      <div className="w-full h-full max-w-7xl flex flex-col gap-3 md:gap-4">
+    <div style={{ ...bgStyle }}>
 
-        {/* ── Header ── */}
-        <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-white/20 flex-shrink-0">
+      {/* ── Header sticky ── */}
+      <div className="sticky top-0 z-40 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl" style={{ background: 'rgba(0,0,0,0.92)' }}>
           <div className="flex justify-between items-center gap-2">
 
             {/* Jugadores */}
@@ -299,6 +360,9 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
             />
           </div>
         </div>
+
+      {/* ── Contenido scrollable ── */}
+      <div className="p-3 md:p-4 max-w-7xl mx-auto flex flex-col gap-3 md:gap-4 pb-24">
 
         {/* ── RPS Phase ── */}
         {session.phase === 'RPS' && (
@@ -469,8 +533,9 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
           <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
         )}
         {session.phase === 'CHARACTER_SELECT' && (!myPlayer || session.currentTurn === myPlayer) && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex-1 flex flex-col overflow-hidden">
-            <div className="flex-shrink-0 mb-2 sm:mb-3">
+          <div className="rounded-xl border border-white/20">
+            {/* Sub-header sticky */}
+            <div className="sticky top-[72px] sm:top-[88px] z-30 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl" style={{ background: 'rgba(0,0,0,0.92)' }}>
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
                   <h3 className="text-lg sm:text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
@@ -479,6 +544,29 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
                   </p>
                 </div>
               </div>
+              {/* Picks anteriores del jugador */}
+              {playerPickHistory.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1.5 font-semibold">Personajes seleccionados anteriormente</p>
+                  <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    {playerPickHistory.map((charId) => {
+                      const char = CHARACTERS.find(c => c.id === charId);
+                      if (!char) return null;
+                      return (
+                        <button
+                          key={charId}
+                          onClick={() => handleSelectCharacter(charId)}
+                          title={char.name}
+                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 active:scale-95 touch-manipulation overflow-hidden"
+                          style={{ borderColor: `${THEME.colors.accent}99` }}
+                        >
+                          <img src={char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <input
                 type="text"
                 placeholder="Buscar personaje..."
@@ -488,7 +576,16 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
                 style={{ '--tw-ring-color': THEME.colors.primary }}
               />
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 flex-1 overflow-y-scroll pr-1 pb-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 p-2 sm:p-4 pb-4 bg-white/10">
+              {/* Botón aleatorio "?" */}
+              <button
+                onClick={handleRandomCharacter}
+                className="aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center active:scale-95 border-2 touch-manipulation"
+                style={{ background: `linear-gradient(135deg, ${THEME.colors.secondary}, ${THEME.colors.primary})`, borderColor: `${THEME.colors.accent}99` }}
+                title="Aleatorio"
+              >
+                <span className="text-white font-black" style={{ fontFamily: 'Anton', fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>?</span>
+              </button>
               {filteredCharacters.map((character) => (
                 <button
                   key={character.id}
@@ -670,7 +767,73 @@ export default function TabletControlMendoza({ sessionId, playerName }) {
           </div>
         )}
 
+      </div>{/* fin contenido scrollable */}
+
+      {/* ── Modal de anuncio de turno ── */}
+      {turnModal && (
+        <>
+          <style>{`
+            @keyframes modalPopMdz {
+              0%   { opacity: 0; transform: scale(0.75) translateY(24px); }
+              70%  { transform: scale(1.03) translateY(-4px); }
+              100% { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            @keyframes accentPulseMdz {
+              0%, 100% { opacity: 0.7; }
+              50%       { opacity: 1; }
+            }
+            @keyframes fadeSlideUpMdz {
+              from { opacity: 0; transform: translateY(12px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+          <div
+            className="fixed inset-0 flex items-center justify-center z-[60]"
+            style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)' }}
+            onClick={() => setTurnModal(null)}
+          >
+            <div
+              className="relative max-w-sm w-full mx-5 text-center overflow-hidden"
+              style={{
+                background: turnModal.gradient,
+                borderRadius: '28px',
+                boxShadow: `0 0 0 1px rgba(255,255,255,0.1), 0 32px 64px rgba(0,0,0,0.7), 0 0 60px ${turnModal.accent}33`,
+                animation: 'modalPopMdz 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 right-0" style={{ height: '3px', background: `linear-gradient(90deg, transparent, ${turnModal.accent}, transparent)`, animation: 'accentPulseMdz 2s ease-in-out infinite' }} />
+              <div className="px-8 pt-10 pb-8">
+                <div className="mx-auto mb-5 flex items-center justify-center text-5xl" style={{ width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: `2px solid ${turnModal.accent}66`, boxShadow: `0 0 24px ${turnModal.accent}44`, animation: 'fadeSlideUpMdz 0.35s ease both 0.05s' }}>
+                  {turnModal.icon}
+                </div>
+                <p className="font-bold uppercase" style={{ color: turnModal.accent, fontSize: '0.7rem', letterSpacing: '0.22em', animation: 'fadeSlideUpMdz 0.35s ease both 0.12s', opacity: 0, animationFillMode: 'forwards' }}>
+                  {turnModal.subtitle}
+                </p>
+                <div className="mx-auto my-4" style={{ width: 48, height: '1px', background: `linear-gradient(90deg, transparent, ${turnModal.accent}88, transparent)` }} />
+                <p className="text-white font-black leading-none mb-8" style={{ fontFamily: 'Anton', fontSize: 'clamp(2.5rem, 10vw, 3.5rem)', textShadow: `0 4px 20px rgba(0,0,0,0.6), 0 0 40px ${turnModal.accent}44`, animation: 'fadeSlideUpMdz 0.35s ease both 0.18s', opacity: 0, animationFillMode: 'forwards' }}>
+                  {turnModal.playerName}
+                </p>
+                <button onClick={() => setTurnModal(null)} className="w-full py-4 font-bold text-sm text-white active:scale-95 transition-transform touch-manipulation" style={{ borderRadius: '16px', background: `linear-gradient(135deg, ${turnModal.accent}33, ${turnModal.accent}18)`, border: `1px solid ${turnModal.accent}55`, boxShadow: `0 4px 16px ${turnModal.accent}22`, letterSpacing: '0.05em', animation: 'fadeSlideUpMdz 0.35s ease both 0.25s', opacity: 0, animationFillMode: 'forwards' }}>
+                  Entendido ✓
+                </button>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0" style={{ height: '80px', background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Botón Home flotante ── */}
+      <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 70 }}>
+        <button
+          onClick={() => { window.location.href = '/home'; }}
+          style={{ padding: '10px 24px', borderRadius: 50, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.7)', fontFamily: 'Anton, sans-serif', fontSize: 13, letterSpacing: '0.05em', cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}
+        >
+          🏠 Home
+        </button>
       </div>
+
     </div>
   );
 }
