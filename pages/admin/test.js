@@ -918,7 +918,17 @@ export default function TestAdminPage() {
                     </div>
                     {assigned ? (
                       <div style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${setup.color}20`, borderRadius: 11, padding: '9px 11px' }}>
-                        <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{assigned.round}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 8px' }}>
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{assigned.round}</p>
+                          {(matchTimers[setup.id] != null || elapsedTimers[setup.id] != null) && (
+                            <span style={{ fontSize: 10, fontWeight: 800, color: elapsedTimers[setup.id] != null ? '#4ADE80' : '#FF8C00' }}>
+                              {elapsedTimers[setup.id] != null
+                                ? `⏱️ ${Math.floor(elapsedTimers[setup.id]/60)}:${String(elapsedTimers[setup.id]%60).padStart(2,'0')}`
+                                : `⏳ ${Math.floor(matchTimers[setup.id]/60)}:${String(matchTimers[setup.id]%60).padStart(2,'0')}`
+                              }
+                            </span>
+                          )}
+                        </div>
                         {(assigned.slots || []).map((slot, i) => {
                           const slotName = slot?.entrant?.name;
                           const status = sessionStatuses[setup.id];
@@ -933,15 +943,23 @@ export default function TestAdminPage() {
                             </div>
                           );
                         })}
-                        {/* Botón Iniciar match / countdown / ban link */}
+                        {/* Botón Iniciar match / fase + cancelar */}
                         {(matchTimers[setup.id] != null || elapsedTimers[setup.id] != null) ? (
-                          <div style={{ marginTop: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: elapsedTimers[setup.id] != null ? 'rgba(34,197,94,0.08)' : 'rgba(255,140,0,0.08)', border: `1px solid ${elapsedTimers[setup.id] != null ? 'rgba(34,197,94,0.3)' : 'rgba(255,140,0,0.3)'}`, borderRadius: 8, padding: '7px 10px', marginBottom: 6 }}>
-                              {elapsedTimers[setup.id] != null ? (
-                                <span style={{ fontSize: 11, fontWeight: 800, color: '#4ADE80', flex: 1 }}>⏱️ Jugando: {Math.floor(elapsedTimers[setup.id] / 60)}:{String(elapsedTimers[setup.id] % 60).padStart(2, '0')}</span>
-                              ) : (
-                                <span style={{ fontSize: 11, fontWeight: 800, color: '#FF8C00', flex: 1 }}>⏳ Check-in: {Math.floor(matchTimers[setup.id] / 60)}:{String(matchTimers[setup.id] % 60).padStart(2, '0')}</span>
-                              )}
+                          <div style={{ marginTop: 8 }}>
+                            {/* Badge de fase + botón cancelar */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                              {(() => {
+                                const st = sessionStatuses[setup.id];
+                                const PHASE_COLORS = { CHECKIN:'#FF8C00', RPS:'#A78BFA', CHARACTER_SELECT:'#818CF8', STAGE_BAN:'#EF4444', STAGE_SELECT:'#60A5FA', PLAYING:'#4ADE80', FINISHED:'#9CA3AF' };
+                                const PHASE_LABEL  = { CHECKIN:'CHECK-IN', RPS:'RPS', CHARACTER_SELECT:'PERSONAJES', STAGE_BAN:'BANEANDO', STAGE_SELECT:'ELIGIENDO', PLAYING:'JUGANDO', FINISHED:'FINALIZADO' };
+                                const phase = st?.phase || 'CHECKIN';
+                                const col = PHASE_COLORS[phase] || setup.color;
+                                return (
+                                  <span style={{ fontSize: 9, fontWeight: 900, color: col, background: col + '22', border: `1px solid ${col}44`, borderRadius: 99, padding: '2px 8px', letterSpacing: '0.1em' }}>
+                                    {PHASE_LABEL[phase] || phase}
+                                  </span>
+                                );
+                              })()}
                               <button onClick={() => stopMatchTimer(setup.id)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 6, padding: '3px 8px', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>Cancelar</button>
                             </div>
                             {/* Live game info */}
@@ -950,7 +968,7 @@ export default function TestAdminPage() {
                               if (!st || !st.currentGame) return null;
                               const PHASE_LABEL = { CHECKIN:'Check-in', RPS:'RPS', CHARACTER_SELECT:'Eligiendo personaje', STAGE_BAN:'Baneando stage', STAGE_SELECT:'Eligiendo stage', PLAYING:'Jugando', FINISHED:'Finalizado' };
                               return (
-                                <div style={{ marginBottom: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 9px' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 9px' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                     <span style={{ fontSize: 9, fontWeight: 800, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Game {st.currentGame} · {st.format || 'BO3'} · {PHASE_LABEL[st.phase] || st.phase}</span>
                                     <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{st.score1 ?? 0} – {st.score2 ?? 0}</span>
@@ -976,35 +994,6 @@ export default function TestAdminPage() {
                                 </div>
                               );
                             })()}
-                            {assigned?.banUrl && (
-                              <div style={{ marginTop: 8 }}>
-                                <a href={assigned.banUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: setup.color, background: setup.color + '15', border: `1px solid ${setup.color}35`, borderRadius: 7, padding: '5px 8px', textDecoration: 'none', marginBottom: 8 }}>
-                                  🎯 Abrir sistema de ban →
-                                </a>
-                                {/* Dos QR codes: J1 y J2 con URL específica por jugador */}
-                                {(() => {
-                                  const q1 = assigned.banUrl1 || (assigned.banUrl + '?p=player1');
-                                  const q2 = assigned.banUrl2 || (assigned.banUrl + '?p=player2');
-                                  const p1name = assigned.slots?.[0]?.entrant?.name || 'J1';
-                                  const p2name = assigned.slots?.[1]?.entrant?.name || 'J2';
-                                  return (
-                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1 }}>
-                                        <span style={{ fontSize: 8, color: setup.color, fontWeight: 800 }}>🔴 J1</span>
-                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=ffffff&bgcolor=0B0B12&data=${encodeURIComponent(q1)}`} alt="QR J1" style={{ width: 90, height: 90, borderRadius: 6, border: `1px solid ${setup.color}40` }} />
-                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p1name}</span>
-                                      </div>
-                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1 }}>
-                                        <span style={{ fontSize: 8, color: '#818CF8', fontWeight: 800 }}>🔵 J2</span>
-                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=ffffff&bgcolor=0B0B12&data=${encodeURIComponent(q2)}`} alt="QR J2" style={{ width: 90, height: 90, borderRadius: 6, border: '1px solid rgba(129,140,248,0.4)' }} />
-                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', textAlign: 'center', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p2name}</span>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                <p style={{ margin: '5px 0 0', textAlign: 'center', fontSize: 8, color: 'rgba(255,255,255,0.2)' }}>📱 Cada jugador escanea su QR</p>
-                              </div>
-                            )}
                           </div>
                         ) : (
                           <div style={{ marginTop: 10 }}>
