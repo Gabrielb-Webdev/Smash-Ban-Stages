@@ -68,6 +68,10 @@ export default function TestAdminPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Candados del bracket: { [setId]: expiresAt (timestamp) }
+  const [lockedSets, setLockedSets] = useState({});
+  const [lockTick, setLockTick] = useState(0); // ticker para forzar re-render del countdown
+
   // Selección dinámica de torneo
   const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || 'tournament/asd3'; } catch { return 'tournament/asd3'; } });
   const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || '3244687'; } catch { return '3244687'; } });
@@ -163,6 +167,30 @@ export default function TestAdminPage() {
       matchTimersRef.current[setupId].intervalId = iv;
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ticker 1s para animar countdowns de candados y auto-desbloquear
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setLockedSets(prev => {
+        const expired = Object.keys(prev).filter(k => prev[k] <= now);
+        if (!expired.length) return prev;
+        const next = { ...prev };
+        expired.forEach(k => delete next[k]);
+        return next;
+      });
+      setLockTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleLock(setId, e) {
+    e.stopPropagation();
+    setLockedSets(prev => {
+      if (prev[setId]) { const n = { ...prev }; delete n[setId]; return n; }
+      return { ...prev, [setId]: Date.now() + 60000 };
+    });
+  }
 
   // --- Polling check-in de sesiones activas ---
   useEffect(() => {
@@ -506,7 +534,7 @@ export default function TestAdminPage() {
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
 
   function onDragStart(set, e) {
-    if (!tournamentStarted) { e.preventDefault(); return; }
+    if (!tournamentStarted || lockedSets[set.id]) { e.preventDefault(); return; }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -763,18 +791,32 @@ export default function TestAdminPage() {
             const isDone  = set.stateLabel === 'COMPLETED';
             const isBye   = set.stateLabel === 'BYE';
             const aSetup  = SETUPS.find(s => assignedSets[s.id]?.id === set.id);
+            const isLocked = !isDone && !isBye && !!lockedSets[set.id];
+            const lockRemaining = isLocked ? Math.max(0, Math.ceil((lockedSets[set.id] - Date.now()) / 1000)) : 0;
             return (
               <div
                 key={set.id}
                 className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                draggable={!isDone && !isBye}
-                onDragStart={!isDone && !isBye ? e => onDragStart(set, e) : undefined}
+                draggable={!isDone && !isBye && !isLocked}
+                onDragStart={!isDone && !isBye && !isLocked ? e => onDragStart(set, e) : undefined}
                 onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : 'grab', position: 'relative' }}
+                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : isLocked ? 'not-allowed' : 'grab', position: 'relative' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
-                  {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
+                    {!isDone && !isBye && (
+                      <button
+                        onClick={e => toggleLock(set.id, e)}
+                        title={isLocked ? 'Clic para desbloquear' : 'Clic para bloquear 1 minuto'}
+                        style={{ background: isLocked ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isLocked ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 6, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: isLocked ? '#F87171' : 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Outfit',sans-serif", flexShrink: 0, lineHeight: 1 }}
+                      >
+                        {isLocked ? '🔒' : '🔓'}
+                        {isLocked && <span style={{ fontSize: 9, fontWeight: 800 }}>{lockRemaining}s</span>}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ padding: '7px 9px' }}>
                   {(set.slots || []).map((slot, i) => {
