@@ -670,17 +670,36 @@ io.on('connection', (socket) => {
       return;
     }
     session.delayRequests.push(playerName);
+    // Marcar la sesión como DELAYED automáticamente: libera el setup sin intervención del admin
+    session.phase = 'DELAYED';
     sessions.set(sessionId, session);
     io.to(sessionId).emit('session-updated', { session });
-    io.to(sessionId).emit('match-delay-requested', { sessionId, requestedBy: playerName });
-    console.log(`⏱️ Match delay solicitado por ${playerName} en sesión ${sessionId}`);
+    // Emitir a todos los observadores (admin panel) para que liberen el setup
+    io.emit('match-auto-delayed', { sessionId, player1: session.player1?.name, player2: session.player2?.name, requestedBy: playerName });
+    console.log(`⏱️ Match auto-delayed por ${playerName} en sesión ${sessionId}`);
   });
 
-  // Habilitar modo un solo dispositivo para el match actual
+  // Habilitar modo un solo dispositivo → auto check-in de ambos jugadores
   socket.on('enable-single-device', ({ sessionId }) => {
     const session = sessions.get(sessionId);
     if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
     session.singleDeviceMode = true;
+    // Auto check-in de ambos jugadores si estamos en CHECKIN
+    if (session.phase === 'CHECKIN') {
+      if (!session.checkIns) session.checkIns = [];
+      const p1 = session.player1?.name;
+      const p2 = session.player2?.name;
+      if (p1 && !session.checkIns.includes(p1)) session.checkIns.push(p1);
+      if (p2 && !session.checkIns.includes(p2)) session.checkIns.push(p2);
+      if (session.checkIns.length >= 2) {
+        session.phase = 'RPS';
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
+        io.to(sessionId).emit('both-checked-in', { session });
+        console.log(`📱 Modo 1 dispositivo + auto check-in → RPS en sesión ${sessionId}`);
+        return;
+      }
+    }
     sessions.set(sessionId, session);
     io.to(sessionId).emit('session-updated', { session });
     console.log(`📱 Modo 1 dispositivo activado en sesión ${sessionId}`);

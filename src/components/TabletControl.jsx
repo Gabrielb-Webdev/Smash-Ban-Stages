@@ -586,6 +586,31 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
       {/* ── Contenido scrollable ── */}
       <div className="p-3 md:p-4 max-w-7xl mx-auto flex flex-col gap-3 md:gap-4 pb-24">
 
+        {/* DELAYED Phase — match re-agendado automáticamente */}
+        {session.phase === 'DELAYED' && (
+          <div style={{
+            background: 'rgba(251,176,64,0.08)',
+            backdropFilter: 'blur(16px)',
+            borderRadius: 24,
+            padding: '40px 24px',
+            border: '2px solid rgba(251,176,64,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 20,
+            flex: 1,
+            justifyContent: 'center',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 56 }}>🔄</div>
+            <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#FBB040', textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>Match re-agendado</h2>
+            <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
+              El setup fue liberado.<br />
+              <span style={{ color: '#FBB040', fontWeight: 700 }}>Esperá en el área de espera</span> hasta que el admin te asigne un nuevo match.
+            </p>
+          </div>
+        )}
+
         {/* CHECKIN Phase */}
         {session.phase === 'CHECKIN' && (
           <div style={{
@@ -665,7 +690,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                       </span>
                     </div>
 
-                    {/* Feature: "Necesito más tiempo" */}
+                    {/* Feature: "No puedo jugar ahora" — libera el setup automáticamente */}
                     {!session.delayRequests?.includes(myName) ? (
                       <button
                         onClick={() => requestMatchDelay(sessionId, myName)}
@@ -686,7 +711,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                           fontFamily: 'inherit',
                         }}
                       >
-                        <span>⏱️</span> Necesito más tiempo
+                        <span>🔄</span> No puedo jugar ahora — cambiar match
                       </button>
                     ) : (
                       <div style={{
@@ -700,11 +725,11 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                         fontWeight: 700,
                         textAlign: 'center',
                       }}>
-                        ⏱️ Solicitud enviada — el admin será notificado
+                        🔄 Match re-agendado — esperá en el área de espera
                       </div>
                     )}
 
-                    {/* Feature: Modo 1 dispositivo */}
+                    {/* Feature: Modo 1 dispositivo — hace auto check-in de ambos */}
                     {!session.singleDeviceMode ? (
                       <button
                         onClick={() => enableSingleDevice(sessionId)}

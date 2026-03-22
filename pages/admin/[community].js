@@ -10,11 +10,7 @@ export default function CommunityAdmin() {
 
   useEffect(() => {
     if (!community) return;
-    if (community === 'afk-multi') {
-      router.replace('/admin/afk-multi');
-    } else {
-      router.replace(`/admin/test?community=${community}`);
-    }
+    router.replace(`/admin/test?community=${community}`);
   }, [community]);
 
   return (
