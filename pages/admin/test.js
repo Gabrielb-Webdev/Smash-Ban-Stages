@@ -962,14 +962,6 @@ export default function TestAdminPage() {
                       <div style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${setup.color}20`, borderRadius: 11, padding: '9px 11px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 8px' }}>
                           <p style={{ margin: 0, fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{assigned.round}</p>
-                          {(matchTimers[setup.id] != null || elapsedTimers[setup.id] != null) && (
-                            <span style={{ fontSize: 10, fontWeight: 800, color: elapsedTimers[setup.id] != null ? '#4ADE80' : '#FF8C00' }}>
-                              {elapsedTimers[setup.id] != null
-                                ? `⏱️ ${Math.floor(elapsedTimers[setup.id]/60)}:${String(elapsedTimers[setup.id]%60).padStart(2,'0')}`
-                                : `⏳ ${Math.floor(matchTimers[setup.id]/60)}:${String(matchTimers[setup.id]%60).padStart(2,'0')}`
-                              }
-                            </span>
-                          )}
                         </div>
                         {(assigned.slots || []).map((slot, i) => {
                           const slotName = slot?.entrant?.name;
