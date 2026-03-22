@@ -867,10 +867,8 @@ io.on('connection', (socket) => {
       io.to(sessionId).emit('session-updated', { session });
 
       // Solo reportar a Start.gg cuando la serie termina.
-      // El set ya está en ACTIVE (verde) desde que el admin inició el match.
-      // No tocamos Start.gg mid-series para no cambiar el estado.
-      // Al final enviamos TODO de una vez: games + personajes + stages + winnerId → COMPLETED
-      if (session.startggSetId && seriesFinished) {
+      // Reportar cada game a Start.gg dinámicamente
+      if (session.startggSetId) {
         const gameData = session.games.map(g => ({
           gameNum: g.gameNum,
           winnerId: g.winnerId,
@@ -880,8 +878,17 @@ io.on('connection', (socket) => {
           p2CharacterId: g.p2CharacterId,
           stageId: g.stageId,
         }));
-        reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
-          .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
+
+        if (seriesFinished) {
+          // Serie terminó → reportar con winnerId → COMPLETED
+          reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
+            .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
+        } else {
+          // Mid-series → reportar progreso y volver a ACTIVE (verde)
+          reportToStartGG(session.startggSetId, null, gameData)
+            .then(() => markSetInProgress(session.startggSetId))
+            .catch(e => console.error('⚠️ Error reportando mid-series a start.gg:', e.message));
+        }
       }
     }
   });
