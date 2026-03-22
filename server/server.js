@@ -740,10 +740,11 @@ io.on('connection', (socket) => {
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
       } else {
-        // Ambos han seleccionado, esperar 2 segundos antes de ir a STAGE_BAN
+        // Ambos han seleccionado, cambiar a STAGE_BAN (delay solo en stream)
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
         
+        const phaseDelay = sessionId.toLowerCase().includes('stream') ? 2000 : 0;
         setTimeout(() => {
           const updatedSession = sessions.get(sessionId);
           if (updatedSession && updatedSession.phase === 'CHARACTER_SELECT') {
@@ -787,7 +788,7 @@ io.on('connection', (socket) => {
             sessions.set(sessionId, updatedSession);
             io.to(sessionId).emit('session-updated', { session: updatedSession });
           }
-        }, 2000);
+        }, phaseDelay);
       }
     }
   });

@@ -335,7 +335,10 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
     setPendingAction({ type: 'rps', winner, playerName, proposedBy });
   };
 
+  const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
+
   const startCooldown = () => {
+    if (!isStreamSession) return; // Sin cooldown para setups no-stream
     setIsActionBlocked(true);
     setCooldown(3);
     
@@ -2454,9 +2457,9 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
       <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 70 }}>
         <button
           onClick={() => { window.location.href = '/home'; }}
-          style={{ padding: '10px 24px', borderRadius: 50, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.7)', fontFamily: 'Anton, sans-serif', fontSize: 13, letterSpacing: '0.05em', cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}
+          style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,0.2)', color: 'white', fontSize: 22, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
-          🏠 Home
+          🏠
         </button>
       </div>
 
