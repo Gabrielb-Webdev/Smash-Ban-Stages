@@ -124,9 +124,9 @@ function detectTournament(sessionId) {
     return 'afk';
   }
 
-  // Caso 1: sessionId directo (ej: "mendoza" desde /tablet/mendoza)
-  if (s === 'mendoza') {
-    console.log('✅ Direct match: mendoza detected');
+  // Caso 1: sessionId directo o con prefijo (ej: "mendoza", "mendoza-1-abc123")
+  if (s === 'mendoza' || s.startsWith('mendoza-')) {
+    console.log('✅ Direct/prefix match: mendoza detected');
     return 'mendoza';
   }
   
