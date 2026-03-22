@@ -178,12 +178,16 @@ export default function TestAdminPage() {
               ? aSet.startggEntrant1Id
               : aSet.startggEntrant2Id;
 
-            // Armar gameData desde los games que reportó el servidor
-            // Nota: char1/char2 son slugs y Start.gg necesita IDs numéricos,
-            // así que el respaldo solo envía gameNum + winnerId (basta para COMPLETED).
+            // Armar gameData completa desde los games que reportó el servidor.
+            // Enviamos slugs de personajes/stages — report-set.js los mapea a IDs.
             const gameData = (st.games || []).map(g => ({
               gameNum: g.gameNum,
               winnerId: String(g.winnerEntrantId || ''),
+              char1Slug: g.char1 || null,
+              char2Slug: g.char2 || null,
+              p1EntrantId: g.p1EntrantId || aSet.startggEntrant1Id || null,
+              p2EntrantId: g.p2EntrantId || aSet.startggEntrant2Id || null,
+              stageSlug: g.stage || null,
             })).filter(g => g.winnerId);
 
             if (winnerEntrantId) {

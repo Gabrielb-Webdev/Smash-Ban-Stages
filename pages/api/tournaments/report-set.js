@@ -1,8 +1,41 @@
 // Endpoint para reportar resultados de un set a start.gg
 // POST /api/tournaments/report-set
-// Body: { setId, winnerId, gameData: [{ gameNum, winnerId }] }
+// Body: { setId, winnerId, gameData: [{ gameNum, winnerId, selections?, stageId?,
+//         p1EntrantId?, p2EntrantId?, char1Slug?, char2Slug?, stageSlug? }] }
 // Si winnerId es null = actualización parcial (en curso); si tiene valor = resultado final
 // Si gameData NO se envía (undefined/null) → Start.gg activa el set (CREATED → ACTIVE)
+// Acepta slugs de personajes/stages y los convierte automáticamente a IDs de Start.gg
+
+const STARTGG_CHARACTER_IDS = {
+  'banjo-kazooie': 1747, 'bayonetta': 1279, 'bowser': 1272, 'bowser-jr': 1283,
+  'byleth': 1749, 'captain-falcon': 1281, 'chrom': 1741, 'cloud': 1285,
+  'corrin': 1287, 'daisy': 1739, 'dark-pit': 1289, 'dark-samus': 1740,
+  'diddy-kong': 1291, 'donkey-kong': 1275, 'dr-mario': 1293, 'duck-hunt': 1295,
+  'falco': 1297, 'fox': 1299, 'ganondorf': 1301, 'greninja': 1303,
+  'hero': 1748, 'ice-climbers': 1305, 'ike': 1307, 'incineroar': 1743,
+  'inkling': 1738, 'isabelle': 1742, 'jigglypuff': 1309, 'joker': 1746,
+  'kazuya': 1753, 'ken': 1744, 'king-dedede': 1311, 'king-k-rool': 1745,
+  'kirby': 1313, 'link': 1315, 'little-mac': 1317, 'lucario': 1319,
+  'lucas': 1321, 'lucina': 1323, 'luigi': 1325, 'mario': 1273,
+  'marth': 1327, 'mega-man': 1329, 'meta-knight': 1331, 'mewtwo': 1333,
+  'mii-brawler': 1335, 'mii-gunner': 1337, 'mii-swordfighter': 1339,
+  'min-min': 1750, 'mr-game-watch': 1341, 'ness': 1343, 'olimar': 1345,
+  'pac-man': 1347, 'palutena': 1349, 'peach': 1351, 'pichu': 1353,
+  'pikachu': 1355, 'piranha-plant': 1756, 'pit': 1357,
+  'pokemon-trainer': 1359, 'pyra-mythra': 1752, 'rob': 1361, 'richter': 1736,
+  'ridley': 1737, 'robin': 1363, 'rosalina-luma': 1365, 'roy': 1367,
+  'ryu': 1369, 'samus': 1371, 'sephiroth': 1751, 'sheik': 1373,
+  'shulk': 1375, 'simon': 1735, 'snake': 1377, 'sonic': 1379,
+  'sora': 1755, 'steve': 1754, 'terry': 1758, 'toon-link': 1381,
+  'villager': 1383, 'wario': 1385, 'wii-fit-trainer': 1387, 'wolf': 1389,
+  'yoshi': 1391, 'young-link': 1393, 'zelda': 1395, 'zero-suit-samus': 1397,
+};
+
+const STARTGG_STAGE_IDS = {
+  'battlefield': 317, 'small-battlefield': 467, 'final-destination': 318,
+  'pokemon-stadium-2': 316, 'smashville': 327, 'town-and-city': 336,
+  'kalos': 340, 'hollow-bastion': 468,
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -41,8 +74,37 @@ export default async function handler(req, res) {
   if (Array.isArray(gameData) && gameData.length > 0) {
     mappedGameData = gameData.map(g => {
       const gd = { gameNum: g.gameNum, winnerId: String(g.winnerId) };
-      if (g.selections?.length) gd.selections = g.selections;
-      if (g.stageId != null) gd.stageId = g.stageId;
+
+      // Si ya vienen selections pre-armadas (del servidor), usarlas
+      if (g.selections?.length) {
+        gd.selections = g.selections;
+      } else {
+        // Auto-construir selections desde slugs de personajes (del admin panel)
+        const selections = [];
+        if (g.char1Slug && g.p1EntrantId) {
+          const charId = STARTGG_CHARACTER_IDS[g.char1Slug];
+          if (charId) selections.push({ entrantId: String(g.p1EntrantId), characterId: charId });
+        }
+        if (g.char2Slug && g.p2EntrantId) {
+          const charId = STARTGG_CHARACTER_IDS[g.char2Slug];
+          if (charId) selections.push({ entrantId: String(g.p2EntrantId), characterId: charId });
+        }
+        if (selections.length > 0) gd.selections = selections;
+      }
+
+      // stageId: si es numérico usarlo directo, si es slug mapearlo
+      if (g.stageId != null) {
+        if (typeof g.stageId === 'string' && isNaN(g.stageId)) {
+          const mapped = STARTGG_STAGE_IDS[g.stageId];
+          if (mapped) gd.stageId = mapped;
+        } else {
+          gd.stageId = Number(g.stageId);
+        }
+      } else if (g.stageSlug) {
+        const mapped = STARTGG_STAGE_IDS[g.stageSlug];
+        if (mapped) gd.stageId = mapped;
+      }
+
       return gd;
     });
   }
