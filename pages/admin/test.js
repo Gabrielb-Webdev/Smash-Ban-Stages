@@ -1005,6 +1005,7 @@ export default function TestAdminPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{setup.label}</p>
                         {setup.id === `${community}-stream` && <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.12em' }}>STREAM</span>}
+                        {(() => { const st = sessionStatuses[setup.id]; if (!st || !st.currentGame) return null; return <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.08em' }}>Game {st.currentGame} · {st.format || 'BO3'}</span>; })()}
                       </div>
                       {assigned && <button onClick={() => removeAssignment(setup.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>}
                     </div>
@@ -1070,12 +1071,10 @@ export default function TestAdminPage() {
                             {(() => {
                               const st = sessionStatuses[setup.id];
                               if (!st || !st.currentGame) return null;
+                              const hasDetails = st.char1 || st.char2 || st.selectedStage || (st.games||[]).length > 0;
+                              if (!hasDetails) return null;
                               return (
                                 <div style={{ marginTop: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 9px' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (st.char1 || st.char2 || st.selectedStage || (st.games||[]).length) ? 4 : 0 }}>
-                                    <span style={{ fontSize: 9, fontWeight: 800, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Game {st.currentGame} · {st.format || 'BO3'}</span>
-                                    <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{st.score1 ?? 0} – {st.score2 ?? 0}</span>
-                                  </div>
                                   {(st.char1 || st.char2) && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>
                                       <span>P1: {st.char1 || '—'}</span>
