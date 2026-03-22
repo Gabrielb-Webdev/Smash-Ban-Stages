@@ -6,35 +6,37 @@
 // Si gameData NO se envía (undefined/null) → Start.gg activa el set (CREATED → ACTIVE)
 // Acepta slugs de personajes/stages y los convierte automáticamente a IDs de Start.gg
 
+// IDs obtenidos de Start.gg API: videogame(id: 1386) → SSBU
+// Keys = slugs usados en la app (lib/characters.js)
 const STARTGG_CHARACTER_IDS = {
-  'banjo-kazooie': 1747, 'bayonetta': 1279, 'bowser': 1272, 'bowser-jr': 1283,
-  'byleth': 1749, 'captain-falcon': 1281, 'chrom': 1741, 'cloud': 1285,
-  'corrin': 1287, 'daisy': 1739, 'dark-pit': 1289, 'dark-samus': 1740,
-  'diddy-kong': 1291, 'donkey-kong': 1275, 'dr-mario': 1293, 'duck-hunt': 1295,
-  'falco': 1297, 'fox': 1299, 'ganondorf': 1301, 'greninja': 1303,
-  'hero': 1748, 'ice-climbers': 1305, 'ike': 1307, 'incineroar': 1743,
-  'inkling': 1738, 'isabelle': 1742, 'jigglypuff': 1309, 'joker': 1746,
-  'kazuya': 1753, 'ken': 1744, 'king-dedede': 1311, 'king-k-rool': 1745,
-  'kirby': 1313, 'link': 1315, 'little-mac': 1317, 'lucario': 1319,
-  'lucas': 1321, 'lucina': 1323, 'luigi': 1325, 'mario': 1273,
-  'marth': 1327, 'mega-man': 1329, 'meta-knight': 1331, 'mewtwo': 1333,
-  'mii-brawler': 1335, 'mii-gunner': 1337, 'mii-swordfighter': 1339,
-  'min-min': 1750, 'mr-game-watch': 1341, 'ness': 1343, 'olimar': 1345,
-  'pac-man': 1347, 'palutena': 1349, 'peach': 1351, 'pichu': 1353,
-  'pikachu': 1355, 'piranha-plant': 1756, 'pit': 1357,
-  'pokemon-trainer': 1359, 'pyra-mythra': 1752, 'rob': 1361, 'richter': 1736,
-  'ridley': 1737, 'robin': 1363, 'rosalina-luma': 1365, 'roy': 1367,
-  'ryu': 1369, 'samus': 1371, 'sephiroth': 1751, 'sheik': 1373,
-  'shulk': 1375, 'simon': 1735, 'snake': 1377, 'sonic': 1379,
-  'sora': 1755, 'steve': 1754, 'terry': 1758, 'toon-link': 1381,
-  'villager': 1383, 'wario': 1385, 'wii-fit-trainer': 1387, 'wolf': 1389,
-  'yoshi': 1391, 'young-link': 1393, 'zelda': 1395, 'zero-suit-samus': 1397,
+  'banjo-kazooie': 1530, 'bayonetta': 1271, 'bowser': 1273, 'bowser-jr': 1272,
+  'byleth': 1539, 'captain-falcon': 1274, 'chrom': 1409, 'cloud': 1275,
+  'corrin': 1276, 'daisy': 1277, 'dark-pit': 1278, 'dark-samus': 1408,
+  'diddy-kong': 1279, 'donkey-kong': 1280, 'dr-mario': 1282, 'duck-hunt': 1283,
+  'falco': 1285, 'fox': 1286, 'ganondorf': 1287, 'greninja': 1289,
+  'hero': 1526, 'ice-climbers': 1290, 'ike': 1291, 'incineroar': 1406,
+  'inkling': 1292, 'isabelle': 1413, 'jigglypuff': 1293, 'joker': 1453,
+  'kazuya': 1846, 'ken': 1410, 'king-dedede': 1294, 'king-k-rool': 1407,
+  'kirby': 1295, 'link': 1296, 'little-mac': 1297, 'lucario': 1298,
+  'lucas': 1299, 'lucina': 1300, 'luigi': 1301, 'mario': 1302,
+  'marth': 1304, 'mega-man': 1305, 'meta-knight': 1307, 'mewtwo': 1310,
+  'mii-brawler': 1311, 'mii-gunner': 1415, 'mii-swordfighter': 1414,
+  'min-min': 1747, 'mr-game-watch': 1405, 'ness': 1313, 'olimar': 1314,
+  'pac-man': 1315, 'palutena': 1316, 'peach': 1317, 'pichu': 1318,
+  'pikachu': 1319, 'piranha-plant': 1441, 'pit': 1320,
+  'pokemon-trainer': 1321, 'pyra-mythra': 1795, 'rob': 1323, 'richter': 1412,
+  'ridley': 1322, 'robin': 1324, 'rosalina-luma': 1325, 'roy': 1326,
+  'ryu': 1327, 'samus': 1328, 'sephiroth': 1777, 'sheik': 1329,
+  'shulk': 1330, 'simon': 1411, 'snake': 1331, 'sonic': 1332,
+  'sora': 1897, 'steve': 1766, 'terry': 1532, 'toon-link': 1333,
+  'villager': 1334, 'wario': 1335, 'wii-fit-trainer': 1336, 'wolf': 1337,
+  'yoshi': 1338, 'young-link': 1339, 'zelda': 1340, 'zero-suit-samus': 1341,
 };
 
 const STARTGG_STAGE_IDS = {
-  'battlefield': 317, 'small-battlefield': 467, 'final-destination': 318,
-  'pokemon-stadium-2': 316, 'smashville': 327, 'town-and-city': 336,
-  'kalos': 340, 'hollow-bastion': 468,
+  'battlefield': 311, 'small-battlefield': 484, 'final-destination': 328,
+  'pokemon-stadium-2': 378, 'smashville': 387, 'town-and-city': 397,
+  'kalos': 348, 'hollow-bastion': 513,
 };
 
 export default async function handler(req, res) {
