@@ -169,43 +169,8 @@ export default function TestAdminPage() {
         if (st.phase === 'FINISHED' && !autoReleasedSetups.current.has(setupId)) {
           autoReleasedSetups.current.add(setupId);
 
-          // ── AUTO-REPORTAR RESULTADO FINAL A START.GG ──────────────────
-          // El admin panel tiene los IDs correctos del bracket, así que
-          // reporta directamente (sin depender del servidor Render).
-          const aSet = assignedSets[setupId];
-          if (aSet?.startggSetId) {
-            const winnerEntrantId = (st.score1 || 0) >= (st.score2 || 0)
-              ? aSet.startggEntrant1Id
-              : aSet.startggEntrant2Id;
-            if (winnerEntrantId) {
-              console.log(`[start.gg] Reportando resultado final → setId=${aSet.startggSetId} winner=${winnerEntrantId}`);
-              fetch('/api/tournaments/report-set', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  setId: String(aSet.startggSetId),
-                  winnerId: String(winnerEntrantId),
-                }),
-              })
-                .then(r => r.json())
-                .then(d => {
-                  if (d.ok) {
-                    console.log('[start.gg] ✅ Resultado final enviado correctamente:', d);
-                    setReportLog(prev => [{
-                      time: new Date(),
-                      setId: aSet.startggSetId,
-                      players: `${aSet.slots?.[0]?.entrant?.name || st.player1 || '?'} vs ${aSet.slots?.[1]?.entrant?.name || st.player2 || '?'}`,
-                      round: aSet.fullRoundText || '',
-                      score: `${st.score1}-${st.score2} ✅ enviado`,
-                    }, ...prev].slice(0, 20));
-                  } else {
-                    console.error('[start.gg] ❌ Error reportando resultado final:', d);
-                  }
-                })
-                .catch(e => console.error('[start.gg] ❌ fetch error resultado final:', e));
-            }
-          }
-          // ──────────────────────────────────────────────────────────────
+          // (Reporte final desactivado en admin panel: el servidor WebSocket
+          //  lo hace automáticamente con data completa de games/personajes/stages)
 
           setTimeout(() => {
             const t = matchTimersRef.current[setupId];
@@ -221,51 +186,8 @@ export default function TestAdminPage() {
           }, 5000);
         }
       }
-      // ── DETECTAR NUEVOS GAMES → reportar a Start.gg (CREATED → ACTIVE) ──────
-      for (const [setupId, st] of Object.entries(updates)) {
-        if (autoReleasedSetups.current.has(setupId)) continue; // la serie ya terminó
-        const curGames  = st.games || [];
-        const prevCount = prevGamesRef.current[setupId] ?? -1;
-        if (curGames.length > 0 && curGames.length > prevCount) {
-          prevGamesRef.current[setupId] = curGames.length;
-          const aSet = assignedSets[setupId];
-          if (aSet?.startggSetId) {
-            // Usar los entrant IDs que el servidor ya guardó en cada game (fuente primaria)
-            // Si faltan, fallback al bracket del admin (fuente secundaria)
-            const fallback1 = String(aSet.startggEntrant1Id || '');
-            const fallback2 = String(aSet.startggEntrant2Id || '');
-            const p1Name    = st.player1 || aSet.slots?.[0]?.entrant?.name || '';
-            const gameData  = curGames.map(g => {
-              // 1) ID directo del servidor
-              let wid = g.winnerEntrantId ? String(g.winnerEntrantId) : null;
-              // 2) Fallback: comparar nombre
-              if (!wid || wid === 'null') {
-                wid = (g.winnerName && g.winnerName === p1Name) ? fallback1 : fallback2;
-              }
-              return { gameNum: g.gameNum, winnerId: wid };
-            }).filter(g => g.winnerId && g.winnerId !== 'null' && g.winnerId !== 'undefined');
-            if (gameData.length > 0) {
-              console.log(`[start.gg] mid-series game ${curGames.length} → setId=${aSet.startggSetId} (debería ir a ACTIVE)`);
-              fetch('/api/tournaments/report-set', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  setId:    String(aSet.startggSetId),
-                  winnerId: null,   // save progress, no completar
-                  gameData,
-                }),
-              })
-              .then(r => r.json())
-              .then(d => {
-                if (d.ok) console.log(`[start.gg] ✅ game ${curGames.length} reportado → set ACTIVE`);
-                else      console.error('[start.gg] ❌ mid-series report falló:', d);
-              })
-              .catch(e => console.error('[start.gg] ❌ mid-series fetch error:', e));
-            }
-          }
-        }
-      }
-      // ────────────────────────────────────────────────────────────────────────────
+      // (Mid-series reporting desactivado: el servidor reporta automáticamente
+      //  al finalizar la serie con toda la data de games/personajes/stages)
 
       // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
       for (const [setupId, st] of Object.entries(updates)) {
