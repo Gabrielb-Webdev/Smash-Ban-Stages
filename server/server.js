@@ -724,7 +724,34 @@ io.on('connection', (socket) => {
   socket.on('select-rps-winner', ({ sessionId, winner, proposedBy }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'RPS') {
-      // Sistema de confirmación bidireccional
+      // En modo 1 dispositivo: no hay otro jugador que confirme → aplicar directo
+      if (session.singleDeviceMode) {
+        session.rpsProposal = null;
+        session.rpsWinner = winner;
+        session.phase = 'CHARACTER_SELECT';
+        session.currentTurn = session.currentGame === 1 ? winner : session.lastGameWinner || winner;
+        const availableStages = getStagesForTournament(sessionId, session.currentGame);
+        session.availableStages = [...availableStages];
+        if (session.currentGame === 1) {
+          session.totalBansNeeded = 3;
+          session.bansRemaining = 1;
+        } else {
+          if (session.lastGameWinner) {
+            const winnerStages = session[session.lastGameWinner].wonStages;
+            session.availableStages = session.availableStages.filter(s => !winnerStages.includes(s));
+          }
+          session.currentTurn = session.lastGameWinner;
+          session.totalBansNeeded = 3;
+          session.bansRemaining = 3;
+        }
+        session.bannedStages = [];
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
+        console.log(`✅ RPS single-device: ${winner} ganó en ${sessionId} (sin confirmación)`);
+        return;
+      }
+
+      // Sistema de confirmación bidireccional (modo normal)
       if (!session.rpsProposal) {
         // Primera propuesta: guardar y esperar confirmación del otro jugador
         session.rpsProposal = { winner, proposedBy };
@@ -946,6 +973,14 @@ io.on('connection', (socket) => {
   socket.on('propose-game-winner', ({ sessionId, winner, proposedBy }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'PLAYING') {
+      // En modo 1 dispositivo: aplicar el resultado directo sin confirmación del rival
+      if (session.singleDeviceMode) {
+        session.winnerProposal = null;
+        sessions.set(sessionId, session);
+        // Reutilizar el handler game-winner emitiendo internamente
+        socket.emit('game-winner', { sessionId, winner });
+        return;
+      }
       session.winnerProposal = { winner, proposedBy: proposedBy || null };
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });

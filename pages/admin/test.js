@@ -112,6 +112,9 @@ export default function TestAdminPage() {
 
   // Matches que pidieron más tiempo: [{ ...setData, delayedAt, requestedBy }]
   const [delayedMatches, setDelayedMatches] = useState([]);
+  // Jugadores bloqueados por delay: { [nombreJugador]: timestamp del bloqueo }
+  const [blockedPlayers, setBlockedPlayers] = useState({});
+  const DELAY_BLOCK_MS = 5 * 60 * 1000; // 5 minutos
   // Ticker para re-renderizar el countdown de matches en espera
   const [, setDelayTick] = useState(0);
   useEffect(() => {
@@ -298,12 +301,22 @@ export default function TestAdminPage() {
           setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
           // Agregar a la cola de espera con timer de 5 min
           if (aSet) {
+            const now = Date.now();
             setDelayedMatches(prev => [...prev, {
               ...aSet,
               sessionId: undefined,
-              delayedAt: Date.now(),
+              delayedAt: now,
               requestedBy: (st.delayRequests || [])[0] || '?',
             }]);
+            // Bloquear los jugadores del match por 5 minutos
+            const p1 = aSet.slots?.[0]?.entrant?.name || st.player1;
+            const p2 = aSet.slots?.[1]?.entrant?.name || st.player2;
+            setBlockedPlayers(prev => {
+              const next = { ...prev };
+              if (p1) next[p1] = now;
+              if (p2) next[p2] = now;
+              return next;
+            });
           }
           // Refrescar bracket para reflejar el cambio
           if (selectedPhaseGroupId) {
@@ -576,6 +589,18 @@ export default function TestAdminPage() {
     e.preventDefault();
     if (!draggedSet || !tournamentStarted) return;
     const fromDelayedIdx = draggedSet._fromDelayedIdx;
+    // Verificar si alguno de los jugadores del set está bloqueado (5 min)
+    const setPlayers = (draggedSet.slots || []).map(s => s?.entrant?.name).filter(Boolean);
+    const now = Date.now();
+    const blockedPlayer = setPlayers.find(p => blockedPlayers[p] && (now - blockedPlayers[p]) < DELAY_BLOCK_MS);
+    if (blockedPlayer) {
+      const secsLeft = Math.ceil((DELAY_BLOCK_MS - (now - blockedPlayers[blockedPlayer])) / 1000);
+      const mins = Math.floor(secsLeft / 60);
+      const secs = String(secsLeft % 60).padStart(2, '0');
+      alert(`⚠️ ${blockedPlayer} está bloqueado por ${mins}:${secs} minutos más. Arrastrá el match desde la cola de espera cuando el timer llegue a cero.`);
+      setDraggedSet(null); setDragOverSetup(null);
+      return;
+    }
     const cleanSet = { ...draggedSet };
     delete cleanSet._fromDelayedIdx;
     setAssignedSets(prev => {
@@ -586,6 +611,15 @@ export default function TestAdminPage() {
     });
     if (fromDelayedIdx != null) {
       setDelayedMatches(prev => prev.filter((_, i) => i !== fromDelayedIdx));
+      // Liberar el bloqueo de estos jugadores al reasignar desde la cola de espera
+      const setPlayers2 = (cleanSet.slots || []).map(s => s?.entrant?.name).filter(Boolean);
+      if (setPlayers2.length > 0) {
+        setBlockedPlayers(prev => {
+          const next = { ...prev };
+          setPlayers2.forEach(p => delete next[p]);
+          return next;
+        });
+      }
     }
     setDraggedSet(null); setDragOverSetup(null);
   }
