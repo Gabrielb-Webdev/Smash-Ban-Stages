@@ -405,6 +405,7 @@ const httpServer = createServer(async (req, res) => {
           stage: g.stageId,
         })),
         currentTurn: session.currentTurn || null,
+        delayRequests: session.delayRequests || [],
       }));
     } else {
       // Devolver 200 con ok:false para evitar errores en consola del navegador

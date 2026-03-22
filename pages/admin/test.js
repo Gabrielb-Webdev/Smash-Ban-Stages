@@ -265,36 +265,55 @@ export default function TestAdminPage() {
       // (Mid-series reporting desactivado: el servidor reporta automáticamente
       //  al finalizar la serie con toda la data de games/personajes/stages)
 
-      // Si algún jugador pidió más tiempo, liberar el setup y mover a cola de espera
+      // Si algún jugador pidió más tiempo (phase DELAYED), cancelar setup automáticamente
       for (const [setupId, st] of Object.entries(updates)) {
-        if ((st.delayRequests || []).length > 0 && !delayReleasedSetups.current.has(setupId)) {
+        if ((st.phase === 'DELAYED' || (st.delayRequests || []).length > 0) && !delayReleasedSetups.current.has(setupId)) {
           delayReleasedSetups.current.add(setupId);
           const aSet = assignedSets[setupId];
-          setTimeout(() => {
-            const t = matchTimersRef.current[setupId];
-            if (t?.intervalId) clearInterval(t.intervalId);
-            delete matchTimersRef.current[setupId];
-            setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-            const et = elapsedTimersRef.current[setupId];
-            if (et?.intervalId) clearInterval(et.intervalId);
-            delete elapsedTimersRef.current[setupId];
-            setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-            checkedInSetups.current.delete(setupId);
-            // Cancelar sesión en el servidor para que los jugadores queden libres
-            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-            if (aSet?.sessionId) {
-              fetch(`${socketUrl}/session/${encodeURIComponent(aSet.sessionId)}`, { method: 'DELETE' }).catch(() => {});
-            }
-            setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-            if (aSet) {
-              setDelayedMatches(prev => [...prev, {
-                ...aSet,
-                sessionId: undefined,
-                delayedAt: Date.now(),
-                requestedBy: st.delayRequests[0],
-              }]);
-            }
-          }, 1500);
+          // Limpiar timers
+          const t = matchTimersRef.current[setupId];
+          if (t?.intervalId) clearInterval(t.intervalId);
+          delete matchTimersRef.current[setupId];
+          setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          const et = elapsedTimersRef.current[setupId];
+          if (et?.intervalId) clearInterval(et.intervalId);
+          delete elapsedTimersRef.current[setupId];
+          setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          checkedInSetups.current.delete(setupId);
+          autoReleasedSetups.current.delete(setupId);
+          // Cancelar sesión WebSocket
+          const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+          if (aSet?.sessionId) {
+            fetch(`${socketUrl}/session/${encodeURIComponent(aSet.sessionId)}`, { method: 'DELETE' }).catch(() => {});
+          }
+          // Resetear set en start.gg → vuelve a CREATED
+          if (aSet?.startggSetId) {
+            fetch('/api/tournaments/reset-set', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ setId: aSet.startggSetId }),
+            }).catch(() => {});
+          }
+          // Liberar el setup del panel
+          setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          // Agregar a la cola de espera con timer de 5 min
+          if (aSet) {
+            setDelayedMatches(prev => [...prev, {
+              ...aSet,
+              sessionId: undefined,
+              delayedAt: Date.now(),
+              requestedBy: (st.delayRequests || [])[0] || '?',
+            }]);
+          }
+          // Refrescar bracket para reflejar el cambio
+          if (selectedPhaseGroupId) {
+            setTimeout(() => {
+              fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+                .then(r => r.json())
+                .then(d => { if (d.sets) setBracketSets(d.sets); })
+                .catch(() => {});
+            }, 2000);
+          }
         }
       }
 
@@ -1099,9 +1118,9 @@ export default function TestAdminPage() {
                     return (
                       <div
                         key={idx}
-                        draggable={tournamentStarted}
-                        onDragStart={() => setDraggedSet({ ...match, _fromDelayedIdx: idx })}
-                        style={{ background: '#0F0F1A', border: `1px solid ${remaining === 0 ? 'rgba(74,222,128,0.4)' : 'rgba(251,176,64,0.3)'}`, borderRadius: 14, padding: '12px 14px', cursor: tournamentStarted ? 'grab' : 'default', transition: 'border-color 0.3s' }}
+                        draggable={tournamentStarted && remaining === 0}
+                        onDragStart={() => remaining === 0 && setDraggedSet({ ...match, _fromDelayedIdx: idx })}
+                        style={{ background: '#0F0F1A', border: `1px solid ${remaining === 0 ? 'rgba(74,222,128,0.4)' : 'rgba(251,176,64,0.3)'}`, borderRadius: 14, padding: '12px 14px', cursor: remaining === 0 && tournamentStarted ? 'grab' : 'default', transition: 'border-color 0.3s', opacity: remaining > 0 ? 0.8 : 1 }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
                           <span style={{ fontSize: 10, fontWeight: 900, color: '#FBB040', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{match.round}</span>
