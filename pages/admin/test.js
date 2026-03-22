@@ -169,8 +169,52 @@ export default function TestAdminPage() {
         if (st.phase === 'FINISHED' && !autoReleasedSetups.current.has(setupId)) {
           autoReleasedSetups.current.add(setupId);
 
-          // (Reporte final desactivado en admin panel: el servidor WebSocket
-          //  lo hace automáticamente con data completa de games/personajes/stages)
+          // Reporte de respaldo: enviar resultado final a Start.gg desde el admin panel.
+          // El servidor también intenta reportar, pero si falla (deploy viejo, IDs faltantes)
+          // este respaldo asegura que el resultado se suba.
+          const aSet = assignedSets[setupId];
+          if (aSet?.startggSetId) {
+            const winnerEntrantId = (st.score1 || 0) > (st.score2 || 0)
+              ? aSet.startggEntrant1Id
+              : aSet.startggEntrant2Id;
+
+            // Armar gameData desde los games que reportó el servidor
+            // Nota: char1/char2 son slugs y Start.gg necesita IDs numéricos,
+            // así que el respaldo solo envía gameNum + winnerId (basta para COMPLETED).
+            const gameData = (st.games || []).map(g => ({
+              gameNum: g.gameNum,
+              winnerId: String(g.winnerEntrantId || ''),
+            })).filter(g => g.winnerId);
+
+            if (winnerEntrantId) {
+              console.log(`[start.gg] Admin respaldo: reportando resultado final → setId=${aSet.startggSetId} winner=${winnerEntrantId} games=${gameData.length}`);
+              fetch('/api/tournaments/report-set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  setId: String(aSet.startggSetId),
+                  winnerId: String(winnerEntrantId),
+                  gameData: gameData.length > 0 ? gameData : undefined,
+                }),
+              })
+                .then(r => r.json())
+                .then(d => {
+                  if (d.ok) {
+                    console.log('[start.gg] ✅ Resultado final enviado (admin respaldo):', d);
+                    setReportLog(prev => [{
+                      time: new Date(),
+                      setId: aSet.startggSetId,
+                      players: `${st.player1 || '?'} vs ${st.player2 || '?'}`,
+                      round: aSet.fullRoundText || '',
+                      score: `${st.score1}-${st.score2} ✅ COMPLETED`,
+                    }, ...prev].slice(0, 20));
+                  } else {
+                    console.error('[start.gg] ❌ Error en respaldo:', d);
+                  }
+                })
+                .catch(e => console.error('[start.gg] ❌ fetch error respaldo:', e));
+            }
+          }
 
           setTimeout(() => {
             const t = matchTimersRef.current[setupId];

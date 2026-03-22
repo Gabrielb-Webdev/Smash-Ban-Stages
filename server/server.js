@@ -869,6 +869,7 @@ io.on('connection', (socket) => {
       // SOLO reportar a Start.gg cuando la serie TERMINA.
       // Durante la serie no tocamos Start.gg para nada (el admin ya lo puso en verde).
       // Al final enviamos todos los games de una vez con personajes, stages y winnerId.
+      console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
       if (session.startggSetId && seriesFinished) {
         const gameData = session.games.map(g => ({
           gameNum: g.gameNum,
