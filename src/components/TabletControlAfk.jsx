@@ -66,7 +66,7 @@ const GAME1_STAGES_AFK = [
 
 // ─────────────────────────────────────────────────────────────
 export default function TabletControlAfk({ sessionId, playerName, playerIndex }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, repeatStage, getPlayerHistory, playerCheckin, enableSingleDevice } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, repeatStage, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
@@ -456,6 +456,20 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                       }}>
                         📱 Modo 1 dispositivo activo
                       </div>
+                    )}
+                    {!myChecked && !(session.unavailableUsedBy || []).includes(myName) && (
+                      <button
+                        onClick={() => playerUnavailable(sessionId, myName)}
+                        style={{
+                          width: '100%', padding: '12px 16px', borderRadius: 14,
+                          border: '1.5px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.09)',
+                          color: '#F87171', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>🚫</span> No estoy disponible ahora
+                      </button>
                     )}
                   </div>
                 );

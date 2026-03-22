@@ -653,7 +653,16 @@ export default function TestAdminPage() {
     const banUrl2 = `${banUrl}?p=player2`;
 
     // Limpiar timers anteriores del mismo setup (si había un retry)
-    stopMatchTimer(setupId);
+    // Solo limpiar timers — NO borrar asignación ni cancelar sesión
+    const prevTimer = matchTimersRef.current[setupId];
+    if (prevTimer?.intervalId) clearInterval(prevTimer.intervalId);
+    delete matchTimersRef.current[setupId];
+    setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+    const prevElapsed = elapsedTimersRef.current[setupId];
+    if (prevElapsed?.intervalId) clearInterval(prevElapsed.intervalId);
+    delete elapsedTimersRef.current[setupId];
+    setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+    checkedInSetups.current.delete(setupId);
 
     // IDs de start.gg del set seleccionado (para reportar resultados automáticamente)
     const startggSetId      = set.id;
