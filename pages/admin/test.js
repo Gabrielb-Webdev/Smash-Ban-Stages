@@ -985,34 +985,52 @@ export default function TestAdminPage() {
                             </div>
                           );
                         })}
-                        {/* Botón Iniciar match / fase + cancelar */}
+                        {/* Zona inferior: BO3/BO5 + Iniciar  ó  Fase + Timer + Cancelar */}
                         {(matchTimers[setup.id] != null || elapsedTimers[setup.id] != null) ? (
-                          <div style={{ marginTop: 8 }}>
-                            {/* Badge de fase + botón cancelar */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div style={{ marginTop: 10 }}>
+                            {/* Fila estado + timer (misma posición que BO3/BO5) */}
+                            <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
                               {(() => {
                                 const st = sessionStatuses[setup.id];
                                 const PHASE_COLORS = { CHECKIN:'#FF8C00', RPS:'#A78BFA', CHARACTER_SELECT:'#818CF8', STAGE_BAN:'#EF4444', STAGE_SELECT:'#60A5FA', PLAYING:'#4ADE80', FINISHED:'#9CA3AF' };
                                 const PHASE_LABEL  = { CHECKIN:'CHECK-IN', RPS:'RPS', CHARACTER_SELECT:'PERSONAJES', STAGE_BAN:'BANEANDO', STAGE_SELECT:'ELIGIENDO', PLAYING:'JUGANDO', FINISHED:'FINALIZADO' };
                                 const phase = st?.phase || 'CHECKIN';
                                 const col = PHASE_COLORS[phase] || setup.color;
+                                const timerText = elapsedTimers[setup.id] != null
+                                  ? `${Math.floor(elapsedTimers[setup.id]/60)}:${String(elapsedTimers[setup.id]%60).padStart(2,'0')}`
+                                  : matchTimers[setup.id] != null
+                                    ? `${Math.floor(matchTimers[setup.id]/60)}:${String(matchTimers[setup.id]%60).padStart(2,'0')}`
+                                    : null;
+                                const timerCol = elapsedTimers[setup.id] != null ? '#4ADE80' : '#FF8C00';
                                 return (
-                                  <span style={{ fontSize: 9, fontWeight: 900, color: col, background: col + '22', border: `1px solid ${col}44`, borderRadius: 99, padding: '2px 8px', letterSpacing: '0.1em' }}>
-                                    {PHASE_LABEL[phase] || phase}
-                                  </span>
+                                  <>
+                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 0', fontSize: 10, fontWeight: 900, borderRadius: 7, border: `1px solid ${col}44`, background: col + '22', color: col, letterSpacing: '0.08em', fontFamily: "'Outfit',sans-serif" }}>
+                                      {PHASE_LABEL[phase] || phase}
+                                    </div>
+                                    {timerText && (
+                                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 0', fontSize: 10, fontWeight: 900, borderRadius: 7, border: `1px solid ${timerCol}44`, background: timerCol + '18', color: timerCol, fontFamily: "'Outfit',sans-serif" }}>
+                                        {elapsedTimers[setup.id] != null ? '⏱️' : '⏳'} {timerText}
+                                      </div>
+                                    )}
+                                  </>
                                 );
                               })()}
-                              <button onClick={() => stopMatchTimer(setup.id)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 6, padding: '3px 8px', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>Cancelar</button>
                             </div>
-                            {/* Live game info */}
+                            {/* Botón Cancelar (misma posición que Iniciar match) */}
+                            <button
+                              onClick={() => stopMatchTimer(setup.id)}
+                              style={{ width: '100%', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#F87171', borderRadius: 8, padding: '8px 0', fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", letterSpacing: '0.04em' }}
+                            >
+                              ✕ Cancelar
+                            </button>
+                            {/* Live game info compacto */}
                             {(() => {
                               const st = sessionStatuses[setup.id];
                               if (!st || !st.currentGame) return null;
-                              const PHASE_LABEL = { CHECKIN:'Check-in', RPS:'RPS', CHARACTER_SELECT:'Eligiendo personaje', STAGE_BAN:'Baneando stage', STAGE_SELECT:'Eligiendo stage', PLAYING:'Jugando', FINISHED:'Finalizado' };
                               return (
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 9px' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <span style={{ fontSize: 9, fontWeight: 800, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Game {st.currentGame} · {st.format || 'BO3'} · {PHASE_LABEL[st.phase] || st.phase}</span>
+                                <div style={{ marginTop: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '7px 9px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (st.char1 || st.char2 || st.selectedStage || (st.games||[]).length) ? 4 : 0 }}>
+                                    <span style={{ fontSize: 9, fontWeight: 800, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Game {st.currentGame} · {st.format || 'BO3'}</span>
                                     <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{st.score1 ?? 0} – {st.score2 ?? 0}</span>
                                   </div>
                                   {(st.char1 || st.char2) && (
