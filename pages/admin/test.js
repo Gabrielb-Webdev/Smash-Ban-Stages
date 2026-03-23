@@ -882,7 +882,7 @@ export default function TestAdminPage() {
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
-                    {!isDone && !isBye && (
+                    {!isDone && !isBye && !aSetup && (
                       <button
                         onClick={e => toggleLock(set.id, e)}
                         title={isLocked ? 'Clic para desbloquear' : 'Clic para bloquear 1 minuto'}

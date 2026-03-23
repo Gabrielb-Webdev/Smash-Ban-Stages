@@ -154,20 +154,23 @@ export default function StreamOverlayCordoba({ sessionId }) {
   return (
     <div className="min-h-screen bg-transparent relative">
 
-      {/* ── FOOTER - Fondo negro AFK Córdoba ── */}
+      {/* ── FOOTER - Fondo Smash Córdoba ── */}
       <footer
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
           height: '150px',
-          background: '#000000',
+          backgroundImage: 'url(/images/paperbg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Logo AFK de fondo */}
+        {/* Logo SCC de fondo */}
         <div className="absolute inset-0 flex items-center justify-center overflow-hidden" style={{ zIndex: 0 }}>
           <img
-            src="/images/AFK.webp"
-            alt="AFK Background"
+            src="/images/SCC.webp"
+            alt="Smash Córdoba"
             style={{ width: '125px', height: 'auto', opacity: 0.75 }}
           />
         </div>
