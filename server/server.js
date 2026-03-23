@@ -356,11 +356,41 @@ const httpServer = createServer(async (req, res) => {
           sessions.set(sessionId, session);
           console.log('📝 Sesión pre-creada (CHECKIN) desde /session-meta:', sessionId);
         } else if (session) {
-          // Actualizar datos start.gg en sesión existente
-          session.startggSetId = startggSetId;
-          session.startggEntrant1Id = startggEntrant1Id;
-          session.startggEntrant2Id = startggEntrant2Id;
-          sessions.set(sessionId, session);
+          // Sesión ya existe (ej: Stream con sessionId fijo) → resetear completa
+          const freshSession = {
+            sessionId,
+            community: session.community || null,
+            player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
+            player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
+            format: format || 'BO3',
+            currentGame: 1,
+            phase: 'CHECKIN',
+            checkIns: [],
+            delayRequests: [],
+            singleDeviceMode: false,
+            unavailableUsedBy: (() => {
+              const key = [player1 || 'Jugador 1', player2 || 'Jugador 2'].sort().join('|');
+              const used = unavailableHistory.get(key);
+              return used ? [...used] : [];
+            })(),
+            rpsWinner: null,
+            lastGameWinner: null,
+            currentTurn: null,
+            availableStages: [],
+            bannedStages: [],
+            selectedStage: null,
+            banHistory: [],
+            bansRemaining: 0,
+            totalBansNeeded: 0,
+            games: [],
+            startggSetId: startggSetId || null,
+            startggEntrant1Id: startggEntrant1Id || null,
+            startggEntrant2Id: startggEntrant2Id || null,
+          };
+          sessions.set(sessionId, freshSession);
+          // Notificar a clientes conectados del reset
+          io.to(sessionId).emit('session-updated', { session: freshSession });
+          console.log('🔄 Sesión reseteada (CHECKIN) desde /session-meta:', sessionId);
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
