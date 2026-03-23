@@ -117,6 +117,7 @@ export default function TestAdminPage() {
   const autoReleasedSetups = useRef(new Set());
   const delayReleasedSetups = useRef(new Set());
   const prevGamesRef      = useRef({});  // { [setupId]: número de games reportados }
+  const prevDelayCountRef  = useRef({});  // { [setupId]: nro de delay requests ya procesados }
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -332,6 +333,21 @@ export default function TestAdminPage() {
       }
       // (Mid-series reporting desactivado: el servidor reporta automáticamente
       //  al finalizar la serie con toda la data de games/personajes/stages)
+
+      // Auto-extensión de timer cuando un jugador pide más tiempo (+5 min por pedido)
+      for (const [setupId, st] of Object.entries(updates)) {
+        const prevCount = prevDelayCountRef.current[setupId] || 0;
+        const newCount = (st.delayRequests || []).length;
+        if (newCount > prevCount) {
+          prevDelayCountRef.current[setupId] = newCount;
+          const cur = matchTimersRef.current[setupId];
+          if (cur) {
+            const extended = (cur.secondsLeft || 0) + 300;
+            matchTimersRef.current[setupId] = { ...cur, secondsLeft: extended };
+            setMatchTimers(prev => ({ ...prev, [setupId]: extended }));
+          }
+        }
+      }
 
       // Cuando ambos jugadores hacen check-in, pasar de cuenta regresiva a cuenta progresiva
       for (const [setupId, st] of Object.entries(updates)) {
@@ -650,11 +666,12 @@ export default function TestAdminPage() {
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
     const format = setupFormats[setupId] || 'BO3';
-    // Para el setup de stream se usa el setupId fijo (el overlay de OBS se suscribe a ese ID siempre).
-    // Para el resto se agrega timestamp para evitar colisiones entre sesiones consecutivas.
+    // Para el setup de stream se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
+    // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
+    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream' };
     const isStreamSetup = setupId.endsWith('-stream');
     const sessionId = isStreamSetup
-      ? setupId
+      ? (COMMUNITY_STREAM_IDS[community] || setupId)
       : `${community}-${setupId.replace(`${community}-`, '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
     const banUrl  = `${origin}/tablet/${sessionId}`;

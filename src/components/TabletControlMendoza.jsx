@@ -90,7 +90,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 
 // ───────────────────────────────────────────────────────────────
 export default function TabletControlMendoza({ sessionId, playerName, playerIndex }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
@@ -458,6 +458,20 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                       }}>
                         📱 Modo 1 dispositivo activo
                       </div>
+                    )}
+                    {!myChecked && !(session.delayRequests || []).includes(myName) && (
+                      <button
+                        onClick={() => requestMatchDelay(sessionId, myName)}
+                        style={{
+                          width: '100%', padding: '12px 16px', borderRadius: 14,
+                          border: '1.5px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.09)',
+                          color: '#FCD34D', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>⏱️</span> Necesito más tiempo
+                      </button>
                     )}
                     {!myChecked && !(session.unavailableUsedBy || []).includes(myName) && (
                       <button

@@ -696,7 +696,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Jugador pide más tiempo (sale del setup por 5 minutos)
+  // Jugador pide más tiempo — extiende el timer del admin panel en 5 minutos
+  socket.on('request-match-delay', ({ sessionId, playerName }) => {
+    const session = sessions.get(sessionId);
+    if (!session) return;
+    if (!Array.isArray(session.delayRequests)) session.delayRequests = [];
+    if (session.delayRequests.includes(playerName)) return; // solo una vez por jugador
+    session.delayRequests.push(playerName);
+    sessions.set(sessionId, session);
+    io.to(sessionId).emit('session-updated', { session });
+    console.log(`⏱️ ${playerName} pidió más tiempo en ${sessionId}`);
+  });
 
   // Jugador indica que no está disponible → cancela el match + bloquea en bracket
   socket.on('player-unavailable', ({ sessionId, playerName }) => {
