@@ -326,6 +326,7 @@ const httpServer = createServer(async (req, res) => {
           session = {
             sessionId,
             community: null,
+            createdAt: Date.now(),
             player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
             player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
             format: format || 'BO3',
@@ -360,6 +361,7 @@ const httpServer = createServer(async (req, res) => {
           const freshSession = {
             sessionId,
             community: session.community || null,
+            createdAt: Date.now(),
             player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
             player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
             format: format || 'BO3',
@@ -484,8 +486,13 @@ const httpServer = createServer(async (req, res) => {
       const name = (urlObj.searchParams.get('name') || '').toLowerCase().trim();
       if (!name) { res.writeHead(400); res.end(JSON.stringify({ error: 'name requerido' })); return; }
       const found = [];
+      const TWO_HOURS = 2 * 60 * 60 * 1000;
       sessions.forEach((session, sessionId) => {
         if (session.phase === 'FINISHED' || session.phase === 'CANCELLED' || session.phase === 'POSTPONED') return;
+        // Filtrar sesiones stale en CHECKIN (sin createdAt o creadas hace más de 2 horas)
+        if (session.phase === 'CHECKIN') {
+          if (!session.createdAt || (Date.now() - session.createdAt) > TWO_HOURS) return;
+        }
         const p1 = (session.player1?.name || '').toLowerCase().trim();
         const p2 = (session.player2?.name || '').toLowerCase().trim();
         if (p1.includes(name) || p2.includes(name) || (name.length > 2 && (p1.startsWith(name) || p2.startsWith(name)))) {
@@ -607,6 +614,7 @@ io.on('connection', (socket) => {
       session = {
         sessionId,
         community, // Guardar la comunidad
+        createdAt: Date.now(),
         player1: {
           name: data.player1,
           score: 0,
