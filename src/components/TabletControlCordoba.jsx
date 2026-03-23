@@ -64,18 +64,6 @@ const GAME1_STAGES_CORDOBA = [
   { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
 ];
 
-// Tema Córdoba - Smash Con Coca
-const THEME = {
-  colors: {
-    primary: '#E30613',
-    secondary: '#B00010',
-    accent: '#FF4D4D',
-    cardBg: 'rgba(227, 6, 19, 0.15)',
-  },
-  logo: '/images/SCC.webp',
-  background: 'linear-gradient(180deg, #0a0000 0%, #130000 100%)',
-};
-
 // ── Pantalla de espera de turno ──
 function WaitingTurnCard({ icon, turnPlayerName, action }) {
   return (
@@ -323,28 +311,28 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   // ── Render ──────────────────────────────────────────────────
   return (
-    <div style={{ background: THEME.background, fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
+    <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
 
       {/* ── Header sticky ── */}
-      <div className="sticky top-0 z-40 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl" style={{ background: 'rgba(10,0,0,0.95)' }}>
+      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl">
           <div className="flex justify-between items-center gap-2">
 
-            {/* Logo SCC */}
+            {/* Logo AFK */}
             <div className="flex-shrink-0">
-              <img src={THEME.logo} alt="SCC" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(227,6,19,0.5))' }} />
+              <img src="/images/AFK.webp" alt="AFK" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))' }} />
             </div>
 
             {/* Jugadores */}            <div className="flex items-center gap-2 flex-1">
-              <div className="rounded-lg px-2 py-1.5 flex-1 min-w-0" style={{ background: `${THEME.colors.primary}30` }}>
+              <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
                 <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 1</p>
                 <p className="text-white font-bold text-xs sm:text-sm truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.name}</p>
-                <p className="text-base sm:text-lg font-bold leading-none" style={{ color: THEME.colors.accent, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.score}</p>
+                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.score}</p>
               </div>
               <div className="text-white text-sm sm:text-lg font-bold px-1" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>VS</div>
-              <div className="rounded-lg px-2 py-1.5 flex-1 min-w-0" style={{ background: `${THEME.colors.secondary}30` }}>
+              <div className="bg-smash-blue/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
                 <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 2</p>
                 <p className="text-white font-bold text-xs sm:text-sm truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.name}</p>
-                <p className="text-base sm:text-lg font-bold leading-none" style={{ color: THEME.colors.accent, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.score}</p>
+                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.score}</p>
               </div>
             </div>
 
@@ -352,11 +340,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
             <div className="flex gap-1.5 sm:gap-2">
               <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
                 <p className="text-white/70 text-[10px] leading-none">Game</p>
-                <p className="text-lg sm:text-xl font-bold leading-tight" style={{ color: THEME.colors.accent, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.currentGame}</p>
+                <p className="text-smash-yellow text-lg sm:text-xl font-bold leading-tight" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.currentGame}</p>
               </div>
               <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
                 <p className="text-white/70 text-[10px] leading-none">Formato</p>
-                <p className="text-sm sm:text-base font-bold leading-tight" style={{ color: THEME.colors.accent }}>{session.format}</p>
+                <p className="text-smash-yellow text-sm sm:text-base font-bold leading-tight">{session.format}</p>
               </div>
             </div>
           </div>
