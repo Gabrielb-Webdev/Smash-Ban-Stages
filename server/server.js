@@ -387,7 +387,7 @@ const httpServer = createServer(async (req, res) => {
     const sessionId = decodeURIComponent(req.url.slice('/session/'.length));
     const session = sessions.get(sessionId);
     if (session) {
-      session.phase = 'FINISHED';
+      session.phase = 'CANCELLED';
       sessions.set(sessionId, session);
       // Notificar a los jugadores conectados que el match fue cancelado
       io.to(sessionId).emit('match-cancelled', { sessionId });

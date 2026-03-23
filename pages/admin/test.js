@@ -238,7 +238,10 @@ export default function TestAdminPage() {
               stageSlug: g.stage || null,
             })).filter(g => g.winnerId);
 
-            if (winnerEntrantId) {
+            // No reportar si no hay games jugados (0-0 sin partidas = cancelación, no resultado real)
+            if (!gameData || gameData.length === 0) {
+              console.warn(`[start.gg] ⚠️ RECHAZADO: No hay games registrados para ${setupId} (score ${st.score1}-${st.score2}) — no se reporta resultado vacío`);
+            } else if (winnerEntrantId) {
               console.log(`[start.gg] Admin respaldo: reportando resultado final → setId=${aSet.startggSetId} winner=${winnerEntrantId} games=${gameData.length}`);
               fetch('/api/tournaments/report-set', {
                 method: 'POST',
@@ -291,7 +294,7 @@ export default function TestAdminPage() {
         }
 
         // Auto-liberar + auto-lock cuando un jugador usa "No disponible" (phase POSTPONED)
-        if (st.phase === 'POSTPONED' && !autoReleasedSetups.current.has(setupId)) {
+        if ((st.phase === 'POSTPONED' || st.phase === 'CANCELLED') && !autoReleasedSetups.current.has(setupId)) {
           autoReleasedSetups.current.add(setupId);
           const aSet = assignedSets[setupId];
           const setId = aSet?.id;

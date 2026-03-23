@@ -1,0 +1,8 @@
+🔴 AFK
+https://smash-ban-stages.vercel.app/stream/afk-stream
+
+🟠 Córdoba
+https://smash-ban-stages.vercel.app/stream/cordoba-stream
+
+🟣 Mendoza
+https://smash-ban-stages.vercel.app/stream/mendoza-stream
