@@ -812,6 +812,25 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
           </div>
         )}
 
+        {/* ── Cancelled / Postponed Phase ── */}
+        {(session.phase === 'CANCELLED' || session.phase === 'POSTPONED') && (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
+            <div className="text-7xl mb-4">⚠️</div>
+            <h3 className="text-3xl font-bold text-white mb-3">Match cancelado</h3>
+            <p className="text-white/60 text-base mb-6">El administrador canceló o pospuso este match.</p>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <p className="text-white/70 text-sm">Esperá instrucciones del admin para continuar.</p>
+            </div>
+            <button
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
+              className="mt-6 w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 touch-manipulation transition-all border-2 border-white/20"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              🏠 Volver al Home
+            </button>
+          </div>
+        )}
+
         {/* ── Finished Phase ── */}
         {session.phase === 'FINISHED' && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex flex-col justify-center">

@@ -78,9 +78,11 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 // ───────────────────────────────────────────────────────────────
-export default function TabletControlCordoba({ sessionId, playerName }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, getPlayerHistory } = useWebSocket(sessionId);
+export default function TabletControlCordoba({ sessionId, playerName, playerIndex }) {
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
+
+  const [manualIdentity, setManualIdentity] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
@@ -188,11 +190,11 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
   };
 
   // Identidad del jugador en este dispositivo (null = admin / espectador)
-  const myPlayer = session && playerName
+  const myPlayer = playerIndex || manualIdentity || (session && playerName
     ? (session.player1?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player1'
       : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
       : null)
-    : null;
+    : null);
   // En modo 1 dispositivo los controles de turno no se restringen por jugador
   const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
@@ -350,6 +352,166 @@ export default function TabletControlCordoba({ sessionId, playerName }) {
 
       {/* ── Contenido scrollable ── */}
       <div className="p-3 md:p-4 max-w-7xl mx-auto flex flex-col gap-3 md:gap-4 pb-24">
+
+        {/* ── CHECKIN Phase ── */}
+        {session.phase === 'CHECKIN' && (
+          <div style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            borderRadius: 24,
+            padding: '32px 24px',
+            border: '2px solid rgba(255,255,255,0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 24,
+            minHeight: '70vh',
+            justifyContent: 'center',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 52, marginBottom: 12 }}>🎮</div>
+              <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)', letterSpacing: '-0.5px' }}>¡Es tu match!</h2>
+              <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.6)', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>Hacé check-in para confirmar</p>
+            </div>
+
+            {myPlayer ? (
+              (() => {
+                const myName = session[myPlayer]?.name;
+                const otherPlayer = myPlayer === 'player1' ? 'player2' : 'player1';
+                const otherName = session[otherPlayer]?.name;
+                const myChecked = (session.checkIns || []).includes(myName);
+                const otherChecked = (session.checkIns || []).includes(otherName);
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 360, alignItems: 'center' }}>
+                    <button
+                      onClick={() => !myChecked && playerCheckin(sessionId, myName)}
+                      disabled={myChecked}
+                      style={{
+                        width: '100%', padding: '22px 20px', borderRadius: 18,
+                        border: myChecked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.35)',
+                        background: myChecked ? 'rgba(34,197,94,0.18)' : 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(255,140,0,0.15))',
+                        color: myChecked ? '#4ADE80' : '#fff', fontSize: 22, fontWeight: 900,
+                        cursor: myChecked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: 14, transition: 'all 0.2s',
+                        boxShadow: myChecked ? '0 0 24px rgba(34,197,94,0.35)' : '0 6px 24px rgba(0,0,0,0.4)',
+                        fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      <span style={{ fontSize: 26 }}>{myChecked ? '✅' : '👤'}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.65 }}>Check-in</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myName}</span>
+                      </div>
+                      {myChecked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', marginLeft: 'auto' }}>✅ Listo</span>}
+                    </button>
+                    <div style={{
+                      width: '100%', padding: '14px 16px', borderRadius: 14,
+                      border: otherChecked ? '1.5px solid rgba(34,197,94,0.4)' : '1.5px solid rgba(255,255,255,0.12)',
+                      background: otherChecked ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                      <span style={{ fontSize: 18 }}>{otherChecked ? '✅' : '⏳'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>Rival</p>
+                        <p style={{ margin: 0, fontSize: 14, color: otherChecked ? '#4ADE80' : 'rgba(255,255,255,0.65)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{otherName}</p>
+                      </div>
+                      <span style={{ fontSize: 12, color: otherChecked ? '#4ADE80' : 'rgba(255,255,255,0.35)', fontWeight: 700 }}>
+                        {otherChecked ? 'Listo' : 'Esperando...'}
+                      </span>
+                    </div>
+                    {!session.singleDeviceMode ? (
+                      <button
+                        onClick={() => enableSingleDevice(sessionId)}
+                        style={{
+                          width: '100%', padding: '12px 16px', borderRadius: 14,
+                          border: '1.5px solid rgba(96,165,250,0.4)', background: 'rgba(96,165,250,0.09)',
+                          color: '#93C5FD', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>📱</span> Mi rival no tiene dispositivo — usar este
+                      </button>
+                    ) : (
+                      <div style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 12,
+                        border: '1.5px solid rgba(96,165,250,0.35)', background: 'rgba(96,165,250,0.08)',
+                        color: '#60A5FA', fontSize: 13, fontWeight: 700, textAlign: 'center',
+                      }}>
+                        📱 Modo 1 dispositivo activo
+                      </div>
+                    )}
+                    {!myChecked && !(session.unavailableUsedBy || []).includes(myName) && (
+                      <button
+                        onClick={() => playerUnavailable(sessionId, myName)}
+                        style={{
+                          width: '100%', padding: '12px 16px', borderRadius: 14,
+                          border: '1.5px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.09)',
+                          color: '#F87171', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <span>🚫</span> No estoy disponible ahora
+                      </button>
+                    )}
+                  </div>
+                );
+              })()
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
+                  {[{ key: 'player1', name: session.player1?.name }, { key: 'player2', name: session.player2?.name }].map(({ key, name }) => {
+                    const checked = (session.checkIns || []).includes(name);
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => !checked && playerCheckin(sessionId, name)}
+                        disabled={checked}
+                        style={{
+                          width: '100%', padding: '18px 20px', borderRadius: 16,
+                          border: checked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.25)',
+                          background: checked ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.08)',
+                          color: checked ? '#4ADE80' : '#fff', fontSize: 18, fontWeight: 900,
+                          cursor: checked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', gap: 12, transition: 'all 0.2s',
+                          boxShadow: checked ? '0 0 20px rgba(34,197,94,0.3)' : '0 4px 16px rgba(0,0,0,0.3)',
+                          fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+                        }}
+                      >
+                        <span style={{ fontSize: 22 }}>{checked ? '✅' : '⏳'}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                        {checked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', opacity: 0.8, marginLeft: 'auto' }}>Confirmado</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(session.checkIns || []).length === 1 && (
+                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Esperando que el otro jugador confirme...</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Cancelled / Postponed Phase ── */}
+        {(session.phase === 'CANCELLED' || session.phase === 'POSTPONED') && (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
+            <div className="text-7xl mb-4">⚠️</div>
+            <h3 className="text-3xl font-bold text-white mb-3">Match cancelado</h3>
+            <p className="text-white/60 text-base mb-6">El administrador canceló o pospuso este match.</p>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <p className="text-white/70 text-sm">Esperá instrucciones del admin para continuar.</p>
+            </div>
+            <button
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
+              className="mt-6 w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 touch-manipulation transition-all border-2 border-white/20"
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              🏠 Volver al Home
+            </button>
+          </div>
+        )}
 
         {/* ── RPS Phase ── */}
         {session.phase === 'RPS' && (

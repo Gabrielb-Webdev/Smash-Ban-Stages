@@ -2270,8 +2270,8 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
           </div>
         )}
 
-        {/* Cancelled Phase */}
-        {session.phase === 'CANCELLED' && (
+        {/* Cancelled / Postponed Phase */}
+        {(session.phase === 'CANCELLED' || session.phase === 'POSTPONED') && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
             <div className="text-7xl mb-4">⚠️</div>
             <h3 className="text-3xl font-bold text-white mb-3">Match cancelado</h3>

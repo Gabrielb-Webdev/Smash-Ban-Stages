@@ -256,7 +256,7 @@ export default function HomePage() {
         const r = await fetch(`${socketUrl}/sessions/player?name=${encodeURIComponent(playerName)}`);
         if (!r.ok) return;
         const list = await r.json();
-        const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED' && s.phase !== 'CANCELLED') : null;
+        const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED' && s.phase !== 'CANCELLED' && s.phase !== 'POSTPONED') : null;
         setActiveTournamentMatch(active || null);
       } catch {}
     };
@@ -560,7 +560,7 @@ export default function HomePage() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: activeTournamentMatch.phase === 'CHECKIN' ? '#F87171' : '#4ADE80' }}>
-                {activeTournamentMatch.phase === 'CHECKIN' ? '¡Hacé check-in en tu match!' : '¡Tens más match activo!'}
+                {activeTournamentMatch.phase === 'CHECKIN' ? '¡Hacé check-in en tu match!' : '¡Tenés un match activo!'}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeTournamentMatch.player1} vs {activeTournamentMatch.player2}

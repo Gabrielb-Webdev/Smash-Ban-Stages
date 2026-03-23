@@ -27,7 +27,11 @@ function lsk(base, c) { return c === 'test' ? `afk_${base}` : `${c}_${base}`; }
 // Obtiene la comunidad del query string de forma sincrónica (para useState initializers)
 function _communitySync() {
   if (typeof window === 'undefined') return 'test';
-  return new URLSearchParams(window.location.search).get('community') || 'test';
+  const fromQS = new URLSearchParams(window.location.search).get('community');
+  if (fromQS) return fromQS;
+  const m = window.location.pathname.match(/^\/admin\/([a-z]+)$/);
+  if (m && m[1] !== 'test') return m[1];
+  return 'test';
 }
 
 const SET_STATE_STYLE = {

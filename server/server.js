@@ -455,7 +455,7 @@ const httpServer = createServer(async (req, res) => {
       if (!name) { res.writeHead(400); res.end(JSON.stringify({ error: 'name requerido' })); return; }
       const found = [];
       sessions.forEach((session, sessionId) => {
-        if (session.phase === 'FINISHED') return;
+        if (session.phase === 'FINISHED' || session.phase === 'CANCELLED' || session.phase === 'POSTPONED') return;
         const p1 = (session.player1?.name || '').toLowerCase().trim();
         const p2 = (session.player2?.name || '').toLowerCase().trim();
         if (p1.includes(name) || p2.includes(name) || (name.length > 2 && (p1.startsWith(name) || p2.startsWith(name)))) {
