@@ -113,6 +113,13 @@ export default function ProfilePage() {
     try { const s = localStorage.getItem('afk_my_status'); if (s) setMyStatus(s); } catch {}
     try { const mc = localStorage.getItem('afk_main_char'); if (mc) setMainChar(mc); } catch {}
     const uid = encodeURIComponent(String(u.id || u.slug || ''));
+
+    // Load main char from Redis (overrides localStorage)
+    fetch(`/api/players/profile?id=${uid}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(p => { if (p?.mainChar) { setMainChar(p.mainChar); try { localStorage.setItem('afk_main_char', p.mainChar); } catch {} } })
+      .catch(() => {});
+
     Promise.all([
       fetch(`/api/players/stats?userId=${uid}`).then(r => r.json()).catch(() => null),
       fetch(`/api/players/history?userId=${uid}&limit=30`).then(r => r.json()).catch(() => []),
@@ -182,12 +189,28 @@ export default function ProfilePage() {
     setMainChar(charId);
     setShowMainPicker(false);
     try { localStorage.setItem('afk_main_char', charId); } catch {}
+    const uid = user?.id || user?.slug;
+    if (uid) {
+      fetch('/api/players/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid, mainChar: charId }),
+      }).catch(() => {});
+    }
   };
 
   const clearMainChar = () => {
     setMainChar(null);
     setShowMainPicker(false);
     try { localStorage.removeItem('afk_main_char'); } catch {}
+    const uid = user?.id || user?.slug;
+    if (uid) {
+      fetch('/api/players/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid, mainChar: null }),
+      }).catch(() => {});
+    }
   };
 
   return (

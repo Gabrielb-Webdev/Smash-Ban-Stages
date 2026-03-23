@@ -8,9 +8,25 @@ function sanitize(s) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+
+  // ── PATCH: actualizar campo individual del perfil ────
+  if (req.method === 'PATCH') {
+    const { id, mainChar } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id requerido' });
+
+    const cleanId = sanitize(String(id)).slice(0, 80);
+    const existing = (await redis.get(playerKey(cleanId))) || {};
+
+    if (mainChar !== undefined) {
+      existing.mainChar = mainChar ? sanitize(String(mainChar)).slice(0, 60) : null;
+    }
+
+    await redis.set(playerKey(cleanId), existing);
+    return res.status(200).json({ success: true, mainChar: existing.mainChar });
+  }
 
   // ── POST: guardar/actualizar perfil ──────────────────
   if (req.method === 'POST') {
