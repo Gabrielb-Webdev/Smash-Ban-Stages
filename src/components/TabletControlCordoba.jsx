@@ -222,10 +222,10 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#000000', fontFamily: 'Anton, sans-serif' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'url(/images/paperbg.jpg) center center / cover no-repeat fixed', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
         <div className="text-center">
           <div className="animate-pulse text-6xl mb-4">🎮</div>
-          <p className="text-white text-xl font-bold drop-shadow-lg">Inicializando...</p>
+          <p className="text-white text-xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>Inicializando...</p>
         </div>
       </div>
     );
@@ -233,14 +233,16 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   if (error && error === 'Sesión no encontrada') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#000000', fontFamily: 'Anton, sans-serif' }}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'url(/images/paperbg.jpg) center center / cover no-repeat fixed', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
         <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Sesión no encontrada</h2>
-          <p className="text-white/70 text-lg mb-6">Esta sesión no existe o ha expirado.</p>
-          <a href="/" className="inline-block px-6 py-3 bg-smash-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-all">
-            Ir al Panel de Administración
-          </a>
+          <div className="animate-pulse text-6xl mb-4">⏳</div>
+          <h2 className="text-3xl font-bold text-white mb-3" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>Esperando match...</h2>
+          <p className="text-white/60 text-base mb-2" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+            El admin está preparando tu match. Quedate en esta pantalla.
+          </p>
+          <p className="text-yellow-400/70 text-sm" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+            ↻ Reintentando automáticamente...
+          </p>
         </div>
       </div>
     );
@@ -248,11 +250,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'url(/images/paperbg.jpg) center center / cover no-repeat fixed', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
         <div className="text-center">
-          <img src="/images/AFK.webp" alt="AFK Logo" className="w-32 h-32 mx-auto mb-6 animate-pulse" style={{ filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.3))' }} />
-          <p className="text-white text-xl font-bold drop-shadow-lg">Cargando sesión...</p>
-          {error && <p className="text-yellow-400 text-sm mt-2 font-semibold">{error}</p>}
+          <div className="animate-pulse text-6xl mb-4">🎮</div>
+          <p className="text-white text-xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>Cargando sesión...</p>
+          {error && <p className="text-yellow-400 text-sm mt-2 font-semibold drop-shadow-lg">{error}</p>}
         </div>
       </div>
     );
@@ -346,16 +348,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   // ── Render ──────────────────────────────────────────────────
   return (
-    <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
+    <div style={{ background: 'url(/images/paperbg.jpg) center center / cover no-repeat fixed', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
 
       {/* ── Header sticky ── */}
       <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl">
           <div className="flex justify-between items-center gap-2">
-
-            {/* Logo AFK */}
-            <div className="flex-shrink-0">
-              <img src="/images/AFK.webp" alt="AFK" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))' }} />
-            </div>
 
             {/* Jugadores */}            <div className="flex items-center gap-2 flex-1">
               <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
