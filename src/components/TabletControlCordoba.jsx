@@ -113,6 +113,21 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
 
+  // Identidad del jugador en este dispositivo (null = admin / espectador)
+  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
+    ? (() => {
+        const uLow = playerName.toLowerCase().trim();
+        const p1Low = (session.player1?.name || '').toLowerCase().trim();
+        const p2Low = (session.player2?.name || '').toLowerCase().trim();
+        if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
+        if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
+        return null;
+      })()
+    : null);
+  const myPlayer = _rawIdentity;
+  // En modo 1 dispositivo los controles de turno no se restringen por jugador
+  const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
+
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
     if (!session) return;
@@ -204,21 +219,6 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
       selectCharacter(sessionId, previousCharacters[player], player);
     }
   };
-
-  // Identidad del jugador en este dispositivo (null = admin / espectador)
-  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
-    ? (() => {
-        const uLow = playerName.toLowerCase().trim();
-        const p1Low = (session.player1?.name || '').toLowerCase().trim();
-        const p2Low = (session.player2?.name || '').toLowerCase().trim();
-        if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
-        if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
-        return null;
-      })()
-    : null);
-  const myPlayer = _rawIdentity;
-  // En modo 1 dispositivo los controles de turno no se restringen por jugador
-  const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
   if (!sessionId) {
     return (
