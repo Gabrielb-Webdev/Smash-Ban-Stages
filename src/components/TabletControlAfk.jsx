@@ -94,7 +94,7 @@ const GAME1_STAGES_AFK = [
 
 // ─────────────────────────────────────────────────────────────
 export default function TabletControlAfk({ sessionId, playerName, playerIndex }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, repeatStage, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, repeatStage, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
@@ -119,14 +119,10 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const [lastGameSaved, setLastGameSaved] = useState(0);
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
-  const [turnModal, setTurnModal] = useState(null);
   const [previousStageData, setPreviousStageData] = useState({ bannedStages: [], selectedStage: null });
   const [showRepeatStageModal, setShowRepeatStageModal] = useState(false);
   const [hasAskedRepeatStage, setHasAskedRepeatStage] = useState(false);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
-  const isFirstRender = useRef(true);
-  const prevPhaseRef = useRef(null);
-  const prevTurnRef = useRef(null);
 
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
@@ -197,49 +193,6 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       }
     }
   }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
-
-  // ── Detectar cambios de fase/turno para mostrar modal de anuncio ──────────
-  useEffect(() => {
-    if (!session) return;
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      prevPhaseRef.current = session.phase;
-      prevTurnRef.current = session.currentTurn;
-      return;
-    }
-    const prevPhase = prevPhaseRef.current;
-    const prevTurn = prevTurnRef.current;
-    const turn = session.currentTurn;
-    const name = turn ? session[turn]?.name : '';
-
-    // Transición de fase
-    if (prevPhase !== session.phase) {
-      if (session.phase === 'STAGE_BAN' && turn) {
-        setTurnModal({ icon: '🚫', subtitle: 'Le toca BANEAR stage a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
-      } else if (session.phase === 'STAGE_SELECT' && turn) {
-        setTurnModal({ icon: '🎯', subtitle: 'Le toca ELEGIR stage a', playerName: name, gradient: 'linear-gradient(160deg,#020d1a 0%,#0c2340 50%,#1d4ed8 100%)', accent: '#60a5fa' });
-      } else if (session.phase === 'CHARACTER_SELECT' && turn) {
-        setTurnModal({ icon: '🎮', subtitle: 'Elige tu personaje', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
-      }
-    } else if (prevTurn !== turn && turn && session.phase !== 'RPS') {
-      // Cambio de turno dentro de la misma fase
-      if (session.phase === 'STAGE_BAN') {
-        setTurnModal({ icon: '🚫', subtitle: 'Ahora le toca BANEAR a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
-      } else if (session.phase === 'CHARACTER_SELECT') {
-        setTurnModal({ icon: '🎮', subtitle: 'Ahora te toca elegir a vos', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
-      }
-    }
-    prevPhaseRef.current = session.phase;
-    prevTurnRef.current = session.currentTurn;
-  }, [session?.phase, session?.currentTurn]);
-
-  // Auto-dismiss del modal de turno después de 4s
-  useEffect(() => {
-    if (turnModal) {
-      const t = setTimeout(() => setTurnModal(null), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [turnModal]);
 
   const handleRepeatCharacter = (player, repeat) => {
     setShowRepeatModal({ player1: false, player2: false });
@@ -359,7 +312,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player); break;
-      case 'winner':    setGameWinner(sessionId, pendingAction.winner); break;
+      case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer); break;
     }
     setPendingAction(null);
   };
@@ -906,25 +859,69 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-white/60 text-xs text-center mb-2 font-semibold uppercase tracking-wider">¿Quién ganó el game?</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleSetGameWinner('player1')}
-                  className="py-4 sm:py-5 rounded-xl font-black text-base sm:text-lg text-white active:scale-95 transition-all shadow-2xl border-2 border-smash-red/60 touch-manipulation"
-                  style={{ background: 'linear-gradient(135deg, #7f1d1d, #991b1b)' }}
-                >
-                  🏆<br />
-                  <span className="truncate block px-1 mt-1">{session.player1.name}</span>
-                </button>
-                <button
-                  onClick={() => handleSetGameWinner('player2')}
-                  className="py-4 sm:py-5 rounded-xl font-black text-base sm:text-lg text-white active:scale-95 transition-all shadow-2xl border-2 border-smash-blue/60 touch-manipulation"
-                  style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
-                >
-                  🏆<br />
-                  <span className="truncate block px-1 mt-1">{session.player2.name}</span>
-                </button>
-              </div>
+              <p className="text-white/60 text-xs text-center mb-2 font-semibold uppercase tracking-wider">🏆 ¿Quién ganó el Game {session.currentGame}?</p>
+              {/* Si hay propuesta pendiente y soy el otro jugador: confirmar/rechazar */
+              session.winnerProposal && myPlayer && session.winnerProposal.proposedBy !== myPlayer ? (
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🤔</div>
+                  <p className="text-white/80 text-sm mb-3">
+                    <span className="font-bold text-yellow-400">{session[session.winnerProposal.proposedBy]?.name}</span> dice que{' '}
+                    <span className="font-bold text-white">{session[session.winnerProposal.winner]?.name}</span> ganó el Game {session.currentGame}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setGameWinner(sessionId, session.winnerProposal.winner)}
+                      className="py-4 rounded-xl border-2 border-green-400/60 font-black text-sm active:scale-95 touch-manipulation transition-all"
+                      style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.25))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+                    >
+                      ✅ Confirmar
+                    </button>
+                    <button
+                      onClick={() => rejectGameWinner(sessionId)}
+                      className="py-4 rounded-xl border-2 border-red-400/60 font-black text-sm active:scale-95 touch-manipulation transition-all"
+                      style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.35), rgba(185,28,28,0.25))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+                    >
+                      ❌ Rechazar
+                    </button>
+                  </div>
+                </div>
+              ) : session.winnerProposal && myPlayer && session.winnerProposal.proposedBy === myPlayer ? (
+                /* Ya propuse, esperando confirmación del otro */
+                <div className="text-center py-2">
+                  <div className="text-4xl mb-2 animate-pulse">⏳</div>
+                  <p className="text-white/80 text-sm mb-1">
+                    Propusiste que <span className="font-bold text-yellow-400">{session[session.winnerProposal.winner]?.name}</span> ganó
+                  </p>
+                  <p className="text-white/40 text-xs mb-3">Esperando confirmación del rival...</p>
+                  <button
+                    onClick={() => rejectGameWinner(sessionId)}
+                    className="px-4 py-2 rounded-xl border border-white/20 text-white/50 text-xs font-bold active:scale-95 touch-manipulation"
+                    style={{ background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}
+                  >
+                    Cancelar propuesta
+                  </button>
+                </div>
+              ) : (
+                /* Vista normal: proponer ganador */
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleSetGameWinner('player1')}
+                    className="py-4 sm:py-5 rounded-xl font-black text-base sm:text-lg text-white active:scale-95 transition-all shadow-2xl border-2 border-smash-red/60 touch-manipulation"
+                    style={{ background: 'linear-gradient(135deg, #7f1d1d, #991b1b)' }}
+                  >
+                    🏆<br />
+                    <span className="truncate block px-1 mt-1">{session.player1.name}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSetGameWinner('player2')}
+                    className="py-4 sm:py-5 rounded-xl font-black text-base sm:text-lg text-white active:scale-95 transition-all shadow-2xl border-2 border-smash-blue/60 touch-manipulation"
+                    style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
+                  >
+                    🏆<br />
+                    <span className="truncate block px-1 mt-1">{session.player2.name}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1093,140 +1090,6 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
       </div>{/* fin contenido scrollable */}
-
-      {/* ── Modal de anuncio de turno ── */}
-      {turnModal && (
-        <>
-          <style>{`
-            @keyframes modalPop {
-              0%   { opacity: 0; transform: scale(0.75) translateY(24px); }
-              70%  { transform: scale(1.03) translateY(-4px); }
-              100% { opacity: 1; transform: scale(1) translateY(0); }
-            }
-            @keyframes accentPulse {
-              0%, 100% { opacity: 0.7; }
-              50%       { opacity: 1; }
-            }
-            @keyframes fadeSlideUp {
-              from { opacity: 0; transform: translateY(12px); }
-              to   { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-          <div
-            className="fixed inset-0 flex items-center justify-center z-[60]"
-            style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)' }}
-            onClick={() => setTurnModal(null)}
-          >
-            <div
-              className="relative max-w-sm w-full mx-5 text-center overflow-hidden"
-              style={{
-                background: turnModal.gradient,
-                borderRadius: '28px',
-                boxShadow: `0 0 0 1px rgba(255,255,255,0.1), 0 32px 64px rgba(0,0,0,0.7), 0 0 60px ${turnModal.accent}33`,
-                animation: 'modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Línea de acento superior */}
-              <div
-                className="absolute top-0 left-0 right-0"
-                style={{
-                  height: '3px',
-                  background: `linear-gradient(90deg, transparent, ${turnModal.accent}, transparent)`,
-                  animation: 'accentPulse 2s ease-in-out infinite',
-                }}
-              />
-
-              <div className="px-8 pt-10 pb-8">
-                {/* Ícono en círculo con glow */}
-                <div
-                  className="mx-auto mb-5 flex items-center justify-center text-5xl"
-                  style={{
-                    width: 90,
-                    height: 90,
-                    borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.07)',
-                    border: `2px solid ${turnModal.accent}66`,
-                    boxShadow: `0 0 24px ${turnModal.accent}44`,
-                    animation: 'fadeSlideUp 0.35s ease both 0.05s',
-                  }}
-                >
-                  {turnModal.icon}
-                </div>
-
-                {/* Subtitle */}
-                <p
-                  className="font-bold uppercase"
-                  style={{
-                    color: turnModal.accent,
-                    fontSize: '0.7rem',
-                    letterSpacing: '0.22em',
-                    animation: 'fadeSlideUp 0.35s ease both 0.12s',
-                    opacity: 0,
-                    animationFillMode: 'forwards',
-                  }}
-                >
-                  {turnModal.subtitle}
-                </p>
-
-                {/* Separador */}
-                <div
-                  className="mx-auto my-4"
-                  style={{
-                    width: 48,
-                    height: '1px',
-                    background: `linear-gradient(90deg, transparent, ${turnModal.accent}88, transparent)`,
-                  }}
-                />
-
-                {/* Nombre del jugador */}
-                <p
-                  className="text-white font-black leading-none mb-8"
-                  style={{
-                    fontFamily: 'Anton',
-                    fontSize: 'clamp(2.5rem, 10vw, 3.5rem)',
-                    textShadow: `0 4px 20px rgba(0,0,0,0.6), 0 0 40px ${turnModal.accent}44`,
-                    animation: 'fadeSlideUp 0.35s ease both 0.18s',
-                    opacity: 0,
-                    animationFillMode: 'forwards',
-                  }}
-                >
-                  {turnModal.playerName}
-                </p>
-
-                {/* Botón */}
-                <button
-                  onClick={() => setTurnModal(null)}
-                  className="w-full py-4 font-bold text-sm text-white active:scale-95 transition-transform touch-manipulation"
-                  style={{
-                    borderRadius: '16px',
-                    background: `linear-gradient(135deg, ${turnModal.accent}33, ${turnModal.accent}18)`,
-                    border: `1px solid ${turnModal.accent}55`,
-                    boxShadow: `0 4px 16px ${turnModal.accent}22`,
-                    letterSpacing: '0.05em',
-                    animation: 'fadeSlideUp 0.35s ease both 0.25s',
-                    opacity: 0,
-                    animationFillMode: 'forwards',
-                  }}
-                >
-                  Entendido ✓
-                </button>
-              </div>
-
-              {/* Gradiente de brillo inferior */}
-              <div
-                className="absolute bottom-0 left-0 right-0"
-                style={{
-                  height: '80px',
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
-          </div>
-        </>
-      )}
-
 
       {/* ── Botón Home flotante ── */}
       <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 70 }}>
