@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath } from '../lib/characters';
+import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, CHARACTER_ALT_FOLDERS, charAltPaths } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
 import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback } from '../src/hooks/useWebSocket';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
@@ -2219,9 +2219,13 @@ function TabPerfil({ user }) {
   const [showCharsModal, setShowCharsModal] = useState(false);
   const [selectedChar, setSelectedChar] = useState(null);
   const [charFromModal, setCharFromModal] = useState(false);
-  const [viewProfile, setViewProfile]   = useState(null); // { userId, userName }
+  const [viewProfile, setViewProfile]   = useState(null);
   const [profileData, setProfileData]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [mainChar, setMainChar]         = useState(() => { try { return localStorage.getItem('afk_main_char') || null; } catch { return null; } });
+  const [mainCharAlt, setMainCharAlt]   = useState(() => { try { return localStorage.getItem('afk_main_alt') || null; } catch { return null; } });
+  const [showMainPicker, setShowMainPicker] = useState(false);
+  const [pickerStep, setPickerStep]     = useState('char');
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
   const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
@@ -2251,6 +2255,17 @@ function TabPerfil({ user }) {
         } }).catch(() => {});
       }
     } catch (e) {}
+
+    // Load mainChar from Redis profile
+    const uid2 = String(user?.id || user?.slug || '');
+    if (uid2) {
+      fetch('/api/players/profile?id=' + encodeURIComponent(uid2))
+        .then(r => r.ok ? r.json() : null)
+        .then(p => {
+          if (p?.mainChar) { setMainChar(p.mainChar); try { localStorage.setItem('afk_main_char', p.mainChar); } catch {} }
+          if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
+        }).catch(() => {});
+    }
   }, [user?.id]);
 
   // Fetch friends
@@ -2300,18 +2315,61 @@ function TabPerfil({ user }) {
     for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
     return best;
   })();
-  const heroRender = mostUsedChar ? CHARACTER_RENDERS[mostUsedChar] : null;
+  const heroSrc = (() => {
+    if (mainCharAlt) return mainCharAlt;
+    if (mainChar && CHARACTER_RENDERS[mainChar]) return charRenderPath(CHARACTER_RENDERS[mainChar]);
+    if (mostUsedChar && CHARACTER_RENDERS[mostUsedChar]) return charRenderPath(CHARACTER_RENDERS[mostUsedChar]);
+    return null;
+  })();
+
+  const selectMainChar = (charId, altPath) => {
+    setMainChar(charId);
+    setMainCharAlt(altPath || null);
+    setShowMainPicker(false);
+    setPickerStep('char');
+    try { localStorage.setItem('afk_main_char', charId); } catch {}
+    if (altPath) { try { localStorage.setItem('afk_main_alt', altPath); } catch {} }
+    else { try { localStorage.removeItem('afk_main_alt'); } catch {} }
+    const uid2 = user?.id || user?.slug;
+    if (uid2) {
+      fetch('/api/players/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid2, mainChar: charId, mainCharAlt: altPath || null }),
+      }).catch(() => {});
+    }
+  };
+
+  const clearMainChar = () => {
+    setMainChar(null); setMainCharAlt(null); setShowMainPicker(false); setPickerStep('char');
+    try { localStorage.removeItem('afk_main_char'); localStorage.removeItem('afk_main_alt'); } catch {}
+    const uid2 = user?.id || user?.slug;
+    if (uid2) {
+      fetch('/api/players/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid2, mainChar: null, mainCharAlt: null }),
+      }).catch(() => {});
+    }
+  };
+
   return (
+    <>
     <div style={{ paddingBottom: 32 }}>
-      {/* ── Hero Banner (supermajor style) ── */}
+      {/* ── Hero Banner ── */}
       <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-        {heroRender ? (
-          <img
-            src={charRenderPath(heroRender)}
-            alt=""
-            style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }}
-            onError={e => { e.target.style.display = 'none'; }}
-          />
+        {/* Character picker button — top right */}
+        <button onClick={() => setShowMainPicker(true)} style={{ position: 'absolute', top: 10, right: 12, zIndex: 10, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.35)', borderRadius: 12, width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+          {mainChar ? (
+            <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+          ) : (
+            <span style={{ fontSize: 20 }}>🎮</span>
+          )}
+        </button>
+        {heroSrc ? (
+          <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 4, cursor: 'pointer' }}>
+            <img src={heroSrc} alt="" style={{ display: 'block', height: 180, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+          </div>
         ) : (
           <div style={{ height: 100 }} />
         )}
@@ -2355,7 +2413,7 @@ function TabPerfil({ user }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
-                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Summary</p>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
               </div>
               <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
             </div>
@@ -2714,7 +2772,7 @@ function TabPerfil({ user }) {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Summary</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
                       </div>
                       <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {profileStartggStats.totalSets} sets</p>
                     </div>
@@ -2981,6 +3039,63 @@ function TabPerfil({ user }) {
         )}
       </div>
     </div>
+
+
+    {/* Main character picker modal */}
+    {showMainPicker && (
+      <div onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {pickerStep === 'alt' && <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>←</button>}
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>{pickerStep === 'char' ? 'Elegir main' : 'Elegir skin'}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {mainChar && pickerStep === 'char' && <button onClick={clearMainChar} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#EF4444' }}>Quitar</button>}
+              <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+          </div>
+          {pickerStep === 'char' ? (
+            <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {Object.entries(CHARACTER_RENDERS).map(([charId, renderFile]) => {
+                const charObj = CHARACTERS.find(c => c.id === charId);
+                const isSelected = mainChar === charId;
+                return (
+                  <button key={charId} onClick={() => { if (CHARACTER_ALT_FOLDERS[charId]) { setMainChar(charId); setPickerStep('alt'); } else { selectMainChar(charId, null); } }} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                    <span style={{ fontSize: 8, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{charObj?.name || charId}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {CHARACTER_RENDERS[mainChar] && (
+                  <button onClick={() => selectMainChar(mainChar, null)} style={{ background: !mainCharAlt ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${!mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <img src={charRenderPath(CHARACTER_RENDERS[mainChar])} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                    <span style={{ fontSize: 9, fontWeight: 700, color: !mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Default</span>
+                  </button>
+                )}
+                {charAltPaths(mainChar).map((altPath, i) => {
+                  const isSelected = mainCharAlt === altPath;
+                  return (
+                    <button key={i} onClick={() => selectMainChar(mainChar, altPath)} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <img src={altPath} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                      <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Alt {i + 3}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
