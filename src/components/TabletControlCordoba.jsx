@@ -116,9 +116,10 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
     }
   }, [session?.phase, session?.player1?.character, session?.player2?.character, session?.currentGame]);
 
-  // Modales de repetir personaje
+  // Modales de repetir personaje (solo en tu propio turno)
   useEffect(() => {
     if (!session) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
       if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && previousCharacters.player1 && !showRepeatModal.player1) {
         setShowRepeatModal({ player1: true, player2: false });
@@ -129,7 +130,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
     }
-  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
+  }, [session?.currentGame, session?.phase, session?.currentTurn, effectivePlayer, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
 
   // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
   useEffect(() => {

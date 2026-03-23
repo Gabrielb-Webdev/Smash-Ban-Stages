@@ -151,6 +151,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   // Mostrar modal de repetir stage al entrar a STAGE_BAN en game 2+
   useEffect(() => {
     if (!session) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (
       session.phase === 'STAGE_BAN' &&
       session.currentGame >= 2 &&
@@ -160,7 +161,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       setShowRepeatStageModal(true);
       setHasAskedRepeatStage(true);
     }
-  }, [session?.phase, session?.currentGame, hasAskedRepeatStage, previousStageData.selectedStage]);
+  }, [session?.phase, session?.currentGame, session?.currentTurn, effectivePlayer, hasAskedRepeatStage, previousStageData.selectedStage]);
 
   // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
   useEffect(() => {
@@ -183,9 +184,10 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     }
   }, [session?.phase, session?.player1?.character, session?.player2?.character, session?.currentGame]);
 
-  // Modales de repetir personaje
+  // Modales de repetir personaje (solo en tu propio turno)
   useEffect(() => {
     if (!session) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
       if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && previousCharacters.player1 && !showRepeatModal.player1) {
         setShowRepeatModal({ player1: true, player2: false });
@@ -196,7 +198,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
     }
-  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
+  }, [session?.currentGame, session?.phase, session?.currentTurn, effectivePlayer, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
 
   // Detectar cambios de fase/turno para mostrar modal de anuncio (solo singleDeviceMode)
   useEffect(() => {
@@ -1010,7 +1012,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Modal: Repetir personaje - Player 1 ── */}
-        {showRepeatModal.player1 && previousCharacters.player1 && (
+        {showRepeatModal.player1 && previousCharacters.player1 && (!effectivePlayer || effectivePlayer === 'player1') && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-red to-red-800 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full">
               <div className="text-center mb-6">
@@ -1031,7 +1033,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Modal: Repetir personaje - Player 2 ── */}
-        {showRepeatModal.player2 && previousCharacters.player2 && (
+        {showRepeatModal.player2 && previousCharacters.player2 && (!effectivePlayer || effectivePlayer === 'player2') && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-blue to-blue-800 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full">
               <div className="text-center mb-6">
@@ -1052,7 +1054,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Modal: Repetir stage ── */}
-        {showRepeatStageModal && previousStageData.selectedStage && (() => {
+        {showRepeatStageModal && previousStageData.selectedStage && (!effectivePlayer || session.currentTurn === effectivePlayer) && (() => {
           const stageInfo = getStageData(previousStageData.selectedStage);
           return (
             <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">

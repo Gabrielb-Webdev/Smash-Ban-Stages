@@ -133,9 +133,10 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
     }
   }, [session?.phase, session?.player1?.character, session?.player2?.character, session?.currentGame]);
 
-  // Modales de repetir personaje
+  // Modales de repetir personaje (solo en tu propio turno)
   useEffect(() => {
     if (!session) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
       if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && previousCharacters.player1 && !showRepeatModal.player1) {
         setShowRepeatModal({ player1: true, player2: false });
@@ -146,7 +147,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
     }
-  }, [session?.currentGame, session?.phase, session?.currentTurn, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
+  }, [session?.currentGame, session?.phase, session?.currentTurn, effectivePlayer, session?.player1?.character, session?.player2?.character, hasAskedRepeat, previousCharacters, showRepeatModal]);
 
   // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
   useEffect(() => {
@@ -1061,61 +1062,6 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
         )}
 
       </div>{/* fin contenido scrollable */}
-
-      {/* ── Modal de anuncio de turno (solo singleDeviceMode) ── */}
-      {session?.singleDeviceMode && turnModal && (
-        <>
-          <style>{`
-            @keyframes modalPopMdz {
-              0%   { opacity: 0; transform: scale(0.75) translateY(24px); }
-              70%  { transform: scale(1.03) translateY(-4px); }
-              100% { opacity: 1; transform: scale(1) translateY(0); }
-            }
-            @keyframes accentPulseMdz {
-              0%, 100% { opacity: 0.7; }
-              50%       { opacity: 1; }
-            }
-            @keyframes fadeSlideUpMdz {
-              from { opacity: 0; transform: translateY(12px); }
-              to   { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-          <div
-            className="fixed inset-0 flex items-center justify-center z-[60]"
-            style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)' }}
-            onClick={() => setTurnModal(null)}
-          >
-            <div
-              className="relative max-w-sm w-full mx-5 text-center overflow-hidden"
-              style={{
-                background: turnModal.gradient,
-                borderRadius: '28px',
-                boxShadow: `0 0 0 1px rgba(255,255,255,0.1), 0 32px 64px rgba(0,0,0,0.7), 0 0 60px ${turnModal.accent}33`,
-                animation: 'modalPopMdz 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="absolute top-0 left-0 right-0" style={{ height: '3px', background: `linear-gradient(90deg, transparent, ${turnModal.accent}, transparent)`, animation: 'accentPulseMdz 2s ease-in-out infinite' }} />
-              <div className="px-8 pt-10 pb-8">
-                <div className="mx-auto mb-5 flex items-center justify-center text-5xl" style={{ width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', border: `2px solid ${turnModal.accent}66`, boxShadow: `0 0 24px ${turnModal.accent}44`, animation: 'fadeSlideUpMdz 0.35s ease both 0.05s' }}>
-                  {turnModal.icon}
-                </div>
-                <p className="font-bold uppercase" style={{ color: turnModal.accent, fontSize: '0.7rem', letterSpacing: '0.22em', animation: 'fadeSlideUpMdz 0.35s ease both 0.12s', opacity: 0, animationFillMode: 'forwards' }}>
-                  {turnModal.subtitle}
-                </p>
-                <div className="mx-auto my-4" style={{ width: 48, height: '1px', background: `linear-gradient(90deg, transparent, ${turnModal.accent}88, transparent)` }} />
-                <p className="text-white font-black leading-none mb-8" style={{ fontFamily: 'Anton', fontSize: 'clamp(2.5rem, 10vw, 3.5rem)', textShadow: `0 4px 20px rgba(0,0,0,0.6), 0 0 40px ${turnModal.accent}44`, animation: 'fadeSlideUpMdz 0.35s ease both 0.18s', opacity: 0, animationFillMode: 'forwards' }}>
-                  {turnModal.playerName}
-                </p>
-                <button onClick={() => setTurnModal(null)} className="w-full py-4 font-bold text-sm text-white active:scale-95 transition-transform touch-manipulation" style={{ borderRadius: '16px', background: `linear-gradient(135deg, ${turnModal.accent}33, ${turnModal.accent}18)`, border: `1px solid ${turnModal.accent}55`, boxShadow: `0 4px 16px ${turnModal.accent}22`, letterSpacing: '0.05em', animation: 'fadeSlideUpMdz 0.35s ease both 0.25s', opacity: 0, animationFillMode: 'forwards' }}>
-                  Entendido ✓
-                </button>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0" style={{ height: '80px', background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)', pointerEvents: 'none' }} />
-            </div>
-          </div>
-        </>
-      )}
 
       {/* ── Botón Home flotante ── */}
       <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 70 }}>
