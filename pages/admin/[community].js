@@ -5,6 +5,3 @@ import TestAdminPage from './test';
 export default function CommunityAdmin() {
   return <TestAdminPage />;
 }
-  );
-}
-
