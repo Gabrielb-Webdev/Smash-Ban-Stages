@@ -1,7 +1,7 @@
 // API de amigos — solicitudes, aceptar/rechazar, listar y eliminar
 // Sistema de solicitudes: POST envía solicitud, PUT acepta/rechaza
 
-import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey, presenceKey, userStatusKey } from '../../lib/redis';
+import redis, { friendsKey, friendRequestsKey, sentRequestsKey, mmQueueKey, rankedStatsKey, notifsKey, presenceKey, userStatusKey, playerKey } from '../../lib/redis';
 import { sendPush } from '../../lib/push.js';
 
 const MAX_FRIENDS = 50;
@@ -60,9 +60,12 @@ export default async function handler(req, res) {
 
     const friends = (await redis.get(friendsKey(clean))) || [];
     const enriched = await Promise.all(friends.map(async (f) => {
-      const status = await getOnlineStatus(f.userId);
-      const switchStats = await redis.get(rankedStatsKey(f.userId, 'switch'));
-      const parsecStats = await redis.get(rankedStatsKey(f.userId, 'parsec'));
+      const [status, switchStats, parsecStats, profile] = await Promise.all([
+        getOnlineStatus(f.userId),
+        redis.get(rankedStatsKey(f.userId, 'switch')),
+        redis.get(rankedStatsKey(f.userId, 'parsec')),
+        redis.get(playerKey(f.userId)),
+      ]);
       const bestStats = (switchStats && parsecStats)
         ? ((switchStats.rankIndex || 0) >= (parsecStats.rankIndex || 0) ? switchStats : parsecStats)
         : (switchStats || parsecStats || null);
@@ -71,6 +74,7 @@ export default async function handler(req, res) {
         online: status,
         rank: bestStats?.rank || null,
         placementDone: bestStats?.placementDone || false,
+        country: profile?.country || null,
       };
     }));
     const order = { in_match: 0, searching: 1, online: 2, away: 3, dnd: 4, offline: 5 };

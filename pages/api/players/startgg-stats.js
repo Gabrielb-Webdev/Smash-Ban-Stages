@@ -458,6 +458,12 @@ export default async function handler(req, res) {
   const slug = sanitize(req.query.slug);
   if (!slug) return res.status(400).json({ error: 'slug required' });
 
+  // Slugs de Start.GG son alfanuméricos con guiones/letras (ej: "user/gabriel-sin-h")
+  // IDs hex cortos como "699c44d7" no son slugs válidos — evitar llamar a la API
+  if (/^[0-9a-f]{6,}$/i.test(slug) && !/[g-zG-Z]/.test(slug)) {
+    return res.status(200).json({});
+  }
+
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Authorization header required' });
 

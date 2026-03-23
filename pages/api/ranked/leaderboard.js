@@ -2,7 +2,7 @@
 // Devuelve el top de jugadores por puntos ranked para la plataforma pedida.
 // Smashers quedan primeros por tener los puntos más altos.
 
-import redis, { rankedStatsKey, rankedBoardKey, rankedDoubleStatsKey, rankedDoubleBoardKey } from '../../../lib/redis';
+import redis, { rankedStatsKey, rankedBoardKey, rankedDoubleStatsKey, rankedDoubleBoardKey, playerKey } from '../../../lib/redis';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,13 +32,14 @@ export default async function handler(req, res) {
 
   const total = await redis.zcard(boardKey);
 
-  const [statsArray, recentCharsArray] = await Promise.all([
+  const [statsArray, recentCharsArray, profilesArray] = await Promise.all([
     Promise.all(playerIds.map(id => redis.get(statsKeyFn(id, platform)))),
     Promise.all(playerIds.map(id => redis.get(`recent:chars:${id}`))),
+    Promise.all(playerIds.map(id => redis.get(playerKey(id)))),
   ]);
 
   const leaderboard = statsArray
-    .map((s, i) => s ? { ...s, mainCharId: recentCharsArray[i]?.[0] || null } : null)
+    .map((s, i) => s ? { ...s, mainCharId: recentCharsArray[i]?.[0] || null, country: profilesArray[i]?.country || null } : null)
     .filter(Boolean)
     .sort((a, b) => {
       const sa = (a.rankIndex || 0) * 100 + (a.rankPoints || 0);

@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   // ── PATCH: actualizar campo individual del perfil ────
   if (req.method === 'PATCH') {
-    const { id, mainChar } = req.body || {};
+    const { id, mainChar, mainCharAlt, country } = req.body || {};
     if (!id) return res.status(400).json({ error: 'id requerido' });
 
     const cleanId = sanitize(String(id)).slice(0, 80);
@@ -23,9 +23,15 @@ export default async function handler(req, res) {
     if (mainChar !== undefined) {
       existing.mainChar = mainChar ? sanitize(String(mainChar)).slice(0, 60) : null;
     }
+    if (mainCharAlt !== undefined) {
+      existing.mainCharAlt = mainCharAlt ? sanitize(String(mainCharAlt)).slice(0, 200) : null;
+    }
+    if (country !== undefined) {
+      existing.country = country ? sanitize(String(country)).slice(0, 5).toUpperCase() : null;
+    }
 
     await redis.set(playerKey(cleanId), existing);
-    return res.status(200).json({ success: true, mainChar: existing.mainChar });
+    return res.status(200).json({ success: true });
   }
 
   // ── POST: guardar/actualizar perfil ──────────────────

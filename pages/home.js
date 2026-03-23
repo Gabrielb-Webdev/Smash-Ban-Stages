@@ -46,12 +46,15 @@ const COUNTRY_TO_CODE = {
   'United States':'US','USA':'US','Canada':'CA','Spain':'ES','España':'ES',
   'Japan':'JP','South Korea':'KR','France':'FR','Germany':'DE','Italy':'IT',
   'United Kingdom':'GB','UK':'GB','Australia':'AU','Portugal':'PT',
+  'New Zealand':'NZ','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
 };
 function countryFlag(country) {
-  if (!country) return '';
-  let cc = country.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
-  if (!cc) return '';
-  return String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+  if (!country) return null;
+  return country.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
+}
+function FlagImg({ cc, size = 16 }) {
+  if (!cc) return null;
+  return <img src={`https://flagcdn.com/w40/${cc.toLowerCase()}.png`} alt={cc} style={{ width: size, height: Math.round(size * 0.75), objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle' }} onError={e => { e.target.style.display = 'none'; }} />;
 }
 
 function getNotifRoute(notif) {
@@ -1087,7 +1090,9 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
           color: tc ? tc.text : (isSmasher ? '#FF8C00' : '#fff'),
           textTransform: 'uppercase', letterSpacing: '0.02em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          display: 'flex', alignItems: 'center', gap: 6,
         }}>
+          {player.country && <FlagImg cc={player.country} size={14} />}
           {player.userName}
         </p>
         {!inPlacement && (
@@ -1509,7 +1514,10 @@ function TabAmigos({ user }) {
         <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: statusColor || '#555', border: '2.5px solid #0D0D15', boxShadow: statusColor ? `0 0 6px ${statusColor}` : 'none' }} />
       </div>
       <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => openProfile(f.userId, f.userName)}>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: isOffline ? 'rgba(255,255,255,0.45)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.userName}</p>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: isOffline ? 'rgba(255,255,255,0.45)' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
+          {f.country && <FlagImg cc={f.country} size={14} />}
+          {f.userName}
+        </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
           <span style={{ fontSize: 11, color: statusColor || 'rgba(255,255,255,0.25)', fontWeight: 700 }}>{statusLabel}</span>
           {f.placementDone && f.rank ? <RankBadge rankName={f.rank} /> : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontWeight: 600 }}>Unranked</span>}
@@ -2310,13 +2318,13 @@ function TabPerfil({ user }) {
         <p style={{ margin: 0, padding: '8px 18px 4px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
         {startggStats?.profile?.location && (() => {
           const loc = startggStats.profile.location;
-          const flag = countryFlag(loc.country);
+          const cc = countryFlag(loc.country);
           const parts = [loc.city, loc.state].filter(Boolean);
-          return parts.length > 0 || flag ? (
-            <p style={{ margin: '3px 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', position: 'relative', zIndex: 3 }}>
-              {flag && <span style={{ fontSize: 14, marginRight: 5 }}>{flag}</span>}
-              {parts.join(', ')}
-            </p>
+          return parts.length > 0 || cc ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '3px 0 12px', position: 'relative', zIndex: 3 }}>
+              {cc && <FlagImg cc={cc} size={18} />}
+              {parts.length > 0 && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{parts.join(', ')}</span>}
+            </div>
           ) : null;
         })()}
       </div>
