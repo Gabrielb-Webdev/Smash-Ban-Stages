@@ -27,11 +27,26 @@ const COUNTRY_TO_CODE = {
   'United Kingdom':'GB','UK':'GB','Australia':'AU','New Zealand':'NZ',
   'Portugal':'PT','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
 };
+const AR_PROVINCES = {
+  'Buenos Aires':'BA','Ciudad Autónoma de Buenos Aires':'CABA','CABA':'CABA',
+  'Capital Federal':'CABA','Córdoba':'CBA','Cordoba':'CBA','Santa Fe':'SF',
+  'Mendoza':'MZA','Tucumán':'TUC','Tucuman':'TUC','Entre Ríos':'ER','Entre Rios':'ER',
+  'Salta':'SLA','Misiones':'MIS','Chaco':'CHA','Corrientes':'COR','Santiago del Estero':'SDE',
+  'San Juan':'SJ','Jujuy':'JUJ','Río Negro':'RN','Rio Negro':'RN','Neuquén':'NQN','Neuquen':'NQN',
+  'Formosa':'FOR','Chubut':'CHU','San Luis':'SL','Catamarca':'CAT','La Rioja':'LR',
+  'La Pampa':'LP','Santa Cruz':'SC','Tierra del Fuego':'TDF',
+};
 function countryFlag(country) {
   if (!country) return '';
   let cc = country.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
   if (!cc) return '';
   return String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+function provinceCode(state, country) {
+  if (!state) return null;
+  const cc = country?.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
+  if (cc === 'AR') return AR_PROVINCES[state] || state;
+  return state;
 }
 
 export default function ProfilePage() {
@@ -47,6 +62,42 @@ export default function ProfilePage() {
   const [showCharsModal, setShowCharsModal] = useState(false);
   const [selectedChar, setSelectedChar] = useState(null);
   const [charFromModal, setCharFromModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [myStatus, setMyStatus] = useState('online');
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [mainChar, setMainChar] = useState(null);
+  const [showMainPicker, setShowMainPicker] = useState(false);
+
+  const refreshStartgg = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
+      const token = stored.access_token;
+      const slug = stored.user?.slug;
+      if (token && slug) {
+        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug) + '&refresh=true', {
+          headers: { 'Authorization': 'Bearer ' + token },
+        }).then(r => r.ok ? r.json() : null)
+          .then(d => { if (d) setStartggStats(d); })
+          .finally(() => setRefreshing(false));
+      } else {
+        setRefreshing(false);
+      }
+    } catch { setRefreshing(false); }
+  };
+
+  const changeStatus = async (newStatus) => {
+    setMyStatus(newStatus);
+    setShowStatusMenu(false);
+    try { localStorage.setItem('afk_my_status', newStatus); } catch {}
+    const uid = user?.id || user?.slug;
+    if (uid) {
+      try {
+        await fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, status: newStatus }) });
+      } catch {}
+    }
+  };
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -59,6 +110,8 @@ export default function ProfilePage() {
       return;
     }
     setUser(u);
+    try { const s = localStorage.getItem('afk_my_status'); if (s) setMyStatus(s); } catch {}
+    try { const mc = localStorage.getItem('afk_main_char'); if (mc) setMainChar(mc); } catch {}
     const uid = encodeURIComponent(String(u.id || u.slug || ''));
     Promise.all([
       fetch(`/api/players/stats?userId=${uid}`).then(r => r.json()).catch(() => null),
@@ -107,12 +160,13 @@ export default function ProfilePage() {
   const pcWR     = pcTotal > 0 ? Math.round(pcW * 100 / pcTotal) : null;
 
   const TABS = [
-    { id: 'overview',  label: 'Overview'  },
+    { id: 'overview',  label: 'General'  },
     { id: 'ranked',    label: 'Ranked'    },
     { id: 'historial', label: 'Historial' },
   ];
 
   const heroRender = (() => {
+    if (mainChar && CHARACTER_RENDERS[mainChar]) return CHARACTER_RENDERS[mainChar];
     if (!history.length) return null;
     const counts = {};
     for (const m of history) {
@@ -124,6 +178,18 @@ export default function ProfilePage() {
     return best ? CHARACTER_RENDERS[best] : null;
   })();
 
+  const selectMainChar = (charId) => {
+    setMainChar(charId);
+    setShowMainPicker(false);
+    try { localStorage.setItem('afk_main_char', charId); } catch {}
+  };
+
+  const clearMainChar = () => {
+    setMainChar(null);
+    setShowMainPicker(false);
+    try { localStorage.removeItem('afk_main_char'); } catch {}
+  };
+
   return (
     <>
       <Head>
@@ -133,6 +199,7 @@ export default function ProfilePage() {
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
           body { background: #0B0B12; margin: 0; }
           ::-webkit-scrollbar { display: none; }
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
       </Head>
       <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', -apple-system, sans-serif", maxWidth: 480, margin: '0 auto' }}>
@@ -150,28 +217,70 @@ export default function ProfilePage() {
         {/* â”€â”€ Banner / Hero â”€â”€ */}
         <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
           {heroRender ? (
-            <img
-              src={charRenderPath(heroRender)}
-              alt=""
-              style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <img
+                src={charRenderPath(heroRender)}
+                alt=""
+                style={{ display: 'block', height: 180, objectFit: 'contain' }}
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+              <button onClick={() => setShowMainPicker(true)} style={{ position: 'absolute', bottom: 8, right: 0, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 12 }}>✏️</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Main</span>
+              </button>
+            </div>
           ) : (
-            <div style={{ height: 120 }} />
+            <div style={{ height: 120, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>🎮</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Elegir main</span>
+              </button>
+            </div>
           )}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
           <p style={{ margin: 0, padding: '8px 18px 4px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
           {startggStats?.profile?.location && (() => {
             const loc = startggStats.profile.location;
             const flag = countryFlag(loc.country);
-            const parts = [loc.city, loc.state].filter(Boolean);
-            return parts.length > 0 ? (
-              <p style={{ margin: '4px 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', position: 'relative', zIndex: 3 }}>
-                {flag && <span style={{ fontSize: 14, marginRight: 5 }}>{flag}</span>}
-                {parts.join(', ')}
-              </p>
+            const provCode = provinceCode(loc.state, loc.country);
+            const city = loc.city;
+            return (flag || provCode || city) ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '4px 0 12px', position: 'relative', zIndex: 3 }}>
+                {flag && <span style={{ fontSize: 16 }}>{flag}</span>}
+                {provCode && (
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>{provCode}</span>
+                )}
+                {city && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{city}</span>}
+              </div>
             ) : null;
           })()}
+
+          {/* Status selector */}
+          <div style={{ position: 'relative', zIndex: 5, marginBottom: 12 }}>
+            <button onClick={() => setShowStatusMenu(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : '#555', boxShadow: `0 0 4px ${myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : 'transparent'}` }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                {myStatus === 'online' ? 'En línea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
+              </span>
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>▼</span>
+            </button>
+            {showStatusMenu && (
+              <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 4, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', zIndex: 50, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                {[
+                  { key: 'online', color: '#22C55E', label: 'En línea', icon: '🟢' },
+                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '🌙' },
+                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '⛔' },
+                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '👻' },
+                ].map(opt => (
+                  <button key={opt.key} onClick={() => changeStatus(opt.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: myStatus === opt.key ? 'rgba(255,255,255,0.06)' : 'transparent', cursor: 'pointer' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, boxShadow: opt.color !== '#555' ? `0 0 4px ${opt.color}` : 'none' }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: myStatus === opt.key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{opt.label}</span>
+                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tab bar */}
@@ -244,9 +353,13 @@ export default function ProfilePage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '22px 0 12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
-                      <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Summary</p>
+                      <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
                     </div>
                     <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
+                    <button onClick={refreshStartgg} disabled={refreshing} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', cursor: refreshing ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: refreshing ? 0.5 : 1 }}>
+                      <span style={{ fontSize: 12, display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>{refreshing ? '...' : 'Sync'}</span>
+                    </button>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
                     {startggStats.charUsage.slice(0, 3).map((ch, i) => {
@@ -279,7 +392,7 @@ export default function ProfilePage() {
                               <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.5s ease' }} />
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
-                              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} games</p>
+                              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} partidas</p>
                               <p style={{ margin: 0, fontSize: 9, color: charWR >= 50 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)', fontWeight: 700 }}>{charWR}% WR ({ch.wins}W-{ch.games - ch.wins}L)</p>
                             </div>
                           </div>
@@ -342,15 +455,15 @@ export default function ProfilePage() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                     <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#F5C518' }}>{startggStats.winRate}%</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Win Rate</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Winrate</p>
                     </div>
                     <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#22C55E' }}>{startggStats.wins}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Wins</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Victorias</p>
                     </div>
                     <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{startggStats.losses}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Losses</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Derrotas</p>
                     </div>
                     <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#818CF8' }}>{startggStats.tournaments}</p>
@@ -363,7 +476,7 @@ export default function ProfilePage() {
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#818CF8,#6366F1)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Stages</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Escenarios</p>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                         {startggStats.stageUsage.slice(0, 3).map((st, i) => (
@@ -398,7 +511,7 @@ export default function ProfilePage() {
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F97316,#EA580C)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Highlights</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Destacados</p>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                         {startggStats.highlights.slice(0, 12).map((h, i) => {
@@ -411,7 +524,7 @@ export default function ProfilePage() {
                                 <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{h.tournament}</p>
                               </div>
                               <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: placementColor }}>
-                                {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'ST' : h.placement === 2 ? 'ND' : h.placement === 3 ? 'RD' : 'TH'}</sup>
+                                {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'RO' : h.placement === 2 ? 'DO' : h.placement === 3 ? 'RO' : 'TO'}</sup>
                                 <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>/{h.entrants}</span>
                               </p>
                               <p style={{ margin: '3px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
@@ -546,6 +659,38 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* Main character picker modal */}
+      {showMainPicker && (
+        <div onClick={() => setShowMainPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Elegir main</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {mainChar && (
+                  <button onClick={clearMainChar} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#EF4444' }}>Quitar</button>
+                )}
+                <button onClick={() => setShowMainPicker(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              </div>
+            </div>
+            <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {Object.entries(CHARACTER_RENDERS).map(([charId, renderFile]) => {
+                const charObj = CHARACTERS.find(c => c.id === charId);
+                const isSelected = mainChar === charId;
+                return (
+                  <button key={charId} onClick={() => selectMainChar(charId)} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}>
+                    <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                    <span style={{ fontSize: 8, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{charObj?.name || charId}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
