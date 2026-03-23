@@ -36,7 +36,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 // ── Componente de botón de stage reutilizable ──────────────
-function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '' }) {
+function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked }) {
   return (
     <button
       onClick={() => { if (!isBanned) onClick(stageId); }}
@@ -44,7 +44,9 @@ function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpa
       className={`${colSpan} relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
         isBanned
           ? 'cursor-not-allowed border-white/20'
-          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
+          : isClicked
+            ? 'cursor-pointer border-green-400 shadow-lg shadow-green-500/30 scale-95'
+            : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
       }`}
     >
       <div className="aspect-video relative">
@@ -58,15 +60,22 @@ function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpa
           <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
         </div>
       )}
+      {isClicked && !isBanned && (
+        <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 backdrop-blur-[1px]">
+          <span className="text-green-400 text-4xl sm:text-5xl drop-shadow-2xl">✓</span>
+        </div>
+      )}
     </button>
   );
 }
 
-function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '' }) {
+function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked, isClicked }) {
   return (
     <button
       onClick={() => onClick(stageId)}
-      className={`${colSpan} relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation`}
+      className={`${colSpan} relative overflow-hidden rounded-lg sm:rounded-xl border-2 touch-manipulation ${
+        isClicked ? 'border-green-400 shadow-lg shadow-green-500/30 scale-95' : 'border-white/20 active:scale-95'
+      }`}
     >
       <div className="aspect-video relative">
         <img src={stageImage} alt={stageName} className="w-full h-full object-cover" />
@@ -77,6 +86,11 @@ function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, 
       {isBanned && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+        </div>
+      )}
+      {isClicked && !isBanned && (
+        <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 backdrop-blur-[1px]">
+          <span className="text-green-400 text-4xl sm:text-5xl drop-shadow-2xl">✓</span>
         </div>
       )}
     </button>
@@ -94,7 +108,7 @@ const GAME1_STAGES_AFK = [
 
 // ─────────────────────────────────────────────────────────────
 export default function TabletControlAfk({ sessionId, playerName, playerIndex }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, repeatStage, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, repeatStage, proposeRepeatStage, confirmRepeatStage, rejectRepeatStage, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
@@ -120,7 +134,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
   const [turnModal, setTurnModal] = useState(null);
-  const [previousStageData, setPreviousStageData] = useState({ bannedStages: [], selectedStage: null });
+  const [clickedItemId, setClickedItemId] = useState(null);
   const [showRepeatStageModal, setShowRepeatStageModal] = useState(false);
   const [hasAskedRepeatStage, setHasAskedRepeatStage] = useState(false);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
@@ -137,17 +151,6 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     }
   }, [session?.player1?.character, session?.player2?.character, session?.currentGame, lastGameSaved]);
 
-  // Guardar datos del stage cuando entra en PLAYING
-  useEffect(() => {
-    if (!session) return;
-    if (session.phase === 'PLAYING' && session.selectedStage) {
-      setPreviousStageData({
-        bannedStages: [...(session.bannedStages || [])],
-        selectedStage: session.selectedStage,
-      });
-    }
-  }, [session?.phase, session?.selectedStage]);
-
   // Mostrar modal de repetir stage al entrar a STAGE_BAN en game 2+
   useEffect(() => {
     if (!session) return;
@@ -156,12 +159,13 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       session.phase === 'STAGE_BAN' &&
       session.currentGame >= 2 &&
       !hasAskedRepeatStage &&
-      previousStageData.selectedStage
+      !session.repeatStageRejected &&
+      session.previousStageData?.selectedStage
     ) {
       setShowRepeatStageModal(true);
       setHasAskedRepeatStage(true);
     }
-  }, [session?.phase, session?.currentGame, session?.currentTurn, effectivePlayer, hasAskedRepeatStage, previousStageData.selectedStage]);
+  }, [session?.phase, session?.currentGame, session?.currentTurn, effectivePlayer, hasAskedRepeatStage, session?.previousStageData?.selectedStage, session?.repeatStageRejected]);
 
   // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
   useEffect(() => {
@@ -250,7 +254,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const handleRepeatStage = (repeat) => {
     setShowRepeatStageModal(false);
     if (repeat) {
-      repeatStage(sessionId, previousStageData.bannedStages, previousStageData.selectedStage);
+      proposeRepeatStage(sessionId);
     }
   };
 
@@ -316,6 +320,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     if (isActionBlocked) return;
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
+      setClickedItemId(stageId);
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage?.name || stageId, player: session.currentTurn });
       startCooldown();
@@ -326,6 +331,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     if (isActionBlocked) return;
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
+      setClickedItemId(stageId);
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId, player: effectivePlayer || session.currentTurn });
     }
@@ -334,6 +340,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const handleSelectCharacter = (characterId) => {
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
+      setClickedItemId(characterId);
       const character = CHARACTERS.find(c => c.id === characterId);
       setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
     }
@@ -361,9 +368,10 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer); break;
     }
     setPendingAction(null);
+    setClickedItemId(null);
   };
 
-  const cancelAction = () => setPendingAction(null);
+  const cancelAction = () => { setPendingAction(null); setClickedItemId(null); };
 
   const getAllStages = () => getStagesForTournament(sessionId, session.currentGame);
 
@@ -678,13 +686,13 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {GAME1_STAGES_AFK.slice(0, 3).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {GAME1_STAGES_AFK.slice(3, 5).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} colSpan="sm:col-span-2" />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -694,18 +702,18 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(0, 3).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(3, 6).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {getAllStages().slice(6, 8).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} colSpan="sm:col-span-2" />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -741,13 +749,13 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {GAME1_STAGES_AFK.slice(0, 3).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {GAME1_STAGES_AFK.slice(3, 5).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} colSpan="sm:col-span-2" />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -756,18 +764,18 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(0, 3).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(3, 6).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {getAllStages().slice(6, 8).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} colSpan="sm:col-span-2" />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -806,7 +814,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                           key={charId}
                           onClick={() => handleSelectCharacter(charId)}
                           title={char.name}
-                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-yellow/60 active:scale-95 touch-manipulation overflow-hidden"
+                          className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 active:scale-95 touch-manipulation overflow-hidden relative ${
+                            clickedItemId === charId ? 'border-green-400 shadow-green-500/30' : 'border-smash-yellow/60'
+                          }`}
                         >
                           <img
                             src={char.image}
@@ -842,7 +852,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-white/5 rounded-lg sm:rounded-xl p-1 flex flex-col items-center justify-center overflow-hidden active:scale-95 border-2 border-white/20 touch-manipulation"
+                  className={`aspect-square bg-white/5 rounded-lg sm:rounded-xl p-1 flex flex-col items-center justify-center overflow-hidden active:scale-95 border-2 touch-manipulation relative ${
+                    clickedItemId === character.id ? 'border-green-400 shadow-lg shadow-green-500/30 scale-95' : 'border-white/20'
+                  }`}
                   title={character.name}
                 >
                   <img
@@ -851,6 +863,11 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                     className="w-full h-full object-contain"
                     onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                   />
+                  {clickedItemId === character.id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 backdrop-blur-[1px] rounded-lg">
+                      <span className="text-green-400 text-3xl sm:text-4xl drop-shadow-2xl">✓</span>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -1053,9 +1070,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
           </div>
         )}
 
-        {/* ── Modal: Repetir stage ── */}
-        {showRepeatStageModal && previousStageData.selectedStage && (!effectivePlayer || session.currentTurn === effectivePlayer) && (() => {
-          const stageInfo = getStageData(previousStageData.selectedStage);
+        {/* ── Modal: Repetir stage (propuesta inicial del jugador con turno) ── */}
+        {showRepeatStageModal && session.previousStageData?.selectedStage && (!effectivePlayer || session.currentTurn === effectivePlayer) && !session.repeatStageProposal && (() => {
+          const stageInfo = getStageData(session.previousStageData.selectedStage);
           return (
             <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
               <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 sm:p-8 shadow-2xl border-4 border-smash-yellow max-w-lg w-full">
@@ -1073,7 +1090,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                     )}
                     <p className="text-white text-xl font-bold py-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{stageInfo?.name}</p>
                   </div>
-                  <p className="text-white/60 text-sm">Se repetirán los mismos baneos y el mismo stage</p>
+                  <p className="text-white/60 text-sm">Tu rival deberá confirmar</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <button
@@ -1093,6 +1110,72 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
             </div>
           );
         })()}
+
+        {/* ── Modal: Repeat stage proposal - Rival confirma/rechaza ── */}
+        {session.repeatStageProposal && myPlayer && session.repeatStageProposal.proposedBy !== myPlayer && session.previousStageData?.selectedStage && (() => {
+          const stageInfo = getStageData(session.previousStageData.selectedStage);
+          const proposerName = session[session.repeatStageProposal.proposedBy]?.name;
+          return (
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+              <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 sm:p-8 shadow-2xl border-4 border-smash-yellow max-w-lg w-full">
+                <div className="text-center mb-5">
+                  <div className="text-5xl mb-3">🤔</div>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3" style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>¿Repetir stage?</h3>
+                  <p className="text-white/80 text-base mb-3">
+                    <span className="font-bold text-yellow-400">{proposerName}</span> quiere repetir el stage anterior
+                  </p>
+                  <div className="bg-white/10 rounded-xl overflow-hidden border-2 border-white/30 mb-3">
+                    {stageInfo?.image && (
+                      <img
+                        src={stageInfo.image}
+                        alt={stageInfo?.name}
+                        className="w-full h-32 object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
+                    <p className="text-white text-xl font-bold py-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{stageInfo?.name}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => rejectRepeatStage(sessionId)}
+                    className="py-4 rounded-xl border-2 border-red-400/60 font-black text-lg active:scale-95 touch-manipulation transition-all"
+                    style={{ background: 'linear-gradient(135deg, rgba(220,38,38,0.35), rgba(185,28,28,0.25))', color: '#fff' }}
+                  >
+                    ❌ Rechazar
+                  </button>
+                  <button
+                    onClick={() => confirmRepeatStage(sessionId)}
+                    className="py-4 rounded-xl border-2 border-green-400/60 font-black text-lg active:scale-95 touch-manipulation transition-all"
+                    style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.25))', color: '#fff' }}
+                  >
+                    ✅ Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Modal: Repeat stage proposal - Esperando confirmación ── */}
+        {session.repeatStageProposal && myPlayer && session.repeatStageProposal.proposedBy === myPlayer && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 sm:p-8 shadow-2xl border-4 border-smash-yellow max-w-lg w-full">
+              <div className="text-center">
+                <div className="text-5xl mb-4 animate-pulse">⏳</div>
+                <h3 className="text-xl font-black text-white mb-2">Esperando confirmación</h3>
+                <p className="text-white/70 text-sm mb-4">Tu rival debe confirmar si repite el stage...</p>
+                <button
+                  onClick={() => rejectRepeatStage(sessionId)}
+                  className="px-4 py-2 rounded-xl border border-white/20 text-white/50 text-xs font-bold active:scale-95 touch-manipulation"
+                  style={{ background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}
+                >
+                  Cancelar propuesta
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Modal: Confirmación de acción ── */}
         {pendingAction && (

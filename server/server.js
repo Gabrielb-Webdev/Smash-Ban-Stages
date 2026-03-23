@@ -979,7 +979,52 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Repetir stage anterior (aplica los mismos baneos y stage directamente)
+  // Proponer repetir stage anterior (el rival debe confirmar)
+  socket.on('propose-repeat-stage', ({ sessionId }) => {
+    const session = sessions.get(sessionId);
+    if (session && session.phase === 'STAGE_BAN' && session.previousStageData?.selectedStage) {
+      // En modo 1 dispositivo: aplicar directo sin confirmación
+      if (session.singleDeviceMode) {
+        session.bannedStages = Array.isArray(session.previousStageData.bannedStages) ? [...session.previousStageData.bannedStages] : [];
+        session.selectedStage = session.previousStageData.selectedStage;
+        session.phase = 'PLAYING';
+        session.currentTurn = null;
+        sessions.set(sessionId, session);
+        io.to(sessionId).emit('session-updated', { session });
+        return;
+      }
+      session.repeatStageProposal = { proposedBy: session.currentTurn };
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
+  // Confirmar repetir stage (el rival acepta)
+  socket.on('confirm-repeat-stage', ({ sessionId }) => {
+    const session = sessions.get(sessionId);
+    if (session && session.phase === 'STAGE_BAN' && session.repeatStageProposal && session.previousStageData?.selectedStage) {
+      session.bannedStages = Array.isArray(session.previousStageData.bannedStages) ? [...session.previousStageData.bannedStages] : [];
+      session.selectedStage = session.previousStageData.selectedStage;
+      session.phase = 'PLAYING';
+      session.currentTurn = null;
+      session.repeatStageProposal = null;
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
+  // Rechazar repetir stage
+  socket.on('reject-repeat-stage', ({ sessionId }) => {
+    const session = sessions.get(sessionId);
+    if (session && session.repeatStageProposal) {
+      session.repeatStageProposal = null;
+      session.repeatStageRejected = true;
+      sessions.set(sessionId, session);
+      io.to(sessionId).emit('session-updated', { session });
+    }
+  });
+
+  // Repetir stage anterior (aplica los mismos baneos y stage directamente) - legacy/singleDevice
   socket.on('repeat-stage', ({ sessionId, bannedStages, selectedStage }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'STAGE_BAN') {
@@ -1089,6 +1134,13 @@ io.on('connection', (socket) => {
       session.phase = 'FINISHED';
       io.to(sessionId).emit('series-finished', { winner, session });
     } else {
+      // Guardar datos del stage actual para ofrecer repetir en el próximo game
+      session.previousStageData = {
+        bannedStages: [...(session.bannedStages || [])],
+        selectedStage: session.selectedStage,
+      };
+      session.repeatStageProposal = null;
+      session.repeatStageRejected = false;
       session.currentGame++;
       session.phase = 'CHARACTER_SELECT';
       session.selectedStage = null;
@@ -1125,6 +1177,8 @@ io.on('connection', (socket) => {
         applyGameWinner(sessionId, winner);
         return;
       }
+      // Ignorar si ya existe una propuesta pendiente (evita race condition)
+      if (session.winnerProposal) return;
       session.winnerProposal = { winner, proposedBy: proposedBy || null };
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });

@@ -202,6 +202,24 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const proposeRepeatStage = (sessionId) => {
+    if (socket) {
+      socket.emit('propose-repeat-stage', { sessionId });
+    }
+  };
+
+  const confirmRepeatStage = (sessionId) => {
+    if (socket) {
+      socket.emit('confirm-repeat-stage', { sessionId });
+    }
+  };
+
+  const rejectRepeatStage = (sessionId) => {
+    if (socket) {
+      socket.emit('reject-repeat-stage', { sessionId });
+    }
+  };
+
   const getPlayerHistory = (playerName, callback) => {
     if (socket) {
       socket._playerHistoryHandler = callback;
@@ -252,6 +270,9 @@ export const useWebSocket = (sessionId) => {
     proposeGameWinner,
     rejectGameWinner,
     repeatStage,
+    proposeRepeatStage,
+    confirmRepeatStage,
+    rejectRepeatStage,
     getPlayerHistory,
     resetSession,
     playerCheckin,

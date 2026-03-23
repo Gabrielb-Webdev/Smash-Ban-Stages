@@ -8,7 +8,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
 
 // ── Componente de botón de stage reutilizable ──────────────
-function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '' }) {
+function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked }) {
   return (
     <button
       onClick={() => { if (!isBanned) onClick(stageId); }}
@@ -16,7 +16,9 @@ function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpa
       className={`${colSpan} relative overflow-hidden rounded-lg sm:rounded-xl transition-all border-2 touch-manipulation ${
         isBanned
           ? 'cursor-not-allowed border-white/20'
-          : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
+          : isClicked
+            ? 'cursor-pointer border-green-400 shadow-lg shadow-green-500/30 scale-95'
+            : 'active:scale-95 cursor-pointer border-white/20 active:border-red-500 shadow-lg'
       }`}
     >
       <div className="aspect-video relative">
@@ -30,15 +32,22 @@ function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpa
           <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
         </div>
       )}
+      {isClicked && !isBanned && (
+        <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 backdrop-blur-[1px]">
+          <span className="text-green-400 text-4xl sm:text-5xl drop-shadow-2xl">✓</span>
+        </div>
+      )}
     </button>
   );
 }
 
-function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '' }) {
+function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked }) {
   return (
     <button
       onClick={() => onClick(stageId)}
-      className={`${colSpan} relative overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation`}
+      className={`${colSpan} relative overflow-hidden rounded-lg sm:rounded-xl border-2 touch-manipulation ${
+        isClicked ? 'border-green-400 shadow-lg shadow-green-500/30 scale-95' : 'border-white/20 active:scale-95'
+      }`}
     >
       <div className="aspect-video relative">
         <img src={stageImage} alt={stageName} className="w-full h-full object-cover" />
@@ -49,6 +58,11 @@ function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, 
       {isBanned && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <span className="text-red-500 text-3xl sm:text-4xl font-bold drop-shadow-2xl">✖</span>
+        </div>
+      )}
+      {isClicked && !isBanned && (
+        <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 backdrop-blur-[1px]">
+          <span className="text-green-400 text-4xl sm:text-5xl drop-shadow-2xl">✓</span>
         </div>
       )}
     </button>
@@ -93,6 +107,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
   const [turnModal, setTurnModal] = useState(null);
+  const [clickedItemId, setClickedItemId] = useState(null);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
@@ -267,6 +282,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
     if (isActionBlocked) return;
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
+      setClickedItemId(stageId);
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage?.name || stageId, player: session.currentTurn });
       startCooldown();
@@ -277,6 +293,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
     if (isActionBlocked) return;
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
+      setClickedItemId(stageId);
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId, player: effectivePlayer || session.currentTurn });
     }
@@ -285,6 +302,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
   const handleSelectCharacter = (characterId) => {
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
+      setClickedItemId(characterId);
       const character = CHARACTERS.find(c => c.id === characterId);
       setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
     }
@@ -312,9 +330,10 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
       case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer); break;
     }
     setPendingAction(null);
+    setClickedItemId(null);
   };
 
-  const cancelAction = () => setPendingAction(null);
+  const cancelAction = () => { setPendingAction(null); setClickedItemId(null); };
 
   // Stages para Games 2+
   const getAllStages = () => getStagesForTournament(sessionId, session.currentGame);
@@ -651,13 +670,13 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {GAME1_STAGES_CORDOBA.slice(0, 3).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {GAME1_STAGES_CORDOBA.slice(3, 5).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} colSpan="sm:col-span-2" />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -667,18 +686,18 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(0, 3).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(3, 6).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {getAllStages().slice(6, 8).map(s => (
-                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} colSpan="sm:col-span-2" />
+                      <StageButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages.includes(s.id)} onClick={handleBanStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -713,13 +732,13 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {GAME1_STAGES_CORDOBA.slice(0, 3).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {GAME1_STAGES_CORDOBA.slice(3, 5).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} colSpan="sm:col-span-2" />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -729,18 +748,18 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(0, 3).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {getAllStages().slice(3, 6).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} />
                     ))}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     <div className="hidden sm:block sm:col-span-1" />
                     {getAllStages().slice(6, 8).map(s => (
-                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} colSpan="sm:col-span-2" />
+                      <StageSelectButton key={s.id} stageId={s.id} stageName={s.name} stageImage={s.image} isBanned={session.bannedStages?.includes(s.id)} onClick={handleSelectStage} isClicked={clickedItemId === s.id} colSpan="sm:col-span-2" />
                     ))}
                     <div className="hidden sm:block sm:col-span-1" />
                   </div>
@@ -779,7 +798,9 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                           key={charId}
                           onClick={() => handleSelectCharacter(charId)}
                           title={char.name}
-                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-red/60 active:scale-95 touch-manipulation overflow-hidden"
+                          className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 active:scale-95 touch-manipulation overflow-hidden relative ${
+                            clickedItemId === charId ? 'border-green-400 shadow-green-500/30' : 'border-smash-red/60'
+                          }`}
                         >
                           <img src={char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                         </button>
@@ -810,7 +831,9 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                 <button
                   key={character.id}
                   onClick={() => handleSelectCharacter(character.id)}
-                  className="aspect-square bg-white/5 rounded-lg sm:rounded-xl p-1 flex flex-col items-center justify-center overflow-hidden active:scale-95 border-2 border-white/20 touch-manipulation"
+                  className={`aspect-square bg-white/5 rounded-lg sm:rounded-xl p-1 flex flex-col items-center justify-center overflow-hidden active:scale-95 border-2 touch-manipulation relative ${
+                    clickedItemId === character.id ? 'border-green-400 shadow-lg shadow-green-500/30 scale-95' : 'border-white/20'
+                  }`}
                   title={character.name}
                 >
                   <img
@@ -819,6 +842,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                     className="w-full h-full object-contain"
                     onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
                   />
+                  {clickedItemId === character.id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 backdrop-blur-[1px] rounded-lg">
+                      <span className="text-green-400 text-3xl sm:text-4xl drop-shadow-2xl">✓</span>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
