@@ -458,9 +458,8 @@ export default async function handler(req, res) {
   const slug = sanitize(req.query.slug);
   if (!slug) return res.status(400).json({ error: 'slug required' });
 
-  // Slugs de Start.GG son alfanuméricos con guiones/letras (ej: "user/gabriel-sin-h")
-  // IDs hex cortos como "699c44d7" no son slugs válidos — evitar llamar a la API
-  if (/^[0-9a-f]{6,}$/i.test(slug) && !/[g-zG-Z]/.test(slug)) {
+  // Slugs puramente numéricos no son válidos en Start.GG
+  if (/^\d+$/.test(slug)) {
     return res.status(200).json({});
   }
 
@@ -501,15 +500,19 @@ export default async function handler(req, res) {
           if (stale) return res.status(200).json(typeof stale === 'string' ? JSON.parse(stale) : stale);
         } catch { /* no cache */ }
       }
-      return res.status(resp.status === 401 || resp.status === 403 ? 401 : 502)
-        .json({ error: 'Start.GG API error', status: resp.status, detail: errText.slice(0, 100) });
+      if (resp.status === 401 || resp.status === 403) {
+        return res.status(401).json({ error: 'Start.GG API error', status: resp.status });
+      }
+      // Para otros errores (404, 500, etc.), devolver vacío en vez de 502
+      return res.status(200).json({});
     }
 
     const data = await resp.json();
 
     if (data.errors) {
       console.error('GraphQL errors:', JSON.stringify(data.errors).slice(0, 300));
-      return res.status(502).json({ error: 'GraphQL error', detail: data.errors[0]?.message });
+      // Si el usuario no existe en Start.GG, devolver vacío
+      return res.status(200).json({});
     }
 
     const user = data.data?.user;

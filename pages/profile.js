@@ -268,17 +268,17 @@ export default function ProfilePage() {
         {/* â”€â”€ Banner / Hero â”€â”€ */}
         <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
           {heroSrc ? (
-            <div style={{ position: 'relative', zIndex: 1 }}>
+            <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 1, cursor: 'pointer' }}>
               <img
                 src={heroSrc}
                 alt=""
                 style={{ display: 'block', height: 180, objectFit: 'contain' }}
                 onError={e => { e.target.style.display = 'none'; }}
               />
-              <button onClick={() => setShowMainPicker(true)} style={{ position: 'absolute', bottom: 8, right: 0, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ position: 'absolute', bottom: 8, right: 0, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ fontSize: 12 }}>✏️</span>
                 <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Main</span>
-              </button>
+              </div>
             </div>
           ) : (
             <div style={{ height: 120, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
