@@ -69,7 +69,7 @@ function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpa
   );
 }
 
-function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked, isClicked }) {
+function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked }) {
   return (
     <button
       onClick={() => onClick(stageId)}
