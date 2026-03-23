@@ -258,7 +258,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
 
   // ── Handlers ────────────────────────────────────────────────
   const handleRPSWinner = (winner) => {
-    setPendingAction({ type: 'rps', winner, playerName: session[winner].name });
+    const proposedBy = myPlayer || 'admin';
+    setPendingAction({ type: 'rps', winner, playerName: session[winner].name, proposedBy });
   };
 
   const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
@@ -313,7 +314,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const confirmAction = () => {
     if (!pendingAction || !sessionId) return;
     switch (pendingAction.type) {
-      case 'rps':       selectRPSWinner(sessionId, pendingAction.winner); break;
+      case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player); break;

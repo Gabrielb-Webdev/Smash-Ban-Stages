@@ -783,6 +783,12 @@ io.on('connection', (socket) => {
     if (session && session.phase === 'RPS') {
       // En modo 1 dispositivo: no hay otro jugador que confirme → aplicar directo
       if (session.singleDeviceMode) {
+        // (handled below in shared logic)
+      }
+      // Si el proposedBy no es un jugador identificado ('player1'/'player2')
+      // es un admin o dispositivo sin identidad → aplicar directo sin confirmación bidireccional
+      const isIdentifiedPlayer = proposedBy === 'player1' || proposedBy === 'player2';
+      if (!isIdentifiedPlayer || session.singleDeviceMode) {
         session.rpsProposal = null;
         session.rpsWinner = winner;
         session.phase = 'CHARACTER_SELECT';
