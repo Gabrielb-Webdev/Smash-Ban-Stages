@@ -262,7 +262,14 @@ export default function ProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
           </button>
-          <p style={{ margin: 0, fontWeight: 800, fontSize: 16 }}>Mi Perfil</p>
+          <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>Mi Perfil</p>
+          <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,140,0,0.12)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0 }}>
+            {mainChar ? (
+              <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+            ) : (
+              <span style={{ fontSize: 18 }}>🎮</span>
+            )}
+          </button>
         </div>
 
         {/* â”€â”€ Banner / Hero â”€â”€ */}
