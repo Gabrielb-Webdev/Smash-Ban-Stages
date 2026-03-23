@@ -650,7 +650,12 @@ export default function TestAdminPage() {
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
     const format = setupFormats[setupId] || 'BO3';
-    const sessionId = `${community}-${setupId.replace(`${community}-`, '')}-${Date.now().toString(36)}`;
+    // Para el setup de stream se usa el setupId fijo (el overlay de OBS se suscribe a ese ID siempre).
+    // Para el resto se agrega timestamp para evitar colisiones entre sesiones consecutivas.
+    const isStreamSetup = setupId.endsWith('-stream');
+    const sessionId = isStreamSetup
+      ? setupId
+      : `${community}-${setupId.replace(`${community}-`, '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
     const banUrl  = `${origin}/tablet/${sessionId}`;
     const banUrl1 = `${banUrl}?p=player1`;
