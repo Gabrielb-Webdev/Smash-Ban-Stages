@@ -1,8 +1,6 @@
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
 
 // ── Persistencia de sesiones en Redis (Upstash REST) ─────────────────────────
 const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
@@ -48,36 +46,33 @@ class PersistentSessionMap {
   get size() { return this._map.size; }
 }
 
-// ── Historial de picks por jugador (persistido en disco) ──────────────
-const HISTORY_FILE = path.join(__dirname, 'player-history.json');
+// ── Historial de picks por jugador (persistido en Redis) ──────────────
 
-function loadPlayerHistory() {
+async function redisHistorySet(playerKey, chars) {
+  if (!REDIS_URL || !REDIS_TOKEN) return;
   try {
-    if (fs.existsSync(HISTORY_FILE)) {
-      const raw = fs.readFileSync(HISTORY_FILE, 'utf8');
-      const parsed = JSON.parse(raw);
-      // Convertir a Map<playerName, string[]>
-      const map = new Map();
-      for (const [name, chars] of Object.entries(parsed)) {
-        map.set(name, Array.isArray(chars) ? chars : []);
-      }
-      return map;
-    }
+    await fetch(`${REDIS_URL}/set/${encodeURIComponent(`player:history:${playerKey}`)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(JSON.stringify(chars)),
+    });
   } catch (e) {
-    console.error('⚠️ Error cargando player-history.json:', e.message);
+    console.error('⚠️ Redis history save error:', e.message);
   }
-  return new Map();
 }
 
-function savePlayerHistory() {
+async function redisHistoryGet(playerKey) {
+  if (!REDIS_URL || !REDIS_TOKEN) return null;
   try {
-    const obj = {};
-    for (const [name, chars] of playerHistory.entries()) {
-      obj[name] = chars;
-    }
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    const r = await fetch(`${REDIS_URL}/get/${encodeURIComponent(`player:history:${playerKey}`)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+    });
+    const data = await r.json();
+    if (!data.result) return null;
+    return JSON.parse(data.result);
   } catch (e) {
-    console.error('⚠️ Error guardando player-history.json:', e.message);
+    console.error('⚠️ Redis history fetch error:', e.message);
+    return null;
   }
 }
 
@@ -85,15 +80,25 @@ function recordCharacterPick(playerName, characterId) {
   if (!playerName || !characterId) return;
   const key = playerName.trim().toLowerCase();
   const existing = playerHistory.get(key) || [];
-  // Mover al frente si ya existe, si no agregar al frente (máx 20)
   const filtered = existing.filter(c => c !== characterId);
   const updated = [characterId, ...filtered].slice(0, 20);
   playerHistory.set(key, updated);
-  savePlayerHistory();
+  redisHistorySet(key, updated);
 }
 
-const playerHistory = loadPlayerHistory();
-console.log(`📚 Historial cargado: ${playerHistory.size} jugadores`);
+async function getPlayerHistoryFromRedis(playerKey) {
+  const cached = playerHistory.get(playerKey);
+  if (cached) return cached;
+  const fromRedis = await redisHistoryGet(playerKey);
+  if (fromRedis) {
+    playerHistory.set(playerKey, fromRedis);
+    return fromRedis;
+  }
+  return [];
+}
+
+const playerHistory = new Map();
+console.log('📚 Historial de jugadores: usando Redis (persistente)');
 
 // Constantes para stages - AFK (Buenos Aires)
 const AFK_STAGES_GAME1      = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'battlefield', 'smashville'];
@@ -1038,9 +1043,9 @@ io.on('connection', (socket) => {
   });
 
   // Obtener historial de picks de un jugador
-  socket.on('get-player-history', ({ playerName }) => {
+  socket.on('get-player-history', async ({ playerName }) => {
     const key = (playerName || '').trim().toLowerCase();
-    const chars = playerHistory.get(key) || [];
+    const chars = await getPlayerHistoryFromRedis(key);
     socket.emit('player-history', { playerName, characters: chars });
   });
 
