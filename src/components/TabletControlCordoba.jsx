@@ -64,6 +64,18 @@ const GAME1_STAGES_CORDOBA = [
   { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
 ];
 
+// Tema Córdoba - Smash Con Coca
+const THEME = {
+  colors: {
+    primary: '#E30613',
+    secondary: '#B00010',
+    accent: '#FF4D4D',
+    cardBg: 'rgba(227, 6, 19, 0.15)',
+  },
+  logo: '/images/SCC.webp',
+  background: 'linear-gradient(180deg, #0a0000 0%, #130000 100%)',
+};
+
 // ── Pantalla de espera de turno ──
 function WaitingTurnCard({ icon, turnPlayerName, action }) {
   return (
@@ -311,28 +323,28 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   // ── Render ──────────────────────────────────────────────────
   return (
-    <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
+    <div style={{ background: THEME.background, fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
 
       {/* ── Header sticky ── */}
-      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl">
+      <div className="sticky top-0 z-40 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl" style={{ background: 'rgba(10,0,0,0.95)' }}>
           <div className="flex justify-between items-center gap-2">
 
-            {/* Logo AFK */}
+            {/* Logo SCC */}
             <div className="flex-shrink-0">
-              <img src="/images/AFK.webp" alt="AFK" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))' }} />
+              <img src={THEME.logo} alt="SCC" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(227,6,19,0.5))' }} />
             </div>
 
             {/* Jugadores */}            <div className="flex items-center gap-2 flex-1">
-              <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
+              <div className="rounded-lg px-2 py-1.5 flex-1 min-w-0" style={{ background: `${THEME.colors.primary}30` }}>
                 <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 1</p>
                 <p className="text-white font-bold text-xs sm:text-sm truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.name}</p>
-                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.score}</p>
+                <p className="text-base sm:text-lg font-bold leading-none" style={{ color: THEME.colors.accent, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.score}</p>
               </div>
               <div className="text-white text-sm sm:text-lg font-bold px-1" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>VS</div>
-              <div className="bg-smash-blue/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
+              <div className="rounded-lg px-2 py-1.5 flex-1 min-w-0" style={{ background: `${THEME.colors.secondary}30` }}>
                 <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 2</p>
                 <p className="text-white font-bold text-xs sm:text-sm truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.name}</p>
-                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.score}</p>
+                <p className="text-base sm:text-lg font-bold leading-none" style={{ color: THEME.colors.accent, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.score}</p>
               </div>
             </div>
 
@@ -340,11 +352,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
             <div className="flex gap-1.5 sm:gap-2">
               <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
                 <p className="text-white/70 text-[10px] leading-none">Game</p>
-                <p className="text-smash-yellow text-lg sm:text-xl font-bold leading-tight" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.currentGame}</p>
+                <p className="text-lg sm:text-xl font-bold leading-tight" style={{ color: THEME.colors.accent, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.currentGame}</p>
               </div>
               <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
                 <p className="text-white/70 text-[10px] leading-none">Formato</p>
-                <p className="text-smash-yellow text-sm sm:text-base font-bold leading-tight">{session.format}</p>
+                <p className="text-sm sm:text-base font-bold leading-tight" style={{ color: THEME.colors.accent }}>{session.format}</p>
               </div>
             </div>
           </div>
@@ -566,7 +578,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
               <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                 <p className={myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 text-sm sm:text-base font-black' : 'text-white text-sm sm:text-base font-semibold'} style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>{myPlayer && myPlayer === session.currentTurn ? '⚡ ¡Es tu turno! Baneá' : `Turno: ${session[session.currentTurn]?.name}`}</p>
                 <span className="hidden sm:inline text-white">|</span>
-                <p className="text-smash-yellow text-sm sm:text-base font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>Baneos restantes: {session.bansRemaining}</p>
+                <p className="text-smash-red text-sm sm:text-base font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>Baneos restantes: {session.bansRemaining}</p>
               </div>
             </div>
 
@@ -704,7 +716,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                           key={charId}
                           onClick={() => handleSelectCharacter(charId)}
                           title={char.name}
-                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-yellow/60 active:scale-95 touch-manipulation overflow-hidden"
+                          className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-red/60 active:scale-95 touch-manipulation overflow-hidden"
                         >
                           <img src={char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                         </button>
@@ -725,7 +737,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
               {/* Botón aleatorio "?" */}
               <button
                 onClick={handleRandomCharacter}
-                className="aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center active:scale-95 border-2 border-smash-yellow/70 touch-manipulation"
+                className="aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center active:scale-95 border-2 border-smash-red/70 touch-manipulation"
                 style={{ background: 'linear-gradient(135deg, #78350f, #b45309)' }}
                 title="Aleatorio"
               >
@@ -764,13 +776,13 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                     <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 1</p>
                     <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
                     <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
-                      <p className="text-smash-yellow text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Personaje</p>
+                      <p className="text-smash-red text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Personaje</p>
                       <p className="text-white text-xs sm:text-sm font-bold truncate">{getCharacterData(session.player1.character)?.name || 'N/A'}</p>
                     </div>
                   </div>
-                  <div className="bg-smash-yellow/20 rounded-md sm:rounded-lg p-1 sm:p-2 border-2 border-smash-yellow/50">
+                  <div className="bg-smash-red/20 rounded-md sm:rounded-lg p-1 sm:p-2 border-2 border-smash-red/50">
                     <p className="text-white/70 text-[10px] sm:text-xs font-semibold">Score</p>
-                    <p className="text-smash-yellow text-xl sm:text-2xl font-black">{session.player1.score}</p>
+                    <p className="text-smash-red text-xl sm:text-2xl font-black">{session.player1.score}</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center justify-center">
@@ -786,13 +798,13 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                     <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 2</p>
                     <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
                     <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
-                      <p className="text-smash-yellow text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Personaje</p>
+                      <p className="text-smash-red text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Personaje</p>
                       <p className="text-white text-xs sm:text-sm font-bold truncate">{getCharacterData(session.player2.character)?.name || 'N/A'}</p>
                     </div>
                   </div>
-                  <div className="bg-smash-yellow/20 rounded-md sm:rounded-lg p-1 sm:p-2 border-2 border-smash-yellow/50">
+                  <div className="bg-smash-red/20 rounded-md sm:rounded-lg p-1 sm:p-2 border-2 border-smash-red/50">
                     <p className="text-white/70 text-[10px] sm:text-xs font-semibold">Score</p>
-                    <p className="text-smash-yellow text-xl sm:text-2xl font-black">{session.player2.score}</p>
+                    <p className="text-smash-red text-xl sm:text-2xl font-black">{session.player2.score}</p>
                   </div>
                 </div>
               </div>
@@ -818,16 +830,16 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
             <div className="text-7xl mb-4 animate-bounce">🏆</div>
             <h3 className="text-4xl font-bold text-white mb-4">¡Serie Finalizada!</h3>
-            <div className="bg-gradient-to-r from-smash-yellow/20 via-yellow-500/20 to-smash-yellow/20 rounded-xl p-4 mb-4 border-2 border-smash-yellow/50">
+            <div className="bg-gradient-to-r from-smash-red/20 via-red-600/20 to-smash-red/20 rounded-xl p-4 mb-4 border-2 border-smash-red/50">
               <p className="text-white/70 text-sm mb-1">Ganador</p>
-              <p className="text-smash-yellow text-3xl font-bold">
+              <p className="text-smash-red text-3xl font-bold">
                 {session.player1.score > session.player2.score ? session.player1.name : session.player2.name}
               </p>
             </div>
             <p className="text-white text-2xl font-bold mb-6">
-              Score Final: <span className="text-smash-yellow">{session.player1.score}</span> - <span className="text-smash-blue">{session.player2.score}</span>
+              Score Final: <span className="text-smash-red">{session.player1.score}</span> - <span className="text-smash-red">{session.player2.score}</span>
             </p>
-            <div className="bg-smash-purple/20 rounded-lg p-4 border border-smash-purple/50">
+            <div className="bg-smash-red/20 rounded-lg p-4 border border-smash-red/50">
               <p className="text-white/90 text-base">✨ El administrador configurará la próxima serie</p>
             </div>
           </div>
@@ -880,11 +892,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
         {/* ── Modal: Confirmación de acción ── */}
         {pendingAction && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-smash-darker to-smash-purple rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full">
+            <div className="bg-gradient-to-br from-black to-smash-purple rounded-2xl p-4 shadow-2xl border-4 border-smash-red max-w-sm w-full">
               <div className="text-center mb-6">
                 <div className="mb-4 flex justify-center">
                   {pendingAction.type === 'character' && pendingAction.characterImage ? (
-                    <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-yellow p-1 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-red p-1 flex items-center justify-center">
                       <img src={pendingAction.characterImage} alt={pendingAction.characterName} className="w-full h-full object-contain rounded-full" />
                     </div>
                   ) : (
@@ -899,11 +911,11 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">¿Confirmar selección?</h3>
                 <div className="bg-white/10 rounded-xl p-2 mt-2">
-                  {pendingAction.type === 'rps' && <p className="text-white text-base"><span className="text-smash-yellow font-bold">{pendingAction.playerName}</span> ganó el RPS</p>}
+                  {pendingAction.type === 'rps' && <p className="text-white text-base"><span className="text-smash-red font-bold">{pendingAction.playerName}</span> ganó el RPS</p>}
                   {pendingAction.type === 'ban' && <p className="text-white text-base">Banear <span className="text-red-400 font-bold">{pendingAction.stageName}</span></p>}
                   {pendingAction.type === 'select' && <p className="text-white text-base">Seleccionar <span className="text-green-400 font-bold">{pendingAction.stageName}</span></p>}
-                  {pendingAction.type === 'character' && <p className="text-white text-base">Seleccionar <span className="text-smash-blue font-bold">{pendingAction.characterName}</span></p>}
-                  {pendingAction.type === 'winner' && <p className="text-white text-base"><span className="text-smash-yellow font-bold">{pendingAction.winnerName}</span> ganó el Game {session.currentGame}</p>}
+                  {pendingAction.type === 'character' && <p className="text-white text-base">Seleccionar <span className="text-smash-red font-bold">{pendingAction.characterName}</span></p>}
+                  {pendingAction.type === 'winner' && <p className="text-white text-base"><span className="text-smash-red font-bold">{pendingAction.winnerName}</span> ganó el Game {session.currentGame}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
