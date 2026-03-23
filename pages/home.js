@@ -1050,6 +1050,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
   // Character render
   const charId    = player.mainCharId || null;
   const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
+  const charSrc   = player.mainCharAlt || (renderFile ? charRenderPath(renderFile) : null);
 
   // Top 3 styling
   const isTop3 = position <= 3;
@@ -1120,7 +1121,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
 
       {/* W/L stats (non-top3) */}
       {!isTop3 && !inPlacement && (
-        <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: renderFile ? 4 : 14 }}>
+        <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: charSrc ? 4 : 14 }}>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 800 }}>
             <span style={{ color: '#22C55E' }}>{wins}W</span>
             <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>·</span>
@@ -1130,9 +1131,9 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
       )}
 
       {/* Character render */}
-      {renderFile && (
+      {charSrc && (
         <img
-          src={charRenderPath(renderFile)}
+          src={charSrc}
           alt=""
           style={{
             height: isTop3 ? 68 : 52,

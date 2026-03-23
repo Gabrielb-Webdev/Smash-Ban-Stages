@@ -39,7 +39,12 @@ export default async function handler(req, res) {
   ]);
 
   const leaderboard = statsArray
-    .map((s, i) => s ? { ...s, mainCharId: recentCharsArray[i]?.[0] || null, country: profilesArray[i]?.country || null } : null)
+    .map((s, i) => s ? {
+      ...s,
+      mainCharId: profilesArray[i]?.mainChar || recentCharsArray[i]?.[0] || null,
+      mainCharAlt: profilesArray[i]?.mainCharAlt || null,
+      country: profilesArray[i]?.country || null,
+    } : null)
     .filter(Boolean)
     .sort((a, b) => {
       const sa = (a.rankIndex || 0) * 100 + (a.rankPoints || 0);

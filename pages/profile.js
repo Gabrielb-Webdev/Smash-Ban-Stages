@@ -268,7 +268,7 @@ export default function ProfilePage() {
         {/* â”€â”€ Banner / Hero â”€â”€ */}
         <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
           {heroSrc ? (
-            <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 1, cursor: 'pointer' }}>
+            <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 4, cursor: 'pointer' }}>
               <img
                 src={heroSrc}
                 alt=""
@@ -305,6 +305,12 @@ export default function ProfilePage() {
               </div>
             ) : null;
           })()}
+
+          {/* Change main button */}
+          <button onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 5, margin: '6px 0 4px', background: 'rgba(255,140,0,0.1)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 10, padding: '5px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12 }}>🎮</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>{mainChar ? 'Cambiar main' : 'Elegir main'}</span>
+          </button>
 
           {/* Status selector */}
           <div style={{ position: 'relative', zIndex: 5, marginBottom: 12 }}>
