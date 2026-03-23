@@ -7,6 +7,34 @@ import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
 
+// ── Card de espera cuando no es tu turno ───────────────────
+function WaitingTurnCard({ icon, turnPlayerName, action }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.05)',
+      backdropFilter: 'blur(16px)',
+      borderRadius: 24,
+      padding: '40px 24px',
+      border: '2px solid rgba(255,255,255,0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flex: 1,
+      gap: 18,
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 56, lineHeight: 1 }}>{icon || '⏳'}</div>
+      <div>
+        <h3 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>Esperando...</h3>
+        <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
+          <span style={{ color: '#E8A000', fontWeight: 800 }}>{turnPlayerName}</span>{' está '}{action}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Componente de botón de stage reutilizable ──────────────
 function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '' }) {
   return (
@@ -70,9 +98,18 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
-  const myPlayer = playerIndex || manualIdentity || (session && playerName
-    ? (session.player1?.name === playerName ? 'player1' : session.player2?.name === playerName ? 'player2' : null)
+  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
+    ? (() => {
+        const uLow = playerName.toLowerCase().trim();
+        const p1Low = (session.player1?.name || '').toLowerCase().trim();
+        const p2Low = (session.player2?.name || '').toLowerCase().trim();
+        if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
+        if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
+        return null;
+      })()
     : null);
+  const myPlayer = _rawIdentity;
+  const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
@@ -278,6 +315,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
 
   const handleBanStage = (stageId) => {
     if (isActionBlocked) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage?.name || stageId, player: session.currentTurn });
@@ -287,6 +325,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
 
   const handleSelectStage = (stageId) => {
     if (isActionBlocked) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId });
@@ -294,6 +333,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   };
 
   const handleSelectCharacter = (characterId) => {
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const character = CHARACTERS.find(c => c.id === characterId);
       setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
@@ -301,6 +341,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   };
 
   const handleRandomCharacter = () => {
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     const randomChar = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
     if (session.currentTurn) {
       setPendingAction({ type: 'character', characterId: 'random', characterName: '?', characterImage: null, player: session.currentTurn, isRandom: true });
@@ -560,7 +601,11 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Stage Ban Phase ── */}
-        {session.phase === 'STAGE_BAN' && (
+        {session.phase === 'STAGE_BAN' && effectivePlayer && session.currentTurn !== effectivePlayer && (
+          <WaitingTurnCard icon="❌" turnPlayerName={session[session.currentTurn]?.name}
+            action={`baneando${session.bansRemaining > 0 ? ` (${session.bansRemaining} restante${session.bansRemaining !== 1 ? 's' : ''})` : ''}`} />
+        )}
+        {session.phase === 'STAGE_BAN' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-xl border border-white/20 flex flex-col relative">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
@@ -573,7 +618,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
             <div className="text-center mb-2 sm:mb-3 flex-shrink-0">
               <h3 className="text-lg sm:text-xl font-bold text-white mb-1" style={{ textShadow: '3px 3px 6px rgba(0,0,0,0.9)' }}>❌ Banear Stage</h3>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-                <p className="text-white text-sm sm:text-base font-semibold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>Turno: {session[session.currentTurn]?.name}</p>
+                <p className={myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 text-sm sm:text-base font-black' : 'text-white text-sm sm:text-base font-semibold'} style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>
+                  {myPlayer && myPlayer === session.currentTurn ? '⚡ ¡Es tu turno! Baneá' : `Turno: ${session[session.currentTurn]?.name}`}
+                </p>
                 <span className="hidden sm:inline text-white">|</span>
                 <p className="text-smash-yellow text-sm sm:text-base font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>Baneos restantes: {session.bansRemaining}</p>
               </div>
@@ -623,7 +670,10 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Stage Select Phase ── */}
-        {session.phase === 'STAGE_SELECT' && (
+        {session.phase === 'STAGE_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
+          <WaitingTurnCard icon="🎯" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo el escenario" />
+        )}
+        {session.phase === 'STAGE_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="bg-white/10 rounded-xl p-2 sm:p-4 border border-white/20 flex flex-col relative">
             {cooldown > 0 && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
@@ -635,7 +685,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
             )}
             <div className="text-center mb-1.5 sm:mb-2 flex-shrink-0">
               <h3 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">🎯 Seleccionar Stage</h3>
-              <p className="text-white text-sm sm:text-lg font-semibold truncate">Turno: {session[session.currentTurn]?.name}</p>
+              <p className={`text-sm sm:text-lg font-semibold truncate ${myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 font-black' : 'text-white'}`}>
+                {myPlayer && myPlayer === session.currentTurn ? '⚡ ¡Elegí el escenario!' : `Turno: ${session[session.currentTurn]?.name}`}
+              </p>
             </div>
 
             <div className="flex flex-col gap-1.5 sm:gap-2 pb-2">
@@ -680,15 +732,18 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Character Select Phase ── */}
-        {session.phase === 'CHARACTER_SELECT' && (
+        {session.phase === 'CHARACTER_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
+          <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
+        )}
+        {session.phase === 'CHARACTER_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
           <div className="rounded-xl border border-white/20">
             {/* Sub-header sticky (debajo del header principal) */}
             <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl">
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <div>
                   <h3 className="text-lg sm:text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
-                  <p className="text-white text-xs sm:text-base font-semibold truncate">
-                    Turno: {session[session.currentTurn]?.name} | Stage: {getStageData(session.selectedStage)?.name}
+                  <p className={`text-xs sm:text-base font-semibold truncate ${myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 font-black' : 'text-white'}`}>
+                    {myPlayer && myPlayer === session.currentTurn ? '⚡ ¡Es tu turno!' : `Turno: ${session[session.currentTurn]?.name}`} | Stage: {getStageData(session.selectedStage)?.name}
                   </p>
                 </div>
               </div>

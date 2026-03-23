@@ -190,11 +190,17 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
   };
 
   // Identidad del jugador en este dispositivo (null = admin / espectador)
-  const myPlayer = playerIndex || manualIdentity || (session && playerName
-    ? (session.player1?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player1'
-      : session.player2?.name?.toLowerCase().trim() === playerName.toLowerCase().trim() ? 'player2'
-      : null)
+  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
+    ? (() => {
+        const uLow = playerName.toLowerCase().trim();
+        const p1Low = (session.player1?.name || '').toLowerCase().trim();
+        const p2Low = (session.player2?.name || '').toLowerCase().trim();
+        if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
+        if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
+        return null;
+      })()
     : null);
+  const myPlayer = _rawIdentity;
   // En modo 1 dispositivo los controles de turno no se restringen por jugador
   const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
@@ -258,6 +264,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   const handleBanStage = (stageId) => {
     if (isActionBlocked) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage?.name || stageId, player: session.currentTurn });
@@ -267,6 +274,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
 
   const handleSelectStage = (stageId) => {
     if (isActionBlocked) return;
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId });
@@ -274,6 +282,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
   };
 
   const handleSelectCharacter = (characterId) => {
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const character = CHARACTERS.find(c => c.id === characterId);
       setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
@@ -281,6 +290,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
   };
 
   const handleRandomCharacter = () => {
+    if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     const randomChar = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
     if (session.currentTurn) {
       setPendingAction({ type: 'character', characterId: 'random', characterName: '?', characterImage: null, player: session.currentTurn, isRandom: true });
