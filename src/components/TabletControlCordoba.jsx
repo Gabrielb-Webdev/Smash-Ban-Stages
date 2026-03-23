@@ -277,7 +277,7 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentTurn) {
       const stage = getAllStages().find(s => s.id === stageId);
-      setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId });
+      setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId, player: effectivePlayer || session.currentTurn });
     }
   };
 
@@ -541,33 +541,78 @@ export default function TabletControlCordoba({ sessionId, playerName, playerInde
         {/* ── RPS Phase ── */}
         {session.phase === 'RPS' && (
           <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
-            <div className="text-center mb-4 sm:mb-6 relative z-10">
-              <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
-              <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">Piedra, Papel o Tijera</h3>
-              <p className="text-base sm:text-lg text-white/80 font-semibold">¿Quién ganó el RPS? 🏆</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto relative z-10 w-full px-2 sm:px-0">
-              <button
-                onClick={() => handleRPSWinner('player1')}
-                className="group py-12 sm:py-16 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                <div className="relative z-10">
-                  <div className="text-5xl sm:text-6xl mb-2 sm:mb-3">🔴</div>
-                  <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player1.name}</div>
+            {/* Si hay propuesta pendiente y soy el otro jugador: mostrar confirmar/rechazar */}
+            {session.rpsProposal && myPlayer && session.rpsProposal.proposedBy !== myPlayer ? (
+              <div className="text-center relative z-10">
+                <div className="text-5xl mb-4">🤔</div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
+                  ¿Confirmás el resultado?
+                </h3>
+                <p className="text-base text-white/70 mb-6">
+                  {session[session.rpsProposal.proposedBy]?.name} dice que <span className="font-bold text-yellow-400">{session[session.rpsProposal.winner]?.name}</span> ganó el RPS
+                </p>
+                <div className="flex gap-4 max-w-sm mx-auto">
+                  <button
+                    onClick={() => handleRPSWinner(session.rpsProposal.winner)}
+                    className="flex-1 py-4 bg-gradient-to-br from-green-500 to-green-700 text-white font-black text-lg rounded-2xl active:scale-95 transition-all shadow-xl border-2 border-white/30 touch-manipulation"
+                  >
+                    ✅ Confirmar
+                  </button>
+                  <button
+                    onClick={() => {
+                      const otherWinner = session.rpsProposal.winner === 'player1' ? 'player2' : 'player1';
+                      handleRPSWinner(otherWinner);
+                    }}
+                    className="flex-1 py-4 bg-gradient-to-br from-red-500 to-red-700 text-white font-black text-lg rounded-2xl active:scale-95 transition-all shadow-xl border-2 border-white/30 touch-manipulation"
+                  >
+                    ❌ No, gané yo
+                  </button>
                 </div>
-              </button>
-              <button
-                onClick={() => handleRPSWinner('player2')}
-                className="group py-12 sm:py-16 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                <div className="relative z-10">
-                  <div className="text-5xl sm:text-6xl mb-2 sm:mb-3">🔵</div>
-                  <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player2.name}</div>
+              </div>
+            ) : session.rpsProposal && myPlayer && session.rpsProposal.proposedBy === myPlayer ? (
+              <div className="text-center relative z-10">
+                <div className="text-5xl mb-4 animate-pulse">⏳</div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
+                  Esperando confirmación
+                </h3>
+                <p className="text-base text-white/70 mb-4">
+                  Dijiste que <span className="font-bold text-yellow-400">{session[session.rpsProposal.winner]?.name}</span> ganó el RPS
+                </p>
+                <p className="text-sm text-white/40">
+                  Tu rival debe confirmar...
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-4 sm:mb-6 relative z-10">
+                  <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
+                  <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">Piedra, Papel o Tijera</h3>
+                  <p className="text-base sm:text-lg text-white/80 font-semibold">¿Quién ganó el RPS? 🏆</p>
                 </div>
-              </button>
-            </div>
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto relative z-10 w-full px-2 sm:px-0">
+                  <button
+                    onClick={() => handleRPSWinner('player1')}
+                    className="group py-12 sm:py-16 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    <div className="relative z-10">
+                      <div className="text-5xl sm:text-6xl mb-2 sm:mb-3">🔴</div>
+                      <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player1.name}</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleRPSWinner('player2')}
+                    className="group py-12 sm:py-16 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    <div className="relative z-10">
+                      <div className="text-5xl sm:text-6xl mb-2 sm:mb-3">🔵</div>
+                      <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player2.name}</div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

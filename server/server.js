@@ -1020,32 +1020,17 @@ io.on('connection', (socket) => {
             // Cambiar a STAGE_BAN
             updatedSession.phase = 'STAGE_BAN';
             
-            // Configurar stages disponibles según el game
+            // Configurar stages disponibles según el torneo
+            const stagesForGame = getStagesForTournament(sessionId, updatedSession.currentGame);
+            updatedSession.availableStages = [...stagesForGame];
+
             if (updatedSession.currentGame === 1) {
-              // Game 1: 5 stages en orden específico
-              updatedSession.availableStages = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
               // Sistema 1-2: Ganador banea 1, perdedor banea 2, ganador selecciona
               updatedSession.totalBansNeeded = 3;
               updatedSession.bansRemaining = 1; // Ganador RPS banea 1 primero
               updatedSession.currentTurn = updatedSession.rpsWinner;
             } else {
-              // Game 2+: 8 stages (DSR desactivado - todos los stages disponibles)
-              updatedSession.availableStages = [
-                'small-battlefield', 'town-and-city', 'pokemon-stadium-2', 
-                'hollow-bastion', 'battlefield', 'final-destination', 
-                'kalos', 'smashville'
-              ];
-              
               console.log('🎮 Game 2+ - Stages disponibles:', updatedSession.availableStages.length, updatedSession.availableStages);
-              
-              // DSR desactivado - todos los stages están disponibles
-              // Si quieres reactivar DSR, descomenta las siguientes líneas:
-              // if (updatedSession.lastGameWinner) {
-              //   const winnerStages = updatedSession[updatedSession.lastGameWinner].wonStages;
-              //   updatedSession.availableStages = updatedSession.availableStages.filter(
-              //     stage => !winnerStages.includes(stage)
-              //   );
-              // }
               
               // El ganador del game anterior banea 3
               updatedSession.currentTurn = updatedSession.lastGameWinner;
