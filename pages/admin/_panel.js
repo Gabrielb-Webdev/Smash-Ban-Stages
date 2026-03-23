@@ -29,7 +29,7 @@ function _communitySync() {
   if (typeof window === 'undefined') return 'test';
   const fromQS = new URLSearchParams(window.location.search).get('community');
   if (fromQS) return fromQS;
-  const m = window.location.pathname.match(/^\/admin\/([a-z]+)$/);
+  const m = window.location.pathname.match(/^\/admin\/([a-z][a-z0-9-]*)$/);
   if (m && m[1] !== 'test') return m[1];
   return 'test';
 }
