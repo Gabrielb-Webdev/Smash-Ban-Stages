@@ -7,9 +7,21 @@ function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`]/g, '').trim().slice(0, 200);
 }
 
+/**
+ * Normaliza el nombre del jugador para la búsqueda en Redis.
+ * Start.gg devuelve nombres con prefijo de sponsor: "SPONSOR | Tag" → usa solo "Tag".
+ * Así el lookup funciona tanto si viene con sponsor como sin él.
+ */
+function extractTag(name) {
+  const s = sanitize(name);
+  const idx = s.indexOf(' | ');
+  return (idx !== -1 ? s.slice(idx + 3) : s).trim().toLowerCase();
+}
+
 /** Guarda una notif en el inbox Redis + envía web push si hay suscripción registrada + WS en tiempo real */
 async function storeAndPush(playerName, notif, pushPayload) {
-  const key = notifsKey(sanitize(playerName).toLowerCase());
+  const normalizedName = extractTag(playerName);
+  const key = notifsKey(normalizedName);
   const existing = (await redis.get(key)) || [];
   existing.push(notif);
   const sliced = existing.length > 100 ? existing.slice(-100) : existing;
@@ -17,7 +29,7 @@ async function storeAndPush(playerName, notif, pushPayload) {
 
   // Intentar enviar web push + WS real-time (no bloquea si falla)
   try {
-    const uid = await redis.hget('push:name_to_uid', sanitize(playerName).toLowerCase());
+    const uid = await redis.hget('push:name_to_uid', normalizedName);
     if (uid) {
       await sendPush(uid, pushPayload).catch(() => {});
       // Notificar en tiempo real si el usuario está conectado al servidor WS
