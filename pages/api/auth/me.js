@@ -36,6 +36,11 @@ export default async function handler(req, res) {
     const cached = await redis.get(cacheKey);
     if (cached) {
       const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+      // adminCommunities puede cambiar en cualquier momento (se agregan/quitan admins),
+      // siempre se obtiene fresco de Redis aunque los datos del usuario estén cacheados.
+      if (!data.isAdmin) {
+        data.adminCommunities = await getCommunities(data.user?.slug, String(data.user?.id || ''));
+      }
       return res.status(200).json({ ...data, source: 'cache' });
     }
   } catch { /* ignorar error de caché */ }
