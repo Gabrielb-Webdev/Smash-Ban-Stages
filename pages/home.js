@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
@@ -62,9 +62,11 @@ function getNotifRoute(notif) {
   if (type === 'friend_request') return { tab: 'amigos', friendTab: 'requests' };
   if (type === 'friend_accepted') return { tab: 'amigos', friendTab: 'list' };
   if (type === 'party_invite')   return { tab: 'amigos', friendTab: 'list' };
+  if (type === 'broadcast' || type === 'tournament_started' || type === 'new_tournament') return { tab: 'torneos' };
   // call_to_play or unknown → match tab, or external url if provided
   const url = notif?.url || '';
   if (url && url.startsWith('/') && !url.startsWith('/home')) return { external: url };
+  if (url && url.includes('open=torneos')) return { tab: 'torneos' };
   return { tab: 'match' };
 }
 
@@ -83,6 +85,10 @@ export default function HomePage() {
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [activeTournamentMatch, setActiveTournamentMatch] = useState(null);
+
+  // Chat flotante
+  const [chatInbox, setChatInbox]       = useState([]);
+  const [chatBubbleOpen, setChatBubbleOpen] = useState(false);
 
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
@@ -265,6 +271,22 @@ export default function HomePage() {
     };
     fetchMatch();
     const iv = setInterval(fetchMatch, 8000);
+    return () => clearInterval(iv);
+  }, [user]);
+
+  // Polling del chat inbox (cada 30s)
+  useEffect(() => {
+    if (!user) return;
+    const uid = String(user?.id || user?.slug || '');
+    if (!uid) return;
+    const loadInbox = () => {
+      fetch(`/api/chat?userId=${encodeURIComponent(uid)}&inbox=true`)
+        .then(r => r.ok ? r.json() : { conversations: [] })
+        .then(d => { if (Array.isArray(d.conversations)) setChatInbox(d.conversations); })
+        .catch(() => {});
+    };
+    loadInbox();
+    const iv = setInterval(loadInbox, 30000);
     return () => clearInterval(iv);
   }, [user]);
 
@@ -781,6 +803,91 @@ export default function HomePage() {
         </main>
 
         {/* â”€â”€ BOTTOM NAV â”€â”€ */}
+
+        {/* CHAT FLOTANTE */}
+        {chatInbox.length > 0 && tab !== 'amigos' && (
+          <>
+            <button
+              onClick={() => setChatBubbleOpen(v => !v)}
+              style={{
+                position: 'fixed', bottom: 76, right: 18, zIndex: 48,
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 20px rgba(99,102,241,0.5)',
+                transition: 'transform 0.2s',
+                transform: chatBubbleOpen ? 'scale(0.9)' : 'scale(1)',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>💬</span>
+              {chatInbox.some(c => c.lastMessage && c.lastMessage.from !== uid) && (
+                <span style={{
+                  position: 'absolute', top: -2, right: -2,
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: '#EF4444', border: '2px solid #0B0B12',
+                }} />
+              )}
+            </button>
+
+            {chatBubbleOpen && (
+              <>
+                <div onClick={() => setChatBubbleOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 47, background: 'rgba(0,0,0,0.4)' }} />
+                <div style={{
+                  position: 'fixed', bottom: 136, right: 18, zIndex: 49,
+                  width: 300, maxHeight: 380,
+                  background: '#13141f', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 20, overflow: 'hidden',
+                  boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+                }}>
+                  <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 900, fontSize: 15, color: '#fff' }}>💬 Chats</span>
+                    <button onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }} style={{ background: 'none', border: 'none', color: '#6366F1', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos →</button>
+                  </div>
+                  <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    {chatInbox.map(c => {
+                      const isFromMe = c.lastMessage?.from === uid;
+                      const timeAgo = c.lastMessage?.sentAt ? (() => {
+                        const diff = Date.now() - new Date(c.lastMessage.sentAt).getTime();
+                        const mins = Math.floor(diff / 60000);
+                        if (mins < 1) return 'ahora';
+                        if (mins < 60) return `${mins}m`;
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs < 24) return `${hrs}h`;
+                        return `${Math.floor(hrs / 24)}d`;
+                      })() : '';
+                      return (
+                        <button
+                          key={c.friendId}
+                          onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }}
+                          style={{
+                            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '12px 18px', background: 'transparent',
+                            border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                          }}
+                        >
+                          <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, color: '#818CF8', fontWeight: 800 }}>
+                            {(c.friendName || '?')[0].toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.friendName}</span>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{timeAgo}</span>
+                            </div>
+                            <p style={{ margin: '2px 0 0', fontSize: 11, color: isFromMe ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)', fontWeight: isFromMe ? 400 : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {isFromMe ? 'Vos: ' : ''}{c.lastMessage?.text || ''}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
         <BottomNav tab={tab} setTab={setTab} bgMMStatus={bgMM?.status} />
 
         {/* ══ POPUP match encontrado ══ */}
@@ -3109,10 +3216,11 @@ function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
 
   const isFriendReq = notif.type === 'friend_request';
   const isPartyInvite = notif.type === 'party_invite';
+  const isBroadcast = notif.type === 'broadcast' || notif.type === 'tournament_started' || notif.type === 'new_tournament';
   const hasActions = (isFriendReq || isPartyInvite) && !isRead;
 
-  const icon = isFriendReq ? '📩' : isPartyInvite ? '👥' : '🎮';
-  const accentColor = isFriendReq ? 'rgba(99,102,241,' : isPartyInvite ? 'rgba(124,58,237,' : 'rgba(232,142,0,';
+  const icon = isFriendReq ? '📩' : isPartyInvite ? '👥' : isBroadcast ? '🏆' : '🎮';
+  const accentColor = isFriendReq ? 'rgba(99,102,241,' : isPartyInvite ? 'rgba(124,58,237,' : isBroadcast ? 'rgba(255,140,0,' : 'rgba(232,142,0,';
 
   const handleClick = () => {
     if (hasActions) return; // don't navigate if there are pending actions

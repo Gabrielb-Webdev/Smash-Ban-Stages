@@ -1,5 +1,5 @@
 // API para enviar y gestionar notificaciones de llamado a setup
-import redis, { notifsKey } from '../../../lib/redis';
+import redis, { notifsKey, broadcastNotifsKey } from '../../../lib/redis';
 import { sendPush, sendPushToAll } from '../../../lib/push';
 
 // Sanitiza strings para prevenir XSS/inyección
@@ -48,13 +48,30 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { targetName, targetUserNames, title, body, setup, message, sentBy, tournamentId, data, broadcast } = req.body || {};
 
-    // --- Modo broadcast: push a TODOS los usuarios ---
+    // --- Modo broadcast: push a TODOS los usuarios + guardar en inbox global ---
     if (broadcast) {
       const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
       const secret = process.env.ADMIN_SECRET || 'afk-admin-2025';
       if (auth !== secret) return res.status(401).json({ error: 'No autorizado' });
       const cleanTitle = sanitize(title || '📢 AFK Smash');
       const cleanBody  = sanitize(body || '');
+      const notif = {
+        id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        type: data?.type || 'broadcast',
+        setup: cleanTitle,
+        message: cleanBody,
+        sentBy: 'Sistema',
+        sentAt: new Date().toISOString(),
+        readAt: null,
+        url: data?.url || null,
+        _broadcast: true,
+      };
+      // Guardar en lista global de broadcasts (max 20, más reciente primero)
+      try {
+        const existing = (await redis.get(broadcastNotifsKey)) || [];
+        existing.unshift(notif);
+        await redis.set(broadcastNotifsKey, existing.slice(0, 20));
+      } catch {}
       sendPushToAll({ title: cleanTitle, body: cleanBody, data: data || {} }).catch(() => {});
       return res.status(201).json({ success: true, broadcast: true });
     }

@@ -3,6 +3,7 @@
 // DELETE /api/tournaments/featured?slug=X → quitar torneo (requiere auth)
 
 import redis from '../../../lib/redis';
+import { broadcastNotifsKey } from '../../../lib/redis';
 import { sendPushToAll } from '../../../lib/push';
 
 const FEATURED_KEY  = 'tournaments:featured';
@@ -113,18 +114,37 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error guardando en Redis', detail: err.message });
     }
 
-    // Push a todos los usuarios (no bloquea)
+    // Push a todos los usuarios + guardar en inbox global (no bloquea)
     if (notify !== false) {
-      sendPushToAll({
-        title: `🏆 Nuevo torneo: ${tourData.name}`,
-        body: tourData.registrationOpen
+      const pushTitle = `🏆 Nuevo torneo: ${tourData.name}`;
+      const pushBody = tourData.registrationOpen
           ? '¡Las inscripciones están abiertas! Anotate ahora.'
           : tourData.startAt
             ? `📅 ${new Date(tourData.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}`
-            : 'Próximamente en la app.',
+            : 'Próximamente en la app.';
+      sendPushToAll({
+        title: pushTitle,
+        body: pushBody,
         tag: `tournament-${tourData.id}`,
-        data: { url: tourData.url, tournamentId: tourData.id, type: 'new_tournament' },
+        data: { url: '/home?open=torneos', tournamentId: tourData.id, type: 'new_tournament' },
       }).catch(() => {});
+      // Guardar en inbox global de broadcasts
+      try {
+        const notif = {
+          id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          type: 'new_tournament',
+          setup: pushTitle,
+          message: pushBody,
+          sentBy: 'Sistema',
+          sentAt: new Date().toISOString(),
+          readAt: null,
+          url: '/home?open=torneos',
+          _broadcast: true,
+        };
+        const existing = (await redis.get(broadcastNotifsKey)) || [];
+        existing.unshift(notif);
+        await redis.set(broadcastNotifsKey, existing.slice(0, 20));
+      } catch {}
     }
 
     return res.status(201).json({ success: true, tournament: tourData });

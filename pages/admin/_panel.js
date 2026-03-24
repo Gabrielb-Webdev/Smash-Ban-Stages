@@ -589,7 +589,7 @@ export default function TestAdminPage() {
         broadcast: true,
         title: `🏆 ¡Torneo iniciado!`,
         body: tourName ? `${tourName} ha comenzado. ¡A jugar!` : '¡El torneo ha comenzado!',
-        data: { url: tourUrl, type: 'tournament_started' },
+        data: { url: '/home?open=torneos', type: 'tournament_started' },
       }),
     }).catch(() => {});
 
@@ -605,7 +605,7 @@ export default function TestAdminPage() {
           body: `¡${tourName || 'El torneo'} ha comenzado! Revisá el bracket.`,
           setup: 'Torneo iniciado',
           sentBy: 'Admin',
-          data: { url: tourUrl, type: 'tournament_started' },
+          data: { url: '/home?open=torneos', type: 'tournament_started' },
         }),
       }).catch(() => {});
     }

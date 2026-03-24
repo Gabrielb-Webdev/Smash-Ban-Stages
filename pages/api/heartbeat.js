@@ -1,6 +1,6 @@
 // POST /api/heartbeat — registra presencia online del usuario (TTL 60s)
 // Al hacer POST también devuelve notificaciones (consolida round-trips)
-import redis, { presenceKey, userStatusKey, notifsKey } from '../../lib/redis';
+import redis, { presenceKey, userStatusKey, notifsKey, broadcastNotifsKey } from '../../lib/redis';
 
 const PRESENCE_TTL = 60; // segundos
 const VALID_STATUSES = ['online', 'away', 'dnd', 'invisible'];
@@ -44,10 +44,10 @@ export default async function handler(req, res) {
   // Devolver también las notificaciones para evitar un fetch extra
   const userName = String(req.body?.userName ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100).toLowerCase();
   let notifs = [];
+  const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+  const now = Date.now();
   if (userName) {
     const rawNotifs = (await redis.get(notifsKey(userName))) || [];
-    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-    const now = Date.now();
     notifs = rawNotifs.filter(n => {
       if (!n?.sentAt) return true;
       return (now - new Date(n.sentAt).getTime()) < TWELVE_HOURS;
@@ -56,8 +56,26 @@ export default async function handler(req, res) {
     if (notifs.length !== rawNotifs.length) {
       await redis.set(notifsKey(userName), notifs);
     }
-    notifs = notifs.slice(-20);
   }
+
+  // Merge broadcast notifications (globales para todos)
+  try {
+    const broadcasts = (await redis.get(broadcastNotifsKey)) || [];
+    const recentBroadcasts = broadcasts.filter(n => {
+      if (!n?.sentAt) return true;
+      return (now - new Date(n.sentAt).getTime()) < TWELVE_HOURS;
+    });
+    if (recentBroadcasts.length > 0) {
+      const existingIds = new Set(notifs.map(n => n.id));
+      for (const b of recentBroadcasts) {
+        if (!existingIds.has(b.id)) notifs.push(b);
+      }
+    }
+  } catch {}
+
+  // Ordenar por fecha y limitar
+  notifs.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+  notifs = notifs.slice(0, 25);
 
   return res.status(200).json({ ok: true, status: currentStatus, notifs });
 }

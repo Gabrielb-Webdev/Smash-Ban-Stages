@@ -20,12 +20,36 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // GET: obtener mensajes entre dos usuarios
+  // GET: obtener mensajes entre dos usuarios, o inbox de todos los chats
   if (req.method === 'GET') {
-    const { userId, friendId, offset = 0 } = req.query;
-    if (!userId || !friendId) return res.status(400).json({ error: 'userId y friendId requeridos' });
+    const { userId, friendId, offset = 0, inbox } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId requerido' });
 
     const cleanUserId = sanitizeId(userId);
+
+    // Modo inbox: últimos mensajes de cada conversación
+    if (inbox === 'true' || inbox === '1') {
+      const friends = (await redis.get(friendsKey(cleanUserId))) || [];
+      const conversations = [];
+      await Promise.allSettled(friends.map(async (f) => {
+        const key = chatKey(cleanUserId, f.userId);
+        const messages = (await redis.get(key)) || [];
+        if (messages.length > 0) {
+          const last = messages[messages.length - 1];
+          conversations.push({
+            friendId: f.userId,
+            friendName: f.userName,
+            lastMessage: last,
+            total: messages.length,
+          });
+        }
+      }));
+      // Ordenar por fecha del último mensaje (más reciente primero)
+      conversations.sort((a, b) => new Date(b.lastMessage.sentAt) - new Date(a.lastMessage.sentAt));
+      return res.status(200).json({ conversations });
+    }
+
+    if (!friendId) return res.status(400).json({ error: 'friendId requerido' });
     const cleanFriendId = sanitizeId(friendId);
 
     // Verificar que son amigos
