@@ -131,6 +131,13 @@ export default function TestAdminPage() {
 
   // Log de reportes Start.gg: [{ time, setId, players, type }]
   const [reportLog, setReportLog] = useState([]);
+
+  // Torneos destacados (gestión manual)
+  const [featuredTours, setFeaturedTours]     = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(false);
+  const [featuredInput, setFeaturedInput]     = useState('');
+  const [featuredAdding, setFeaturedAdding]   = useState(false);
+  const [featuredOpen, setFeaturedOpen]       = useState(false);
   const prevCompletedIdsRef = useRef(new Set());
 
   // --- Persistencia localStorage (con namespace de comunidad) ---
@@ -424,6 +431,16 @@ export default function TestAdminPage() {
     if (!checking && !selectedSlug) openTourPicker();
   }, [checking, selectedSlug]);
 
+  // Cargar torneos destacados al montar
+  useEffect(() => {
+    setFeaturedLoading(true);
+    fetch('/api/tournaments/featured')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.featured)) setFeaturedTours(d.featured); })
+      .catch(() => {})
+      .finally(() => setFeaturedLoading(false));
+  }, []);
+
   useEffect(() => {
     if (checking || !selectedSlug) return;
     function loadInfo() {
@@ -567,6 +584,37 @@ export default function TestAdminPage() {
       })
       .catch(() => {})
       .finally(() => setLoadingPickTours(false));
+  }
+
+  async function addFeaturedTournament() {
+    if (!featuredInput.trim() || featuredAdding) return;
+    setFeaturedAdding(true);
+    try {
+      const r = await fetch('/api/tournaments/featured', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025'}` },
+        body: JSON.stringify({ url: featuredInput.trim(), notify: true }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setFeaturedTours(prev => [d.tournament, ...prev.filter(t => t.slug !== d.tournament.slug)]);
+        setFeaturedInput('');
+      } else {
+        alert(d.error || 'Error al agregar torneo');
+      }
+    } catch { alert('Error de conexión'); }
+    finally { setFeaturedAdding(false); }
+  }
+
+  async function removeFeaturedTournament(slug) {
+    try {
+      const r = await fetch(`/api/tournaments/featured?slug=${encodeURIComponent(slug)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025'}` },
+      });
+      const d = await r.json();
+      if (d.success) setFeaturedTours(prev => prev.filter(t => t.slug !== slug));
+    } catch {}
   }
 
   function parseStartGgSlug(raw) {
@@ -1315,6 +1363,71 @@ export default function TestAdminPage() {
         </div>{/* bracket outer */}
           </div>{/* /columna derecha */}
         </div>{/* /main body */}
+
+        {/* ── TORNEOS EN LA APP ── */}
+        <div style={{ margin: '20px 0 8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
+          <button
+            onClick={() => setFeaturedOpen(p => !p)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
+          >
+            <span style={{ fontWeight: 800, fontSize: 13, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>📌 Torneos en la app{featuredTours.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,140,0,0.2)', color: '#FF8C00', padding: '2px 7px', borderRadius: 6 }}>{featuredTours.length}</span>}</span>
+            <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }}>{featuredOpen ? '▾' : '▸'}</span>
+          </button>
+          {featuredOpen && (
+            <div style={{ padding: '0 18px 18px' }}>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                Agregá torneos manualmente para que aparezcan en la app de los jugadores. Al agregar uno se envía una notificación push a todos los usuarios.
+              </p>
+              {/* Input agregar */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <input
+                  value={featuredInput}
+                  onChange={e => setFeaturedInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addFeaturedTournament(); }}
+                  placeholder="start.gg/tournament/mi-torneo"
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: 'none' }}
+                />
+                <button
+                  onClick={addFeaturedTournament}
+                  disabled={featuredAdding || !featuredInput.trim()}
+                  style={{ background: '#FF8C00', border: 'none', borderRadius: 10, padding: '9px 16px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: featuredAdding || !featuredInput.trim() ? 0.5 : 1, fontFamily: "'Outfit', sans-serif" }}
+                >
+                  {featuredAdding ? '...' : '+ Agregar'}
+                </button>
+              </div>
+              {/* Lista */}
+              {featuredLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+                  <div style={{ width: 16, height: 16, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  Cargando...
+                </div>
+              ) : featuredTours.length === 0 ? (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0' }}>No hay torneos destacados todavía.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {featuredTours.map(t => (
+                    <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px' }}>
+                      {t.image && <img src={t.image} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                          {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                          {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
+                          {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeFeaturedTournament(t.slug)}
+                        title="Quitar de la app"
+                        style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── MODAL SELECTOR DE TORNEO ── */}
         {tourPickerOpen && (

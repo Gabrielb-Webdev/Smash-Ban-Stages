@@ -3880,10 +3880,18 @@ function TabTorneos({ user }) {
   const [enrolledEvents, setEnrolledEvents] = useState({}); // { eventId: true/false }
 
   useEffect(() => {
-    fetch('/api/tournaments/sync-startgg')
-      .then(r => r.json())
-      .then(d => { setStartggTorneos(Array.isArray(d.tournaments) ? d.tournaments : []); setStartggLoading(false); })
-      .catch(() => setStartggLoading(false));
+    // Cargar en paralelo: torneos destacados (manuales) + torneos de start.gg
+    Promise.all([
+      fetch('/api/tournaments/featured').then(r => r.json()).catch(() => ({ featured: [] })),
+      fetch('/api/tournaments/sync-startgg').then(r => r.json()).catch(() => ({ tournaments: [] })),
+    ]).then(([featuredData, syncData]) => {
+      const featured = Array.isArray(featuredData.featured) ? featuredData.featured.map(t => ({ ...t, _featured: true })) : [];
+      const synced   = Array.isArray(syncData.tournaments) ? syncData.tournaments : [];
+      // Deduplicar: featured primero, luego los de sync que no estén ya en featured
+      const featuredSlugs = new Set(featured.map(t => t.slug));
+      const merged = [...featured, ...synced.filter(t => !featuredSlugs.has(t.slug))];
+      setStartggTorneos(merged);
+    }).finally(() => setStartggLoading(false));
   }, []);
 
   // Check enrollment for each event
@@ -3926,7 +3934,7 @@ function TabTorneos({ user }) {
       ) : startggTorneos.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {startggTorneos.map(t => (
-            <div key={t.id} style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden' }}>
+            <div key={t.id || t.slug} style={{ background: '#10101A', border: t._featured ? '1px solid rgba(255,140,0,0.35)' : '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden' }}>
               {t.image && (
                 <div style={{ height: 100, background: `url(${t.image}) center/cover no-repeat`, borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
               )}
@@ -3934,14 +3942,16 @@ function TabTorneos({ user }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                      {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>📌 DEST.</span>}
+                    </div>
                     <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   {(() => {
                     const isActive = t.state === 2 || t.state === 'ACTIVE';
-                    // Si la fecha de inicio ya pasó aunque el state sea CREATED (1), lo mostramos como iniciado
                     const startedByTime = t.startAt && new Date(t.startAt) <= new Date();
                     const isStarted = isActive || startedByTime;
                     const isFinished = t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED';
