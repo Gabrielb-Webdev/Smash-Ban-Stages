@@ -3961,8 +3961,8 @@ function TabTorneos({ user }) {
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
                 </div>
                 {(t.events || []).map(e => {
-                  const eventUrl = e.slug ? `${t.url}/events/${e.slug}` : t.url;
-                  const registerUrl = e.slug ? `${t.url}/events/${e.slug}/register` : `${t.url}/register`;
+                  const eventUrl = e.slug ? `https://www.start.gg/${e.slug}` : t.url;
+                  const registerUrl = e.slug ? `https://www.start.gg/${e.slug}/register` : `${t.url}/register`;
                   const enrolled = enrolledEvents[e.id];
                   const checked = enrolled !== undefined;
                   return (
