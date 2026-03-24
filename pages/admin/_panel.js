@@ -77,7 +77,7 @@ export default function TestAdminPage() {
   const [lockTick, setLockTick] = useState(0); // ticker para forzar re-render del countdown
 
   // Selección dinámica de torneo
-  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
+  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); const v = (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; return (v === 'tournament/asd3' || v === 'tournament/test') ? '' : v; } catch { return ''; } });
   const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
   const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedBracketUrl', c))) || ''; } catch { return ''; } });
   const [selectedEventId, setSelectedEventId]               = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedEventId', c))) || null; } catch { return null; } });
@@ -416,6 +416,11 @@ export default function TestAdminPage() {
       } catch {}
     });
   }, []);
+
+  // Si no hay torneo seleccionado, abrir el picker automáticamente
+  useEffect(() => {
+    if (!checking && !selectedSlug) openTourPicker();
+  }, [checking, selectedSlug]);
 
   useEffect(() => {
     if (checking || !selectedSlug) return;
