@@ -984,8 +984,9 @@ export default function TestAdminPage() {
     setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, banUrl1, banUrl2, startggSetId, startggEntrant1Id, startggEntrant2Id, timerStartedAt: Date.now() } }));
 
     // Notificar a cada jugador con su URL específica (para identificación automática sin login)
-    const notifTitle = `📢 Match llamado — ${setupId.replace(`${community}-`, '').replace('stream', 'Stream')}`;
-    const notifBody  = `${players.join(' vs ')} — ¡Tienen 5 min para hacer check-in!`;
+    const setupLabel = SETUPS.find(s => s.id === setupId)?.label || setupId.replace(`${community}-`, '').replace('stream', 'Stream');
+    const notifTitle = `📢 ¡Te toca match!`;
+    const notifBody  = `${players.join(' vs ')} — ${setupLabel} — ¡Tienen 5 min para hacer check-in!`;
     try {
       await fetch('/api/notifications/send', {
         method: 'POST',
