@@ -2,7 +2,7 @@
   "name": "La app sin H",
   "short_name": "La app sin H",
   "description": "Sistema de baneos y picks para torneos de Smash Bros",
-  "start_url": "/",
+  "start_url": "/home",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

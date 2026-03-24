@@ -22,7 +22,7 @@ export default function Home() {
   useEffect(() => {
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      if (!data.isAdmin && !data.adminCommunities?.length) { router.replace('/login'); return; }
+      if (!data.isAdmin && !data.adminCommunities?.length) { router.replace('/home'); return; }
       setSession(data);
       setChecking(false);
     });

@@ -117,7 +117,7 @@ export default function HomePage() {
     }
 
     setUser(u);
-    setIsAdmin(!!stored.isAdmin);
+    setIsAdmin(!!(stored.isAdmin || stored.adminCommunities?.length));
     // Guardar perfil del jugador en Redis
     if (u.id) {
       fetch('/api/players/profile', {
