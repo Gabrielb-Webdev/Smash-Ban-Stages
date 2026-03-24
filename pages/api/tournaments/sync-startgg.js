@@ -61,10 +61,11 @@ query TournamentBySlug($slug: String!) {
 `;
 
 // Torneos donde el usuario está inscrito — filtramos luego por owner/admin
+// perPage reducido a 8 para no exceder el límite de complejidad de start.gg (1000)
 const USER_TOURNAMENTS_QUERY = `
 query UserTournaments($slug: String!, $page: Int!) {
   user(slug: $slug) {
-    tournaments(query: { page: $page, perPage: 20, filter: { upcoming: true } }) {
+    tournaments(query: { page: $page, perPage: 8, filter: { upcoming: true } }) {
       pageInfo { total totalPages }
       nodes {
         id
@@ -252,6 +253,9 @@ async function fetchStartggTournaments(token) {
     return f;
   }).filter(t => {
     const state = t.state;
+    // Torneos de series: mostrar siempre (incluye recién completados)
+    if (t.series) return state !== 4 && state !== 'CANCELLED';
+    // El resto: solo futuros o en curso
     if (state === 3 || state === 4 || state === 'COMPLETED' || state === 'CANCELLED') return false;
     if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;
     if (t.endAt && new Date(t.endAt).getTime() > now) return true;
