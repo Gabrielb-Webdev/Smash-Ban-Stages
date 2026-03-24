@@ -22,8 +22,13 @@ export default function Home() {
   useEffect(() => {
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      // Todos los usuarios van a /home al abrir la app
-      router.replace('/home');
+      // Super admin se queda en / (panel de admin), el resto va a /home
+      if (data.isAdmin) {
+        setSession(data);
+        setChecking(false);
+      } else {
+        router.replace('/home');
+      }
     });
   }, []);
 
