@@ -101,6 +101,8 @@ export default function TestAdminPage() {
   const [slugInput, setSlugInput]                   = useState('');
   const [pickTourPreview, setPickTourPreview]           = useState(null);
   const [loadingPickTourPreview, setLoadingPickTourPreview] = useState(false);
+  const [savedSlugs, setSavedSlugs]                 = useState([]);
+  const [savingSlug, setSavingSlug]                 = useState(false);
   const [allPhaseGroups, setAllPhaseGroups] = useState(() => {
     try {
       const c = _communitySync();
@@ -671,17 +673,43 @@ export default function TestAdminPage() {
     setPickTourPreview(null);
     setLoadingPickTourPreview(false);
     setLoadingPickTours(true);
-    fetch(`/api/tournaments/sync-startgg?community=${encodeURIComponent(community)}`)
-      .then(r => r.json())
-      .then(d => {
+
+    const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025';
+    const authHeaders = { 'Authorization': `Bearer ${ADMIN_SECRET}` };
+
+    Promise.all([
+      fetch(`/api/tournaments/sync-startgg?community=${encodeURIComponent(community)}`).then(r => r.json()),
+      fetch(`/api/tournaments/saved-slugs?community=${encodeURIComponent(community)}`, { headers: authHeaders }).then(r => r.json()),
+    ])
+      .then(async ([syncData, savedData]) => {
+        const slugsList = savedData.slugs || [];
+        setSavedSlugs(slugsList);
+
         // Solo mostrar torneos que no estén completados (state 1=CREATED, 2=ACTIVE)
-        const available = (d.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE');
+        const available = (syncData.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE');
+
         // Incluir el torneo actualmente gestionado aunque no esté en sync-startgg
         const activeTournament = tournament;
         if (activeTournament?.slug && !available.some(t => t.slug === activeTournament.slug)) {
           available.unshift({ ...activeTournament, _current: true });
         }
-        setPickTournaments(available);
+
+        // Cargar info de slugs guardados manualmente que no estén ya en la lista
+        const missing = slugsList.filter(s => !available.some(t => t.slug === s));
+        if (missing.length > 0) {
+          const fetched = await Promise.all(
+            missing.map(s =>
+              fetch(`/api/tournaments/info?slug=${encodeURIComponent(s)}`)
+                .then(r => r.json())
+                .then(d => d.error ? null : { ...d, slug: s, attendees: d.attendees ?? 0, _saved: true })
+                .catch(() => null)
+            )
+          );
+          const validFetched = fetched.filter(Boolean);
+          setPickTournaments([...available, ...validFetched]);
+        } else {
+          setPickTournaments(available);
+        }
       })
       .catch(() => {})
       .finally(() => setLoadingPickTours(false));
@@ -1668,12 +1696,46 @@ export default function TestAdminPage() {
                                 {pickTourPreview.events.map(e => `${e.name}${e.entrants > 0 ? ` (${e.entrants})` : ''}`).join(' · ')}
                               </p>
                             )}
-                            <button
-                              onClick={() => selectPickTournament({ slug: pickTourPreview._slug, name: pickTourPreview.name })}
-                              style={{ marginTop: 12, width: '100%', background: '#FF8C00', border: 'none', borderRadius: 10, padding: '10px 0', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
-                            >
-                              Ver fases →
-                            </button>
+                            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                              <button
+                                onClick={() => selectPickTournament({ slug: pickTourPreview._slug, name: pickTourPreview.name })}
+                                style={{ flex: 1, background: '#FF8C00', border: 'none', borderRadius: 10, padding: '10px 0', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
+                              >
+                                Ver fases →
+                              </button>
+                              {!savedSlugs.includes(pickTourPreview._slug) && (
+                                <button
+                                  disabled={savingSlug}
+                                  onClick={async () => {
+                                    if (savingSlug) return;
+                                    setSavingSlug(true);
+                                    try {
+                                      const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025';
+                                      const r = await fetch('/api/tournaments/saved-slugs', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ADMIN_SECRET}` },
+                                        body: JSON.stringify({ community, slug: pickTourPreview._slug }),
+                                      });
+                                      const d = await r.json();
+                                      if (d.slugs) {
+                                        setSavedSlugs(d.slugs);
+                                        setPickTournaments(prev => {
+                                          if (prev.some(t => t.slug === pickTourPreview._slug)) return prev;
+                                          return [...prev, { ...pickTourPreview, slug: pickTourPreview._slug, attendees: pickTourPreview.attendees ?? 0, _saved: true }];
+                                        });
+                                      }
+                                    } catch {}
+                                    finally { setSavingSlug(false); }
+                                  }}
+                                  style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.35)', borderRadius: 10, padding: '10px 14px', color: '#4ade80', fontWeight: 700, fontSize: 13, cursor: savingSlug ? 'default' : 'pointer', fontFamily: "'Outfit', sans-serif", opacity: savingSlug ? 0.6 : 1, flexShrink: 0 }}
+                                >
+                                  💾
+                                </button>
+                              )}
+                              {savedSlugs.includes(pickTourPreview._slug) && (
+                                <span style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', fontSize: 12, color: '#4ade80', fontWeight: 700 }}>✓ Guardado</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )
@@ -1692,17 +1754,43 @@ export default function TestAdminPage() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {pickTournaments.map(t => (
-                              <button key={t.id || t.slug} onClick={() => selectPickTournament(t)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: selectedSlug === t.slug ? 'rgba(255,140,0,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${selectedSlug === t.slug ? 'rgba(255,140,0,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: "'Outfit', sans-serif" }}>
-                                {t.image && <img src={t.image} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                                    {t._current && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 5, flexShrink: 0 }}>activo</span>}
+                              <div key={t.id || t.slug} style={{ display: 'flex', alignItems: 'stretch', gap: 0, borderRadius: 14, overflow: 'hidden', border: `1px solid ${selectedSlug === t.slug ? 'rgba(255,140,0,0.3)' : t._saved ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
+                                <button onClick={() => selectPickTournament(t)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: selectedSlug === t.slug ? 'rgba(255,140,0,0.1)' : t._saved ? 'rgba(34,197,94,0.05)' : 'rgba(255,255,255,0.03)', border: 'none', padding: '12px 14px', cursor: 'pointer', textAlign: 'left', flex: 1, fontFamily: "'Outfit', sans-serif" }}>
+                                  {t.image && <img src={t.image} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                                      {t._current && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 5, flexShrink: 0 }}>activo</span>}
+                                      {t._saved && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(34,197,94,0.1)', color: 'rgba(74,222,128,0.7)', borderRadius: 5, flexShrink: 0 }}>guardado</span>}
+                                    </div>
+                                    <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>👥 {t.attendees || 0} inscriptos · {t.slug}</p>
                                   </div>
-                                  <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>👥 {t.attendees || 0} inscriptos · {t.slug}</p>
-                                </div>
-                                <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>›</span>
-                              </button>
+                                  <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>›</span>
+                                </button>
+                                {t._saved && (
+                                  <button
+                                    title="Quitar de Mis torneos"
+                                    onClick={async () => {
+                                      const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025';
+                                      try {
+                                        const r = await fetch('/api/tournaments/saved-slugs', {
+                                          method: 'DELETE',
+                                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ADMIN_SECRET}` },
+                                          body: JSON.stringify({ community, slug: t.slug }),
+                                        });
+                                        const d = await r.json();
+                                        if (d.slugs) {
+                                          setSavedSlugs(d.slugs);
+                                          setPickTournaments(prev => prev.filter(p => !(p.slug === t.slug && p._saved)));
+                                        }
+                                      } catch {}
+                                    }}
+                                    style={{ background: 'rgba(239,68,68,0.08)', border: 'none', borderLeft: '1px solid rgba(239,68,68,0.15)', padding: '0 14px', cursor: 'pointer', color: 'rgba(239,68,68,0.7)', fontSize: 16, fontFamily: "'Outfit', sans-serif", flexShrink: 0 }}
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
