@@ -1,0 +1,555 @@
+<!-- DEPRECADO: usar overlay.html para OBS y controls.html como panel de control -->
+<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=overlay.html"></head><body></body></html>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red-deep:   #1a0000;
+    --red-mid:    #6b0000;
+    --red-bright: #cc0000;
+    --red-hot:    #ff2020;
+    --gold:       #f5a623;
+    --gold-light: #ffd166;
+    --white:      #fff5f5;
+    --black:      #0d0000;
+    --gray:       #c0b8b8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Exo 2', sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .demo-bg {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #0d0000 0%, #1a0505 50%, #080000 100%);
+    z-index: -1;
+  }
+
+  .overlay {
+    width: 960px;
+    position: relative;
+    user-select: none;
+  }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    display: flex;
+    align-items: stretch;
+    height: 90px;
+    position: relative;
+    filter: drop-shadow(0 0 18px rgba(204,0,0,0.35));
+    animation: glow-pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { filter: drop-shadow(0 0 16px rgba(204,0,0,0.3)); }
+    50%       { filter: drop-shadow(0 0 36px rgba(255,32,32,0.6)) drop-shadow(0 0 60px rgba(204,0,0,0.3)); }
+  }
+
+  /* Player panels */
+  .player {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--black) 0%, var(--red-deep) 50%, #300000 100%);
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
+  }
+
+  .player.right {
+    flex-direction: row-reverse;
+    clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+    background: linear-gradient(225deg, var(--black) 0%, var(--red-deep) 50%, #300000 100%);
+  }
+
+  /* Animated scan line */
+  .player::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--red-hot), transparent);
+    animation: scan 3s linear infinite;
+  }
+  .player.right::before { animation-delay: 1.5s; }
+  @keyframes scan { to { left: 200%; } }
+
+  /* Corner accent */
+  .player::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(to bottom, var(--red-hot), var(--red-mid));
+    box-shadow: 0 0 12px var(--red-bright);
+  }
+  .player.right::after {
+    left: auto; right: 0;
+    background: linear-gradient(to bottom, var(--gold), var(--red-hot));
+    box-shadow: 0 0 12px var(--gold);
+  }
+
+  /* Diagonal stripe decoration */
+  .player .stripe {
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 100%;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 6px,
+      rgba(204,0,0,0.08) 6px,
+      rgba(204,0,0,0.08) 12px
+    );
+  }
+  .player.right .stripe { right: auto; left: 0; }
+
+  .player-tag {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--white);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(255,32,32,0.5), 0 0 40px rgba(204,0,0,0.3);
+  }
+  .player.right .player-tag { text-align: right; }
+
+  .player-sponsor {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .player-info { display: flex; flex-direction: column; gap: 2px; }
+  .player.right .player-info { align-items: flex-end; }
+
+  /* ── CENTER BLOCK ── */
+  .center {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #0d0000 0%, #1a0000 100%);
+    border-left: 2px solid var(--red-bright);
+    border-right: 2px solid var(--red-bright);
+    box-shadow: inset 0 0 30px rgba(204,0,0,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .center::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(204,0,0,0.04) 8px, rgba(204,0,0,0.04) 9px),
+      repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(204,0,0,0.04) 8px, rgba(204,0,0,0.04) 9px);
+  }
+
+  .scores {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .score {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 46px;
+    color: var(--white);
+    line-height: 1;
+    text-shadow: 0 0 20px var(--red-hot), 0 0 40px rgba(204,0,0,0.4);
+    width: 52px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .score:hover { color: var(--red-hot); transform: scale(1.1); }
+
+  .score-divider {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    color: var(--red-bright);
+    opacity: 0.7;
+  }
+
+  .vs-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Logo INC badge */
+  .logo-badge {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--red-bright);
+    box-shadow: 0 0 16px var(--red-bright), 0 0 32px rgba(204,0,0,0.4);
+    z-index: 10;
+    background: var(--black);
+  }
+  .logo-badge img { width: 100%; height: 100%; object-fit: contain; }
+
+  /* ── BOTTOM INFO STRIP ── */
+  .info-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    margin-top: 3px;
+    background: linear-gradient(90deg, rgba(204,0,0,0.18) 0%, rgba(13,0,0,0.96) 30%, rgba(13,0,0,0.96) 70%, rgba(245,166,35,0.12) 100%);
+    border: 1px solid rgba(204,0,0,0.4);
+    border-top: 2px solid var(--red-bright);
+    padding: 0 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .info-strip::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: -100%;
+    width: 40%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(245,166,35,0.5), transparent);
+    animation: scan 4s linear infinite 2s;
+  }
+
+  .strip-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .strip-bestof { color: var(--gold); }
+  .strip-event  { color: var(--white); opacity: 0.9; }
+  .strip-round  { color: var(--red-hot); text-shadow: 0 0 8px var(--red-bright); }
+
+  /* Diamond decorations */
+  .diamond-deco {
+    position: absolute;
+    right: 160px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex; gap: 6px;
+  }
+  .diamond {
+    width: 7px; height: 7px;
+    background: var(--red-bright);
+    transform: rotate(45deg);
+    opacity: 0.7;
+  }
+  .diamond:nth-child(2) { background: var(--gold); opacity: 0.9; }
+  .diamond:nth-child(3) { background: var(--red-hot); }
+
+  /* ── CONTROLS ── */
+  .controls {
+    margin-top: 50px;
+    padding: 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(204,0,0,0.25);
+    border-radius: 12px;
+  }
+  .controls h3 {
+    font-family: 'Orbitron', monospace;
+    color: var(--gold);
+    font-size: 13px;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .ctrl-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .ctrl-label { font-family: 'Rajdhani', sans-serif; font-size: 13px; color: var(--white); opacity: 0.7; letter-spacing: 1px; min-width: 120px; }
+
+  input[type="text"] {
+    background: rgba(204,0,0,0.12);
+    border: 1px solid rgba(204,0,0,0.45);
+    color: var(--white);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    outline: none;
+    width: 180px;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: var(--red-hot); box-shadow: 0 0 8px rgba(255,32,32,0.3); }
+
+  select {
+    background: rgba(204,0,0,0.12);
+    border: 1px solid rgba(204,0,0,0.45);
+    color: var(--white);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+  }
+  select option { background: #1a0000; }
+
+  .btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-score {
+    background: linear-gradient(135deg, var(--red-bright), var(--red-hot));
+    color: white;
+    padding: 6px 12px;
+    font-size: 16px;
+  }
+  .btn-score:hover { transform: scale(1.08); box-shadow: 0 0 14px var(--red-hot); }
+  .btn-reset { background: rgba(204,0,0,0.2); color: var(--red-hot); border: 1px solid var(--red-bright); }
+  .btn-reset:hover { background: var(--red-bright); color: white; }
+
+  .score-ctrl { display: flex; align-items: center; gap: 8px; }
+  .score-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    color: var(--white);
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .divider { border: none; border-top: 1px solid rgba(204,0,0,0.2); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<div class="demo-bg"></div>
+
+<div class="overlay">
+
+  <!-- ══ TOP BAR ══ -->
+  <div class="top-bar">
+
+    <!-- Player 1 -->
+    <div class="player" id="panel-p1">
+      <div class="stripe"></div>
+      <div class="player-info">
+        <div class="player-tag" id="display-p1">JUGADOR 1</div>
+        <div class="player-sponsor" id="display-sp1">INC ESPORTS</div>
+      </div>
+    </div>
+
+    <!-- Center -->
+    <div class="center">
+      <div class="scores">
+        <span class="score" id="s1" onclick="adjustScore(1,1)">0</span>
+        <span class="score-divider">–</span>
+        <span class="score" id="s2" onclick="adjustScore(2,1)">0</span>
+      </div>
+      <div class="vs-sub">VS</div>
+      <div class="logo-badge">
+        <img src="img/logo.png" alt="INC">
+      </div>
+    </div>
+
+    <!-- Player 2 -->
+    <div class="player right" id="panel-p2">
+      <div class="stripe"></div>
+      <div class="player-info">
+        <div class="player-tag" id="display-p2">JUGADOR 2</div>
+        <div class="player-sponsor" id="display-sp2">INC ESPORTS</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ INFO STRIP ══ -->
+  <div class="info-strip">
+    <span class="strip-text strip-bestof" id="display-bestof">BEST OF 3</span>
+    <div class="diamond-deco">
+      <div class="diamond"></div><div class="diamond"></div><div class="diamond"></div>
+    </div>
+    <span class="strip-text strip-event">⚔ INC ESPORTS</span>
+    <span class="strip-text strip-round" id="display-round">WINNERS QUARTERS</span>
+  </div>
+
+  <!-- ══ CONTROLS (demo) ══ -->
+  <div class="controls">
+    <h3>⚙ Panel de Control</h3>
+
+    <div class="ctrl-row">
+      <span class="ctrl-label">Jugador 1</span>
+      <input type="text" id="in-p1" placeholder="Nombre tag" oninput="update()">
+      <input type="text" id="in-sp1" placeholder="Sponsor/Team" oninput="update()">
+    </div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">Jugador 2</span>
+      <input type="text" id="in-p2" placeholder="Nombre tag" oninput="update()">
+      <input type="text" id="in-sp2" placeholder="Sponsor/Team" oninput="update()">
+    </div>
+
+    <hr class="divider">
+
+    <div class="ctrl-row">
+      <span class="ctrl-label">Score</span>
+      <div class="score-ctrl">
+        <button class="btn btn-score" onclick="adjustScore(1,-1)">−</button>
+        <span class="score-val" id="ctrl-s1">0</span>
+        <button class="btn btn-score" onclick="adjustScore(1,1)">+</button>
+      </div>
+      <span style="color:var(--white);opacity:0.4;font-size:18px">vs</span>
+      <div class="score-ctrl">
+        <button class="btn btn-score" onclick="adjustScore(2,-1)">−</button>
+        <span class="score-val" id="ctrl-s2">0</span>
+        <button class="btn btn-score" onclick="adjustScore(2,1)">+</button>
+      </div>
+      <button class="btn btn-reset" onclick="resetScores()">Reset</button>
+    </div>
+
+    <div class="ctrl-row">
+      <span class="ctrl-label">Formato</span>
+      <select id="in-bestof" onchange="update()">
+        <option>BEST OF 3</option>
+        <option>BEST OF 5</option>
+        <option>BEST OF 1</option>
+      </select>
+      <select id="in-round" onchange="update()">
+        <option>WINNERS QUARTERS</option>
+        <option>WINNERS SEMIS</option>
+        <option>WINNERS FINALS</option>
+        <option>LOSERS ROUND 1</option>
+        <option>LOSERS QUARTERS</option>
+        <option>LOSERS SEMIS</option>
+        <option>LOSERS FINALS</option>
+        <option>GRAND FINALS</option>
+        <option>POOLS</option>
+        <option>TOP 8</option>
+      </select>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API  = 'https://smash-ban-stages.vercel.app/api/inc/stream-state';
+  const AUTH = 'Bearer afk-admin-2025';
+  let sc = [0, 0];
+  let lastUpdatedAt = null;
+
+  function applyState(d) {
+    if (!d || d.empty) return;
+    document.getElementById('display-p1').textContent = (d.player1?.tag || 'JUGADOR 1').toUpperCase();
+    document.getElementById('display-sp1').textContent = (d.player1?.sponsor || 'INC ESPORTS').toUpperCase();
+    document.getElementById('display-p2').textContent = (d.player2?.tag || 'JUGADOR 2').toUpperCase();
+    document.getElementById('display-sp2').textContent = (d.player2?.sponsor || 'INC ESPORTS').toUpperCase();
+    sc[0] = d.score1 ?? sc[0];
+    sc[1] = d.score2 ?? sc[1];
+    document.getElementById('s1').textContent = sc[0];
+    document.getElementById('s2').textContent = sc[1];
+    const c1 = document.getElementById('ctrl-s1'); if (c1) c1.textContent = sc[0];
+    const c2 = document.getElementById('ctrl-s2'); if (c2) c2.textContent = sc[1];
+    document.getElementById('display-bestof').textContent = d.format || 'BEST OF 3';
+    document.getElementById('display-round').textContent  = (d.round || 'WINNERS QUARTERS').toUpperCase();
+    const ip1 = document.getElementById('in-p1');  if (ip1) ip1.value = d.player1?.tag || '';
+    const ip2 = document.getElementById('in-p2');  if (ip2) ip2.value = d.player2?.tag || '';
+    const is1 = document.getElementById('in-sp1'); if (is1) is1.value = d.player1?.sponsor || '';
+    const is2 = document.getElementById('in-sp2'); if (is2) is2.value = d.player2?.sponsor || '';
+  }
+
+  // Polling cada 2 segundos
+  setInterval(async () => {
+    try {
+      const r = await fetch(API);
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!d.empty && d.updatedAt !== lastUpdatedAt) {
+        lastUpdatedAt = d.updatedAt;
+        applyState(d);
+      }
+    } catch {}
+  }, 2000);
+
+  // Carga inicial
+  fetch(API).then(r => r.json()).then(d => { if (!d.empty) { lastUpdatedAt = d.updatedAt; applyState(d); } }).catch(() => {});
+
+  function adjustScore(player, delta) {
+    sc[player - 1] = Math.max(0, sc[player - 1] + delta);
+    const el = document.getElementById('s' + player);
+    el.textContent = sc[player - 1];
+    const ctrl = document.getElementById('ctrl-s' + player); if (ctrl) ctrl.textContent = sc[player - 1];
+    // Flash effect
+    el.style.transition = 'none';
+    el.style.color = delta > 0 ? 'var(--gold)' : 'var(--red-hot)';
+    setTimeout(() => { el.style.transition = 'color 0.6s'; el.style.color = ''; }, 300);
+    // Sync a la API
+    fetch(API, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+      body: JSON.stringify({ score1: sc[0], score2: sc[1] }),
+    }).catch(() => {});
+  }
+
+  function resetScores() {
+    sc = [0, 0];
+    ['1','2'].forEach(i => {
+      document.getElementById('s' + i).textContent = 0;
+      const ctrl = document.getElementById('ctrl-s' + i); if (ctrl) ctrl.textContent = 0;
+    });
+    fetch(API, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+      body: JSON.stringify({ score1: 0, score2: 0 }),
+    }).catch(() => {});
+  }
+
+  function update() {
+    const p1     = document.getElementById('in-p1')?.value.trim() || '';
+    const sp1    = document.getElementById('in-sp1')?.value.trim() || '';
+    const p2     = document.getElementById('in-p2')?.value.trim() || '';
+    const sp2    = document.getElementById('in-sp2')?.value.trim() || '';
+    const bestof = document.getElementById('in-bestof')?.value || 'BEST OF 3';
+    const round  = document.getElementById('in-round')?.value || '';
+    const name1  = sp1 ? `${sp1} | ${p1}` : p1;
+    const name2  = sp2 ? `${sp2} | ${p2}` : p2;
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+      body: JSON.stringify({ player1: name1, player2: name2, format: bestof, round, sessionId: '' }),
+    }).catch(() => {});
+  }
+</script>
+</body>
+</html>

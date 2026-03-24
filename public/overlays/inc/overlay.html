@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INC eSports – Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Bebas+Neue&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:        #cc0000;
+    --red-hot:    #ff2a2a;
+    --red-dark:   #8a0000;
+    --white:      #ffffff;
+    --off-white:  #f5f0f0;
+    --black:      #0a0000;
+    --gold:       #f5c542;
+    --gray:       rgba(255,255,255,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Barlow Condensed', sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100vh;
+  }
+
+  .overlay {
+    width: 960px;
+    position: relative;
+    user-select: none;
+  }
+
+  /* ══ BARRA PRINCIPAL ══ */
+  .top-bar {
+    display: flex;
+    align-items: stretch;
+    height: 88px;
+    position: relative;
+  }
+
+  /* ── PANEL JUGADOR ── */
+  .player {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px 0 22px;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 100%, 0 100%);
+  }
+  .player.right {
+    flex-direction: row-reverse;
+    padding: 0 22px 0 18px;
+    clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  /* Fondo: franja roja izquierda, negra derecha */
+  .player::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg,
+      var(--red-dark) 0%,
+      var(--red) 28%,
+      #1a0000 55%,
+      var(--black) 100%
+    );
+    z-index: 0;
+  }
+  .player.right::before {
+    background: linear-gradient(80deg,
+      var(--black) 0%,
+      #1a0000 45%,
+      var(--red) 72%,
+      var(--red-dark) 100%
+    );
+  }
+
+  /* Franjas diagonales sutiles sobre el fondo */
+  .player::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -52deg,
+      transparent,
+      transparent 14px,
+      rgba(255,255,255,0.025) 14px,
+      rgba(255,255,255,0.025) 28px
+    );
+    z-index: 1;
+  }
+
+  /* Línea de acento lateral */
+  .player .accent-line {
+    position: absolute;
+    left: 0; top: 0;
+    width: 5px; height: 100%;
+    background: linear-gradient(to bottom, var(--gold), var(--red-hot));
+    z-index: 3;
+  }
+  .player.right .accent-line { left: auto; right: 0; }
+
+  /* Línea animada superior */
+  .player .sweep {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 55%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    z-index: 4;
+    animation: sweep 4s linear infinite;
+  }
+  .player.right .sweep { animation-delay: 2s; }
+  @keyframes sweep { to { left: 200%; } }
+
+  .player-content {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .player.right .player-content { align-items: flex-end; }
+
+  .player-sponsor {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.9;
+  }
+
+  .player-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    letter-spacing: 2px;
+    color: var(--white);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.7), 0 0 20px rgba(255,42,42,0.4);
+    line-height: 1;
+  }
+
+  /* Score dentro del panel de jugador */
+  .player-score {
+    position: relative;
+    z-index: 5;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 62px;
+    line-height: 1;
+    color: var(--white);
+    text-shadow: 0 0 16px rgba(255,42,42,0.6), 2px 2px 0 rgba(0,0,0,0.8);
+    min-width: 48px;
+    text-align: center;
+    transition: color 0.5s;
+  }
+
+  /* ── CENTRO: logo INC ── */
+  .center {
+    width: 100px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--black);
+    border-left: 3px solid var(--red);
+    border-right: 3px solid var(--red);
+    position: relative;
+    overflow: visible;
+    z-index: 6;
+  }
+
+  .logo-circle {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--white);
+    box-shadow:
+      0 0 0 2px var(--red),
+      0 0 18px rgba(204,0,0,0.7),
+      0 0 36px rgba(204,0,0,0.3);
+    animation: logo-pulse 3s ease-in-out infinite;
+    background: var(--black);
+  }
+  .logo-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
+  }
+  @keyframes logo-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px var(--red), 0 0 14px rgba(204,0,0,0.6), 0 0 28px rgba(204,0,0,0.2); }
+    50%       { box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(245,197,66,0.7), 0 0 44px rgba(204,0,0,0.3); }
+  }
+
+  /* ══ FRANJA INFO ══ */
+  .info-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    margin-top: 2px;
+    position: relative;
+    overflow: hidden;
+    background: var(--red-dark);
+    border-top: 2px solid var(--red-hot);
+    border-bottom: 1px solid rgba(0,0,0,0.5);
+    padding: 0 20px;
+  }
+
+  /* Textura diagonal en la franja */
+  .info-strip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -52deg,
+      transparent,
+      transparent 10px,
+      rgba(0,0,0,0.12) 10px,
+      rgba(0,0,0,0.12) 20px
+    );
+  }
+
+  /* Resplandor central */
+  .info-strip::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 30%; right: 30%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  }
+
+  .strip-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  .strip-bestof { color: var(--gold); }
+  .strip-event  { color: var(--white); position: absolute; left: 50%; transform: translateX(-50%); }
+  .strip-round  { color: var(--white); opacity: 0.85; }
+</style>
+</head>
+<body>
+
+<div class="overlay">
+
+  <div class="top-bar">
+
+    <!-- Jugador 1 -->
+    <div class="player" id="panel-p1">
+      <div class="accent-line"></div>
+      <div class="sweep"></div>
+      <div class="player-content">
+        <div class="player-sponsor" id="display-sp1"></div>
+        <div class="player-tag" id="display-p1">JUGADOR 1</div>
+      </div>
+      <span class="player-score" id="s1">0</span>
+    </div>
+
+    <!-- Centro -->
+    <div class="center">
+      <div class="logo-circle">
+        <img src="img/logo.png" alt="INC">
+      </div>
+    </div>
+
+    <!-- Jugador 2 -->
+    <div class="player right" id="panel-p2">
+      <div class="accent-line"></div>
+      <div class="sweep"></div>
+      <div class="player-content">
+        <div class="player-sponsor" id="display-sp2"></div>
+        <div class="player-tag" id="display-p2">JUGADOR 2</div>
+      </div>
+      <span class="player-score" id="s2">0</span>
+    </div>
+
+  </div>
+
+  <!-- Franja info -->
+  <div class="info-strip">
+    <span class="strip-text strip-bestof" id="display-bestof">BEST OF 3</span>
+    <span class="strip-text strip-event">⚔ INC ESPORTS</span>
+    <span class="strip-text strip-round" id="display-round">WINNERS QUARTERS</span>
+  </div>
+
+</div>
+
+<script>
+  const API = 'https://smash-ban-stages.vercel.app/api/inc/stream-state';
+  let lastUpdatedAt = null;
+  let current = { score1: 0, score2: 0 };
+
+  function applyState(d) {
+    if (!d || d.empty) return;
+    document.getElementById('display-p1').textContent  = (d.player1?.tag     || 'JUGADOR 1').toUpperCase();
+    document.getElementById('display-sp1').textContent = (d.player1?.sponsor || '').toUpperCase();
+    document.getElementById('display-p2').textContent  = (d.player2?.tag     || 'JUGADOR 2').toUpperCase();
+    document.getElementById('display-sp2').textContent = (d.player2?.sponsor || '').toUpperCase();
+    if (d.score1 !== current.score1) flashScore('s1', d.score1 > current.score1);
+    if (d.score2 !== current.score2) flashScore('s2', d.score2 > current.score2);
+    document.getElementById('s1').textContent = d.score1 ?? 0;
+    document.getElementById('s2').textContent = d.score2 ?? 0;
+    document.getElementById('display-bestof').textContent = d.format || 'BEST OF 3';
+    document.getElementById('display-round').textContent  = (d.round  || 'WINNERS QUARTERS').toUpperCase();
+    current = d;
+  }
+
+  function flashScore(id, positive) {
+    const el = document.getElementById(id);
+    el.style.transition = 'none';
+    el.style.color = positive ? '#f5c542' : '#ff2a2a';
+    setTimeout(() => { el.style.transition = 'color 0.6s'; el.style.color = ''; }, 350);
+  }
+
+  fetch(API).then(r => r.json()).then(d => {
+    if (!d.empty) { lastUpdatedAt = d.updatedAt; applyState(d); }
+  }).catch(() => {});
+
+  setInterval(async () => {
+    try {
+      const d = await fetch(API).then(r => r.json());
+      if (!d.empty && d.updatedAt !== lastUpdatedAt) {
+        lastUpdatedAt = d.updatedAt;
+        applyState(d);
+      }
+    } catch {}
+  }, 2000);
+</script>
+</body>
+</html>

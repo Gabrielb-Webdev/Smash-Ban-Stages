@@ -240,6 +240,17 @@ export default function TestAdminPage() {
           }).catch(() => {});
         }
       }
+      // Actualizar scores en overlay INC en tiempo real
+      if (community === 'inc' && updates['inc-stream']) {
+        const iSt = updates['inc-stream'];
+        if (iSt.score1 != null || iSt.score2 != null) {
+          fetch('/api/inc/stream-state', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+            body: JSON.stringify({ score1: iSt.score1 ?? 0, score2: iSt.score2 ?? 0 }),
+          }).catch(() => {});
+        }
+      }
       // Auto-liberar setup cuando la sesión termina (phase FINISHED)
       for (const [setupId, st] of Object.entries(updates)) {
         if (st.phase === 'FINISHED' && !autoReleasedSetups.current.has(setupId)) {
@@ -848,7 +859,7 @@ export default function TestAdminPage() {
     const format = setupFormats[setupId] || 'BO3';
     // Para el setup de stream se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
-    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream' };
+    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream' };
     const isStreamSetup = setupId.endsWith('-stream');
     const sessionId = isStreamSetup
       ? (COMMUNITY_STREAM_IDS[community] || setupId)
@@ -943,6 +954,20 @@ export default function TestAdminPage() {
     // Para torneos Warui Team: sincronizar con overlay de stream (controls.html)
     if (community === 'warui' && isStreamSetup) {
       fetch('/api/warui/stream-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({
+          player1: players[0] || 'Jugador 1',
+          player2: players[1] || 'Jugador 2',
+          format,
+          round: set.fullRoundText || set.round || '',
+          sessionId,
+        }),
+      }).catch(() => {});
+    }
+    // Para torneos INC: sincronizar con overlay de stream
+    if (community === 'inc' && isStreamSetup) {
+      fetch('/api/inc/stream-state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
         body: JSON.stringify({

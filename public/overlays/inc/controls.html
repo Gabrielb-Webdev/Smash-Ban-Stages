@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INC eSports – Panel de Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Rajdhani:wght@600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:        #cc0000;
+    --red-hot:    #ff2a2a;
+    --red-dark:   #8a0000;
+    --white:      #ffffff;
+    --off-white:  #f5f0f0;
+    --black:      #0a0000;
+    --gold:       #f5c542;
+    --bg:         #120000;
+    --border:     rgba(204,0,0,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(135deg, #120000 0%, #1a0000 50%, #0a0000 100%);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .panel {
+    width: 640px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .panel-header {
+    background: linear-gradient(90deg, var(--red-dark), #1a0000);
+    border-bottom: 2px solid var(--red);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .panel-header img {
+    width: 36px; height: 36px;
+    object-fit: contain;
+    border-radius: 50%;
+    border: 2px solid var(--red);
+    background: var(--black);
+    padding: 2px;
+  }
+  .panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--white);
+  }
+  .panel-sub {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--gold);
+    opacity: 0.8;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .panel-body { padding: 24px; }
+
+  /* Sección */
+  .section {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 14px;
+    opacity: 0.8;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .field-label {
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--off-white);
+    opacity: 0.55;
+    min-width: 80px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    background: rgba(204,0,0,0.1);
+    border: 1px solid rgba(204,0,0,0.4);
+    color: var(--white);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input[type="text"]::placeholder { color: rgba(255,255,255,0.2); }
+  input[type="text"]:focus {
+    border-color: var(--red-hot);
+    box-shadow: 0 0 8px rgba(255,42,42,0.25);
+  }
+
+  select {
+    flex: 1;
+    background: rgba(204,0,0,0.1);
+    border: 1px solid rgba(204,0,0,0.4);
+    color: var(--white);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+  }
+  select option, select optgroup { background: #1a0000; color: var(--white); }
+
+  /* Score ctrl */
+  .score-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 8px 0 4px;
+  }
+
+  .score-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .score-block-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--off-white);
+    opacity: 0.45;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .score-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .score-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    color: var(--white);
+    line-height: 1;
+    min-width: 52px;
+    text-align: center;
+    text-shadow: 0 0 12px rgba(255,42,42,0.4);
+    transition: color 0.4s;
+  }
+
+  .score-vs {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: var(--red);
+    opacity: 0.6;
+    letter-spacing: 3px;
+  }
+
+  .btn-score {
+    width: 40px; height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--red-dark), var(--red));
+    color: white;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .btn-score:hover { transform: scale(1.1); box-shadow: 0 0 12px rgba(255,42,42,0.5); }
+  .btn-score:active { transform: scale(0.95); }
+
+  .btn-reset {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid rgba(204,0,0,0.5);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--red-hot);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-reset:hover { background: var(--red); color: white; }
+
+  /* Status */
+  .status-bar {
+    margin-top: 6px;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.3);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .status-msg {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.7;
+    transition: all 0.3s;
+  }
+  .status-time {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 1px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(204,0,0,0.2);
+    margin: 14px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="panel">
+
+  <div class="panel-header">
+    <img src="img/logo.png" alt="INC">
+    <div>
+      <div class="panel-title">INC eSports — Control</div>
+      <div class="panel-sub">Abrí overlay.html en OBS · los cambios se sincronizan automáticamente</div>
+    </div>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- Jugadores -->
+    <div class="section">
+      <div class="section-title">Jugadores</div>
+
+      <div class="field-row">
+        <span class="field-label">Player 1</span>
+        <input type="text" id="in-p1" placeholder="Tag del jugador" oninput="scheduleUpdate()">
+        <input type="text" id="in-sp1" placeholder="Sponsor / Team" oninput="scheduleUpdate()" style="max-width:160px">
+      </div>
+      <div class="field-row">
+        <span class="field-label">Player 2</span>
+        <input type="text" id="in-p2" placeholder="Tag del jugador" oninput="scheduleUpdate()">
+        <input type="text" id="in-sp2" placeholder="Sponsor / Team" oninput="scheduleUpdate()" style="max-width:160px">
+      </div>
+    </div>
+
+    <!-- Score -->
+    <div class="section">
+      <div class="section-title">Score</div>
+
+      <div class="score-section">
+        <div class="score-block">
+          <div class="score-block-label" id="lbl-p1">JUGADOR 1</div>
+          <div class="score-ctrl">
+            <button class="btn-score" onclick="adjustScore(1,-1)">−</button>
+            <span class="score-display" id="sc1">0</span>
+            <button class="btn-score" onclick="adjustScore(1,1)">+</button>
+          </div>
+        </div>
+
+        <div class="score-vs">VS</div>
+
+        <div class="score-block">
+          <div class="score-block-label" id="lbl-p2">JUGADOR 2</div>
+          <div class="score-ctrl">
+            <button class="btn-score" onclick="adjustScore(2,-1)">−</button>
+            <span class="score-display" id="sc2">0</span>
+            <button class="btn-score" onclick="adjustScore(2,1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-reset" onclick="resetScores()">↺ Reiniciar scores</button>
+    </div>
+
+    <!-- Formato / Ronda -->
+    <div class="section">
+      <div class="section-title">Formato y Ronda</div>
+
+      <div class="field-row">
+        <span class="field-label">Formato</span>
+        <select id="in-bestof" onchange="scheduleUpdate()">
+          <option>BEST OF 3</option>
+          <option>BEST OF 5</option>
+          <option>BEST OF 1</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">Ronda</span>
+        <select id="in-round" onchange="scheduleUpdate()">
+          <optgroup label="── WINNERS ──">
+            <option>WINNERS ROUND 1</option>
+            <option>WINNERS ROUND 2</option>
+            <option>WINNERS ROUND 3</option>
+            <option>WINNERS ROUND 4</option>
+            <option>WINNERS QUARTERS</option>
+            <option>WINNERS SEMIS</option>
+            <option>WINNERS FINALS</option>
+          </optgroup>
+          <optgroup label="── LOSERS ──">
+            <option>LOSERS ROUND 1</option>
+            <option>LOSERS ROUND 2</option>
+            <option>LOSERS ROUND 3</option>
+            <option>LOSERS ROUND 4</option>
+            <option>LOSERS ROUND 5</option>
+            <option>LOSERS ROUND 6</option>
+            <option>LOSERS ROUND 7</option>
+            <option>LOSERS ROUND 8</option>
+            <option>LOSERS QUARTERS</option>
+            <option>LOSERS SEMIS</option>
+            <option>LOSERS FINALS</option>
+          </optgroup>
+          <optgroup label="── FINAL ──">
+            <option>GRAND FINALS</option>
+            <option>GRAND FINALS RESET</option>
+          </optgroup>
+          <optgroup label="── OTROS ──">
+            <option>POOLS</option>
+            <option>TOP 8</option>
+            <option>TOP 16</option>
+            <option>TOP 32</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="status-bar">
+    <span class="status-msg" id="status-msg">Conectando...</span>
+    <span class="status-time" id="status-time"></span>
+  </div>
+
+</div>
+
+<script>
+  const API  = 'https://smash-ban-stages.vercel.app/api/inc/stream-state';
+  const AUTH = 'Bearer afk-admin-2025';
+  let sc = [0, 0];
+  let updateTimer = null;
+
+  function setStatus(text, ok = true) {
+    const msg = document.getElementById('status-msg');
+    msg.textContent = text;
+    msg.style.color = ok ? '#f5c542' : '#ff2a2a';
+    msg.style.opacity = '1';
+    document.getElementById('status-time').textContent = new Date().toLocaleTimeString('es-AR');
+    if (ok) setTimeout(() => { msg.textContent = 'Listo ✓'; msg.style.opacity = '0.6'; msg.style.color = '#f5c542'; }, 1500);
+  }
+
+  function updateLabels() {
+    const p1 = document.getElementById('in-p1').value.trim() || 'Jugador 1';
+    const p2 = document.getElementById('in-p2').value.trim() || 'Jugador 2';
+    document.getElementById('lbl-p1').textContent = p1.toUpperCase();
+    document.getElementById('lbl-p2').textContent = p2.toUpperCase();
+  }
+
+  function scheduleUpdate() {
+    updateLabels();
+    clearTimeout(updateTimer);
+    updateTimer = setTimeout(pushUpdate, 600);
+  }
+
+  function pushUpdate() {
+    const p1     = document.getElementById('in-p1').value.trim();
+    const sp1    = document.getElementById('in-sp1').value.trim();
+    const p2     = document.getElementById('in-p2').value.trim();
+    const sp2    = document.getElementById('in-sp2').value.trim();
+    const bestof = document.getElementById('in-bestof').value;
+    const round  = document.getElementById('in-round').value;
+    const name1  = sp1 ? `${sp1} | ${p1}` : p1;
+    const name2  = sp2 ? `${sp2} | ${p2}` : p2;
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+      body: JSON.stringify({ player1: name1, player2: name2, format: bestof, round, sessionId: '' }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => setStatus('✓ Sincronizado'))
+      .catch(() => setStatus('✗ Error de conexión', false));
+  }
+
+  function adjustScore(player, delta) {
+    sc[player - 1] = Math.max(0, sc[player - 1] + delta);
+    const el = document.getElementById('sc' + player);
+    el.textContent = sc[player - 1];
+    el.style.transition = 'none';
+    el.style.color = delta > 0 ? '#f5c542' : '#ff2a2a';
+    setTimeout(() => { el.style.transition = 'color 0.5s'; el.style.color = ''; }, 300);
+    fetch(API, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+      body: JSON.stringify({ score1: sc[0], score2: sc[1] }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => setStatus('✓ Sincronizado'))
+      .catch(() => setStatus('✗ Error de conexión', false));
+  }
+
+  function resetScores() {
+    sc = [0, 0];
+    ['1','2'].forEach(i => {
+      document.getElementById('sc' + i).textContent = 0;
+    });
+    fetch(API, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+      body: JSON.stringify({ score1: 0, score2: 0 }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(() => setStatus('✓ Scores reseteados'))
+      .catch(() => setStatus('✗ Error de conexión', false));
+  }
+
+  // Cargar estado actual al abrir (recibir lo que envió el panel de admin)
+  fetch(API)
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d || d.empty) { setStatus('Listo ✓'); return; }
+      document.getElementById('in-p1').value  = d.player1?.tag     || '';
+      document.getElementById('in-sp1').value = d.player1?.sponsor || '';
+      document.getElementById('in-p2').value  = d.player2?.tag     || '';
+      document.getElementById('in-sp2').value = d.player2?.sponsor || '';
+      sc[0] = d.score1 ?? 0;
+      sc[1] = d.score2 ?? 0;
+      document.getElementById('sc1').textContent = sc[0];
+      document.getElementById('sc2').textContent = sc[1];
+      updateLabels();
+      const bf = document.getElementById('in-bestof');
+      const rd = document.getElementById('in-round');
+      if (d.format) { for (const o of bf.options) { if (o.value === d.format) { bf.value = d.format; break; } } }
+      if (d.round)  { for (const o of rd.options) { if (o.value.toUpperCase() === (d.round || '').toUpperCase()) { rd.value = o.value; break; } } }
+      setStatus('Listo ✓');
+    })
+    .catch(() => setStatus('✗ Sin conexión', false));
+
+  // Polling: sincronizar si el panel de admin actualiza el match
+  let lastUpdatedAt = null;
+  setInterval(async () => {
+    try {
+      const d = await fetch(API).then(r => r.json());
+      if (!d || d.empty || d.updatedAt === lastUpdatedAt) return;
+      lastUpdatedAt = d.updatedAt;
+      // Solo actualizar campos de texto si cambiaron jugadores (evitar pisar edición manual)
+      const p1El = document.getElementById('in-p1');
+      const p2El = document.getElementById('in-p2');
+      const newTag1 = d.player1?.tag || '';
+      const newTag2 = d.player2?.tag || '';
+      if (p1El.value !== newTag1) { p1El.value = newTag1; document.getElementById('in-sp1').value = d.player1?.sponsor || ''; }
+      if (p2El.value !== newTag2) { p2El.value = newTag2; document.getElementById('in-sp2').value = d.player2?.sponsor || ''; }
+      sc[0] = d.score1 ?? 0;
+      sc[1] = d.score2 ?? 0;
+      document.getElementById('sc1').textContent = sc[0];
+      document.getElementById('sc2').textContent = sc[1];
+      updateLabels();
+    } catch {}
+  }, 3000);
+</script>
+</body>
+</html>

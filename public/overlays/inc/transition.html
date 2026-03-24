@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>INC eSports – Stinger Transition</title>
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Orbitron', monospace;
+    position: relative;
+  }
+
+  /* ── CAPA BASE ── */
+  .bg {
+    position: absolute;
+    inset: 0;
+    background: #0d0000;
+    opacity: 0;
+    animation: bg-flash 1.4s ease forwards;
+  }
+  @keyframes bg-flash {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ── SLASH DIAGONAL ROJO ── */
+  .slash {
+    position: absolute;
+    top: -200px;
+    left: -300px;
+    width: 180px;
+    height: 1600px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(204,0,0,0.15) 20%,
+      rgba(255,32,32,0.95) 50%,
+      rgba(204,0,0,0.95) 52%,
+      rgba(204,0,0,0.15) 80%,
+      transparent 100%
+    );
+    transform: rotate(18deg);
+    filter: blur(2px);
+    animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes slash-sweep {
+    0%   { left: -300px; opacity: 0; }
+    10%  { opacity: 1; }
+    60%  { left: 2200px; opacity: 1; }
+    100% { left: 2200px; opacity: 0; }
+  }
+
+  /* Segundo slash dorado, desfasado */
+  .slash2 {
+    position: absolute;
+    top: -200px;
+    left: -300px;
+    width: 40px;
+    height: 1600px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(245,166,35,0.6) 40%,
+      rgba(245,166,35,1) 50%,
+      rgba(245,166,35,0.6) 60%,
+      transparent 100%
+    );
+    transform: rotate(18deg);
+    filter: blur(1px);
+    animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.08s forwards;
+  }
+
+  /* Tercer slash blanco fino */
+  .slash3 {
+    position: absolute;
+    top: -200px;
+    left: -300px;
+    width: 18px;
+    height: 1600px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,245,245,0.8) 50%,
+      transparent 100%
+    );
+    transform: rotate(18deg);
+    filter: blur(0.5px);
+    animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.16s forwards;
+  }
+
+  /* ── LOGO CENTRAL ── */
+  .logo-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: logo-pop 1.4s ease forwards;
+  }
+  @keyframes logo-pop {
+    0%   { opacity: 0; transform: scale(0.5); }
+    25%  { opacity: 0; transform: scale(0.5); }
+    45%  { opacity: 1; transform: scale(1.1);
+           filter: drop-shadow(0 0 50px #cc0000) drop-shadow(0 0 100px rgba(204,0,0,0.5)); }
+    60%  { opacity: 1; transform: scale(1);
+           filter: drop-shadow(0 0 24px #cc0000) drop-shadow(0 0 48px rgba(204,0,0,0.3)); }
+    80%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.15); }
+  }
+  .logo-wrap img {
+    width: 300px;
+    height: 300px;
+    object-fit: contain;
+  }
+
+  /* ── TEXTO INC ── */
+  .brand {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 260px;
+    gap: 6px;
+    animation: brand-in 1.4s ease forwards;
+  }
+  @keyframes brand-in {
+    0%,30% { opacity: 0; transform: translateY(14px); }
+    50%    { opacity: 1; transform: translateY(0); }
+    75%    { opacity: 1; transform: translateY(0); }
+    100%   { opacity: 0; transform: translateY(-10px); }
+  }
+  .brand-name {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: 12px;
+    text-transform: uppercase;
+    color: #fff5f5;
+    text-shadow: 0 0 30px rgba(255,32,32,0.9), 0 0 60px rgba(204,0,0,0.5);
+    font-family: 'Orbitron', monospace;
+  }
+  .brand-sub {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: #f5a623;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  /* ── VIÑETA ── */
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center,
+      transparent 40%,
+      rgba(13,0,0,0.75) 100%
+    );
+    animation: bg-flash 1.4s ease forwards;
+    pointer-events: none;
+  }
+
+  /* ── ESCUDOS / DIAMANTES VOLADORES ── */
+  .particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    animation: bg-flash 1.4s ease forwards;
+  }
+  .diamond-p {
+    position: absolute;
+    transform: rotate(45deg);
+    animation: diamond-float linear forwards;
+  }
+  @keyframes diamond-float {
+    0%   { transform: rotate(45deg) scale(0); opacity: 0; }
+    20%  { opacity: 1; transform: rotate(45deg) scale(1) translateY(-20px); }
+    100% { transform: rotate(45deg) scale(0.4) translateY(-180px); opacity: 0; }
+  }
+
+  /* ── LÍNEAS HORIZONTALES DE VELOCIDAD ── */
+  .speed-line {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(204,0,0,0.8), transparent);
+    animation: speed-in 1.4s ease forwards;
+  }
+  @keyframes speed-in {
+    0%    { width: 0; opacity: 0; }
+    15%   { opacity: 0; }
+    30%   { width: 30%; opacity: 0.8; }
+    55%   { width: 60%; opacity: 0.6; }
+    80%   { width: 80%; opacity: 0.4; }
+    100%  { opacity: 0; }
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="vignette"></div>
+<div class="particles" id="particles"></div>
+<div class="slash"></div>
+<div class="slash2"></div>
+<div class="slash3"></div>
+
+<div class="logo-wrap">
+  <img src="img/logo.png" alt="INC eSports">
+</div>
+
+<div class="brand">
+  <div class="brand-name">INC eSports</div>
+  <div class="brand-sub">Smash Bros Argentina</div>
+</div>
+
+<!-- Líneas de velocidad -->
+<div class="speed-line" style="top:32%; left:0; width:0; animation-delay:0.1s;"></div>
+<div class="speed-line" style="top:38%; left:0; width:0; animation-delay:0.15s; background: linear-gradient(90deg, transparent, rgba(245,166,35,0.6), transparent);"></div>
+<div class="speed-line" style="top:65%; left:0; width:0; animation-delay:0.12s;"></div>
+<div class="speed-line" style="top:70%; left:0; width:0; animation-delay:0.18s; background: linear-gradient(90deg, transparent, rgba(245,166,35,0.5), transparent);"></div>
+
+<script>
+  // Generar partículas en forma de diamante en colores de INC
+  const colors = ['#cc0000','#ff2020','#f5a623','#fff5f5'];
+  const container = document.getElementById('particles');
+
+  for (let i = 0; i < 20; i++) {
+    const d = document.createElement('div');
+    d.className = 'diamond-p';
+    const size = 6 + Math.random() * 14;
+    const x = Math.random() * 1920;
+    const y = 350 + Math.random() * 450;
+    const delay = 0.3 + Math.random() * 0.7;
+    const dur = 0.7 + Math.random() * 0.6;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    d.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${x}px; top:${y}px;
+      background:${color};
+      opacity:0;
+      animation-duration:${dur}s;
+      animation-delay:${delay}s;
+    `;
+    container.appendChild(d);
+  }
+</script>
+</body>
+</html>
