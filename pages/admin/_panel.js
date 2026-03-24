@@ -77,8 +77,8 @@ export default function TestAdminPage() {
   const [lockTick, setLockTick] = useState(0); // ticker para forzar re-render del countdown
 
   // Selección dinámica de torneo
-  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || 'tournament/asd3'; } catch { return 'tournament/asd3'; } });
-  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || '3244687'; } catch { return '3244687'; } });
+  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
+  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
   const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedBracketUrl', c))) || ''; } catch { return ''; } });
   const [selectedEventId, setSelectedEventId]               = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedEventId', c))) || null; } catch { return null; } });
 
@@ -549,9 +549,13 @@ export default function TestAdminPage() {
     setPickPhases(null);
     setSlugInput('');
     setLoadingPickTours(true);
-    fetch('/api/tournaments/sync-startgg')
+    fetch(`/api/tournaments/sync-startgg?community=${encodeURIComponent(community)}`)
       .then(r => r.json())
-      .then(d => setPickTournaments(d.tournaments || []))
+      .then(d => {
+        // Solo mostrar torneos que no estén completados (state 1=CREATED, 2=ACTIVE)
+        const available = (d.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE');
+        setPickTournaments(available);
+      })
       .catch(() => {})
       .finally(() => setLoadingPickTours(false));
   }

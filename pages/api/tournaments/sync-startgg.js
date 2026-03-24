@@ -21,12 +21,17 @@ const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || '')
   .filter(Boolean);
 
 // Series de torneos a auto-trackear — descubre nuevas ediciones automáticamente
-// Cada entrada: { base: 'slug-prefix', startN: primera edición conocida }
+// Cada entrada: { base: 'slug-prefix', startN: primera edición conocida, community: id del panel }
 const TOURNAMENT_SERIES = [
-  { base: 'true-combo-weeklies', startN: 61 },
-  { base: 'to-the-top', startN: 22 },
+  { base: 'true-combo-weeklies', startN: 61, community: 'afk-multi' },
+  { base: 'to-the-top', startN: 22, community: 'afk-multi' },
 ];
 const SERIES_LAST_N_PREFIX = 'startgg:series:lastN:';
+
+// Slugs a ignorar (torneos de prueba)
+const BLACKLISTED_SLUGS = new Set([
+  'tournament/asd3',
+]);
 
 // Keys en Redis
 const SEEN_KEY      = 'startgg:tournaments:seen';
@@ -241,22 +246,25 @@ async function fetchStartggTournaments(token) {
     }
   }
 
+  // Quitar blacklisted
+  const clean = results.filter(t => !BLACKLISTED_SLUGS.has(t.slug));
+
   // Filtrar solo torneos futuros o en curso (no pasados)
   // Start.gg states: 1=CREATED, 2=ACTIVE, 3=COMPLETED, 4=CANCELLED
   const now = Date.now();
-  const formatted = results.map(t => {
+  const formatted = clean.map(t => {
     const f = formatTournament(t);
     if (t._series) {
       f.series = t._series;
       f.seriesN = t._seriesN;
+      // Vincular a la comunidad que maneja esta serie
+      const seriesCfg = TOURNAMENT_SERIES.find(s => s.base === t._series);
+      if (seriesCfg?.community) f.community = seriesCfg.community;
     }
     return f;
   }).filter(t => {
     const state = t.state;
-    // Torneos de series: mostrar siempre (incluye recién completados)
-    if (t.series) return state !== 4 && state !== 'CANCELLED';
-    // El resto: solo futuros o en curso
-    if (state === 3 || state === 4 || state === 'COMPLETED' || state === 'CANCELLED') return false;
+    if (state === 4 || state === 'CANCELLED') return false;
     if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;
     if (t.endAt && new Date(t.endAt).getTime() > now) return true;
     if (t.startAt && new Date(t.startAt).getTime() > now) return true;
@@ -264,7 +272,21 @@ async function fetchStartggTournaments(token) {
     return false;
   });
 
-  return { tournaments: formatted, debug };
+  // Para series: solo conservar la edición más reciente de cada una
+  const latestPerSeries = {};
+  for (const t of formatted) {
+    if (t.series) {
+      if (!latestPerSeries[t.series] || t.seriesN > latestPerSeries[t.series].seriesN) {
+        latestPerSeries[t.series] = t;
+      }
+    }
+  }
+  const final = formatted.filter(t => {
+    if (!t.series) return true;
+    return t === latestPerSeries[t.series];
+  });
+
+  return { tournaments: final, debug };
 }
 
 export default async function handler(req, res) {
@@ -279,6 +301,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'START_GG_API_TOKEN no configurado' });
   }
 
+  // Filtro por comunidad (opcional)
+  const communityFilter = req.query.community || '';
+
   // ── GET: Devolver torneos cacheados del organizador ──
   if (req.method === 'GET') {
     const forceRefresh = req.query.refresh === 'true';
@@ -287,8 +312,9 @@ export default async function handler(req, res) {
       try {
         const cached = await redis.get(CACHE_KEY);
         if (cached) {
-          const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+          let data = typeof cached === 'string' ? JSON.parse(cached) : cached;
           if (Array.isArray(data) && data.length > 0) {
+            if (communityFilter) data = data.filter(t => t.community === communityFilter);
             return res.status(200).json({ tournaments: data, source: 'cache' });
           }
         }
@@ -303,8 +329,9 @@ export default async function handler(req, res) {
         await redis.set(CACHE_KEY, JSON.stringify(tournaments), { ex: CACHE_TTL });
       }
 
+      const filtered = communityFilter ? tournaments.filter(t => t.community === communityFilter) : tournaments;
       const showDebug = req.query.debug === 'true';
-      const response = { tournaments, source: 'live' };
+      const response = { tournaments: filtered, source: 'live' };
       if (showDebug) { response.ownerUserId = OWNER_USER_ID; response.ownerSlug = OWNER_SLUG; response.debug = debug; }
       return res.status(200).json(response);
     } catch (err) {
