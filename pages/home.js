@@ -89,6 +89,11 @@ export default function HomePage() {
   // Chat flotante
   const [chatInbox, setChatInbox]       = useState([]);
   const [chatBubbleOpen, setChatBubbleOpen] = useState(false);
+  // Mini-chat inline
+  const [miniChat, setMiniChat]         = useState(null); // { friendId, friendName }
+  const [miniChatMsgs, setMiniChatMsgs] = useState([]);
+  const [miniChatInput, setMiniChatInput] = useState('');
+  const miniChatScrollRef               = useRef(null);
 
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
@@ -289,6 +294,45 @@ export default function HomePage() {
     const iv = setInterval(loadInbox, 30000);
     return () => clearInterval(iv);
   }, [user]);
+
+  // Polling de mensajes del mini-chat activo (cada 3s)
+  useEffect(() => {
+    if (!miniChat || !user) return;
+    const uid = String(user?.id || user?.slug || '');
+    if (!uid) return;
+    const poll = () => {
+      fetch(`/api/chat?userId=${encodeURIComponent(uid)}&friendId=${encodeURIComponent(miniChat.friendId)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.messages) setMiniChatMsgs(d.messages); })
+        .catch(() => {});
+    };
+    poll();
+    const iv = setInterval(poll, 3000);
+    return () => clearInterval(iv);
+  }, [miniChat, user]);
+
+  // Auto-scroll mini-chat al recibir mensajes
+  useEffect(() => {
+    if (miniChatScrollRef.current) {
+      miniChatScrollRef.current.scrollTop = miniChatScrollRef.current.scrollHeight;
+    }
+  }, [miniChatMsgs]);
+
+  async function sendMiniMsg() {
+    if (!miniChatInput.trim() || !miniChat || !user) return;
+    const text = miniChatInput.trim();
+    const uid = String(user?.id || user?.slug || '');
+    setMiniChatInput('');
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: uid, userName: user.name, friendId: miniChat.friendId, message: text }),
+    }).catch(() => {});
+    fetch(`/api/chat?userId=${encodeURIComponent(uid)}&friendId=${encodeURIComponent(miniChat.friendId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.messages) setMiniChatMsgs(d.messages); })
+      .catch(() => {});
+  }
 
   // Polling global de matchmaking (persiste entre tabs)
   useEffect(() => {
@@ -859,7 +903,7 @@ export default function HomePage() {
                       return (
                         <button
                           key={c.friendId}
-                          onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }}
+                          onClick={() => { setChatBubbleOpen(false); setMiniChat({ friendId: c.friendId, friendName: c.friendName }); setMiniChatMsgs([]); }}
                           style={{
                             width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                             padding: '12px 18px', background: 'transparent',
@@ -888,6 +932,73 @@ export default function HomePage() {
             )}
           </>
         )}
+
+        {/* MINI-CHAT INLINE */}
+        {miniChat && (
+          <div style={{
+            position: 'fixed', bottom: 76, right: 18, zIndex: 50,
+            width: 330, height: 470,
+            background: '#13141f', border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: 20, display: 'flex', flexDirection: 'column',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.75)',
+          }}>
+            {/* Header */}
+            <div style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#818CF8', fontWeight: 800, flexShrink: 0 }}>
+                {(miniChat.friendName || '?')[0].toUpperCase()}
+              </div>
+              <span style={{ flex: 1, fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{miniChat.friendName}</span>
+              <button
+                onClick={() => { setMiniChat(null); setMiniChatMsgs([]); setMiniChatInput(''); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 4, flexShrink: 0 }}
+              >✕</button>
+            </div>
+            {/* Mensajes */}
+            <div ref={miniChatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {miniChatMsgs.map((m, i) => {
+                const isMe = m.from === uid;
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '80%', padding: '8px 12px',
+                      borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                      background: isMe ? 'linear-gradient(135deg, #6366F1, #4F46E5)' : 'rgba(255,255,255,0.07)',
+                      color: '#fff', fontSize: 13, lineHeight: 1.4, wordBreak: 'break-word',
+                    }}>
+                      {m.text}
+                    </div>
+                  </div>
+                );
+              })}
+              {miniChatMsgs.length === 0 && (
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 12, marginTop: 20 }}>No hay mensajes aún</p>
+              )}
+            </div>
+            {/* Input */}
+            <div style={{ padding: '10px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 8 }}>
+              <input
+                value={miniChatInput}
+                onChange={e => setMiniChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendMiniMsg()}
+                placeholder="Escribí un mensaje..."
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 12, padding: '9px 13px', color: '#fff', fontSize: 13,
+                  fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              <button
+                onClick={sendMiniMsg}
+                style={{
+                  background: 'linear-gradient(135deg, #6366F1, #4F46E5)', border: 'none',
+                  borderRadius: 12, width: 42, height: 42, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0,
+                }}
+              >➤</button>
+            </div>
+          </div>
+        )}
+
         <BottomNav tab={tab} setTab={setTab} bgMMStatus={bgMM?.status} />
 
         {/* ══ POPUP match encontrado ══ */}

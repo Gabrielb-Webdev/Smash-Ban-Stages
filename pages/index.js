@@ -96,6 +96,15 @@ export default function Home() {
       color: 'from-red-950 via-red-900 to-orange-950',
       borderColor: 'border-red-500',
       hoverColor: 'hover:border-orange-400'
+    },
+    {
+      id: 'warui',
+      name: 'Warui Team',
+      logo: '/images/warui/logo.png',
+      description: 'Panel de administración de Warui Team',
+      color: 'from-violet-950 via-purple-900 to-violet-950',
+      borderColor: 'border-violet-500',
+      hoverColor: 'hover:border-violet-400'
     }
   ];
 

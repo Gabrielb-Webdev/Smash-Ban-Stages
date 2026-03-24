@@ -229,6 +229,17 @@ export default function TestAdminPage() {
         } catch {}
       }
       setSessionStatuses(prev => ({ ...prev, ...updates }));
+      // Actualizar scores en overlay Warui Team en tiempo real
+      if (community === 'warui' && updates['warui-stream']) {
+        const wSt = updates['warui-stream'];
+        if (wSt.score1 != null || wSt.score2 != null) {
+          fetch('/api/warui/stream-state', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+            body: JSON.stringify({ score1: wSt.score1 ?? 0, score2: wSt.score2 ?? 0 }),
+          }).catch(() => {});
+        }
+      }
       // Auto-liberar setup cuando la sesión termina (phase FINISHED)
       for (const [setupId, st] of Object.entries(updates)) {
         if (st.phase === 'FINISHED' && !autoReleasedSetups.current.has(setupId)) {
@@ -837,7 +848,7 @@ export default function TestAdminPage() {
     const format = setupFormats[setupId] || 'BO3';
     // Para el setup de stream se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
-    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream' };
+    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream' };
     const isStreamSetup = setupId.endsWith('-stream');
     const sessionId = isStreamSetup
       ? (COMMUNITY_STREAM_IDS[community] || setupId)
@@ -928,6 +939,21 @@ export default function TestAdminPage() {
         }),
       });
     } catch {}
+
+    // Para torneos Warui Team: sincronizar con overlay de stream (controls.html)
+    if (community === 'warui' && isStreamSetup) {
+      fetch('/api/warui/stream-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({
+          player1: players[0] || 'Jugador 1',
+          player2: players[1] || 'Jugador 2',
+          format,
+          round: set.fullRoundText || set.round || '',
+          sessionId,
+        }),
+      }).catch(() => {});
+    }
 
     // Guardar sessionId + datos startgg + timestamp en el state
     setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, banUrl1, banUrl2, startggSetId, startggEntrant1Id, startggEntrant2Id, timerStartedAt: Date.now() } }));
