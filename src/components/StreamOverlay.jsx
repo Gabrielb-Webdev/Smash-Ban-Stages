@@ -14,6 +14,7 @@ export default function StreamOverlay({ sessionId }) {
   
   // Verificar si es AFK (fondo negro)
   const isAfk = sessionId === 'afk' || sessionId?.includes('afk');
+  const isWarui = sessionId === 'warui-stream' || sessionId?.startsWith('warui');
   
   // Ref para el video
   const videoRef = useRef(null);
@@ -231,9 +232,11 @@ export default function StreamOverlay({ sessionId }) {
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
           height: '150px',
-          // Para AFK usar fondo negro, para Mendoza solo video, para otros el fondo con imagen
+          // Para AFK usar fondo negro, para Mendoza solo video, para Warui solo imagen, para otros el fondo con imagen
           ...(isAfk ? {
             background: '#000000'
+          } : isWarui ? {
+            background: 'transparent'
           } : theme.name === 'Team Anexo - Mendoza' ? {
             background: 'transparent'
           } : {
@@ -247,9 +250,25 @@ export default function StreamOverlay({ sessionId }) {
           }),
           boxShadow: useOriginalStyles ?
             '0 -4px 20px rgba(0, 0, 0, 0.2)' :
-            `0 -4px 20px ${theme.colors.primary}40`,
+            `0 -4px 20px ${theme.colors?.primary || '#7b2fff'}40`,
         }}
       >
+        {/* Banner Warui - imagen fija en el footer */}
+        {isWarui && (
+          <img
+            src="/overlays/warui/img/Warui Banner.png"
+            alt="Arena Warui"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              zIndex: 1,
+            }}
+          />
+        )}
         {/* Logo AFK de fondo en el footer - Solo para AFK */}
         {isAfk && (
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden" style={{ zIndex: 0 }}>
