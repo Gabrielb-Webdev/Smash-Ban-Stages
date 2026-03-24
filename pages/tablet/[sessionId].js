@@ -4,6 +4,7 @@ import TabletControl from '../../src/components/TabletControl';
 import TabletControlAfk from '../../src/components/TabletControlAfk';
 import TabletControlCordoba from '../../src/components/TabletControlCordoba';
 import TabletControlMendoza from '../../src/components/TabletControlMendoza';
+import TabletControlInc from '../../src/components/TabletControlInc';
 
 export default function Tablet() {
   const router = useRouter();
@@ -30,5 +31,6 @@ export default function Tablet() {
   if (s === 'afk' || s.startsWith('afk-'))        return <TabletControlAfk     {...props} />;
   if (s === 'cordoba' || s.startsWith('cordoba-')) return <TabletControlCordoba  {...props} />;
   if (s === 'mendoza' || s.startsWith('mendoza-')) return <TabletControlMendoza  {...props} />;
+  if (s === 'inc' || s.startsWith('inc-'))         return <TabletControlInc      {...props} />;
   return <TabletControl {...props} />;
 }

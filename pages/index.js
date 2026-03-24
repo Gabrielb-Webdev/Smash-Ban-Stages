@@ -70,6 +70,15 @@ export default function Home() {
       color: 'from-gray-900 via-slate-700 to-gray-800',
       borderColor: 'border-gray-400',
       hoverColor: 'hover:border-gray-300'
+    },
+    {
+      id: 'inc',
+      name: 'INC',
+      logo: '/images/inc.png',
+      description: 'Panel de administración de INC',
+      color: 'from-red-950 via-red-900 to-orange-950',
+      borderColor: 'border-red-500',
+      hoverColor: 'hover:border-orange-400'
     }
   ];
 

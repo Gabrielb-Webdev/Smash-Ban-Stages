@@ -60,6 +60,26 @@ export const AFK_STAGES_GAME2_PLUS = [
   { id: 'smashville',        name: 'Smashville',         image: '/images/stages/Smashville.png' },
 ];
 
+// ── INC ────────────────────────────────────────────────────
+export const INC_STAGES_GAME1 = [
+  { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
+  { id: 'town-and-city',     name: 'Town and City',     image: '/images/stages/Town and City.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'hollow-bastion',    name: 'Hollow Bastion',    image: '/images/stages/Hollow Bastion.png' },
+  { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
+];
+
+export const INC_STAGES_GAME2_PLUS = [
+  { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
+  { id: 'town-and-city',     name: 'Town and City',     image: '/images/stages/Town and City.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'hollow-bastion',    name: 'Hollow Bastion',    image: '/images/stages/Hollow Bastion.png' },
+  { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
+  { id: 'final-destination', name: 'Final Destination', image: '/images/stages/Final Destination.png' },
+  { id: 'kalos',             name: 'Kalos',             image: '/images/stages/Kalos.png' },
+  { id: 'smashville',        name: 'Smashville',        image: '/images/stages/Smashville.png' },
+];
+
 // ── Mendoza (Team Anexo) ─────────────────────────────────────
 export const MENDOZA_STAGES_GAME1 = [
   { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
@@ -189,7 +209,7 @@ export const PHASE_NAMES = {
 };
 
 export const getStageData = (stageId) => {
-  const allStages = [...STAGES_GAME1, ...STAGES_GAME2_PLUS, ...AFK_STAGES_GAME1, ...AFK_STAGES_GAME2_PLUS, ...MENDOZA_STAGES_GAME1, ...MENDOZA_STAGES_GAME2_PLUS];
+  const allStages = [...STAGES_GAME1, ...STAGES_GAME2_PLUS, ...AFK_STAGES_GAME1, ...AFK_STAGES_GAME2_PLUS, ...MENDOZA_STAGES_GAME1, ...MENDOZA_STAGES_GAME2_PLUS, ...INC_STAGES_GAME1, ...INC_STAGES_GAME2_PLUS];
   return allStages.find(stage => stage.id === stageId);
 };
 
@@ -207,6 +227,8 @@ export const getStagesForTournament = (sessionId, currentGame) => {
       tournamentId = 'mendoza';
     } else if (s === 'afk' || s.startsWith('afk-') || s.includes('/afk')) {
       tournamentId = 'afk';
+    } else if (s === 'inc' || s.startsWith('inc-') || s.includes('/inc')) {
+      tournamentId = 'inc';
     } else if (s === 'cordoba' || s.startsWith('cordoba-') || s.includes('/cordoba')) {
       tournamentId = 'cordoba';
     }
@@ -214,5 +236,6 @@ export const getStagesForTournament = (sessionId, currentGame) => {
 
   if (tournamentId === 'mendoza') return currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
   if (tournamentId === 'afk')     return currentGame === 1 ? AFK_STAGES_GAME1     : AFK_STAGES_GAME2_PLUS;
+  if (tournamentId === 'inc')     return currentGame === 1 ? INC_STAGES_GAME1     : INC_STAGES_GAME2_PLUS;
   return currentGame === 1 ? STAGES_GAME1 : STAGES_GAME2_PLUS;
 };
