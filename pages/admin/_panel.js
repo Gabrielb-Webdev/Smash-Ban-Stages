@@ -278,8 +278,11 @@ export default function TestAdminPage() {
             })).filter(g => g.winnerId);
 
             // No reportar si no hay games jugados (0-0 sin partidas = cancelación, no resultado real)
+            // Tampoco reportar si el servidor Railway ya lo reportó exitosamente
             if (!gameData || gameData.length === 0) {
               console.warn(`[start.gg] ⚠️ RECHAZADO: No hay games registrados para ${setupId} (score ${st.score1}-${st.score2}) — no se reporta resultado vacío`);
+            } else if (st.startggReported) {
+              console.log(`[start.gg] ✅ Servidor ya reportó ${setupId} a start.gg — respaldo omitido`);
             } else if (winnerEntrantId) {
               console.log(`[start.gg] Admin respaldo: reportando resultado final → setId=${aSet.startggSetId} winner=${winnerEntrantId} games=${gameData.length}`);
               fetch('/api/tournaments/report-set', {

@@ -637,7 +637,7 @@ export default function HomePage() {
               {activeTournamentMatch.sessionId && (() => {
                 const sid = activeTournamentMatch.sessionId;
                 const label = sid.includes('stream') ? '📡 Stream' : (() => { const m = sid.match(/-(\d+)-/); return m ? `🎮 Setup ${m[1]}` : null; })();
-                return label ? <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{label}</p> : null;
+                return label ? <p style={{ margin: '3px 0 0', fontSize: 11, color: activeTournamentMatch.phase === 'CHECKIN' ? '#FCA5A5' : '#86EFAC', fontWeight: 800, letterSpacing: '0.02em' }}>{label}</p> : null;
               })()}
               {activeTournamentMatch.phase === 'CHECKIN' && (
                 <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>

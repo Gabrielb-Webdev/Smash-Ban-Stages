@@ -471,6 +471,7 @@ const httpServer = createServer(async (req, res) => {
         currentTurn: session.currentTurn || null,
         delayRequests: session.delayRequests || [],
         postponedBy: session.postponedBy || null,
+        startggReported: session.startggReported || false,
         unavailableUsedBy: (() => {
           const p1 = session.player1?.name || '';
           const p2 = session.player2?.name || '';
@@ -1170,6 +1171,10 @@ io.on('connection', (socket) => {
         stageId: g.stageId,
       }));
       reportToStartGG(session.startggSetId, winnerEntrantId, gameData)
+        .then(() => {
+          const s = sessions.get(sessionId);
+          if (s) { s.startggReported = true; sessions.set(sessionId, s); }
+        })
         .catch(e => console.error('⚠️ Error reportando resultado final a start.gg:', e.message));
     }
   }
