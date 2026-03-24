@@ -74,6 +74,7 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCommunities, setAdminCommunities] = useState([]);
   const [tab, setTab]         = useState('rankings');
   const [pendingFriendTab, setPendingFriendTab] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -120,11 +121,13 @@ export default function HomePage() {
     }
 
     setUser(u);
-    setIsAdmin(!!(stored.isAdmin || stored.adminCommunities?.length));
+    setIsAdmin(!!stored.isAdmin);
+    setAdminCommunities(stored.adminCommunities || []);
     // Refrescar adminCommunities desde el servidor (para community admins añadidos después del login)
     verifySession().then(data => {
       if (!data) return;
-      setIsAdmin(!!(data.isAdmin || data.adminCommunities?.length));
+      setIsAdmin(!!data.isAdmin);
+      setAdminCommunities(data.adminCommunities || []);
     }).catch(() => {});
     // Guardar perfil del jugador en Redis
     if (u.id) {
@@ -720,13 +723,10 @@ export default function HomePage() {
               </div>
 
               {/* Panel de Admin */}
-              {isAdmin && (() => {
-                const _s = getStoredUser();
-                const _isSuperAdmin = !!_s?.isAdmin;
-                const _communities = _s?.adminCommunities || [];
-                const _panelItems = _isSuperAdmin
+              {(isAdmin || adminCommunities.length > 0) && (() => {
+                const _panelItems = isAdmin
                   ? [{ label: 'Panel de Admin', sub: 'Gestionar torneos y setups', url: '/admin/test' }]
-                  : _communities.map(c => ({ label: `Panel ${c.charAt(0).toUpperCase() + c.slice(1)}`, sub: `Gestionar /admin/${c}`, url: `/admin/${c}` }));
+                  : adminCommunities.map(c => ({ label: `Panel ${c.charAt(0).toUpperCase() + c.slice(1)}`, sub: `Gestionar /admin/${c}`, url: `/admin/${c}` }));
                 return _panelItems.map(item => (
                   <div key={item.url} style={{ padding: '8px 10px 4px' }}>
                     <button onClick={() => { setShowMenu(false); window.location.href = item.url; }}
