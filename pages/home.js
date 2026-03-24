@@ -634,6 +634,11 @@ export default function HomePage() {
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeTournamentMatch.player1} vs {activeTournamentMatch.player2}
               </p>
+              {activeTournamentMatch.sessionId && (() => {
+                const sid = activeTournamentMatch.sessionId;
+                const label = sid.includes('stream') ? '📡 Stream' : (() => { const m = sid.match(/-(\d+)-/); return m ? `🎮 Setup ${m[1]}` : null; })();
+                return label ? <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{label}</p> : null;
+              })()}
               {activeTournamentMatch.phase === 'CHECKIN' && (
                 <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
                   Check-in: {(activeTournamentMatch.checkIns || []).length}/2 confirmados
