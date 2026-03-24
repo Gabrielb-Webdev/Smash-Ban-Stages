@@ -2091,7 +2091,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               ))}
             </div>
           </div>
-          )}{/* fin ternario confirmedChar */}
+          )
         )}
 
         {/* Playing Phase */}
