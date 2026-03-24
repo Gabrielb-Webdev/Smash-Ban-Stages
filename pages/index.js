@@ -11,6 +11,13 @@ export default function Home() {
   const [session, setSession]   = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+  const [featuredTours, setFeaturedTours]         = useState([]);
+  const [featuredLoading, setFeaturedLoading]     = useState(false);
+  const [featuredInput, setFeaturedInput]         = useState('');
+  const [featuredAdding, setFeaturedAdding]       = useState(false);
+  const [featuredOpen, setFeaturedOpen]           = useState(false);
+  const [featuredPreview, setFeaturedPreview]     = useState(null);
+  const [featuredPreviewLoading, setFeaturedPreviewLoading] = useState(false);
 
   useEffect(() => {
     verifySession().then(data => {
@@ -28,6 +35,16 @@ export default function Home() {
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Cargar torneos destacados
+  useEffect(() => {
+    setFeaturedLoading(true);
+    fetch('/api/tournaments/featured')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.featured)) setFeaturedTours(d.featured); })
+      .catch(() => {})
+      .finally(() => setFeaturedLoading(false));
   }, []);
 
   if (checking) {
@@ -89,6 +106,63 @@ export default function Home() {
         const cId = c.id === 'afk-multi' ? 'afk' : c.id;
         return session?.adminCommunities?.includes(cId);
       });
+
+  async function previewFeaturedFromIndex(url) {
+    if (!url.trim()) return;
+    setFeaturedPreviewLoading(true);
+    setFeaturedPreview(null);
+    try {
+      const r = await fetch('/api/tournaments/featured', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({ url: url.trim(), notify: false }),
+      });
+      const d = await r.json();
+      if (d.tournament) setFeaturedPreview(d.tournament);
+      else setFeaturedPreview({ _error: d.error || 'No se encontró el torneo' });
+    } catch {
+      setFeaturedPreview({ _error: 'Error de conexión' });
+    }
+    setFeaturedPreviewLoading(false);
+  }
+
+  async function addFeaturedFromIndex() {
+    if (!featuredInput.trim() || featuredAdding) return;
+    if (!featuredPreview || featuredPreview._error) {
+      await previewFeaturedFromIndex(featuredInput);
+      return;
+    }
+    await confirmFeaturedFromIndex();
+  }
+
+  async function confirmFeaturedFromIndex() {
+    if (!featuredInput.trim() || featuredAdding) return;
+    setFeaturedAdding(true);
+    try {
+      const r = await fetch('/api/tournaments/featured', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({ url: featuredInput.trim(), notify: true }),
+      });
+      const d = await r.json();
+      if (d.success && d.tournament) {
+        setFeaturedTours(prev => [d.tournament, ...prev.filter(t => t.slug !== d.tournament.slug)]);
+        setFeaturedInput('');
+        setFeaturedPreview(null);
+      } else {
+        alert(d.error || 'Error al agregar torneo');
+      }
+    } catch { alert('Error de conexión'); }
+    setFeaturedAdding(false);
+  }
+
+  async function removeFeaturedFromIndex(slug) {
+    const r = await fetch(`/api/tournaments/featured?slug=${encodeURIComponent(slug)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer afk-admin-2025' },
+    }).catch(() => null);
+    if (r?.ok) setFeaturedTours(prev => prev.filter(t => t.slug !== slug));
+  }
 
   return (
     <>
@@ -284,6 +358,91 @@ export default function Home() {
               <Link href="/admin/manage-admins" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
                 🛡️ Gestionar Admins de comunidad
               </Link>
+            </div>
+          )}
+        </div>
+
+        {/* ── TORNEOS EN LA APP ── */}
+        <div style={{ marginTop: 32, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden', maxWidth: 640, margin: '32px auto 0' }}>
+          <button
+            onClick={() => setFeaturedOpen(p => !p)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+              📌 Torneos en la app
+              {featuredTours.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,140,0,0.2)', color: '#FF8C00', padding: '2px 8px', borderRadius: 6 }}>{featuredTours.length}</span>}
+            </span>
+            <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }}>{featuredOpen ? '▾' : '▸'}</span>
+          </button>
+
+          {featuredOpen && (
+            <div style={{ padding: '0 22px 22px' }}>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                Agregá torneos para que aparezcan en la pantalla de torneos de todos los jugadores. Al agregar se envía una notificación push automáticamente.
+              </p>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <input
+                  value={featuredInput}
+                  onChange={e => { setFeaturedInput(e.target.value); setFeaturedPreview(null); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && featuredInput.trim()) addFeaturedFromIndex(); }}
+                  placeholder="star.gg/tournament/mi-torneo"
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                />
+                <button
+                  onClick={addFeaturedFromIndex}
+                  disabled={featuredAdding || !featuredInput.trim()}
+                  style={{ background: '#FF8C00', border: 'none', borderRadius: 12, padding: '10px 18px', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', flexShrink: 0, opacity: featuredAdding || !featuredInput.trim() ? 0.5 : 1 }}
+                >
+                  {featuredAdding ? '...' : '+ Agregar'}
+                </button>
+              </div>
+
+              {featuredPreviewLoading && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '8px 0' }}>Buscando torneo...</div>
+              )}
+              {featuredPreview && !featuredPreview._error && !featuredAdding && (
+                <div style={{ background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {featuredPreview.image && <img src={featuredPreview.image} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff' }}>{featuredPreview.name}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                      {featuredPreview.registrationOpen ? '✅ Inscripciones abiertas' : featuredPreview.stateLabel}
+                      {featuredPreview.attendees > 0 ? ` · 👥 ${featuredPreview.attendees}` : ''}
+                    </p>
+                  </div>
+                  <button onClick={confirmFeaturedFromIndex} style={{ background: '#FF8C00', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>✔️ Agregar y notificar</button>
+                </div>
+              )}
+              {featuredPreview?._error && (
+                <div style={{ fontSize: 12, color: '#f87171', padding: '6px 0', marginBottom: 10 }}>⚠️ {featuredPreview._error}</div>
+              )}
+
+              {featuredLoading ? (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '12px 0' }}>Cargando...</p>
+              ) : featuredTours.length === 0 ? (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0' }}>No hay torneos destacados todavía.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {featuredTours.map(t => (
+                    <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 13, padding: '11px 13px' }}>
+                      {t.image && <img src={t.image} alt="" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                          {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                          {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
+                          {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeFeaturedFromIndex(t.slug)}
+                        style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

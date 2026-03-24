@@ -92,6 +92,13 @@ export default function TestAdminPage() {
   const [slugInput, setSlugInput]                   = useState('');
   const [pickTourPreview, setPickTourPreview]           = useState(null);
   const [loadingPickTourPreview, setLoadingPickTourPreview] = useState(false);
+  const [allPhaseGroups, setAllPhaseGroups] = useState(() => {
+    try {
+      const c = _communitySync();
+      const saved = typeof window !== 'undefined' && localStorage.getItem(lsk('allPhaseGroups', c));
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
   // Inscriptos & refresh
   const [entrants, setEntrants]               = useState([]);
@@ -152,6 +159,7 @@ export default function TestAdminPage() {
   useEffect(() => { try { if (selectedEventId) localStorage.setItem(lsk('selectedEventId', community), selectedEventId); } catch {} }, [selectedEventId, community]);
   useEffect(() => { try { localStorage.setItem(lsk('selectedBracketUrl', community), selectedBracketUrl); } catch {} }, [selectedBracketUrl, community]);
   useEffect(() => { try { localStorage.setItem(lsk('setupFormats', community), JSON.stringify(setupFormats)); } catch {} }, [setupFormats, community]);
+  useEffect(() => { try { localStorage.setItem(lsk('allPhaseGroups', community), JSON.stringify(allPhaseGroups)); } catch {} }, [allPhaseGroups, community]);
 
   // Restaurar timers activos tras F5
   useEffect(() => {
@@ -580,6 +588,11 @@ export default function TestAdminPage() {
       .then(d => {
         // Solo mostrar torneos que no estén completados (state 1=CREATED, 2=ACTIVE)
         const available = (d.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE');
+        // Incluir el torneo actualmente gestionado aunque no esté en sync-startgg
+        const activeTournament = tournament;
+        if (activeTournament?.slug && !available.some(t => t.slug === activeTournament.slug)) {
+          available.unshift({ ...activeTournament, _current: true });
+        }
         setPickTournaments(available);
       })
       .catch(() => {})
@@ -666,6 +679,18 @@ export default function TestAdminPage() {
     setAssignedSets({});
     setEntrants([]);
     setTourPickerOpen(false);
+    // Extraer todos los phase groups disponibles para el dropdown de pools
+    if (pickPhases?.events?.length) {
+      const groups = [];
+      pickPhases.events.forEach(ev => {
+        (ev.phases || []).forEach(ph => {
+          (ph.phaseGroups || []).forEach(pg => {
+            groups.push({ id: String(pg.id), label: pg.label, phaseName: ph.name, phaseLabel: `${ph.name} · ${ph.bracketType || ''}`, eventId: String(ev.id), eventName: ev.name, slug });
+          });
+        });
+      });
+      setAllPhaseGroups(groups);
+    }
     setPickTour(null);
     setPickPhases(null);
     // Fetch en paralelo sin esperar re-render + effects
@@ -679,6 +704,25 @@ export default function TestAdminPage() {
     fetch(`/api/tournaments/entrants?eventId=${evIdStr}`)
       .then(r => r.json())
       .then(d => { if (d.entrants) setEntrants(d.entrants); });
+  }
+
+  function switchPool(newPgId) {
+    const pg = allPhaseGroups.find(p => p.id === newPgId);
+    if (!pg || newPgId === selectedPhaseGroupId) return;
+    setSelectedPhaseGroupId(newPgId);
+    setBracketSets([]);
+    setBracketLoading(true);
+    setAssignedSets({});
+    if (pg.eventId && pg.eventId !== selectedEventId) setSelectedEventId(pg.eventId);
+    fetch(`/api/tournaments/bracket?phaseGroupId=${newPgId}`)
+      .then(r => r.json())
+      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
+      .finally(() => setBracketLoading(false));
+    if (pg.eventId && pg.eventId !== selectedEventId) {
+      fetch(`/api/tournaments/entrants?eventId=${pg.eventId}`)
+        .then(r => r.json())
+        .then(d => { if (d.entrants) setEntrants(d.entrants); });
+    }
   }
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
@@ -1304,7 +1348,20 @@ export default function TestAdminPage() {
                 <span style={{ color: '#6B7280' }}>{completedSets.length} completados</span>
               </p>
             </div>
-            <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {allPhaseGroups.length > 1 && (
+                <select
+                  value={selectedPhaseGroupId}
+                  onChange={e => switchPool(e.target.value)}
+                  style={{ background: '#12131f', border: '1px solid rgba(255,140,0,0.45)', borderRadius: 9, padding: '6px 10px', color: '#FF8C00', fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none', fontFamily: "'Outfit',sans-serif", maxWidth: 200 }}
+                >
+                  {allPhaseGroups.map(pg => (
+                    <option key={pg.id} value={pg.id}>{pg.phaseName && pg.phaseName !== pg.label ? `${pg.phaseName} ` : ''}{pg.label}</option>
+                  ))}
+                </select>
+              )}
+              <a href={selectedBracketUrl || `https://www.start.gg/${selectedSlug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#FF8C00', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ver en start.gg →</a>
+            </div>
           </div>
 
           <div style={{ flex: 1, minHeight: 400, overflowY: 'auto', overflowX: 'hidden', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
@@ -1509,11 +1566,14 @@ export default function TestAdminPage() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {pickTournaments.map(t => (
-                              <button key={t.id} onClick={() => selectPickTournament(t)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: selectedSlug === t.slug ? 'rgba(255,140,0,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${selectedSlug === t.slug ? 'rgba(255,140,0,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: "'Outfit', sans-serif" }}>
+                              <button key={t.id || t.slug} onClick={() => selectPickTournament(t)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: selectedSlug === t.slug ? 'rgba(255,140,0,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${selectedSlug === t.slug ? 'rgba(255,140,0,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: "'Outfit', sans-serif" }}>
                                 {t.image && <img src={t.image} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                                  <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>👥 {t.attendees} inscriptos · {t.slug}</p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                                    {t._current && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 5, flexShrink: 0 }}>activo</span>}
+                                  </div>
+                                  <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>👥 {t.attendees || 0} inscriptos · {t.slug}</p>
                                 </div>
                                 <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>›</span>
                               </button>
