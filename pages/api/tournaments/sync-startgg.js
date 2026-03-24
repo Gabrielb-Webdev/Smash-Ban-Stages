@@ -14,11 +14,19 @@ const OWNER_USER_ID = parseInt(process.env.STARTGG_OWNER_USER_ID || '2081350', 1
 const OWNER_SLUG    = process.env.STARTGG_OWNER_SLUG || 'user/ead8fa65';
 
 // Torneos adicionales a incluir siempre (independientemente del rol)
-// Ejemplo en .env: STARTGG_EXTRA_SLUGS=tournament/asd3,tournament/otro-torneo
-const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || 'tournament/asd3')
+// Ejemplo en .env: STARTGG_EXTRA_SLUGS=tournament/mi-torneo,tournament/otro-torneo
+const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
+
+// Series de torneos a auto-trackear — descubre nuevas ediciones automáticamente
+// Cada entrada: { base: 'slug-prefix', startN: primera edición conocida }
+const TOURNAMENT_SERIES = [
+  { base: 'true-combo-weeklies', startN: 61 },
+  { base: 'to-the-top', startN: 22 },
+];
+const SERIES_LAST_N_PREFIX = 'startgg:series:lastN:';
 
 // Keys en Redis
 const SEEN_KEY      = 'startgg:tournaments:seen';
@@ -187,10 +195,62 @@ async function fetchStartggTournaments(token) {
     }
   }
 
+  // ── Series: auto-descubrir nuevas ediciones ──
+  for (const series of TOURNAMENT_SERIES) {
+    const redisKey = `${SERIES_LAST_N_PREFIX}${series.base}`;
+    const storedN = parseInt(await redis.get(redisKey) || '0', 10);
+    const startFrom = Math.max(storedN, series.startN);
+    let highestFound = startFrom - 1;
+    let misses = 0;
+    let n = startFrom;
+
+    while (misses < 3) {
+      const slug = `tournament/${series.base}-${n}`;
+      try {
+        const resp = await fetch(STARTGG_API, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ query: TOURNAMENT_BY_SLUG_QUERY, variables: { slug } }),
+        });
+        const body = await resp.json();
+        const t = body.data?.tournament;
+        if (t) {
+          misses = 0;
+          if (n > highestFound) highestFound = n;
+          const id = String(t.id);
+          if (!seen.has(id)) {
+            seen.add(id);
+            t._series = series.base;
+            t._seriesN = n;
+            results.push(t);
+            debug.push({ id, name: t.name, series: series.base, n, role: 'series', owner: t.owner?.id, admins: (t.admins || []).map(a => a.id) });
+          }
+        } else {
+          misses++;
+        }
+      } catch (e) {
+        misses++;
+        debug.push({ series: series.base, n, error: e.message });
+      }
+      n++;
+    }
+
+    if (highestFound >= startFrom) {
+      try { await redis.set(redisKey, String(highestFound)); } catch {}
+    }
+  }
+
   // Filtrar solo torneos futuros o en curso (no pasados)
   // Start.gg states: 1=CREATED, 2=ACTIVE, 3=COMPLETED, 4=CANCELLED
   const now = Date.now();
-  const formatted = results.map(formatTournament).filter(t => {
+  const formatted = results.map(t => {
+    const f = formatTournament(t);
+    if (t._series) {
+      f.series = t._series;
+      f.seriesN = t._seriesN;
+    }
+    return f;
+  }).filter(t => {
     const state = t.state;
     if (state === 3 || state === 4 || state === 'COMPLETED' || state === 'CANCELLED') return false;
     if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;

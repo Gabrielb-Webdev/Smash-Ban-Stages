@@ -275,9 +275,6 @@ export default function Home() {
               <Link href="/admin/manage-admins" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
                 🛡️ Gestionar Admins de comunidad
               </Link>
-              <Link href="/admin/test" className="inline-flex items-center gap-2 bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-opacity-20 text-gray-300 hover:text-white px-5 py-2 rounded-lg font-semibold transition-all text-sm">
-                🏆 Panel de Torneo
-              </Link>
             </div>
           )}
         </div>
