@@ -25,6 +25,42 @@ export const TOURNAMENT_THEMES = {
     },
     customBackground: '/images/Team_Anexo/FONDO_tablet.png?v=1.2'
   },
+  'inc': {
+    name: 'INC',
+    emoji: '🔴',
+    colors: {
+      primary: '#EF4444',
+      secondary: '#DC2626',
+      accent: '#F87171',
+      text: '#FFFFFF',
+      cardBg: 'rgba(239, 68, 68, 0.15)',
+      gradient: 'from-red-950 via-red-800 to-red-950'
+    },
+    styles: {
+      bannerText: 'text-4xl font-bold text-red-100 drop-shadow-lg',
+      cardBorder: 'border-2 border-red-400/40',
+      buttonPrimary: 'bg-red-600 hover:bg-red-700',
+      buttonSecondary: 'bg-red-700 hover:bg-red-800'
+    }
+  },
+  'warui': {
+    name: 'Arena Warui',
+    emoji: '🟣',
+    colors: {
+      primary: '#7b2fff',
+      secondary: '#4F46E5',
+      accent: '#e91e8c',
+      text: '#f0eaff',
+      cardBg: 'rgba(123, 47, 255, 0.15)',
+      gradient: 'from-violet-950 via-purple-900 to-violet-950'
+    },
+    styles: {
+      bannerText: 'text-4xl font-bold text-violet-100 drop-shadow-lg',
+      cardBorder: 'border-2 border-violet-400/40',
+      buttonPrimary: 'bg-violet-600 hover:bg-violet-700',
+      buttonSecondary: 'bg-purple-600 hover:bg-purple-700'
+    }
+  },
   'afk': {
     name: 'Smash AFK (Buenos Aires)',
     emoji: '🟡',
@@ -53,8 +89,12 @@ export const getTournamentTheme = (sessionId) => {
 
   if (s === 'afk' || s.startsWith('afk-') || s.includes('/afk')) {
     tournamentId = 'afk';
-  } else if (s === 'mendoza' || s.endsWith('-mendoza') || s.includes('/mendoza')) {
+  } else if (s === 'mendoza' || s.endsWith('-mendoza') || s.startsWith('mendoza-') || s.includes('/mendoza')) {
     tournamentId = 'mendoza';
+  } else if (s === 'warui' || s.startsWith('warui-') || s.includes('/warui')) {
+    tournamentId = 'warui';
+  } else if (s === 'inc' || s.startsWith('inc-') || s.includes('/inc')) {
+    tournamentId = 'inc';
   } else if (s === 'cordoba' || s.startsWith('cordoba-') || s.includes('/cordoba')) {
     tournamentId = 'cordoba';
   }

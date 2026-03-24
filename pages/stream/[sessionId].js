@@ -10,10 +10,13 @@ export default function Stream() {
   const { sessionId } = router.query;
 
   const s = (sessionId || '').toLowerCase();
-  if (s === 'afk' || s.startsWith('afk-'))        return <StreamOverlayAfk     sessionId={sessionId} />;
-  if (s === 'cordoba' || s.startsWith('cordoba-')) return <StreamOverlayCordoba  sessionId={sessionId} />;
-  if (s === 'mendoza' || s.startsWith('mendoza-')) return <StreamOverlayMendoza  sessionId={sessionId} />;
-  if (s === 'inc' || s.startsWith('inc-'))         return <StreamOverlayInc      sessionId={sessionId} />;
-  return <StreamOverlay sessionId={sessionId} />;
+  // Remapear comunidad → setup stream real (warui → warui-stream, inc → inc-stream)
+  const resolvedId = s === 'warui' ? 'warui-stream' : s === 'inc' ? 'inc-stream' : sessionId;
+  if (s === 'afk' || s.startsWith('afk-'))        return <StreamOverlayAfk     sessionId={resolvedId} />;
+  if (s === 'cordoba' || s.startsWith('cordoba-')) return <StreamOverlayCordoba  sessionId={resolvedId} />;
+  if (s === 'mendoza' || s.startsWith('mendoza-')) return <StreamOverlayMendoza  sessionId={resolvedId} />;
+  if (s === 'inc' || s.startsWith('inc-'))         return <StreamOverlayInc      sessionId={resolvedId} />;
+  if (s === 'warui' || s.startsWith('warui-'))     return <StreamOverlay          sessionId={resolvedId} />;
+  return <StreamOverlay sessionId={resolvedId} />;
 }
 
