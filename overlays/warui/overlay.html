@@ -289,41 +289,24 @@
 
 </div>
 
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+<script>
+  const API = 'https://smash-ban-stages.vercel.app/api/warui/stream-state';
+  let lastUpdatedAt = null;
+  let current = { score1: 0, score2: 0 };
 
-  // ── MISMA CONFIG QUE EN controls.html ──
-  const firebaseConfig = {
-    apiKey:            "TU_API_KEY",
-    authDomain:        "TU_PROJECT.firebaseapp.com",
-    databaseURL:       "https://TU_PROJECT-default-rtdb.firebaseio.com",
-    projectId:         "TU_PROJECT",
-    storageBucket:     "TU_PROJECT.appspot.com",
-    messagingSenderId: "TU_SENDER_ID",
-    appId:             "TU_APP_ID"
-  };
-  // ───────────────────────────────────────
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
-  const scoreRef = ref(db, 'scoreboard');
-
-  const DEFAULT = {
-    p1: '', p2: '', sp1: '', sp2: '',
-    score1: 0, score2: 0,
-    bestof: 'BEST OF 3', round: 'WINNERS QUARTERS'
-  };
-
-  function applyState(s) {
-    document.getElementById('display-p1').textContent = (s.p1 || 'JUGADOR 1').toUpperCase();
-    document.getElementById('display-p2').textContent = (s.p2 || 'JUGADOR 2').toUpperCase();
-    document.getElementById('display-sp1').textContent = s.sp1 ? s.sp1.toUpperCase() : '';
-    document.getElementById('display-sp2').textContent = s.sp2 ? s.sp2.toUpperCase() : '';
-    document.getElementById('s1').textContent = s.score1;
-    document.getElementById('s2').textContent = s.score2;
-    document.getElementById('display-bestof').textContent = s.bestof;
-    document.getElementById('display-round').textContent = s.round;
+  function applyState(d) {
+    if (!d || d.empty) return;
+    document.getElementById('display-p1').textContent  = (d.player1?.tag     || 'JUGADOR 1').toUpperCase();
+    document.getElementById('display-sp1').textContent = (d.player1?.sponsor || '').toUpperCase();
+    document.getElementById('display-p2').textContent  = (d.player2?.tag     || 'JUGADOR 2').toUpperCase();
+    document.getElementById('display-sp2').textContent = (d.player2?.sponsor || '').toUpperCase();
+    if (d.score1 !== current.score1) flashScore('s1', d.score1 > current.score1);
+    if (d.score2 !== current.score2) flashScore('s2', d.score2 > current.score2);
+    document.getElementById('s1').textContent = d.score1 ?? 0;
+    document.getElementById('s2').textContent = d.score2 ?? 0;
+    document.getElementById('display-bestof').textContent = d.format || 'BEST OF 3';
+    document.getElementById('display-round').textContent  = (d.round  || 'WINNERS QUARTERS').toUpperCase();
+    current = d;
   }
 
   function flashScore(id, positive) {
@@ -333,17 +316,21 @@
     setTimeout(() => { el.style.transition = 'color 0.6s'; el.style.color = ''; }, 300);
   }
 
-  let current = { ...DEFAULT };
-  applyState(current);
+  // Carga inicial
+  fetch(API).then(r => r.json()).then(d => {
+    if (!d.empty) { lastUpdatedAt = d.updatedAt; applyState(d); }
+  }).catch(() => {});
 
-  onValue(scoreRef, (snapshot) => {
-    const next = snapshot.val();
-    if (!next) return;
-    if (next.score1 !== current.score1) flashScore('s1', next.score1 > current.score1);
-    if (next.score2 !== current.score2) flashScore('s2', next.score2 > current.score2);
-    current = next;
-    applyState(current);
-  });
+  // Polling cada 2 segundos
+  setInterval(async () => {
+    try {
+      const d = await fetch(API).then(r => r.json());
+      if (!d.empty && d.updatedAt !== lastUpdatedAt) {
+        lastUpdatedAt = d.updatedAt;
+        applyState(d);
+      }
+    } catch {}
+  }, 2000);
 </script>
 </body>
 </html>
