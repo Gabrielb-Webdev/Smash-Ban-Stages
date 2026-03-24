@@ -25,6 +25,7 @@ export default function ManageAdmins() {
   const [removeState, setRemoveState] = useState({}); // {slug: 'loading'|'done'}
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching]   = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null); // { userId, userName } — seteado al elegir del dropdown
   const searchTimeout               = useRef(null);
   const stored = typeof window !== 'undefined' ? getStoredUser() : null;
   const token  = stored?.access_token || '';
@@ -56,6 +57,7 @@ export default function ManageAdmins() {
 
   function onSlugChange(val) {
     setSlugInput(val);
+    setSelectedUser(null); // al escribir manualmente se pierde la selección
     clearTimeout(searchTimeout.current);
     if (val.trim().length < 2) { setSearchResults([]); return; }
     setSearching(true);
@@ -69,8 +71,9 @@ export default function ManageAdmins() {
 
   async function addAdmin(e) {
     e.preventDefault();
-    const slug = slugInput.trim().replace(/^user\//, '');
-    const name = nameInput.trim() || slug;
+    if (!selectedUser) return;
+    const slug = String(selectedUser.userId);
+    const name = nameInput.trim() || selectedUser.userName || slug;
     if (!slug) return;
     setAddState('loading');
     setAddError('');
@@ -81,7 +84,7 @@ export default function ManageAdmins() {
     });
     const json = await res.json();
     if (!res.ok) { setAddState('error'); setAddError(json.error || 'Error'); }
-    else { setAddState('ok'); setSlugInput(''); setNameInput(''); setSearchResults([]); await loadAll(); }
+    else { setAddState('ok'); setSlugInput(''); setNameInput(''); setSearchResults([]); setSelectedUser(null); await loadAll(); }
     setTimeout(() => setAddState(null), 3000);
   }
 
@@ -177,9 +180,10 @@ export default function ManageAdmins() {
                   <input
                     value={slugInput}
                     onChange={e => onSlugChange(e.target.value)}
-                    placeholder="Slug de start.gg (ej: gabriel-sin-h)"
+                    placeholder="Buscar jugador por nombre..."
                     style={{
-                      width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                      width: '100%', background: selectedUser ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${selectedUser ? 'rgba(34,197,94,0.45)' : 'rgba(255,255,255,0.12)'}`,
                       borderRadius: 10, padding: '10px 13px', color: '#fff', fontSize: 13,
                       fontFamily: "'Outfit',sans-serif",
                     }}
@@ -191,7 +195,7 @@ export default function ManageAdmins() {
                         <button
                           key={r.userId}
                           type="button"
-                          onClick={() => { setSlugInput(String(r.userId)); setNameInput(r.userName); setSearchResults([]); }}
+                          onClick={() => { setSlugInput(r.userName); setNameInput(r.userName); setSelectedUser({ userId: r.userId, userName: r.userName }); setSearchResults([]); }}
                           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)', fontFamily: "'Outfit',sans-serif" }}
                         >
                           <span style={{ fontSize: 13, color: '#E5E7EB', fontWeight: 700 }}>{r.userName}</span>
@@ -215,7 +219,7 @@ export default function ManageAdmins() {
                 </div>
                 <button
                   type="submit"
-                  disabled={addState === 'loading' || !slugInput.trim()}
+                  disabled={addState === 'loading' || !selectedUser}
                   style={{
                     flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
                     background: addState === 'ok' ? 'rgba(34,197,94,0.14)' : addState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(34,197,94,0.14)',
