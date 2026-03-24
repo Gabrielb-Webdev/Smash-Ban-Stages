@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { getStoredUser, logout } from '../src/utils/auth';
+import { getStoredUser, logout, verifySession } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
 import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, CHARACTER_ALT_FOLDERS, charAltPaths } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
@@ -89,6 +89,7 @@ export default function HomePage() {
   // Chat flotante
   const [chatInbox, setChatInbox]       = useState([]);
   const [chatBubbleOpen, setChatBubbleOpen] = useState(false);
+  const [chatLastOpened, setChatLastOpened] = useState(0);
   // Mini-chat inline
   const [miniChat, setMiniChat]         = useState(null); // { friendId, friendName }
   const [miniChatMsgs, setMiniChatMsgs] = useState([]);
@@ -118,6 +119,11 @@ export default function HomePage() {
 
     setUser(u);
     setIsAdmin(!!(stored.isAdmin || stored.adminCommunities?.length));
+    // Refrescar adminCommunities desde el servidor (para community admins añadidos después del login)
+    verifySession().then(data => {
+      if (!data) return;
+      setIsAdmin(!!(data.isAdmin || data.adminCommunities?.length));
+    }).catch(() => {});
     // Guardar perfil del jugador en Redis
     if (u.id) {
       fetch('/api/players/profile', {
@@ -712,22 +718,30 @@ export default function HomePage() {
               </div>
 
               {/* Panel de Admin */}
-              {isAdmin && (
-              <div style={{ padding: '8px 10px 4px' }}>
-                <button onClick={() => { setShowMenu(false); window.location.href = 'https://smash-ban-stages.vercel.app'; }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🎛️</div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#FF8C00' }}>Panel de Admin</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(232,142,0,0.45)' }}>Gestionar torneos y setups</p>
+              {isAdmin && (() => {
+                const _s = getStoredUser();
+                const _isSuperAdmin = !!_s?.isAdmin;
+                const _communities = _s?.adminCommunities || [];
+                const _panelItems = _isSuperAdmin
+                  ? [{ label: 'Panel de Admin', sub: 'Gestionar torneos y setups', url: '/admin/test' }]
+                  : _communities.map(c => ({ label: `Panel ${c.charAt(0).toUpperCase() + c.slice(1)}`, sub: `Gestionar /admin/${c}`, url: `/admin/${c}` }));
+                return _panelItems.map(item => (
+                  <div key={item.url} style={{ padding: '8px 10px 4px' }}>
+                    <button onClick={() => { setShowMenu(false); window.location.href = item.url; }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🎛️</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#FF8C00' }}>{item.label}</p>
+                        <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(232,142,0,0.45)' }}>{item.sub}</p>
+                      </div>
+                      <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
+                    </button>
                   </div>
-                  <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
-                </button>
-              </div>
-              )}
+                ));
+              })()}
 
               {/* Amigos */}
               <div style={{ padding: '4px 10px 0' }}>
@@ -857,7 +871,7 @@ export default function HomePage() {
         {chatInbox.length > 0 && tab !== 'amigos' && (
           <>
             <button
-              onClick={() => setChatBubbleOpen(v => !v)}
+              onClick={() => setChatBubbleOpen(v => { if (!v) setChatLastOpened(Date.now()); return !v; })}
               style={{
                 position: 'fixed', bottom: 76, right: 18, zIndex: 48,
                 width: 52, height: 52, borderRadius: '50%',
@@ -870,7 +884,7 @@ export default function HomePage() {
               }}
             >
               <span style={{ fontSize: 22 }}>💬</span>
-              {chatInbox.some(c => c.lastMessage && c.lastMessage.from !== uid) && (
+              {chatInbox.some(c => c.lastMessage && c.lastMessage.from !== uid && c.lastMessage.sentAt && new Date(c.lastMessage.sentAt).getTime() > chatLastOpened) && (
                 <span style={{
                   position: 'absolute', top: -2, right: -2,
                   width: 14, height: 14, borderRadius: '50%',
