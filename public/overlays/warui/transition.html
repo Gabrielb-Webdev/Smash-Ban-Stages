@@ -1,29 +1,34 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Warui – Stinger Transition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena Warui – Stinger Transition</title>
 <style>
-  html, body {
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
     width: 100%;
     height: 100%;
-    margin: 0;
-    padding: 0;
     overflow: hidden;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     background: transparent;
     font-family: 'Orbitron', monospace;
-    position: relative;
   }
 
-  /* ── CAPA BASE ── */
+  /* Contenedor raiz fijo que cubre todo el browser source */
+  #root {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+  }
+
+  /* CAPA BASE */
   .bg {
     position: absolute;
     inset: 0;
@@ -38,13 +43,13 @@
     100% { opacity: 0; }
   }
 
-  /* ── SLASH DIAGONAL (inspirado en el banner) ── */
+  /* SLASHES - CSS custom properties seteadas por JS con el ancho real */
   .slash {
     position: absolute;
-    top: -200px;
-    left: -300px;
-    width: 160px;
-    height: 1600px;
+    top: -20%;
+    left: var(--slash-start, -20%);
+    width: 8.3%;
+    height: 150%;
     background: linear-gradient(90deg,
       transparent 0%,
       rgba(0,229,255,0.15) 20%,
@@ -57,33 +62,46 @@
     filter: blur(2px);
     animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
-  @keyframes slash-sweep {
-    0%   { left: -300px; opacity: 0; }
-    10%  { opacity: 1; }
-    60%  { left: 2200px; opacity: 1; }
-    100% { left: 2200px; opacity: 0; }
-  }
-
-  /* Segundo slash más delgado, desfasado */
   .slash2 {
     position: absolute;
-    top: -200px;
-    left: -300px;
-    width: 40px;
-    height: 1600px;
+    top: -20%;
+    left: var(--slash-start, -20%);
+    width: 2.1%;
+    height: 150%;
     background: linear-gradient(90deg,
       transparent 0%,
-      rgba(245,166,35,0.6) 40%,
-      rgba(245,166,35,1) 50%,
-      rgba(245,166,35,0.6) 60%,
+      rgba(123,47,255,0.6) 40%,
+      rgba(123,47,255,1) 50%,
+      rgba(123,47,255,0.6) 60%,
       transparent 100%
     );
     transform: rotate(20deg);
     filter: blur(1px);
     animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.08s forwards;
   }
+  .slash3 {
+    position: absolute;
+    top: -20%;
+    left: var(--slash-start, -20%);
+    width: 0.9%;
+    height: 150%;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(240,234,255,0.8) 50%,
+      transparent 100%
+    );
+    transform: rotate(20deg);
+    filter: blur(0.5px);
+    animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.16s forwards;
+  }
+  @keyframes slash-sweep {
+    0%   { left: var(--slash-start, -20%); opacity: 0; }
+    10%  { opacity: 1; }
+    60%  { left: var(--slash-end, 115%); opacity: 1; }
+    100% { left: var(--slash-end, 115%); opacity: 0; }
+  }
 
-  /* ── LOGO CENTRAL ── */
+  /* LOGO CENTRAL */
   .logo-wrap {
     position: absolute;
     inset: 0;
@@ -103,12 +121,12 @@
     100% { opacity: 0; transform: scale(1.15); }
   }
   .logo-wrap img {
-    width: 340px;
-    height: 340px;
+    width: clamp(160px, 20%, 360px);
+    height: clamp(160px, 20%, 360px);
     object-fit: contain;
   }
 
-  /* ── TEXTO ARENA WARUI ── */
+  /* TEXTO ARENA WARUI */
   .brand {
     position: absolute;
     inset: 0;
@@ -116,8 +134,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding-top: 300px;
-    gap: 6px;
+    padding-top: 24%;
+    gap: 0.5%;
     animation: brand-in 1.4s ease forwards;
   }
   @keyframes brand-in {
@@ -127,24 +145,24 @@
     100%   { opacity: 0; transform: translateY(-8px); }
   }
   .brand-name {
-    font-size: 52px;
+    font-size: clamp(26px, 4.3vw, 68px);
     font-weight: 900;
-    letter-spacing: 10px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #f0eaff;
     text-shadow: 0 0 30px rgba(0,229,255,0.8), 0 0 60px rgba(123,47,255,0.5);
     font-family: 'Orbitron', monospace;
   }
   .brand-sub {
-    font-size: 18px;
+    font-size: clamp(12px, 1.5vw, 22px);
     font-weight: 700;
-    letter-spacing: 8px;
+    letter-spacing: 0.45em;
     text-transform: uppercase;
     color: #f5a623;
     font-family: 'Rajdhani', sans-serif;
   }
 
-  /* ── VIÑETA DE BORDES ── */
+  /* VIGNETA */
   .vignette {
     position: absolute;
     inset: 0;
@@ -156,7 +174,7 @@
     pointer-events: none;
   }
 
-  /* ── PARTÍCULAS HEX ── */
+  /* PARTICULAS HEX */
   .particles {
     position: absolute;
     inset: 0;
@@ -173,48 +191,71 @@
     20%  { opacity: 1; transform: translateY(-30px) scale(1); }
     100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
   }
+
+  /* LINEAS DE VELOCIDAD */
+  .speed-line {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0,229,255,0.8), transparent);
+    animation: speed-in 1.4s ease forwards;
+  }
+  @keyframes speed-in {
+    0%    { width: 0; opacity: 0; }
+    15%   { opacity: 0; }
+    30%   { width: 30%; opacity: 0.8; }
+    55%   { width: 60%; opacity: 0.6; }
+    80%   { width: 80%; opacity: 0.4; }
+    100%  { opacity: 0; }
+  }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+<div id="root">
+  <div class="bg"></div>
+  <div class="vignette"></div>
+  <div class="particles" id="particles"></div>
+  <div class="slash"></div>
+  <div class="slash2"></div>
+  <div class="slash3"></div>
 
-<div class="bg"></div>
-<div class="vignette"></div>
-<div class="particles" id="particles"></div>
-<div class="slash"></div>
-<div class="slash2"></div>
+  <div class="logo-wrap">
+    <img src="img/logo2.png" alt="Arena Warui">
+  </div>
 
-<div class="logo-wrap">
-  <img src="img/logo2.png" alt="Warui Team">
-</div>
+  <div class="brand">
+    <div class="brand-name">Arena Warui</div>
+    <div class="brand-sub">Torneos Argentinos</div>
+  </div>
 
-<div class="brand">
-  <div class="brand-name">Arena Warui</div>
-  <div class="brand-sub">Torneos Argentinos</div>
+  <div class="speed-line" style="top:32%; left:0; width:0; animation-delay:0.1s;"></div>
+  <div class="speed-line" style="top:38%; left:0; width:0; animation-delay:0.15s; background: linear-gradient(90deg, transparent, rgba(233,30,140,0.6), transparent);"></div>
+  <div class="speed-line" style="top:65%; left:0; width:0; animation-delay:0.12s;"></div>
+  <div class="speed-line" style="top:70%; left:0; width:0; animation-delay:0.18s; background: linear-gradient(90deg, transparent, rgba(123,47,255,0.5), transparent);"></div>
 </div>
 
 <script>
-  // Generar partículas hex en colores de marca
-  const colors = ['#e91e8c','#7b2fff','#00e5ff','#f5a623'];
-  const container = document.getElementById('particles');
+  var W = document.documentElement.clientWidth  || window.innerWidth  || 1920;
+  var H = document.documentElement.clientHeight || window.innerHeight || 1080;
 
-  for (let i = 0; i < 24; i++) {
-    const h = document.createElement('div');
+  var startPct = (-300 / W * 100).toFixed(2) + '%';
+  var endPct   = ((W + 300) / W * 100).toFixed(2) + '%';
+  document.documentElement.style.setProperty('--slash-start', startPct);
+  document.documentElement.style.setProperty('--slash-end',   endPct);
+
+  var colors = ['#e91e8c','#7b2fff','#00e5ff','#f5a623'];
+  var container = document.getElementById('particles');
+
+  for (var i = 0; i < 24; i++) {
+    var h = document.createElement('div');
     h.className = 'hex-p';
-    const size = 8 + Math.random() * 18;
-    const x = Math.random() * 1920;
-    const y = 400 + Math.random() * 400;
-    const delay = 0.3 + Math.random() * 0.7;
-    const dur = 0.8 + Math.random() * 0.6;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    h.style.cssText = `
-      width:${size}px; height:${size}px;
-      left:${x}px; top:${y}px;
-      background:${color};
-      opacity:0;
-      animation-duration:${dur}s;
-      animation-delay:${delay}s;
-    `;
+    var size  = 8 + Math.random() * 18;
+    var x     = Math.random() * W;
+    var y     = H * 0.32 + Math.random() * (H * 0.42);
+    var delay = 0.3 + Math.random() * 0.7;
+    var dur   = 0.8 + Math.random() * 0.6;
+    var color = colors[Math.floor(Math.random() * colors.length)];
+    h.style.cssText = 'width:' + size + 'px; height:' + size + 'px; left:' + x + 'px; top:' + y + 'px; background:' + color + '; opacity:0; animation-duration:' + dur + 's; animation-delay:' + delay + 's;';
     container.appendChild(h);
   }
 </script>

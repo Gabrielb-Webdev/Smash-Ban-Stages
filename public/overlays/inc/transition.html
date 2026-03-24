@@ -1,29 +1,34 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INC eSports – Stinger Transition</title>
 <style>
-  html, body {
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
     width: 100%;
     height: 100%;
-    margin: 0;
-    padding: 0;
     overflow: hidden;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     background: transparent;
     font-family: 'Orbitron', monospace;
-    position: relative;
   }
 
-  /* ── CAPA BASE ── */
+  /* Contenedor raiz fijo que cubre todo el browser source */
+  #root {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+  }
+
+  /* CAPA BASE */
   .bg {
     position: absolute;
     inset: 0;
@@ -38,13 +43,13 @@
     100% { opacity: 0; }
   }
 
-  /* ── SLASH DIAGONAL ROJO ── */
+  /* SLASHES - usan CSS custom properties seteadas por JS con el ancho real */
   .slash {
     position: absolute;
-    top: -200px;
-    left: -300px;
-    width: 180px;
-    height: 1600px;
+    top: -20%;
+    left: var(--slash-start, -20%);
+    width: 9.4%;
+    height: 150%;
     background: linear-gradient(90deg,
       transparent 0%,
       rgba(204,0,0,0.15) 20%,
@@ -57,20 +62,12 @@
     filter: blur(2px);
     animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
-  @keyframes slash-sweep {
-    0%   { left: -300px; opacity: 0; }
-    10%  { opacity: 1; }
-    60%  { left: 2200px; opacity: 1; }
-    100% { left: 2200px; opacity: 0; }
-  }
-
-  /* Segundo slash dorado, desfasado */
   .slash2 {
     position: absolute;
-    top: -200px;
-    left: -300px;
-    width: 40px;
-    height: 1600px;
+    top: -20%;
+    left: var(--slash-start, -20%);
+    width: 2.1%;
+    height: 150%;
     background: linear-gradient(90deg,
       transparent 0%,
       rgba(245,166,35,0.6) 40%,
@@ -82,14 +79,12 @@
     filter: blur(1px);
     animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.08s forwards;
   }
-
-  /* Tercer slash blanco fino */
   .slash3 {
     position: absolute;
-    top: -200px;
-    left: -300px;
-    width: 18px;
-    height: 1600px;
+    top: -20%;
+    left: var(--slash-start, -20%);
+    width: 0.9%;
+    height: 150%;
     background: linear-gradient(90deg,
       transparent 0%,
       rgba(255,245,245,0.8) 50%,
@@ -99,8 +94,14 @@
     filter: blur(0.5px);
     animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.16s forwards;
   }
+  @keyframes slash-sweep {
+    0%   { left: var(--slash-start, -20%); opacity: 0; }
+    10%  { opacity: 1; }
+    60%  { left: var(--slash-end, 115%); opacity: 1; }
+    100% { left: var(--slash-end, 115%); opacity: 0; }
+  }
 
-  /* ── LOGO CENTRAL ── */
+  /* LOGO CENTRAL */
   .logo-wrap {
     position: absolute;
     inset: 0;
@@ -120,12 +121,12 @@
     100% { opacity: 0; transform: scale(1.15); }
   }
   .logo-wrap img {
-    width: 300px;
-    height: 300px;
+    width: clamp(160px, 20%, 340px);
+    height: clamp(160px, 20%, 340px);
     object-fit: contain;
   }
 
-  /* ── TEXTO INC ── */
+  /* TEXTO INC */
   .brand {
     position: absolute;
     inset: 0;
@@ -133,8 +134,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding-top: 260px;
-    gap: 6px;
+    padding-top: 24%;
+    gap: 0.5%;
     animation: brand-in 1.4s ease forwards;
   }
   @keyframes brand-in {
@@ -144,24 +145,24 @@
     100%   { opacity: 0; transform: translateY(-10px); }
   }
   .brand-name {
-    font-size: 56px;
+    font-size: clamp(28px, 4.6vw, 72px);
     font-weight: 900;
-    letter-spacing: 12px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #fff5f5;
     text-shadow: 0 0 30px rgba(255,32,32,0.9), 0 0 60px rgba(204,0,0,0.5);
     font-family: 'Orbitron', monospace;
   }
   .brand-sub {
-    font-size: 18px;
+    font-size: clamp(12px, 1.5vw, 22px);
     font-weight: 700;
-    letter-spacing: 8px;
+    letter-spacing: 0.45em;
     text-transform: uppercase;
     color: #f5a623;
     font-family: 'Rajdhani', sans-serif;
   }
 
-  /* ── VIÑETA ── */
+  /* VIGNETA */
   .vignette {
     position: absolute;
     inset: 0;
@@ -173,7 +174,7 @@
     pointer-events: none;
   }
 
-  /* ── ESCUDOS / DIAMANTES VOLADORES ── */
+  /* PARTICULAS */
   .particles {
     position: absolute;
     inset: 0;
@@ -191,7 +192,7 @@
     100% { transform: rotate(45deg) scale(0.4) translateY(-180px); opacity: 0; }
   }
 
-  /* ── LÍNEAS HORIZONTALES DE VELOCIDAD ── */
+  /* LINEAS DE VELOCIDAD */
   .speed-line {
     position: absolute;
     height: 2px;
@@ -210,45 +211,81 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+<div id="root">
+  <div class="bg"></div>
+  <div class="vignette"></div>
+  <div class="particles" id="particles"></div>
+  <div class="slash"></div>
+  <div class="slash2"></div>
+  <div class="slash3"></div>
 
-<div class="bg"></div>
-<div class="vignette"></div>
-<div class="particles" id="particles"></div>
-<div class="slash"></div>
-<div class="slash2"></div>
-<div class="slash3"></div>
+  <div class="logo-wrap">
+    <img src="img/logo.png" alt="INC eSports">
+  </div>
 
-<div class="logo-wrap">
-  <img src="img/logo.png" alt="INC eSports">
+  <div class="brand">
+    <div class="brand-name">INC eSports</div>
+    <div class="brand-sub">Smash Bros Argentina</div>
+  </div>
+
+  <div class="speed-line" style="top:32%; left:0; width:0; animation-delay:0.1s;"></div>
+  <div class="speed-line" style="top:38%; left:0; width:0; animation-delay:0.15s; background: linear-gradient(90deg, transparent, rgba(245,166,35,0.6), transparent);"></div>
+  <div class="speed-line" style="top:65%; left:0; width:0; animation-delay:0.12s;"></div>
+  <div class="speed-line" style="top:70%; left:0; width:0; animation-delay:0.18s; background: linear-gradient(90deg, transparent, rgba(245,166,35,0.5), transparent);"></div>
 </div>
-
-<div class="brand">
-  <div class="brand-name">INC eSports</div>
-  <div class="brand-sub">Smash Bros Argentina</div>
-</div>
-
-<!-- Líneas de velocidad -->
-<div class="speed-line" style="top:32%; left:0; width:0; animation-delay:0.1s;"></div>
-<div class="speed-line" style="top:38%; left:0; width:0; animation-delay:0.15s; background: linear-gradient(90deg, transparent, rgba(245,166,35,0.6), transparent);"></div>
-<div class="speed-line" style="top:65%; left:0; width:0; animation-delay:0.12s;"></div>
-<div class="speed-line" style="top:70%; left:0; width:0; animation-delay:0.18s; background: linear-gradient(90deg, transparent, rgba(245,166,35,0.5), transparent);"></div>
 
 <script>
-  // Generar partículas en forma de diamante en colores de INC
-  const colors = ['#cc0000','#ff2020','#f5a623','#fff5f5'];
-  const container = document.getElementById('particles');
+  var W = document.documentElement.clientWidth  || window.innerWidth  || 1920;
+  var H = document.documentElement.clientHeight || window.innerHeight || 1080;
 
-  for (let i = 0; i < 20; i++) {
-    const d = document.createElement('div');
+  var startPct = (-300 / W * 100).toFixed(2) + '%';
+  var endPct   = ((W + 300) / W * 100).toFixed(2) + '%';
+  document.documentElement.style.setProperty('--slash-start', startPct);
+  document.documentElement.style.setProperty('--slash-end',   endPct);
+
+  var colors = ['#cc0000','#ff2020','#f5a623','#fff5f5'];
+  var container = document.getElementById('particles');
+
+  for (var i = 0; i < 20; i++) {
+    var d = document.createElement('div');
     d.className = 'diamond-p';
-    const size = 6 + Math.random() * 14;
-    const x = Math.random() * 1920;
-    const y = 350 + Math.random() * 450;
-    const delay = 0.3 + Math.random() * 0.7;
-    const dur = 0.7 + Math.random() * 0.6;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    d.style.cssText = `
+    var size  = 6 + Math.random() * 14;
+    var x     = Math.random() * W;
+    var y     = H * 0.32 + Math.random() * (H * 0.42);
+    var delay = 0.3 + Math.random() * 0.7;
+    var dur   = 0.7 + Math.random() * 0.6;
+    var color = colors[Math.floor(Math.random() * colors.length)];
+    d.style.cssText = 'width:' + size + 'px; height:' + size + 'px; left:' + x + 'px; top:' + y + 'px; background:' + color + '; opacity:0; animation-duration:' + dur + 's; animation-delay:' + delay + 's;';
+    container.appendChild(d);
+  }
+</script>
+</body>
+</html>
       width:${size}px; height:${size}px;
+      left:${x}px; top:${y}px;
+      background:${color};
+      opacity:0;
+      animation-duration:${dur}s;
+      animation-delay:${delay}s;
+    `;
+    container.appendChild(d);
+  }
+</script>
+</body>
+</html>
+    width:${size}px; height:${size}px;
+      left:${x}px; top:${y}px;
+      background:${color};
+      opacity:0;
+      animation-duration:${dur}s;
+      animation-delay:${delay}s;
+    `;
+    container.appendChild(d);
+  }
+</script>
+</body>
+</html>
+   width:${size}px; height:${size}px;
       left:${x}px; top:${y}px;
       background:${color};
       opacity:0;
