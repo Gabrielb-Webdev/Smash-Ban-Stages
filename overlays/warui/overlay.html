@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena Warui – Scoreboard Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --purple-deep: #1a0d2e;
+    --purple-mid: #3d1c6e;
+    --purple-bright: #7b2fff;
+    --magenta: #e91e8c;
+    --cyan: #00e5ff;
+    --gold: #f5a623;
+    --gold-light: #ffd166;
+    --black: #07020f;
+    --white: #f0eaff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Exo 2', sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ══════════════════════════════════════
+     OVERLAY CONTAINER  1920×200 aprox
+  ══════════════════════════════════════ */
+  .overlay {
+    width: 960px;
+    position: relative;
+    user-select: none;
+  }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    display: flex;
+    align-items: stretch;
+    height: 90px;
+    position: relative;
+    filter: drop-shadow(0 0 18px rgba(0,229,255,0.25));
+  }
+
+  /* Player panels */
+  .player {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 0 20px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--black) 0%, var(--purple-deep) 60%, #2a0d50 100%);
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
+  }
+
+  .player.right {
+    flex-direction: row-reverse;
+    clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+    background: linear-gradient(225deg, var(--black) 0%, var(--purple-deep) 60%, #2a0d50 100%);
+  }
+
+  /* Animated scan line */
+  .player::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: scan 3s linear infinite;
+  }
+  .player.right::before { animation-delay: 1.5s; }
+  @keyframes scan { to { left: 200%; } }
+
+  /* Corner accent lines */
+  .player::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(to bottom, var(--magenta), var(--purple-bright));
+    box-shadow: 0 0 12px var(--magenta);
+  }
+  .player.right::after { left: auto; right: 0; background: linear-gradient(to bottom, var(--cyan), var(--purple-bright)); box-shadow: 0 0 12px var(--cyan); }
+
+  .player-tag {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--white);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(233,30,140,0.6), 0 0 40px rgba(123,47,255,0.4);
+  }
+  .player.right .player-tag { text-align: right; }
+
+  .player-sponsor {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .player-info { display: flex; flex-direction: column; gap: 2px; }
+  .player.right .player-info { align-items: flex-end; }
+
+  /* ── CENTER BLOCK (logo circular) ── */
+  .center {
+    width: 110px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    position: relative;
+    overflow: visible;
+  }
+
+  .logo-circle {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--purple-bright);
+    box-shadow: 0 0 18px var(--purple-bright), 0 0 36px rgba(123,47,255,0.4);
+    animation: logo-glow 3s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .logo-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  @keyframes logo-glow {
+    0%, 100% { box-shadow: 0 0 18px var(--purple-bright), 0 0 36px rgba(123,47,255,0.4); border-color: var(--purple-bright); }
+    50%      { box-shadow: 0 0 24px var(--magenta), 0 0 48px rgba(233,30,140,0.5);     border-color: var(--magenta); }
+  }
+
+  /* ── SCORE dentro del panel ── */
+  .player-score {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 44px;
+    color: var(--white);
+    line-height: 1;
+    text-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0,229,255,0.4);
+    min-width: 48px;
+    text-align: center;
+    transition: color 0.6s;
+    flex-shrink: 0;
+  }
+
+  /* ── BOTTOM INFO STRIP ── */
+  .info-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    margin-top: 3px;
+    background: linear-gradient(90deg, rgba(233,30,140,0.15) 0%, rgba(13,8,32,0.95) 30%, rgba(13,8,32,0.95) 70%, rgba(0,229,255,0.12) 100%);
+    border: 1px solid rgba(123,47,255,0.4);
+    border-top: 2px solid var(--purple-bright);
+    padding: 0 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .info-strip::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: -100%;
+    width: 40%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(245,166,35,0.5), transparent);
+    animation: scan 4s linear infinite 2s;
+  }
+
+  .strip-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .strip-bestof { color: var(--gold); }
+  .strip-event  { color: var(--white); opacity: 0.9; position: absolute; left: 50%; transform: translateX(-50%); }
+  .strip-round  { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+
+  /* Hex decorations */
+  .hex-deco {
+    position: absolute;
+    right: 160px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex; gap: 5px;
+  }
+  .hex {
+    width: 8px; height: 8px;
+    background: var(--purple-bright);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    opacity: 0.6;
+  }
+  .hex:nth-child(2) { background: var(--magenta); opacity: 0.8; }
+  .hex:nth-child(3) { background: var(--cyan); }
+
+
+  /* ── BOTTOM LOGO ── */
+  .bottom-logo {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .bottom-logo img {
+    height: 36px;
+    width: auto;
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px rgba(123,47,255,0.5));
+  }
+
+  /* ── GLOW PULSE ANIM ── */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(233,30,140,0.3); }
+    50% { box-shadow: 0 0 40px rgba(233,30,140,0.7), 0 0 60px rgba(123,47,255,0.4); }
+  }
+  .top-bar { animation: glow-pulse 4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="overlay">
+
+  <!-- ══ TOP BAR ══ -->
+  <div class="top-bar">
+
+    <!-- Player 1 -->
+    <div class="player" id="panel-p1">
+      <div class="player-info">
+        <div class="player-tag" id="display-p1">JUGADOR 1</div>
+        <div class="player-sponsor" id="display-sp1"></div>
+      </div>
+      <span class="player-score" id="s1">0</span>
+    </div>
+
+    <!-- Center -->
+    <div class="center">
+      <div class="logo-circle">
+        <img src="img/logo.png" alt="Warui Team">
+      </div>
+    </div>
+
+    <!-- Player 2 -->
+    <div class="player right" id="panel-p2">
+      <div class="player-info">
+        <div class="player-tag" id="display-p2">JUGADOR 2</div>
+        <div class="player-sponsor" id="display-sp2"></div>
+      </div>
+      <span class="player-score" id="s2">0</span>
+    </div>
+
+  </div>
+
+  <!-- ══ INFO STRIP ══ -->
+  <div class="info-strip">
+    <span class="strip-text strip-bestof" id="display-bestof">BEST OF 3</span>
+    <div class="hex-deco">
+      <div class="hex"></div><div class="hex"></div><div class="hex"></div>
+    </div>
+    <span class="strip-text strip-event">⚔ ARENA WARUI</span>
+    <span class="strip-text strip-round" id="display-round">WINNERS QUARTERS</span>
+  </div>
+
+  <!-- ══ BOTTOM LOGO ══
+  <div class="bottom-logo">
+    <img src="img/logo2.png" alt="Arena Warui">
+  </div> -->
+
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  // ── MISMA CONFIG QUE EN controls.html ──
+  const firebaseConfig = {
+    apiKey:            "TU_API_KEY",
+    authDomain:        "TU_PROJECT.firebaseapp.com",
+    databaseURL:       "https://TU_PROJECT-default-rtdb.firebaseio.com",
+    projectId:         "TU_PROJECT",
+    storageBucket:     "TU_PROJECT.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId:             "TU_APP_ID"
+  };
+  // ───────────────────────────────────────
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const scoreRef = ref(db, 'scoreboard');
+
+  const DEFAULT = {
+    p1: '', p2: '', sp1: '', sp2: '',
+    score1: 0, score2: 0,
+    bestof: 'BEST OF 3', round: 'WINNERS QUARTERS'
+  };
+
+  function applyState(s) {
+    document.getElementById('display-p1').textContent = (s.p1 || 'JUGADOR 1').toUpperCase();
+    document.getElementById('display-p2').textContent = (s.p2 || 'JUGADOR 2').toUpperCase();
+    document.getElementById('display-sp1').textContent = s.sp1 ? s.sp1.toUpperCase() : '';
+    document.getElementById('display-sp2').textContent = s.sp2 ? s.sp2.toUpperCase() : '';
+    document.getElementById('s1').textContent = s.score1;
+    document.getElementById('s2').textContent = s.score2;
+    document.getElementById('display-bestof').textContent = s.bestof;
+    document.getElementById('display-round').textContent = s.round;
+  }
+
+  function flashScore(id, positive) {
+    const el = document.getElementById(id);
+    el.style.transition = 'none';
+    el.style.color = positive ? 'var(--gold)' : 'var(--magenta)';
+    setTimeout(() => { el.style.transition = 'color 0.6s'; el.style.color = ''; }, 300);
+  }
+
+  let current = { ...DEFAULT };
+  applyState(current);
+
+  onValue(scoreRef, (snapshot) => {
+    const next = snapshot.val();
+    if (!next) return;
+    if (next.score1 !== current.score1) flashScore('s1', next.score1 > current.score1);
+    if (next.score2 !== current.score2) flashScore('s2', next.score2 > current.score2);
+    current = next;
+    applyState(current);
+  });
+</script>
+</body>
+</html>
