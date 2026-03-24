@@ -90,6 +90,8 @@ export default function TestAdminPage() {
   const [pickPhases, setPickPhases]                 = useState(null);
   const [loadingPickPhases, setLoadingPickPhases]   = useState(false);
   const [slugInput, setSlugInput]                   = useState('');
+  const [pickTourPreview, setPickTourPreview]           = useState(null);
+  const [loadingPickTourPreview, setLoadingPickTourPreview] = useState(false);
 
   // Inscriptos & refresh
   const [entrants, setEntrants]               = useState([]);
@@ -553,6 +555,8 @@ export default function TestAdminPage() {
     setPickTour(null);
     setPickPhases(null);
     setSlugInput('');
+    setPickTourPreview(null);
+    setLoadingPickTourPreview(false);
     setLoadingPickTours(true);
     fetch(`/api/tournaments/sync-startgg?community=${encodeURIComponent(community)}`)
       .then(r => r.json())
@@ -563,6 +567,31 @@ export default function TestAdminPage() {
       })
       .catch(() => {})
       .finally(() => setLoadingPickTours(false));
+  }
+
+  function parseStartGgSlug(raw) {
+    let s = raw.trim();
+    // Acepta URL completa: https://www.start.gg/tournament/mi-torneo/details/...
+    s = s.replace(/^https?:\/\/(www\.)?start\.gg\//, '');
+    // Quita /details, /brackets, /events etc. al final
+    s = s.replace(/\/(details|brackets|events|registration|standings|results)(\/.*)?$/, '');
+    s = s.replace(/\/$/, '');
+    return s;
+  }
+
+  function previewSlugTournament(rawInput) {
+    const slug = parseStartGgSlug(rawInput);
+    if (!slug) return;
+    setLoadingPickTourPreview(true);
+    setPickTourPreview(null);
+    fetch(`/api/tournaments/info?slug=${encodeURIComponent(slug)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (!d.error) setPickTourPreview({ ...d, _slug: slug });
+        else setPickTourPreview({ _error: d.error || 'Torneo no encontrado', _slug: slug });
+      })
+      .catch(() => setPickTourPreview({ _error: 'Error al conectar con start.gg', _slug: slug }))
+      .finally(() => setLoadingPickTourPreview(false));
   }
 
   function selectPickTournament(t) {
@@ -1304,9 +1333,56 @@ export default function TestAdminPage() {
                   <>
                     <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Slug manual</p>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                      <input value={slugInput} onChange={e => setSlugInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }} placeholder="tournament/mi-torneo" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: 'none' }} />
-                      <button onClick={() => { if (slugInput.trim()) selectPickTournament({ slug: slugInput.trim(), name: slugInput.trim() }); }} style={{ background: '#FF8C00', border: 'none', borderRadius: 10, padding: '9px 16px', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', flexShrink: 0 }}>→</button>
+                      <input value={slugInput} onChange={e => { setSlugInput(e.target.value); setPickTourPreview(null); }} onKeyDown={e => { if (e.key === 'Enter' && slugInput.trim()) previewSlugTournament(slugInput); }} placeholder="start.gg/tournament/mi-torneo" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: 'none' }} />
+                      <button onClick={() => { if (slugInput.trim()) previewSlugTournament(slugInput); }} disabled={loadingPickTourPreview} style={{ background: '#FF8C00', border: 'none', borderRadius: 10, padding: '9px 16px', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', flexShrink: 0, opacity: loadingPickTourPreview ? 0.6 : 1 }}>→</button>
                     </div>
+
+                    {/* ── Preview del torneo ingresado manualmente ── */}
+                    {loadingPickTourPreview && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '10px 0', marginBottom: 16 }}>
+                        <div style={{ width: 18, height: 18, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                        Buscando torneo...
+                      </div>
+                    )}
+                    {!loadingPickTourPreview && pickTourPreview && (
+                      pickTourPreview._error ? (
+                        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: 'rgba(255,120,120,0.9)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          ⚠️ {pickTourPreview._error}
+                        </div>
+                      ) : (
+                        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+                          {pickTourPreview.image && (
+                            <img src={pickTourPreview.image} alt="" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+                          )}
+                          <div style={{ padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#fff', flex: 1 }}>{pickTourPreview.name}</p>
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 6, background: pickTourPreview.registrationOpen ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)', color: pickTourPreview.registrationOpen ? '#4ade80' : 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                                {pickTourPreview.registrationOpen ? '🟢 inscripciones abiertas' : pickTourPreview.stateLabel}
+                              </span>
+                            </div>
+                            {pickTourPreview.startAt && (
+                              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                                📅 {new Date(pickTourPreview.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {pickTourPreview.attendees > 0 ? ` · 👥 ${pickTourPreview.attendees} inscriptos` : ''}
+                              </p>
+                            )}
+                            {(pickTourPreview.events || []).length > 0 && (
+                              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                                {pickTourPreview.events.map(e => `${e.name}${e.entrants > 0 ? ` (${e.entrants})` : ''}`).join(' · ')}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => selectPickTournament({ slug: pickTourPreview._slug, name: pickTourPreview.name })}
+                              style={{ marginTop: 12, width: '100%', background: '#FF8C00', border: 'none', borderRadius: 10, padding: '10px 0', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
+                            >
+                              Ver fases →
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    )}
+
                     {loadingPickTours ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '20px 0' }}>
                         <div style={{ width: 18, height: 18, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
