@@ -11,6 +11,15 @@ const TournamentBracket = dynamic(
 );
 
 // Genera los setups para una comunidad dada (prefija los IDs con el nombre)
+const COMMUNITY_META = {
+  'test':      { name: 'Test',           logo: null },
+  'cordoba':   { name: 'Smash Córdoba',  logo: '/images/SCC.webp' },
+  'afk-multi': { name: 'Smash AFK',      logo: '/images/AFK.webp' },
+  'mendoza':   { name: 'Smash Mendoza',  logo: '/images/Team_Anexo/team_anexo_logo_nwe.png' },
+  'inc':       { name: 'INC',            logo: '/images/inc.png' },
+  'warui':     { name: 'Warui Team',     logo: '/images/warui/logo.png' },
+};
+
 function getCommunitySetups(comunidad) {
   const p = comunidad || 'test';
   return [
@@ -574,6 +583,24 @@ export default function TestAdminPage() {
   }, []);
 
   function handleLogout() { logout(); router.replace('/login'); }
+
+  function closeTournament() {
+    setSelectedSlug('');
+    setSelectedPhaseGroupId('');
+    setSelectedBracketUrl('');
+    setSelectedEventId(null);
+    setTournament(null);
+    setBracketSets([]);
+    setPhaseStarted(false);
+    setAssignedSets({});
+    try {
+      localStorage.removeItem(lsk('selectedSlug', community));
+      localStorage.removeItem(lsk('selectedPhaseGroupId', community));
+      localStorage.removeItem(lsk('selectedBracketUrl', community));
+      localStorage.removeItem(lsk('selectedEventId', community));
+      localStorage.removeItem(lsk('phaseStarted', community));
+    } catch {}
+  }
 
   async function notifyTournament() {
     setNotifyState('loading');
@@ -1174,14 +1201,22 @@ export default function TestAdminPage() {
         {/* ── HEADER ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.96)', backdropFilter: 'blur(14px)', zIndex: 40, gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 17 }}>🏆</span>
+            {/* Flecha volver */}
+            <a href="/" title="Volver al panel de comunidades" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 16, textDecoration: 'none', flexShrink: 0, lineHeight: 1 }}>←</a>
+            {/* Logo comunidad */}
+            {COMMUNITY_META[community]?.logo && (
+              <img src={COMMUNITY_META[community].logo} alt={COMMUNITY_META[community].name} style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', flexShrink: 0, background: 'rgba(255,255,255,0.04)' }} />
+            )}
             <div>
-              <p style={{ margin: 0, fontWeight: 900, fontSize: 15, letterSpacing: '-0.3px', lineHeight: 1.2, color: '#fff' }}>{tournament?.name || 'Panel Torneo'}</p>
-              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{SETUPS.length} setups · {phaseName || 'Bracket'}</p>
+              <p style={{ margin: 0, fontWeight: 900, fontSize: 15, letterSpacing: '-0.3px', lineHeight: 1.2, color: '#fff' }}>{tournament?.name || (selectedSlug ? 'Cargando...' : 'Sin torneo')}</p>
+              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{COMMUNITY_META[community]?.name || community} · {SETUPS.length} setups · {phaseName || 'Bracket'}</p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 16px', fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,140,0,0.35)' }}>🔄 Cambiar torneo</button>
+            {selectedSlug && (
+              <button onClick={closeTournament} title="Cerrar torneo seleccionado" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 9, cursor: 'pointer', fontSize: 16, fontWeight: 900, lineHeight: 1, flexShrink: 0 }}>✕</button>
+            )}
             <button
               onClick={startPhase}
               disabled={startState === 'loading' || !selectedPhaseGroupId || phaseStarted}
@@ -1512,8 +1547,8 @@ export default function TestAdminPage() {
           </div>{/* /columna derecha */}
         </div>{/* /main body */}
 
-        {/* ── TORNEOS EN LA APP ── */}
-        <div style={{ margin: '20px 0 8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
+        {/* ── TORNEOS EN LA APP (solo panel principal) ── */}
+        {community === 'test' && <div style={{ margin: '20px 0 8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
           <button
             onClick={() => setFeaturedOpen(p => !p)}
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
@@ -1575,7 +1610,7 @@ export default function TestAdminPage() {
               )}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ── MODAL SELECTOR DE TORNEO ── */}
         {tourPickerOpen && (
