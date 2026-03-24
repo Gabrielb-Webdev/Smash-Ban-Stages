@@ -1,6 +1,6 @@
 // API para enviar y gestionar notificaciones de llamado a setup
 import redis, { notifsKey } from '../../../lib/redis';
-import { sendPush } from '../../../lib/push';
+import { sendPush, sendPushToAll } from '../../../lib/push';
 
 // Sanitiza strings para prevenir XSS/inyección
 function sanitize(s) {
@@ -46,7 +46,18 @@ export default async function handler(req, res) {
 
   // POST: Admin envía llamado a uno o varios jugadores
   if (req.method === 'POST') {
-    const { targetName, targetUserNames, title, body, setup, message, sentBy, tournamentId, data } = req.body || {};
+    const { targetName, targetUserNames, title, body, setup, message, sentBy, tournamentId, data, broadcast } = req.body || {};
+
+    // --- Modo broadcast: push a TODOS los usuarios ---
+    if (broadcast) {
+      const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+      const secret = process.env.ADMIN_SECRET || 'afk-admin-2025';
+      if (auth !== secret) return res.status(401).json({ error: 'No autorizado' });
+      const cleanTitle = sanitize(title || '📢 AFK Smash');
+      const cleanBody  = sanitize(body || '');
+      sendPushToAll({ title: cleanTitle, body: cleanBody, data: data || {} }).catch(() => {});
+      return res.status(201).json({ success: true, broadcast: true });
+    }
 
     // --- Modo nuevo: array de nombres (desde callMatch) ---
     if (Array.isArray(targetUserNames) && targetUserNames.length > 0) {

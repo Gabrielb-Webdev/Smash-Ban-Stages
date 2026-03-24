@@ -505,6 +505,27 @@ export default function TestAdminPage() {
     return () => clearInterval(iv);
   }, [checking, selectedPhaseGroupId]);
 
+  // Cargar pools disponibles al montar si hay torneo seleccionado pero allPhaseGroups está vacío
+  useEffect(() => {
+    if (checking || !selectedSlug || allPhaseGroups.length > 0) return;
+    fetch(`/api/tournaments/phases?slug=${encodeURIComponent(selectedSlug)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d?.events?.length) {
+          const groups = [];
+          d.events.forEach(ev => {
+            (ev.phases || []).forEach(ph => {
+              (ph.phaseGroups || []).forEach(pg => {
+                groups.push({ id: String(pg.id), label: pg.label, phaseName: ph.name, phaseLabel: `${ph.name} · ${ph.bracketType || ''}`, eventId: String(ev.id), eventName: ev.name, slug: selectedSlug });
+              });
+            });
+          });
+          if (groups.length > 0) setAllPhaseGroups(groups);
+        }
+      })
+      .catch(() => {});
+  }, [checking, selectedSlug]);
+
   useEffect(() => {
     if (!selectedEventId) return;
     function loadEntrants() {
@@ -557,19 +578,34 @@ export default function TestAdminPage() {
     setStartState('ok');
     setTimeout(() => setStartState(null), 5000);
 
-    // Notificar a todos los inscriptos
+    const tourName = tournament?.name || '';
+    const tourUrl  = tournament?.url || selectedBracketUrl || `https://www.start.gg/${selectedSlug}`;
+
+    // Push broadcast a TODOS los usuarios de la app
+    fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+      body: JSON.stringify({
+        broadcast: true,
+        title: `🏆 ¡Torneo iniciado!`,
+        body: tourName ? `${tourName} ha comenzado. ¡A jugar!` : '¡El torneo ha comenzado!',
+        data: { url: tourUrl, type: 'tournament_started' },
+      }),
+    }).catch(() => {});
+
+    // Notificar individualmente a cada inscripto (inbox + push individual)
     const names = entrants.map(e => e.tag || e.name).filter(Boolean);
     if (names.length > 0) {
       fetch('/api/notifications/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
         body: JSON.stringify({
           targetUserNames: names,
           title: '🏆 Torneo iniciado',
-          body: `¡El torneo ${tournament?.name || ''} ha comenzado!`,
+          body: `¡${tourName || 'El torneo'} ha comenzado! Revisá el bracket.`,
           setup: 'Torneo iniciado',
           sentBy: 'Admin',
-          data: {},
+          data: { url: tourUrl, type: 'tournament_started' },
         }),
       }).catch(() => {});
     }
