@@ -89,7 +89,9 @@ export default function HomePage() {
   // Chat flotante
   const [chatInbox, setChatInbox]       = useState([]);
   const [chatBubbleOpen, setChatBubbleOpen] = useState(false);
-  const [chatLastOpened, setChatLastOpened] = useState(0);
+  const [chatLastOpened, setChatLastOpened] = useState(() => {
+    try { return parseInt(localStorage.getItem('chat_last_opened') || '0', 10); } catch { return 0; }
+  });
   // Mini-chat inline
   const [miniChat, setMiniChat]         = useState(null); // { friendId, friendName }
   const [miniChatMsgs, setMiniChatMsgs] = useState([]);
@@ -871,7 +873,7 @@ export default function HomePage() {
         {chatInbox.length > 0 && tab !== 'amigos' && (
           <>
             <button
-              onClick={() => setChatBubbleOpen(v => { if (!v) setChatLastOpened(Date.now()); return !v; })}
+              onClick={() => setChatBubbleOpen(v => { if (!v) { const t = Date.now(); setChatLastOpened(t); try { localStorage.setItem('chat_last_opened', String(t)); } catch {} } return !v; })}
               style={{
                 position: 'fixed', bottom: 76, right: 18, zIndex: 48,
                 width: 52, height: 52, borderRadius: '50%',
