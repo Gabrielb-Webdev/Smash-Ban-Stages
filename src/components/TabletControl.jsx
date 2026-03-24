@@ -43,7 +43,8 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   
   // Verificar si es AFK (fondo negro)
   const isAfk = sessionId === 'afk' || sessionId?.includes('afk');
-  
+  const isWarui = sessionId?.startsWith('warui') || sessionId?.includes('warui');
+
   // Función para detectar si es Mendoza
   const isMendoza = () => {
     if (!sessionId) return false;
@@ -63,6 +64,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
+  const [confirmedChar, setConfirmedChar] = useState(null);
   const [showRepeatModal, setShowRepeatModal] = useState({ player1: false, player2: false });
   const [previousCharacters, setPreviousCharacters] = useState({ player1: null, player2: null });
   const [hasAskedRepeat, setHasAskedRepeat] = useState({ player1: false, player2: false });
@@ -110,13 +112,30 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
 
   // Cargar historial del jugador cuyo turno es en CHARACTER_SELECT
   useEffect(() => {
+    setConfirmedChar(null); // resetear confirmación al cambiar turno/fase
     if (!session || session.phase !== 'CHARACTER_SELECT' || !session.currentTurn) return;
     const playerName = session[session.currentTurn]?.name;
     if (!playerName) return;
     setPlayerPickHistory([]);
-    getPlayerHistory(playerName, (data) => {
-      setPlayerPickHistory(data.characters || []);
-    });
+    const playerKey = playerName.trim().toLowerCase();
+    // Cargar desde REST API (Redis persistente, sobrevive a redeploys)
+    fetch(`/api/matchmaking/recent-chars?userId=${encodeURIComponent(playerKey)}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPlayerPickHistory(data);
+        } else {
+          // Fallback a WebSocket si Redis no tiene datos
+          getPlayerHistory(playerName, (wsData) => {
+            setPlayerPickHistory(wsData.characters || []);
+          });
+        }
+      })
+      .catch(() => {
+        getPlayerHistory(playerName, (wsData) => {
+          setPlayerPickHistory(wsData.characters || []);
+        });
+      });
   }, [session?.phase, session?.currentTurn]);
 
   // Detectar cuando comienza nuevo game y resetear estados
@@ -417,6 +436,22 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         break;
       case 'character':
         selectCharacter(sessionId, pendingAction.characterId, pendingAction.player);
+        setConfirmedChar({
+          characterId: pendingAction.characterId,
+          characterName: pendingAction.characterName,
+          characterImage: pendingAction.characterImage,
+        });
+        // Guardar en Redis via REST API (persistencia entre redeploys)
+        if (pendingAction.characterId !== 'random') {
+          const _pName = session?.[pendingAction.player]?.name;
+          if (_pName) {
+            fetch('/api/matchmaking/recent-chars', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: _pName.trim().toLowerCase(), charId: pendingAction.characterId }),
+            }).catch(() => {});
+          }
+        }
         break;
       case 'winner':
         proposeGameWinner(sessionId, pendingAction.winner, myPlayer);
@@ -505,8 +540,20 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
         fontFamily: 'Anton, sans-serif',
         minHeight: '100dvh',
+        position: 'relative',
       }}
     >
+      {/* Logo Warui circular de fondo */}
+      {isWarui && (
+        <div style={{
+          position: 'fixed', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 280, height: 280, borderRadius: '50%',
+          overflow: 'hidden', zIndex: 0, pointerEvents: 'none', opacity: 0.07,
+        }}>
+          <img src="/overlays/warui/img/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      )}
       {/* ── Header sticky ── */}
       <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl">
           <div className="flex justify-between items-center gap-2">
@@ -1959,6 +2006,19 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
           <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
         )}
         {session.phase === 'CHARACTER_SELECT' && (!effectivePlayer || session.currentTurn === effectivePlayer) && (
+          confirmedChar ? (
+            <div className="rounded-xl border border-white/20 p-8 flex flex-col items-center justify-center" style={{ minHeight: 240 }}>
+              <div style={{ fontSize: 56 }}>✅</div>
+              <p className="text-green-400 font-black text-xl mt-3 mb-1">¡Personaje enviado!</p>
+              {confirmedChar.characterImage && (
+                <img src={confirmedChar.characterImage} alt={confirmedChar.characterName} style={{ width: 96, height: 96, objectFit: 'contain', margin: '8px auto' }} onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+              )}
+              {!confirmedChar.characterImage && confirmedChar.characterId === 'random' && (
+                <span style={{ fontSize: 56 }}>?</span>
+              )}
+              <p className="text-white/50 text-sm mt-1">Esperando al rival...</p>
+            </div>
+          ) : (
           <div className="rounded-xl border border-white/20">
             {/* Sub-header sticky */}
             <div className="sticky top-[72px] sm:top-[88px] z-30 bg-black/95 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl">
@@ -2031,6 +2091,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               ))}
             </div>
           </div>
+          )}{/* fin ternario confirmedChar */}
         )}
 
         {/* Playing Phase */}
