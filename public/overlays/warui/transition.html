@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Warui – Stinger Transition</title>
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Orbitron', monospace;
+    position: relative;
+  }
+
+  /* ── CAPA BASE ── */
+  .bg {
+    position: absolute;
+    inset: 0;
+    background: #07020f;
+    opacity: 0;
+    animation: bg-flash 1.4s ease forwards;
+  }
+  @keyframes bg-flash {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ── SLASH DIAGONAL (inspirado en el banner) ── */
+  .slash {
+    position: absolute;
+    top: -200px;
+    left: -300px;
+    width: 160px;
+    height: 1600px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(0,229,255,0.15) 20%,
+      rgba(0,229,255,0.9) 50%,
+      rgba(233,30,140,0.9) 52%,
+      rgba(233,30,140,0.15) 80%,
+      transparent 100%
+    );
+    transform: rotate(20deg);
+    filter: blur(2px);
+    animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes slash-sweep {
+    0%   { left: -300px; opacity: 0; }
+    10%  { opacity: 1; }
+    60%  { left: 2200px; opacity: 1; }
+    100% { left: 2200px; opacity: 0; }
+  }
+
+  /* Segundo slash más delgado, desfasado */
+  .slash2 {
+    position: absolute;
+    top: -200px;
+    left: -300px;
+    width: 40px;
+    height: 1600px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(245,166,35,0.6) 40%,
+      rgba(245,166,35,1) 50%,
+      rgba(245,166,35,0.6) 60%,
+      transparent 100%
+    );
+    transform: rotate(20deg);
+    filter: blur(1px);
+    animation: slash-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.08s forwards;
+  }
+
+  /* ── LOGO CENTRAL ── */
+  .logo-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: logo-pop 1.4s ease forwards;
+  }
+  @keyframes logo-pop {
+    0%   { opacity: 0; transform: scale(0.6); }
+    25%  { opacity: 0; transform: scale(0.6); }
+    45%  { opacity: 1; transform: scale(1.08);
+           filter: drop-shadow(0 0 40px #e91e8c) drop-shadow(0 0 80px #7b2fff); }
+    60%  { opacity: 1; transform: scale(1);
+           filter: drop-shadow(0 0 20px #e91e8c) drop-shadow(0 0 40px #7b2fff); }
+    80%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.15); }
+  }
+  .logo-wrap img {
+    width: 340px;
+    height: 340px;
+    object-fit: contain;
+  }
+
+  /* ── TEXTO ARENA WARUI ── */
+  .brand {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 300px;
+    gap: 6px;
+    animation: brand-in 1.4s ease forwards;
+  }
+  @keyframes brand-in {
+    0%,30% { opacity: 0; transform: translateY(12px); }
+    50%    { opacity: 1; transform: translateY(0); }
+    75%    { opacity: 1; transform: translateY(0); }
+    100%   { opacity: 0; transform: translateY(-8px); }
+  }
+  .brand-name {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    color: #f0eaff;
+    text-shadow: 0 0 30px rgba(0,229,255,0.8), 0 0 60px rgba(123,47,255,0.5);
+    font-family: 'Orbitron', monospace;
+  }
+  .brand-sub {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: #f5a623;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  /* ── VIÑETA DE BORDES ── */
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center,
+      transparent 40%,
+      rgba(7,2,15,0.7) 100%
+    );
+    animation: bg-flash 1.4s ease forwards;
+    pointer-events: none;
+  }
+
+  /* ── PARTÍCULAS HEX ── */
+  .particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    animation: bg-flash 1.4s ease forwards;
+  }
+  .hex-p {
+    position: absolute;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    animation: hex-float linear forwards;
+  }
+  @keyframes hex-float {
+    0%   { transform: translateY(0) scale(0); opacity: 0; }
+    20%  { opacity: 1; transform: translateY(-30px) scale(1); }
+    100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="vignette"></div>
+<div class="particles" id="particles"></div>
+<div class="slash"></div>
+<div class="slash2"></div>
+
+<div class="logo-wrap">
+  <img src="img/logo2.png" alt="Warui Team">
+</div>
+
+<div class="brand">
+  <div class="brand-name">Arena Warui</div>
+  <div class="brand-sub">Torneos Argentinos</div>
+</div>
+
+<script>
+  // Generar partículas hex en colores de marca
+  const colors = ['#e91e8c','#7b2fff','#00e5ff','#f5a623'];
+  const container = document.getElementById('particles');
+
+  for (let i = 0; i < 24; i++) {
+    const h = document.createElement('div');
+    h.className = 'hex-p';
+    const size = 8 + Math.random() * 18;
+    const x = Math.random() * 1920;
+    const y = 400 + Math.random() * 400;
+    const delay = 0.3 + Math.random() * 0.7;
+    const dur = 0.8 + Math.random() * 0.6;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    h.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${x}px; top:${y}px;
+      background:${color};
+      opacity:0;
+      animation-duration:${dur}s;
+      animation-delay:${delay}s;
+    `;
+    container.appendChild(h);
+  }
+</script>
+</body>
+</html>
