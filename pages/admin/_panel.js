@@ -78,7 +78,7 @@ export default function TestAdminPage() {
 
   // Selección dinámica de torneo
   const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); const v = (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; return (v === 'tournament/asd3' || v === 'tournament/test') ? '' : v; } catch { return ''; } });
-  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
+  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); const slug = (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; if (slug === 'tournament/asd3' || slug === 'tournament/test' || !slug) { if (typeof window !== 'undefined') { localStorage.removeItem(lsk('selectedPhaseGroupId', c)); localStorage.removeItem(lsk('selectedBracketUrl', c)); localStorage.removeItem(lsk('selectedEventId', c)); } return ''; } return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
   const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedBracketUrl', c))) || ''; } catch { return ''; } });
   const [selectedEventId, setSelectedEventId]               = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedEventId', c))) || null; } catch { return null; } });
 
@@ -441,7 +441,7 @@ export default function TestAdminPage() {
   }, [checking, selectedSlug]);
 
   useEffect(() => {
-    if (checking || !selectedPhaseGroupId) return;
+    if (checking || !selectedPhaseGroupId || !selectedSlug) return;
     setBracketLoading(true);
     setBracketSets([]);
     fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
