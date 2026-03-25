@@ -329,6 +329,55 @@ export default async function handler(req, res) {
         await redis.set(CACHE_KEY, JSON.stringify(tournaments), { ex: CACHE_TTL });
       }
 
+      // ── Auto-notificación: detectar torneos nuevos sin acción del admin ──
+      // Lock con NX+EX para que solo un request lo ejecute por intervalo (15 min)
+      try {
+        const AUTOSYNC_LOCK = 'startgg:autosync:lock';
+        const acquired = await redis.set(AUTOSYNC_LOCK, '1', { ex: 900, nx: true });
+        if (acquired && tournaments.length > 0) {
+          const seenIds = await redis.smembers(SEEN_KEY) || [];
+          const seenSet = new Set(seenIds.map(String));
+          const newTournaments = tournaments.filter(t => !seenSet.has(String(t.id)));
+
+          // Marcar todos como vistos
+          await redis.sadd(SEEN_KEY, ...tournaments.map(t => String(t.id)));
+
+          // Solo notificar si ya había torneos conocidos (evita spam en el primer sync)
+          if (newTournaments.length > 0 && seenIds.length > 0) {
+            for (const t of newTournaments) {
+              const dateStr = t.startAt
+                ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })
+                : '';
+              const body = dateStr
+                ? `📅 ${dateStr} — ${t.attendees} inscriptos. ¡Anotate ahora!`
+                : `${t.attendees} inscriptos. ¡Anotate ahora!`;
+              const title = `🏆 Nuevo torneo: ${t.name}`;
+
+              // Inbox broadcast (campanita in-app)
+              const notif = {
+                id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                type: 'broadcast',
+                setup: title,
+                message: body,
+                sentBy: 'Sistema',
+                sentAt: new Date().toISOString(),
+                readAt: null,
+                url: t.url || null,
+                _broadcast: true,
+              };
+              const existing = (await redis.get(broadcastNotifsKey)) || [];
+              existing.unshift(notif);
+              await redis.set(broadcastNotifsKey, existing.slice(0, 20));
+
+              // Push al dispositivo
+              await sendPushToAll({ title, body, tag: 'startgg-tournament',
+                data: { url: t.url, tournamentId: t.id, tournamentSlug: t.slug },
+              }).catch(() => {});
+            }
+          }
+        }
+      } catch {}
+
       const filtered = communityFilter ? tournaments.filter(t => t.community === communityFilter) : tournaments;
       const showDebug = req.query.debug === 'true';
       const response = { tournaments: filtered, source: 'live' };

@@ -567,7 +567,7 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>la app</span>
               <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>sin H</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', marginLeft: 5, alignSelf: 'center' }}>v{APP_VERSION}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', marginLeft: 5, alignSelf: 'center' }}>by INC</span>
             </div>
           </div>
 
@@ -875,7 +875,7 @@ export default function HomePage() {
                   <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Te avisamos acá cuando sea tu turno</p>
                 </div>
               ) : (
-                [...notifs].reverse().map(n => (
+                notifs.map(n => (
                   <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={uName}
                     onNavigate={(route) => {
                       setShowNotifs(false);
