@@ -15,6 +15,18 @@ export default function StreamOverlay({ sessionId }) {
   // Verificar si es AFK (fondo negro)
   const isAfk = sessionId === 'afk' || sessionId?.includes('afk');
   const isWarui = sessionId === 'warui-stream' || sessionId?.startsWith('warui');
+
+  // Para Warui: body transparente para que solo se vea el banner inferior
+  useEffect(() => {
+    if (isWarui) {
+      document.body.style.background = 'transparent';
+      document.documentElement.style.background = 'transparent';
+      return () => {
+        document.body.style.background = '';
+        document.documentElement.style.background = '';
+      };
+    }
+  }, [isWarui]);
   
   // Ref para el video
   const videoRef = useRef(null);

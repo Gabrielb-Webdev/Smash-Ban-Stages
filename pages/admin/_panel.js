@@ -130,6 +130,7 @@ export default function TestAdminPage() {
   // Match call timers: { [setupId]: { secondsLeft, intervalId } }
   const [matchTimers, setMatchTimers] = useState({});
   const matchTimersRef = useRef({});
+  const assignedSetsRef = useRef(assignedSets); // acceso síncrono en timeouts asincrónicos
 
   // Elapsed timers tras check-in completo: { [setupId]: secondsElapsed }
   const [elapsedTimers, setElapsedTimers] = useState({});
@@ -169,6 +170,7 @@ export default function TestAdminPage() {
 
   // --- Persistencia localStorage (con namespace de comunidad) ---
   useEffect(() => {
+    assignedSetsRef.current = assignedSets;
     try { localStorage.setItem(lsk('assignedSets', community), JSON.stringify(assignedSets)); } catch {}
     // Broadcast a otros admins conectados, salvo que el cambio viniera de ellos
     if (!isRemoteAssignRef.current && panelSocketRef.current?.connected) {
@@ -246,6 +248,8 @@ export default function TestAdminPage() {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const poll = async () => {
       const updates = {};
+      // Mapa setupId→sessionId del ciclo actual; permite detectar si se inició un nuevo match antes del auto-release
+      const activeSessionIds = Object.fromEntries(active.map(([id, set]) => [id, set.sessionId]));
       for (const [setupId, set] of active) {
         if (!set?.sessionId) continue;
         try {
@@ -347,6 +351,8 @@ export default function TestAdminPage() {
           }
 
           setTimeout(() => {
+            // Si se inició un nuevo match en este setup durante los 5s, no liberar
+            if (activeSessionIds[setupId] && assignedSetsRef.current[setupId]?.sessionId !== activeSessionIds[setupId]) return;
             const t = matchTimersRef.current[setupId];
             if (t?.intervalId) clearInterval(t.intervalId);
             delete matchTimersRef.current[setupId];
@@ -379,6 +385,8 @@ export default function TestAdminPage() {
           }
           // Liberar timers y setup
           setTimeout(() => {
+            // Si se inició un nuevo match en este setup durante el 1s de delay, no liberar
+            if (activeSessionIds[setupId] && assignedSetsRef.current[setupId]?.sessionId !== activeSessionIds[setupId]) return;
             const t = matchTimersRef.current[setupId];
             if (t?.intervalId) clearInterval(t.intervalId);
             delete matchTimersRef.current[setupId];

@@ -1,10 +1,9 @@
 // API para reportar el resultado de un match de matchmaking — Upstash Redis
 
-import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey, matchHistoryKey, charStatsKey, charBoardKey } from '../../../lib/redis';
+import redis, { mmMatchKey, rankedStatsKey, rankedBoardKey, matchHistoryKey, charStatsKey, charBoardKey, rankHistoryKey, smasherBoardKey, smasherPoolKey } from '../../../lib/redis';
 import {
-  applyWinRP, applyLossRP,
-  leaderboardScore, getRankIndex, calculatePlacementRank, PLACEMENT_MATCHES,
-  calcMMRDelta, calcRPDelta, MMR_DEFAULT,
+  processMatchResult, leaderboardScore, getRankIndex, isInPlacement,
+  PLACEMENT_MATCHES, MMR_DEFAULT, RANKS,
 } from '../../../lib/ranks';
 
 function sanitize(s) {
@@ -213,91 +212,95 @@ async function applyFinishedStats(match, matchId) {
   const loserName  = match.player1.userId === loserId ? match.player1.userName : match.player2.userName;
   const finalStocks = match.result.stocksWon || 1;
 
-  // Ganador
-  const wKey   = rankedStatsKey(String(winnerId), platform);
+  // ── Cargar stats de ambos ──
+  const wKey = rankedStatsKey(String(winnerId), platform);
+  const lKey = rankedStatsKey(String(loserId), platform);
+
   const wStats = (await redis.get(wKey)) || {
     userId: winnerId, userName: winnerName, platform,
-    wins: 0, losses: 0, rank: 'Plástico 1', rankIndex: 0, rankPoints: 0,
+    wins: 0, losses: 0, rank: 'Plástico I', rankIndex: 0, rankPoints: 0,
     mmr: MMR_DEFAULT, winStreak: 0, bestStreak: 0,
-    placementDone: false, placementWins: 0,
+    placementDone: false, placementWins: 0, promotionShield: 0,
   };
   wStats.userName = winnerName;
   if (!wStats.mmr) wStats.mmr = MMR_DEFAULT;
+  wStats.rankIndex = wStats.rankIndex ?? getRankIndex(wStats.rank);
 
-  const wTotal = (wStats.wins || 0) + (wStats.losses || 0);
-  let wRPDelta  = 0;
-  let wMMRDelta = 0;
-
-  if (!wStats.placementDone && wTotal < PLACEMENT_MATCHES) {
-    wStats.wins       = (wStats.wins || 0) + 1;
-    wStats.winStreak  = (wStats.winStreak  || 0) + 1;
-    wStats.bestStreak = Math.max(wStats.bestStreak || 0, wStats.winStreak);
-    wStats.placementWins = (wStats.placementWins || 0) + 1;
-    if (wStats.wins + (wStats.losses || 0) === PLACEMENT_MATCHES) {
-      const placed = calculatePlacementRank(wStats.placementWins);
-      wStats.rank = placed.name;
-      wStats.rankIndex = getRankIndex(placed.name);
-      wStats.rankPoints = 0;
-      wStats.placementDone = true;
-    }
-  } else {
-    const wStreak = wStats.winStreak || 0;
-    wRPDelta = calcRPDelta(finalStocks, wStreak);
-    applyWinRP(wStats, wRPDelta);
-  }
-
-  // MMR siempre se actualiza
-  const lStatsPreview = (await redis.get(rankedStatsKey(String(loserId), platform))) || { mmr: MMR_DEFAULT };
-  wMMRDelta = calcMMRDelta(
-    wStats.mmr,
-    lStatsPreview.mmr || MMR_DEFAULT,
-    finalStocks,
-    (wStats.winStreak || 1) - 1,
-  );
-  wStats.mmr = (wStats.mmr || MMR_DEFAULT) + wMMRDelta;
-  wStats.updatedAt = new Date().toISOString();
-  await redis.set(wKey, wStats);
-  await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(wStats), member: String(winnerId) });
-
-  // Perdedor
-  const lKey   = rankedStatsKey(String(loserId), platform);
   const lStats = (await redis.get(lKey)) || {
     userId: loserId, userName: loserName, platform,
-    wins: 0, losses: 0, rank: 'Plástico 1', rankIndex: 0, rankPoints: 0,
+    wins: 0, losses: 0, rank: 'Plástico I', rankIndex: 0, rankPoints: 0,
     mmr: MMR_DEFAULT, winStreak: 0, bestStreak: 0,
-    placementDone: false, placementWins: 0,
+    placementDone: false, placementWins: 0, promotionShield: 0,
   };
   lStats.userName = loserName;
   if (!lStats.mmr) lStats.mmr = MMR_DEFAULT;
+  lStats.rankIndex = lStats.rankIndex ?? getRankIndex(lStats.rank);
 
-  const lTotal = (lStats.wins || 0) + (lStats.losses || 0);
-  if (!lStats.placementDone && lTotal < PLACEMENT_MATCHES) {
-    lStats.losses    = (lStats.losses || 0) + 1;
-    lStats.winStreak = 0;
-    if ((lStats.wins || 0) + lStats.losses === PLACEMENT_MATCHES) {
-      const placed = calculatePlacementRank(lStats.placementWins || 0);
-      lStats.rank = placed.name;
-      lStats.rankIndex = getRankIndex(placed.name);
-      lStats.rankPoints = 0;
-      lStats.placementDone = true;
-    }
-  } else {
-    applyLossRP(lStats);
-  }
+  // ── Procesar resultado con el nuevo sistema ──
+  const result = processMatchResult(wStats, lStats);
 
-  lStats.mmr = Math.max(1, (lStats.mmr || MMR_DEFAULT) - wMMRDelta);
-  lStats.updatedAt = new Date().toISOString();
+  // ── Guardar stats actualizados ──
+  await redis.set(wKey, wStats);
   await redis.set(lKey, lStats);
+
+  // ── Leaderboard ──
+  await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(wStats), member: String(winnerId) });
   await redis.zadd(rankedBoardKey(platform), { score: leaderboardScore(lStats), member: String(loserId) });
 
-  // Historial
+  // ── SMASHer leaderboard: agregar/quitar según rango ──
+  const SMASHER_INDEX = RANKS.length - 1;
+  if (wStats.rankIndex === SMASHER_INDEX) {
+    await redis.zadd(smasherBoardKey(platform), { score: wStats.mmr, member: String(winnerId) });
+  } else {
+    await redis.zrem(smasherBoardKey(platform), String(winnerId)).catch(() => {});
+  }
+  if (lStats.rankIndex === SMASHER_INDEX) {
+    await redis.zadd(smasherBoardKey(platform), { score: lStats.mmr, member: String(loserId) });
+  } else {
+    await redis.zrem(smasherBoardKey(platform), String(loserId)).catch(() => {});
+  }
+
+  // ── Pool de MMR activos (para calcular threshold SMASHer, TTL 30 días) ──
+  await redis.zadd(smasherPoolKey(platform), { score: wStats.mmr, member: String(winnerId) });
+  await redis.zadd(smasherPoolKey(platform), { score: lStats.mmr, member: String(loserId) });
+  await redis.expire(smasherPoolKey(platform), 30 * 24 * 60 * 60);
+
+  // ── Rank History: registrar cambios de rango ──
+  if (result.winner.rankChange.promoted || result.winner.rankChange.demoted || result.winner.placementJustDone) {
+    const entry = {
+      rankBefore: result.winner.oldRank, subdivisionBefore: result.winner.oldSubdivision,
+      rankAfter: wStats.rank, subdivisionAfter: RANKS[wStats.rankIndex]?.subdivision ?? null,
+      reason: result.winner.placementJustDone ? 'PLACEMENT' : 'WIN',
+      createdAt: new Date().toISOString(),
+    };
+    await redis.lpush(rankHistoryKey(String(winnerId)), entry);
+    await redis.ltrim(rankHistoryKey(String(winnerId)), 0, 99);
+  }
+  if (result.loser.rankChange.promoted || result.loser.rankChange.demoted || result.loser.placementJustDone) {
+    const entry = {
+      rankBefore: result.loser.oldRank, subdivisionBefore: result.loser.oldSubdivision,
+      rankAfter: lStats.rank, subdivisionAfter: RANKS[lStats.rankIndex]?.subdivision ?? null,
+      reason: result.loser.placementJustDone ? 'PLACEMENT' : 'LOSS',
+      createdAt: new Date().toISOString(),
+    };
+    await redis.lpush(rankHistoryKey(String(loserId)), entry);
+    await redis.ltrim(rankHistoryKey(String(loserId)), 0, 99);
+  }
+
+  // ── Match History ──
   const matchEntry = {
     matchId, platform, winnerId, loserId, winnerName, loserName,
     winnerCharId: match.player1.userId === winnerId ? match.player1.charId : match.player2.charId,
     loserCharId:  match.player1.userId === loserId  ? match.player1.charId : match.player2.charId,
     stocksWon: finalStocks,
-    rpDelta:   wRPDelta,
-    mmrDelta:  wMMRDelta,
+    rpDelta:   result.winner.rrDelta,
+    mmrDelta:  result.winner.mmrDelta,
+    mmrWinnerBefore: result.winner.mmrBefore,
+    mmrWinnerAfter:  result.winner.mmrAfter,
+    mmrLoserBefore:  result.loser.mmrBefore,
+    mmrLoserAfter:   result.loser.mmrAfter,
+    winnerRankAfter: wStats.rank,
+    loserRankAfter:  lStats.rank,
     playedAt: new Date().toISOString(),
   };
   const wHistKey = matchHistoryKey(String(winnerId));
@@ -307,7 +310,7 @@ async function applyFinishedStats(match, matchId) {
   await redis.lpush(lHistKey, matchEntry);
   await redis.ltrim(lHistKey, 0, 49);
 
-  // Stats por personaje
+  // ── Stats por personaje ──
   const winnerCharId = matchEntry.winnerCharId;
   const loserCharId  = matchEntry.loserCharId;
   if (winnerCharId) {
@@ -330,9 +333,14 @@ async function applyFinishedStats(match, matchId) {
     }
   }
 
-  // Limpiar sala de ambos jugadores
+  // ── Limpiar sala de ambos jugadores ──
   await cleanupUserRoom(String(winnerId));
   await cleanupUserRoom(String(loserId));
 
-  return { rpDelta: wRPDelta, mmrDelta: wMMRDelta };
+  return {
+    rpDelta: result.winner.rrDelta,
+    mmrDelta: result.winner.mmrDelta,
+    winnerRankChange: result.winner.rankChange,
+    loserRankChange: result.loser.rankChange,
+  };
 }
