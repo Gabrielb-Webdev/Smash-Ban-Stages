@@ -30,7 +30,7 @@
   }
 
   .overlay {
-    width: 960px;
+    width: 1200px;
     position: relative;
     user-select: none;
   }
@@ -39,7 +39,7 @@
   .top-bar {
     display: flex;
     align-items: stretch;
-    height: 88px;
+    height: 110px;
     position: relative;
   }
 
@@ -49,15 +49,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 18px 0 22px;
+    padding: 0 22px 0 28px;
     position: relative;
     overflow: hidden;
-    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 100%, 0 100%);
+    clip-path: polygon(0 0, calc(100% - 30px) 0, 100% 100%, 0 100%);
   }
   .player.right {
     flex-direction: row-reverse;
-    padding: 0 22px 0 18px;
-    clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%);
+    padding: 0 28px 0 22px;
+    clip-path: polygon(30px 0, 100% 0, 100% 100%, 0 100%);
   }
 
   /* Fondo: franja roja izquierda, negra derecha */
@@ -101,7 +101,7 @@
   .player .accent-line {
     position: absolute;
     left: 0; top: 0;
-    width: 5px; height: 100%;
+    width: 6px; height: 100%;
     background: linear-gradient(to bottom, var(--gold), var(--red-hot));
     z-index: 3;
   }
@@ -131,9 +131,9 @@
 
   .player-sponsor {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     text-transform: uppercase;
     color: var(--gold);
     opacity: 0.9;
@@ -141,8 +141,8 @@
 
   .player-tag {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 30px;
-    letter-spacing: 2px;
+    font-size: 38px;
+    letter-spacing: 3px;
     color: var(--white);
     text-shadow: 2px 2px 0 rgba(0,0,0,0.7), 0 0 20px rgba(255,42,42,0.4);
     line-height: 1;
@@ -153,36 +153,36 @@
     position: relative;
     z-index: 5;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 62px;
+    font-size: 78px;
     line-height: 1;
     color: var(--white);
     text-shadow: 0 0 16px rgba(255,42,42,0.6), 2px 2px 0 rgba(0,0,0,0.8);
-    min-width: 48px;
+    min-width: 60px;
     text-align: center;
     transition: color 0.5s;
   }
 
   /* ── CENTRO: logo INC ── */
   .center {
-    width: 100px;
+    width: 126px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--black);
-    border-left: 3px solid var(--red);
-    border-right: 3px solid var(--red);
+    border-left: 4px solid var(--red);
+    border-right: 4px solid var(--red);
     position: relative;
     overflow: visible;
     z-index: 6;
   }
 
   .logo-circle {
-    width: 74px;
-    height: 74px;
+    width: 94px;
+    height: 94px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid var(--white);
+    border: 4px solid var(--white);
     box-shadow:
       0 0 0 2px var(--red),
       0 0 18px rgba(204,0,0,0.7),
@@ -194,7 +194,7 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 4px;
+    padding: 5px;
   }
   @keyframes logo-pulse {
     0%, 100% { box-shadow: 0 0 0 2px var(--red), 0 0 14px rgba(204,0,0,0.6), 0 0 28px rgba(204,0,0,0.2); }
@@ -206,14 +206,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 28px;
-    margin-top: 2px;
+    height: 36px;
+    margin-top: 3px;
     position: relative;
     overflow: hidden;
     background: var(--red-dark);
     border-top: 2px solid var(--red-hot);
     border-bottom: 1px solid rgba(0,0,0,0.5);
-    padding: 0 20px;
+    padding: 0 26px;
   }
 
   /* Textura diagonal en la franja */
@@ -242,8 +242,8 @@
   .strip-text {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 2.5px;
+    font-size: 15px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     position: relative;
     z-index: 1;
