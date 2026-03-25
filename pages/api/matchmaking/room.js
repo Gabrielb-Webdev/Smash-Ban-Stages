@@ -3,7 +3,7 @@
 import redis, { mmMatchKey, mmQueueKey, mmQueueDoublesKey } from '../../../lib/redis';
 
 const ROOM_TTL_MS = 30 * 60 * 1000; // 30 min
-const ACCEPT_MS   = 15 * 1000;       // 15s para aceptar
+const ACCEPT_MS   = 90 * 1000;       // 90s para aceptar (Render cold start + F5 reload)
 
 const RANKED_STAGES_G1 = [
   'Battlefield', 'Small Battlefield', 'Town and City',

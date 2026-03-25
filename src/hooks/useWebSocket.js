@@ -55,10 +55,11 @@ export const useWebSocket = (sessionId) => {
       socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 10000,
-        reconnectionAttempts: 3,
-        timeout: 15000,
+        reconnectionDelay: 3000,
+        reconnectionDelayMax: 30000,
+        reconnectionAttempts: Infinity,  // nunca desistir
+        randomizationFactor: 0.5,        // jitter para evitar thundering herd con varios dispositivos
+        timeout: 20000,
         forceNew: false
       });
 

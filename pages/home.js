@@ -390,30 +390,41 @@ export default function HomePage() {
     return () => { active = false; clearInterval(iv); };
   }, [bgMM?.polling, bgMM?.status, user]);
 
-  // Detectar sala activa al cargar la app (reconexión automática)
+  // Detectar sala activa al cargar la app Y polling mientras está idle (cada 8s)
+  // Así detecta matches creados remotamente sin necesidad de F5
   useEffect(() => {
     if (!user || bgMM) return;
     const uid = String(user?.id || user?.slug || '');
     if (!uid) return;
-    fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid))
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data || ['idle', 'timeout', 'declined'].includes(data.status)) return;
-        if (data.status === 'searching') {
-          setBgMM({ status: 'searching', plat: data.platform, mode: data.mode || '1v1', polling: true });
-          return;
-        }
-        setBgMM({
-          status: data.status,
-          code: data.code,
-          room: data.room,
-          plat: data.room?.platform,
-          mode: data.room?.mode || '1v1',
-          polling: true,
-        });
-      })
-      .catch(() => {});
-  }, [user]);
+    let active = true;
+    const checkRoom = () => {
+      if (!active) return;
+      fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid))
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!active) return;
+          if (!data || ['idle', 'timeout', 'declined'].includes(data.status)) return;
+          if (data.status === 'searching') {
+            setBgMM({ status: 'searching', plat: data.platform, mode: data.mode || '1v1', polling: true });
+            return;
+          }
+          setBgMM({
+            status: data.status,
+            code: data.code,
+            room: data.room,
+            plat: data.room?.platform,
+            mode: data.room?.mode || '1v1',
+            polling: true,
+          });
+        })
+        .catch(() => {});
+    };
+    checkRoom();
+    const iv = setInterval(checkRoom, 8000);
+    return () => { active = false; clearInterval(iv); };
+  // !!bgMM: cuando bgMM pasa de null a un objeto, el effect se limpia solo
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, !!bgMM]);
 
   // Countdown local para la pantalla de aceptación
   useEffect(() => {
