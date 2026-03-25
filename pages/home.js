@@ -725,8 +725,8 @@ export default function HomePage() {
               {/* Panel de Admin */}
               {(isAdmin || adminCommunities.length > 0) && (() => {
                 const _panelItems = isAdmin
-                  ? [{ label: 'Panel de Admin', sub: 'Gestionar torneos y setups', url: '/' }]
-                  : adminCommunities.map(c => ({ label: `Panel ${c.charAt(0).toUpperCase() + c.slice(1)}`, sub: `Gestionar /admin/${c}`, url: `/admin/${c}` }));
+                  ? [{ label: 'Panel de Admin', sub: 'Gestionar torneos y setups', url: '/?panel=1' }]
+                  : [{ label: 'Panel de Admin', sub: 'Selector de comunidad', url: '/?panel=1' }];
                 return _panelItems.map(item => (
                   <div key={item.url} style={{ padding: '8px 10px 4px' }}>
                     <button onClick={() => { setShowMenu(false); window.location.href = item.url; }}
