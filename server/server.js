@@ -46,6 +46,34 @@ class PersistentSessionMap {
   get size() { return this._map.size; }
 }
 
+// ── Estado del panel admin por comunidad (memoria + Redis) ────────────────────
+// Clave Redis: panel:state:{community}, TTL 24h
+const panelStates = new Map();
+const PANEL_STATE_TTL = 24 * 60 * 60;
+
+async function redisPanelStateSet(community, state) {
+  if (!REDIS_URL || !REDIS_TOKEN) return;
+  try {
+    await fetch(`${REDIS_URL}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([['SET', `panel:state:${community}`, JSON.stringify(state), 'EX', String(PANEL_STATE_TTL)]]),
+    });
+  } catch {}
+}
+
+async function redisPanelStateGet(community) {
+  if (!REDIS_URL || !REDIS_TOKEN) return null;
+  try {
+    const r = await fetch(`${REDIS_URL}/get/${encodeURIComponent(`panel:state:${community}`)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+    });
+    const data = await r.json();
+    if (!data.result) return null;
+    return JSON.parse(data.result);
+  } catch { return null; }
+}
+
 // ── Historial de picks por jugador (persistido en Redis) ──────────────
 
 async function redisHistorySet(playerKey, chars) {
@@ -1286,18 +1314,34 @@ io.on('connection', (socket) => {
   });
 
   // ── Panel Admin: sincronización de asignaciones en tiempo real ──────────────
-  socket.on('panel:join', ({ community }) => {
+  socket.on('panel:join', async ({ community }) => {
     if (!community) return;
     const room = `panel:${community}`;
     socket.join(room);
     socket._panelCommunity = community;
     console.log(`🎮 Panel admin unido: ${socket.id} → ${room}`);
+
+    // Emitir estado actual SOLO al socket que se acaba de unir
+    let currentState = panelStates.get(community);
+    if (!currentState) {
+      // Fallback: intentar recuperar de Redis (reinicio del servidor)
+      currentState = await redisPanelStateGet(community);
+      if (currentState) panelStates.set(community, currentState);
+    }
+    if (currentState && Object.keys(currentState).length > 0) {
+      socket.emit('panel:state-update', { state: currentState });
+      console.log(`📋 Estado del panel enviado a nuevo admin [${community}]: ${Object.keys(currentState).join(', ')}`);
+    }
   });
 
   socket.on('panel:assign-update', ({ community, assignedSets }) => {
     if (!community || !assignedSets) return;
     const room = `panel:${community}`;
     socket.to(room).emit('panel:assign-update', { assignedSets });
+    // Actualizar estado en memoria y Redis
+    const merged = { ...(panelStates.get(community) || {}), assignedSets };
+    panelStates.set(community, merged);
+    redisPanelStateSet(community, merged);
     console.log(`🔄 Panel sync [${community}]: ${Object.keys(assignedSets).filter(k => assignedSets[k]).length} setups asignados`);
   });
 
@@ -1305,6 +1349,10 @@ io.on('connection', (socket) => {
     if (!community || !state) return;
     const room = `panel:${community}`;
     socket.to(room).emit('panel:state-update', { state });
+    // Actualizar estado en memoria y Redis
+    const merged = { ...(panelStates.get(community) || {}), ...state };
+    panelStates.set(community, merged);
+    redisPanelStateSet(community, merged);
     console.log(`🔄 Panel state sync [${community}]:`, Object.keys(state).join(', '));
   });
 

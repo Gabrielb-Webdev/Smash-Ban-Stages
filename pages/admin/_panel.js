@@ -510,12 +510,14 @@ export default function TestAdminPage() {
     socket.on('panel:state-update', ({ state }) => {
       if (!state) return;
       isRemoteStateRef.current = true;
-      if (state.selectedSlug     !== undefined) setSelectedSlug(state.selectedSlug);
+      if (state.selectedSlug         !== undefined) setSelectedSlug(state.selectedSlug);
       if (state.selectedPhaseGroupId !== undefined) setSelectedPhaseGroupId(state.selectedPhaseGroupId);
-      if (state.selectedEventId  !== undefined) setSelectedEventId(state.selectedEventId);
-      if (state.selectedBracketUrl !== undefined) setSelectedBracketUrl(state.selectedBracketUrl);
-      if (state.phaseStarted     !== undefined) setPhaseStarted(state.phaseStarted);
-      if (state.assignedSets     !== undefined) {
+      if (state.selectedEventId      !== undefined) setSelectedEventId(state.selectedEventId);
+      if (state.selectedBracketUrl   !== undefined) setSelectedBracketUrl(state.selectedBracketUrl);
+      if (state.phaseStarted         !== undefined) setPhaseStarted(state.phaseStarted);
+      if (state.allPhaseGroups       !== undefined && Array.isArray(state.allPhaseGroups) && state.allPhaseGroups.length > 0) setAllPhaseGroups(state.allPhaseGroups);
+      if (state.setupFormats         !== undefined) setSetupFormats(state.setupFormats);
+      if (state.assignedSets         !== undefined) {
         isRemoteAssignRef.current = true;
         setAssignedSets(state.assignedSets);
       }
@@ -862,16 +864,16 @@ export default function TestAdminPage() {
     setEntrants([]);
     setTourPickerOpen(false);
     // Extraer todos los phase groups disponibles para el dropdown de pools
+    let computedGroups = [];
     if (pickPhases?.events?.length) {
-      const groups = [];
       pickPhases.events.forEach(ev => {
         (ev.phases || []).forEach(ph => {
           (ph.phaseGroups || []).forEach(pg => {
-            groups.push({ id: String(pg.id), label: pg.label, phaseName: ph.name, phaseLabel: `${ph.name} · ${ph.bracketType || ''}`, eventId: String(ev.id), eventName: ev.name, slug });
+            computedGroups.push({ id: String(pg.id), label: pg.label, phaseName: ph.name, phaseLabel: `${ph.name} · ${ph.bracketType || ''}`, eventId: String(ev.id), eventName: ev.name, slug });
           });
         });
       });
-      setAllPhaseGroups(groups);
+      setAllPhaseGroups(computedGroups);
     }
     setPickTour(null);
     setPickPhases(null);
@@ -886,8 +888,17 @@ export default function TestAdminPage() {
     fetch(`/api/tournaments/entrants?eventId=${evIdStr}`)
       .then(r => r.json())
       .then(d => { if (d.entrants) setEntrants(d.entrants); });
-    // Sincronizar torneo seleccionado con otros admins
-    emitPanelState({ selectedSlug: slug, selectedPhaseGroupId: pgIdStr, selectedEventId: evIdStr, selectedBracketUrl: `https://www.start.gg/${slug}`, phaseStarted: false, assignedSets: {} });
+    // Sincronizar torneo seleccionado con otros admins (incluye allPhaseGroups y setupFormats)
+    emitPanelState({
+      selectedSlug: slug,
+      selectedPhaseGroupId: pgIdStr,
+      selectedEventId: evIdStr,
+      selectedBracketUrl: `https://www.start.gg/${slug}`,
+      phaseStarted: false,
+      assignedSets: {},
+      allPhaseGroups: computedGroups,
+      setupFormats,
+    });
   }
 
   function switchPool(newPgId) {
@@ -907,7 +918,7 @@ export default function TestAdminPage() {
         .then(r => r.json())
         .then(d => { if (d.entrants) setEntrants(d.entrants); });
     }
-    emitPanelState({ selectedPhaseGroupId: newPgId, assignedSets: {} });
+    emitPanelState({ selectedPhaseGroupId: newPgId, selectedEventId: pg.eventId || selectedEventId, assignedSets: {} });
   }
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
