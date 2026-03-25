@@ -67,8 +67,16 @@ export default async function handler(req, res) {
     });
     if (recentBroadcasts.length > 0) {
       const existingIds = new Set(notifs.map(n => n.id));
+      let addedBroadcasts = false;
       for (const b of recentBroadcasts) {
-        if (!existingIds.has(b.id)) notifs.push(b);
+        if (!existingIds.has(b.id)) {
+          notifs.push(b);
+          addedBroadcasts = true;
+        }
+      }
+      // Persistir broadcasts nuevos en la key personal para que mark-all-read los alcance
+      if (addedBroadcasts && userName) {
+        await redis.set(notifsKey(userName), notifs);
       }
     }
   } catch {}

@@ -1434,7 +1434,6 @@ export default function TestAdminPage() {
                       <div style={{ width: 30, height: 30, borderRadius: 9, background: setup.color + '1E', border: `1px solid ${setup.color}3A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{setup.icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{setup.label}</p>
-                        {setup.id === `${community}-stream` && <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.12em' }}>STREAM</span>}
                         {(() => { const st = sessionStatuses[setup.id]; if (!st || !st.currentGame) return null; return <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.08em' }}>Game {st.currentGame} · {st.format || 'BO3'}</span>; })()}
                       </div>
                       {assigned && <button onClick={() => removeAssignment(setup.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>}
