@@ -1318,9 +1318,9 @@ export default function TestAdminPage() {
               <button onClick={closeTournament} title="Cerrar torneo seleccionado" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 9, cursor: 'pointer', fontSize: 16, fontWeight: 900, lineHeight: 1, flexShrink: 0 }}>✕</button>
             )}
             <button
-              onClick={startPhase}
-              disabled={startState === 'loading' || !selectedPhaseGroupId || phaseStarted}
-              title="Iniciá el torneo desde start.gg primero, luego click aquí para habilitar el drag en la app"
+              onClick={phaseStarted ? () => setPhaseStarted(false) : startPhase}
+              disabled={startState === 'loading' || (!phaseStarted && !selectedPhaseGroupId)}
+              title={phaseStarted ? 'Click para marcar como no iniciado' : 'Iniciá el torneo desde start.gg primero, luego click aquí para habilitar el drag en la app'}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 background: phaseStarted || startState === 'ok' ? 'rgba(34,197,94,0.14)' : startState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(34,197,94,0.12)',
@@ -1328,8 +1328,8 @@ export default function TestAdminPage() {
                 color: phaseStarted || startState === 'ok' ? '#22C55E' : startState === 'error' ? '#F87171' : '#22C55E',
                 borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11,
                 fontFamily: "'Outfit',sans-serif",
-                cursor: phaseStarted || startState === 'loading' ? 'default' : 'pointer',
-                opacity: phaseStarted ? 0.7 : 1,
+                cursor: startState === 'loading' ? 'default' : 'pointer',
+                opacity: 1,
               }}
             >
               {startState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
