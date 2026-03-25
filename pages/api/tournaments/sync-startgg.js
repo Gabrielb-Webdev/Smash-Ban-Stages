@@ -4,7 +4,7 @@
 //
 // Busca torneos por slug directo y por organizador descubierto.
 
-import redis from '../../../lib/redis';
+import redis, { broadcastNotifsKey } from '../../../lib/redis';
 import { sendPushToAll } from '../../../lib/push';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
@@ -380,9 +380,29 @@ export default async function handler(req, res) {
         const body = dateStr
           ? `📅 ${dateStr} — ${t.attendees} inscriptos. ¡Anotate ahora!`
           : `${t.attendees} inscriptos. ¡Anotate ahora!`;
+        const title = `🏆 Nuevo torneo: ${t.name}`;
 
+        // Guardar en inbox broadcast para que aparezca en la campanita in-app
+        try {
+          const notif = {
+            id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            type: 'broadcast',
+            setup: title,
+            message: body,
+            sentBy: 'Sistema',
+            sentAt: new Date().toISOString(),
+            readAt: null,
+            url: t.url || null,
+            _broadcast: true,
+          };
+          const existing = (await redis.get(broadcastNotifsKey)) || [];
+          existing.unshift(notif);
+          await redis.set(broadcastNotifsKey, existing.slice(0, 20));
+        } catch {}
+
+        // Push al dispositivo
         await sendPushToAll({
-          title: `🏆 Nuevo torneo: ${t.name}`,
+          title,
           body,
           tag: 'startgg-tournament',
           data: {
