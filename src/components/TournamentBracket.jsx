@@ -1,4 +1,4 @@
-﻿import { Component } from 'react';
+﻿import { Component, useState } from 'react';
 
 const SET_STATE_STYLE_DEFAULT = {
   COMPLETED: { bg: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,0.3)',    text: '#4ADE80' },
@@ -39,7 +39,8 @@ function getRoundPriority(name) {
   return 60;
 }
 
-function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock }) {
+function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const isDone     = set.stateLabel === 'COMPLETED';
   const isBye      = set.stateLabel === 'BYE';
   const isActive   = set.stateLabel === 'ACTIVE' || set.stateLabel === 'CALLED';
@@ -103,6 +104,45 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
           </div>
         );
       })}
+      {/* Dropdown de asignación para mobile */}
+      {!isDone && !isBye && !isLocked && onAssignToSetup && TEST_SETUPS?.length > 0 && (
+        <div className="assign-dropdown-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {!dropdownOpen ? (
+            <button
+              onClick={e => { e.stopPropagation(); if (tournamentStarted) setDropdownOpen(true); }}
+              style={{ width: '100%', background: 'none', border: 'none', padding: '6px 8px', cursor: tournamentStarted ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Outfit, sans-serif', opacity: tournamentStarted ? 1 : 0.4 }}
+            >
+              {aSetup
+                ? <span style={{ fontSize: 10, fontWeight: 700, color: aSetup.color }}>{aSetup.icon} {aSetup.label} — cambiar ▾</span>
+                : <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,140,0,0.7)' }}>📍 Enviar a setup ▾</span>
+              }
+            </button>
+          ) : (
+            <div style={{ padding: '6px 6px 7px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {TEST_SETUPS.map(s => {
+                  const isCurrent = aSetup?.id === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={e => { e.stopPropagation(); onAssignToSetup(set, s.id); setDropdownOpen(false); }}
+                      style={{ flex: '1 1 calc(50% - 5px)', display: 'flex', alignItems: 'center', gap: 5, background: isCurrent ? s.color + '28' : 'rgba(255,255,255,0.05)', border: `1px solid ${isCurrent ? s.color + '77' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '7px 8px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'background .12s' }}
+                    >
+                      <span style={{ fontSize: 14 }}>{s.icon}</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: isCurrent ? s.color : '#D1D5DB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
+                      {isCurrent && <span style={{ fontSize: 9, color: s.color, marginLeft: 'auto' }}>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); setDropdownOpen(false); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', fontSize: 10, cursor: 'pointer', padding: '2px 0', fontFamily: 'Outfit, sans-serif' }}
+              >cancelar</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -119,11 +159,11 @@ function RoundCol({ roundName, sets, accentColor, lockedSets, toggleLock, ...mat
   );
 }
 
-function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock }) {
+function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted }) {
   if (!Array.isArray(bracketSets) || bracketSets.length === 0) return null;
 
   const sStyle = extStyle || SET_STATE_STYLE_DEFAULT;
-  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock };
+  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted };
 
   // Agrupar por ronda y ordenar
   const roundsMap = {};

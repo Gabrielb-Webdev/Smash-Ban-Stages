@@ -873,6 +873,18 @@ export default function TestAdminPage() {
     setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
   }
 
+  function assignToSetupDirectly(set, setupId) {
+    if (!tournamentStarted || lockedSets[set.id]) return;
+    const cleanSet = { ...set };
+    setAssignedSets(prev => {
+      const next = { ...prev };
+      // Quitar el set de cualquier setup previo
+      for (const k of Object.keys(next)) { if (next[k]?.id === cleanSet.id) delete next[k]; }
+      next[setupId] = cleanSet;
+      return next;
+    });
+  }
+
   function stopMatchTimer(setupId) {
     const t = matchTimersRef.current[setupId];
     if (t?.intervalId) clearInterval(t.intervalId);
@@ -1238,6 +1250,10 @@ export default function TestAdminPage() {
           .header-actions>*{flex-shrink:0!important}
           .panel-subtitle{display:none!important}
           .btn-text-collapse{display:none!important}
+          .assign-dropdown-wrap{display:block!important}
+        }
+        @media(min-width:769px){
+          .assign-dropdown-wrap{display:none!important}
         }
       `}</style>
 
@@ -1556,6 +1572,8 @@ export default function TestAdminPage() {
                 SET_STATE_STYLE={SET_STATE_STYLE}
                 lockedSets={lockedSets}
                 toggleLock={toggleLock}
+                onAssignToSetup={assignToSetupDirectly}
+                tournamentStarted={tournamentStarted}
               />
             )}
           </div>{/* bracket content */}
