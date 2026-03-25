@@ -244,28 +244,49 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
           <div style={{ overflowY: 'auto', padding: '10px 16px 6px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {(TEST_SETUPS || []).map(s => {
               const isCurrent = modalCurrentSetup?.id === s.id;
+              // Occupied = otro match (distinto al que estamos asignando) ya está en este setup
+              const occupant = assignedSets?.[s.id];
+              const isOccupied = occupant && occupant.id !== modalSet?.id;
+              const occupantName = isOccupied
+                ? (occupant.slots || []).map(sl => sl?.entrant?.name).filter(Boolean).join(' vs ') || 'Partido en curso'
+                : null;
               return (
                 <button
                   key={s.id}
-                  onClick={() => handleAssign(s.id)}
+                  disabled={isOccupied}
+                  onClick={() => !isOccupied && handleAssign(s.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
-                    background: isCurrent ? s.color + '22' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${isCurrent ? s.color + '88' : 'rgba(255,255,255,0.09)'}`,
-                    borderRadius: 14, padding: '13px 16px', cursor: 'pointer',
+                    background: isCurrent ? s.color + '22' : isOccupied ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${isCurrent ? s.color + '88' : isOccupied ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`,
+                    borderRadius: 14, padding: '13px 16px',
+                    cursor: isOccupied ? 'not-allowed' : 'pointer',
                     fontFamily: 'Outfit, sans-serif', width: '100%', textAlign: 'left',
                     transition: 'background .12s',
+                    opacity: isOccupied ? 0.5 : 1,
                   }}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: s.color + '20', border: `1px solid ${s.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                    {s.icon}
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: s.color + (isOccupied ? '10' : '20'), border: `1px solid ${s.color}${isOccupied ? '22' : '44'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                    {isOccupied ? '🔒' : s.icon}
                   </div>
-                  <span style={{ flex: 1, fontSize: 15, fontWeight: 800, color: isCurrent ? s.color : '#E5E7EB' }}>
-                    {s.label}
-                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: isCurrent ? s.color : isOccupied ? 'rgba(255,255,255,0.3)' : '#E5E7EB' }}>
+                      {s.label}
+                    </span>
+                    {isOccupied && (
+                      <span style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {occupantName}
+                      </span>
+                    )}
+                  </div>
                   {isCurrent && (
                     <span style={{ fontSize: 12, fontWeight: 800, color: s.color, background: s.color + '18', border: `1px solid ${s.color}44`, borderRadius: 99, padding: '3px 10px', flexShrink: 0 }}>
                       actual
+                    </span>
+                  )}
+                  {isOccupied && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, padding: '3px 10px', flexShrink: 0 }}>
+                      ocupado
                     </span>
                   )}
                 </button>
