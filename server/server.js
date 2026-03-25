@@ -1285,6 +1285,23 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── Panel Admin: sincronización de asignaciones en tiempo real ──────────────
+  socket.on('panel:join', ({ community }) => {
+    if (!community) return;
+    const room = `panel:${community}`;
+    socket.join(room);
+    socket._panelCommunity = community;
+    console.log(`🎮 Panel admin unido: ${socket.id} → ${room}`);
+  });
+
+  socket.on('panel:assign-update', ({ community, assignedSets }) => {
+    if (!community || !assignedSets) return;
+    const room = `panel:${community}`;
+    // Reenviar solo a los DEMÁS en la sala (no al emisor)
+    socket.to(room).emit('panel:assign-update', { assignedSets });
+    console.log(`🔄 Panel sync [${community}]: ${Object.keys(assignedSets).filter(k => assignedSets[k]).length} setups asignados`);
+  });
+
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
     // Limpiar presencia y notificar offline a amigos

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import io from 'socket.io-client';
 import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
 import dynamic from 'next/dynamic';
 
@@ -139,6 +140,10 @@ export default function TestAdminPage() {
   const prevGamesRef      = useRef({});  // { [setupId]: número de games reportados }
   const prevDelayCountRef  = useRef({});  // { [setupId]: nro de delay requests ya procesados }
 
+  // Sync panel en tiempo real (socket)
+  const panelSocketRef   = useRef(null);
+  const isRemoteAssignRef = useRef(false); // true cuando el cambio viene de otro cliente
+
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
     try { const c = _communitySync(); const s = localStorage.getItem(lsk('setupFormats', c)); return s ? JSON.parse(s) : {}; } catch { return {}; }
@@ -164,6 +169,11 @@ export default function TestAdminPage() {
   // --- Persistencia localStorage (con namespace de comunidad) ---
   useEffect(() => {
     try { localStorage.setItem(lsk('assignedSets', community), JSON.stringify(assignedSets)); } catch {}
+    // Broadcast a otros admins conectados, salvo que el cambio viniera de ellos
+    if (!isRemoteAssignRef.current && panelSocketRef.current?.connected) {
+      panelSocketRef.current.emit('panel:assign-update', { community, assignedSets });
+    }
+    isRemoteAssignRef.current = false;
   }, [assignedSets, community]);
   useEffect(() => {
     try { localStorage.setItem(lsk('phaseStarted', community), phaseStarted ? '1' : ''); } catch {}
@@ -472,6 +482,35 @@ export default function TestAdminPage() {
       } catch {}
     });
   }, []);
+
+  // ── Conexión socket para sincronización en tiempo real entre admins ──────────
+  useEffect(() => {
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const comm = _communitySync();
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
+    panelSocketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('🎮 Panel admin conectado al WS');
+      socket.emit('panel:join', { community: comm });
+    });
+
+    socket.on('panel:assign-update', ({ assignedSets: remote }) => {
+      if (!remote) return;
+      isRemoteAssignRef.current = true;
+      setAssignedSets(remote);
+    });
+
+    return () => {
+      socket.disconnect();
+      panelSocketRef.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Si no hay torneo seleccionado, abrir el picker automáticamente
   useEffect(() => {
