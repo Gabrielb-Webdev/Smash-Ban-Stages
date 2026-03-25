@@ -501,10 +501,60 @@ export default function TestAdminPage() {
       socket.emit('panel:join', { community: comm });
     });
 
+    // Reconstruye/sincroniza los timers locales cuando llegan assignedSets por WS.
+    // Arranca countdown para sets con timerStartedAt que no tengan timer local,
+    // y limpia timers de sets que ya no están asignados.
+    function syncTimersFromRemote(remote) {
+      // Arrancar timers para matches recién iniciados en otro cliente
+      Object.entries(remote).forEach(([setupId, set]) => {
+        if (!set?.timerStartedAt) return;
+        if (matchTimersRef.current[setupId]) return; // ya está corriendo
+        if (checkedInSetups.current.has(setupId)) return; // ya pasó al elapsed phase
+        const elapsed = Math.floor((Date.now() - set.timerStartedAt) / 1000);
+        const remaining = 300 - elapsed;
+        if (remaining <= 0) return; // expiró
+        matchTimersRef.current[setupId] = { secondsLeft: remaining };
+        setMatchTimers(prev => ({ ...prev, [setupId]: remaining }));
+        const iv = setInterval(() => {
+          const cur = matchTimersRef.current[setupId];
+          if (!cur) { clearInterval(iv); return; }
+          const next = cur.secondsLeft - 1;
+          matchTimersRef.current[setupId] = { secondsLeft: next, intervalId: iv };
+          setMatchTimers(prev => ({ ...prev, [setupId]: next }));
+          if (next <= 0) {
+            clearInterval(iv);
+            delete matchTimersRef.current[setupId];
+            setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+            setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          }
+        }, 1000);
+        matchTimersRef.current[setupId].intervalId = iv;
+      });
+      // Limpiar timers de setups que ya no están asignados (ej: Admin A canceló)
+      Object.keys(matchTimersRef.current).forEach(setupId => {
+        if (!remote[setupId]) {
+          const t = matchTimersRef.current[setupId];
+          if (t?.intervalId) clearInterval(t.intervalId);
+          delete matchTimersRef.current[setupId];
+          setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+        }
+      });
+      Object.keys(elapsedTimersRef.current).forEach(setupId => {
+        if (!remote[setupId]) {
+          const et = elapsedTimersRef.current[setupId];
+          if (et?.intervalId) clearInterval(et.intervalId);
+          delete elapsedTimersRef.current[setupId];
+          setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          checkedInSetups.current.delete(setupId);
+        }
+      });
+    }
+
     socket.on('panel:assign-update', ({ assignedSets: remote }) => {
       if (!remote) return;
       isRemoteAssignRef.current = true;
       setAssignedSets(remote);
+      syncTimersFromRemote(remote);
     });
 
     socket.on('panel:state-update', ({ state }) => {
@@ -520,6 +570,7 @@ export default function TestAdminPage() {
       if (state.assignedSets         !== undefined) {
         isRemoteAssignRef.current = true;
         setAssignedSets(state.assignedSets);
+        syncTimersFromRemote(state.assignedSets);
       }
     });
 
