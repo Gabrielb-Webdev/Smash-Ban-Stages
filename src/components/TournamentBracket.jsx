@@ -176,6 +176,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
   const otherRounds   = allRounds.filter(r => !isWinnersRound(r) && !isLosersRound(r) && !isFinalsRound(r));
 
   return (
+    <>
     <div style={{ overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', paddingBottom: 8 }}>
       <div style={{ minWidth: 'max-content', padding: '4px 2px 8px', display: 'flex', flexDirection: 'column', gap: 0 }}>
 
@@ -284,6 +285,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
         </div>
       </div>
     )}
+    </>
   );
 }
 
