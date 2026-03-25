@@ -150,6 +150,9 @@ export default function TestAdminPage() {
   // Log de reportes Start.gg: [{ time, setId, players, type }]
   const [reportLog, setReportLog] = useState([]);
 
+  // Tab activa en móvil: 'setups' | 'bracket'
+  const [mobileTab, setMobileTab] = useState('setups');
+
   // Torneos destacados (gestión manual)
   const [featuredTours, setFeaturedTours]     = useState([]);
   const [featuredLoading, setFeaturedLoading] = useState(false);
@@ -1222,26 +1225,40 @@ export default function TestAdminPage() {
         .btn-disabled{opacity:.35;cursor:not-allowed}
         @media(max-width:900px){.setups-grid{grid-template-columns:1fr 1fr!important}}
         @media(max-width:560px){.setups-grid{grid-template-columns:1fr!important}}
+        /* === Mobile layout === */
+        .mobile-tabs{display:none}
+        @media(max-width:768px){
+          .mobile-tabs{display:flex!important;position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(11,11,18,0.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,0.09);padding:10px 14px;gap:10px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+          .panel-body{flex-direction:column!important;padding:8px 10px 80px!important;gap:10px!important;align-items:stretch!important}
+          .panel-left{max-width:100%!important;flex:none!important;width:100%!important}
+          .panel-right{width:100%!important}
+          .panel-left.mobile-hidden,.panel-right.mobile-hidden{display:none!important}
+          .header-inner{padding:8px 12px!important;gap:5px!important}
+          .header-actions{gap:4px!important;flex-wrap:nowrap!important;overflow-x:auto}
+          .header-actions>*{flex-shrink:0!important}
+          .panel-subtitle{display:none!important}
+          .btn-text-collapse{display:none!important}
+        }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
         {/* ── HEADER ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.96)', backdropFilter: 'blur(14px)', zIndex: 40, gap: 10, flexWrap: 'wrap' }}>
+        <div className="header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.96)', backdropFilter: 'blur(14px)', zIndex: 40, gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* Flecha volver */}
-            <a href="/" title="Volver al panel de comunidades" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 16, textDecoration: 'none', flexShrink: 0, lineHeight: 1 }}>←</a>
+            <a href="/?panel=1" title="Volver al panel de comunidades" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 16, textDecoration: 'none', flexShrink: 0, lineHeight: 1 }}>←</a>
             {/* Logo comunidad */}
             {COMMUNITY_META[community]?.logo && (
               <img src={COMMUNITY_META[community].logo} alt={COMMUNITY_META[community].name} style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', flexShrink: 0, background: 'rgba(255,255,255,0.04)' }} />
             )}
             <div>
               <p style={{ margin: 0, fontWeight: 900, fontSize: 15, letterSpacing: '-0.3px', lineHeight: 1.2, color: '#fff' }}>{tournament?.name || (selectedSlug ? 'Cargando...' : 'Sin torneo')}</p>
-              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{COMMUNITY_META[community]?.name || community} · {SETUPS.length} setups · {phaseName || 'Bracket'}</p>
+              <p className="panel-subtitle" style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{COMMUNITY_META[community]?.name || community} · {SETUPS.length} setups · {phaseName || 'Bracket'}</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 16px', fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,140,0,0.35)' }}>🔄 Cambiar torneo</button>
+          <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={openTourPicker} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 16px', fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: 'pointer', boxShadow: '0 2px 12px rgba(255,140,0,0.35)' }}>🔄 <span className="btn-text-collapse">Cambiar torneo</span></button>
             {selectedSlug && (
               <button onClick={closeTournament} title="Cerrar torneo seleccionado" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 9, cursor: 'pointer', fontSize: 16, fontWeight: 900, lineHeight: 1, flexShrink: 0 }}>✕</button>
             )}
@@ -1275,7 +1292,7 @@ export default function TestAdminPage() {
               </button>
               {dropdownOpen && (
                 <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, width: 178, background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden', zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
-                  <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🎮 Panel Admin</Link>
+                  <Link href="/?panel=1" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🎮 Panel Admin</Link>
                   <Link href="/home" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#D1D5DB', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setDropdownOpen(false)}>🏠 Home</Link>
                   <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 12, color: '#F87171', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: "'Outfit',sans-serif" }}>🚪 Salir</button>
                 </div>
@@ -1285,10 +1302,10 @@ export default function TestAdminPage() {
         </div>
 
         {/* ── MAIN BODY: izquierda setups + derecha bracket ── */}
-        <div style={{ display: 'flex', gap: 16, padding: '16px 20px 24px', alignItems: 'stretch', flex: 1 }}>
+        <div className="panel-body" style={{ display: 'flex', gap: 16, padding: '16px 20px 24px', alignItems: 'stretch', flex: 1 }}>
 
           {/* ◀ COLUMNA IZQUIERDA: Setups + Info torneo */}
-          <div style={{ flex: '0 0 55%', maxWidth: '55%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className={`panel-left${mobileTab !== 'setups' ? ' mobile-hidden' : ''}`} style={{ flex: '0 0 55%', maxWidth: '55%', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* ── SETUPS GRID ── */}
             <div>
@@ -1489,7 +1506,7 @@ export default function TestAdminPage() {
           </div>{/* /columna izquierda */}
 
           {/* ▶ COLUMNA DERECHA: Bracket */}
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className={`panel-right${mobileTab !== 'bracket' ? ' mobile-hidden' : ''}`} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             {/* ── BRACKET POR RONDAS ── */}
         <div style={{ padding: '0', display: 'flex', flexDirection: 'column', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
@@ -1639,6 +1656,24 @@ export default function TestAdminPage() {
             </div>
           )}
         </div>}
+
+        {/* ── Mobile Tab Bar ── */}
+        <div className="mobile-tabs">
+          <button
+            onClick={() => setMobileTab('setups')}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: mobileTab === 'setups' ? 'rgba(255,140,0,0.1)' : 'transparent', border: `1px solid ${mobileTab === 'setups' ? 'rgba(255,140,0,0.45)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 14, padding: '8px 0', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", transition: 'all .15s' }}
+          >
+            <span style={{ fontSize: 22 }}>🎮</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: mobileTab === 'setups' ? '#FF8C00' : 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}>SETUPS</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('bracket')}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: mobileTab === 'bracket' ? 'rgba(96,165,250,0.1)' : 'transparent', border: `1px solid ${mobileTab === 'bracket' ? 'rgba(96,165,250,0.45)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 14, padding: '8px 0', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", transition: 'all .15s' }}
+          >
+            <span style={{ fontSize: 22 }}>🏆</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: mobileTab === 'bracket' ? '#60A5FA' : 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}>BRACKET</span>
+          </button>
+        </div>
 
         {/* ── MODAL SELECTOR DE TORNEO ── */}
         {tourPickerOpen && (
