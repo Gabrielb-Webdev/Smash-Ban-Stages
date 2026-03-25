@@ -5,7 +5,7 @@ import { getStoredUser, logout, verifySession } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
 import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, CHARACTER_ALT_FOLDERS, charAltPaths } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
-import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback } from '../src/hooks/useWebSocket';
+import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback, setReconnectCallback } from '../src/hooks/useWebSocket';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1685,10 +1685,10 @@ function TabAmigos({ user }) {
   // Registrar presencia WS y callbacks de tiempo real una vez que tengamos amigos + userId
   useEffect(() => {
     if (!uid) return;
-    // Callback: cuando un amigo cambia de estado → actualizar solo ese amigo en la lista
+    // Callback: cuando un amigo cambia de estado → actualizar campo 'online' (que usa la UI)
     setPresenceCallback(({ userId, status }) => {
       setFriends(prev => prev.map(f =>
-        String(f.userId) === String(userId) ? { ...f, onlineStatus: status } : f
+        String(f.userId) === String(userId) ? { ...f, online: status } : f
       ));
     });
     // Callback: notificación en tiempo real
@@ -1698,6 +1698,14 @@ function TabAmigos({ user }) {
         return exists ? prev : [notif, ...prev].slice(0, 20);
       });
     });
+    // Callback: socket reconectó → re-sincronizar estados de amigos desde la API
+    // (cubre eventos perdidos durante la desconexión)
+    setReconnectCallback(() => {
+      fetch('/api/friends?userId=' + encodeURIComponent(uid))
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (Array.isArray(d)) setFriends(d); })
+        .catch(() => {});
+    });
   }, [uid]);
 
   // Registrar presencia cuando la lista de amigos cargue
@@ -1706,6 +1714,21 @@ function TabAmigos({ user }) {
     const friendIds = friends.map(f => String(f.userId)).filter(Boolean);
     registerPresence(uid, friendIds);
   }, [uid, friends.length]);
+
+  // Polling de estados de amigos cada 30s — fallback para cambios que no emiten evento WS
+  // (away/dnd via heartbeat, in_match, searching via cola)
+  useEffect(() => {
+    if (!uid || friends.length === 0) return;
+    const iv = setInterval(() => {
+      fetch('/api/friends?userId=' + encodeURIComponent(uid))
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (Array.isArray(d)) setFriends(d); })
+        .catch(() => {});
+    }, 30000);
+    return () => clearInterval(iv);
+  // Solo reiniciar si uid cambia o si la lista pasa de vacía a con amigos
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, friends.length > 0]);
 
   // Refrescar solicitudes pendientes cuando estemos en la tab de amigos (sin polling)
   // El polling agresivo de 8s se reemplaza por un refresh manual al abrir la tab

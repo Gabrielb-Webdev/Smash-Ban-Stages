@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
 let socket;
-// Callbacks globales para presencia y notificaciones (registrados desde home.js)
+// Callbacks globales para presencia, notificaciones y reconexión (registrados desde home.js)
 let _onFriendStatusChanged = null;
 let _onNewNotification = null;
+let _onSocketReconnect = null;
 
 export function setPresenceCallback(fn) { _onFriendStatusChanged = fn; }
 export function setNotificationCallback(fn) { _onNewNotification = fn; }
+export function setReconnectCallback(fn) { _onSocketReconnect = fn; }
 
 // Registrar presencia del usuario logueado
 export function registerPresence(userId, friendIds) {
@@ -70,10 +72,14 @@ export const useWebSocket = (sessionId) => {
         // Si hay un sessionId, unirse a la sesión
         if (sessionId) {
           socket.emit('join-session', sessionId);
-        }        // Re-registrar presencia si ya estaba registrada (reconexiones)
+        }
+        // Re-registrar presencia si ya estaba registrada (reconexiones)
         if (socket._pendingPresence) {
           socket.emit('register-presence', socket._pendingPresence);
-        }      });
+        }
+        // Notificar a home.js para que re-sincronice estados de amigos
+        if (_onSocketReconnect) _onSocketReconnect();
+      });
 
       socket.on('connect_error', (error) => {
         console.error('❌ Error de conexión WebSocket:', error.message);
