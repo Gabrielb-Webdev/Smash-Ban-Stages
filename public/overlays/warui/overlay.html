@@ -34,7 +34,7 @@
      OVERLAY CONTAINER  1920×200 aprox
   ══════════════════════════════════════ */
   .overlay {
-    width: 960px;
+    width: 1440px;
     position: relative;
     user-select: none;
   }
@@ -43,7 +43,7 @@
   .top-bar {
     display: flex;
     align-items: stretch;
-    height: 90px;
+    height: 136px;
     position: relative;
     filter: drop-shadow(0 0 18px rgba(0,229,255,0.25));
   }
@@ -54,17 +54,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 0 20px;
+    gap: 18px;
+    padding: 0 26px;
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, var(--black) 0%, var(--purple-deep) 60%, #2a0d50 100%);
-    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
+    clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 100%, 0 100%);
   }
 
   .player.right {
     flex-direction: row-reverse;
-    clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+    clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%);
     background: linear-gradient(225deg, var(--black) 0%, var(--purple-deep) 60%, #2a0d50 100%);
   }
 
@@ -95,9 +95,9 @@
   .player-tag {
     font-family: 'Orbitron', monospace;
     font-weight: 900;
-    font-size: 22px;
+    font-size: 36px;
     color: var(--white);
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     text-shadow: 0 0 20px rgba(233,30,140,0.6), 0 0 40px rgba(123,47,255,0.4);
   }
@@ -105,10 +105,10 @@
 
   .player-sponsor {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--gold);
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     text-transform: uppercase;
     opacity: 0.85;
   }
@@ -118,7 +118,7 @@
 
   /* ── CENTER BLOCK (logo circular) ── */
   .center {
-    width: 110px;
+    width: 166px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -129,11 +129,11 @@
   }
 
   .logo-circle {
-    width: 82px;
-    height: 82px;
+    width: 124px;
+    height: 124px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid var(--purple-bright);
+    border: 3px solid var(--purple-bright);
     box-shadow: 0 0 18px var(--purple-bright), 0 0 36px rgba(123,47,255,0.4);
     animation: logo-glow 3s ease-in-out infinite;
     flex-shrink: 0;
@@ -152,11 +152,11 @@
   .player-score {
     font-family: 'Orbitron', monospace;
     font-weight: 900;
-    font-size: 44px;
+    font-size: 68px;
     color: var(--white);
     line-height: 1;
     text-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0,229,255,0.4);
-    min-width: 48px;
+    min-width: 72px;
     text-align: center;
     transition: color 0.6s;
     flex-shrink: 0;
@@ -167,12 +167,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 32px;
-    margin-top: 3px;
+    height: 48px;
+    margin-top: 4px;
     background: linear-gradient(90deg, rgba(233,30,140,0.15) 0%, rgba(13,8,32,0.95) 30%, rgba(13,8,32,0.95) 70%, rgba(0,229,255,0.12) 100%);
     border: 1px solid rgba(123,47,255,0.4);
     border-top: 2px solid var(--purple-bright);
-    padding: 0 20px;
+    padding: 0 30px;
     position: relative;
     overflow: hidden;
   }
@@ -190,8 +190,8 @@
   .strip-text {
     font-family: 'Rajdhani', sans-serif;
     font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 2px;
+    font-size: 20px;
+    letter-spacing: 3px;
     text-transform: uppercase;
   }
 
