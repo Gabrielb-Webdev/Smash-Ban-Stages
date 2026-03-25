@@ -22,8 +22,8 @@ export default function Home() {
   useEffect(() => {
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
-      // Super admin se queda en / (panel de admin), el resto va a /home
-      if (data.isAdmin) {
+      // Super admin o admin de comunidad se queda en / (panel de admin), el resto va a /home
+      if (data.isAdmin || (data.adminCommunities && data.adminCommunities.length > 0)) {
         setSession(data);
         setChecking(false);
       } else {

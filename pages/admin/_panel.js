@@ -439,7 +439,7 @@ export default function TestAdminPage() {
       if (!data) { router.replace('/login'); return; }
       const comm = _communitySync();
       const hasAccess = data.isAdmin || data.adminCommunities?.includes(comm);
-      if (!hasAccess) { router.replace('/home'); return; }
+      if (!hasAccess) { router.replace('/'); return; }
       setUser(data.user);
       setChecking(false);
       // Re-registrar sesiones activas en el servidor WS (en caso de restart del servidor)
