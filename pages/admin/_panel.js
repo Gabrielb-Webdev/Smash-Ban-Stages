@@ -87,8 +87,8 @@ export default function TestAdminPage() {
   const [lockTick, setLockTick] = useState(0); // ticker para forzar re-render del countdown
 
   // Selección dinámica de torneo
-  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); const v = (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; return (v === 'tournament/asd3' || v === 'tournament/test') ? '' : v; } catch { return ''; } });
-  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); const slug = (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; if (slug === 'tournament/asd3' || slug === 'tournament/test' || !slug) { if (typeof window !== 'undefined') { localStorage.removeItem(lsk('selectedPhaseGroupId', c)); localStorage.removeItem(lsk('selectedBracketUrl', c)); localStorage.removeItem(lsk('selectedEventId', c)); } return ''; } return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
+  const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
+  const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
   const [selectedBracketUrl, setSelectedBracketUrl]         = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedBracketUrl', c))) || ''; } catch { return ''; } });
   const [selectedEventId, setSelectedEventId]               = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedEventId', c))) || null; } catch { return null; } });
 
@@ -141,8 +141,9 @@ export default function TestAdminPage() {
   const prevDelayCountRef  = useRef({});  // { [setupId]: nro de delay requests ya procesados }
 
   // Sync panel en tiempo real (socket)
-  const panelSocketRef   = useRef(null);
-  const isRemoteAssignRef = useRef(false); // true cuando el cambio viene de otro cliente
+  const panelSocketRef    = useRef(null);
+  const isRemoteAssignRef  = useRef(false); // true cuando el cambio viene de otro cliente
+  const isRemoteStateRef   = useRef(false); // true cuando el cambio de estado viene de otro cliente
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -506,6 +507,20 @@ export default function TestAdminPage() {
       setAssignedSets(remote);
     });
 
+    socket.on('panel:state-update', ({ state }) => {
+      if (!state) return;
+      isRemoteStateRef.current = true;
+      if (state.selectedSlug     !== undefined) setSelectedSlug(state.selectedSlug);
+      if (state.selectedPhaseGroupId !== undefined) setSelectedPhaseGroupId(state.selectedPhaseGroupId);
+      if (state.selectedEventId  !== undefined) setSelectedEventId(state.selectedEventId);
+      if (state.selectedBracketUrl !== undefined) setSelectedBracketUrl(state.selectedBracketUrl);
+      if (state.phaseStarted     !== undefined) setPhaseStarted(state.phaseStarted);
+      if (state.assignedSets     !== undefined) {
+        isRemoteAssignRef.current = true;
+        setAssignedSets(state.assignedSets);
+      }
+    });
+
     return () => {
       socket.disconnect();
       panelSocketRef.current = null;
@@ -628,6 +643,13 @@ export default function TestAdminPage() {
 
   function handleLogout() { logout(); router.replace('/login'); }
 
+  function emitPanelState(stateData) {
+    const comm = _communitySync();
+    if (panelSocketRef.current?.connected) {
+      panelSocketRef.current.emit('panel:state-update', { community: comm, state: stateData });
+    }
+  }
+
   function closeTournament() {
     setSelectedSlug('');
     setSelectedPhaseGroupId('');
@@ -644,6 +666,7 @@ export default function TestAdminPage() {
       localStorage.removeItem(lsk('selectedEventId', community));
       localStorage.removeItem(lsk('phaseStarted', community));
     } catch {}
+    emitPanelState({ selectedSlug: '', selectedPhaseGroupId: '', selectedBracketUrl: '', selectedEventId: null, phaseStarted: false, assignedSets: {} });
   }
 
   async function notifyTournament() {
@@ -673,6 +696,7 @@ export default function TestAdminPage() {
     setPhaseStarted(true);
     setStartState('ok');
     setTimeout(() => setStartState(null), 5000);
+    emitPanelState({ phaseStarted: true });
 
     const tourName = tournament?.name || '';
     const tourUrl  = tournament?.url || selectedBracketUrl || `https://www.start.gg/${selectedSlug}`;
@@ -862,6 +886,8 @@ export default function TestAdminPage() {
     fetch(`/api/tournaments/entrants?eventId=${evIdStr}`)
       .then(r => r.json())
       .then(d => { if (d.entrants) setEntrants(d.entrants); });
+    // Sincronizar torneo seleccionado con otros admins
+    emitPanelState({ selectedSlug: slug, selectedPhaseGroupId: pgIdStr, selectedEventId: evIdStr, selectedBracketUrl: `https://www.start.gg/${slug}`, phaseStarted: false, assignedSets: {} });
   }
 
   function switchPool(newPgId) {
@@ -881,6 +907,7 @@ export default function TestAdminPage() {
         .then(r => r.json())
         .then(d => { if (d.entrants) setEntrants(d.entrants); });
     }
+    emitPanelState({ selectedPhaseGroupId: newPgId, assignedSets: {} });
   }
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
@@ -1318,7 +1345,7 @@ export default function TestAdminPage() {
               <button onClick={closeTournament} title="Cerrar torneo seleccionado" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 9, cursor: 'pointer', fontSize: 16, fontWeight: 900, lineHeight: 1, flexShrink: 0 }}>✕</button>
             )}
             <button
-              onClick={phaseStarted ? () => setPhaseStarted(false) : startPhase}
+              onClick={phaseStarted ? () => { setPhaseStarted(false); emitPanelState({ phaseStarted: false }); } : startPhase}
               disabled={startState === 'loading' || (!phaseStarted && !selectedPhaseGroupId)}
               title={phaseStarted ? 'Click para marcar como no iniciado' : 'Iniciá el torneo desde start.gg primero, luego click aquí para habilitar el drag en la app'}
               style={{

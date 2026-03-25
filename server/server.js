@@ -1297,9 +1297,15 @@ io.on('connection', (socket) => {
   socket.on('panel:assign-update', ({ community, assignedSets }) => {
     if (!community || !assignedSets) return;
     const room = `panel:${community}`;
-    // Reenviar solo a los DEMÁS en la sala (no al emisor)
     socket.to(room).emit('panel:assign-update', { assignedSets });
     console.log(`🔄 Panel sync [${community}]: ${Object.keys(assignedSets).filter(k => assignedSets[k]).length} setups asignados`);
+  });
+
+  socket.on('panel:state-update', ({ community, state }) => {
+    if (!community || !state) return;
+    const room = `panel:${community}`;
+    socket.to(room).emit('panel:state-update', { state });
+    console.log(`🔄 Panel state sync [${community}]:`, Object.keys(state).join(', '));
   });
 
   socket.on('disconnect', () => {
