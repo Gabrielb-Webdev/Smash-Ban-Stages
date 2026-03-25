@@ -6,120 +6,409 @@
 <title>INC eSports - Stinger Transition</title>
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html { width: 100%; height: 100%; overflow: hidden; }
-  body { width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: 'Orbitron', monospace; }
-  #root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
-  .bg { position: absolute; inset: 0; background: #0d0000; opacity: 0; animation: bg-flash 1.4s ease forwards; }
-  @keyframes bg-flash {
-    0%   { opacity: 0; }
-    20%  { opacity: 1; }
-    70%  { opacity: 1; }
-    100% { opacity: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  #root { position: fixed; inset: 0; overflow: hidden; }
+  #fire-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #bloom-canvas { position: absolute; inset: 0; width: 100%; height: 100%; filter: blur(18px); opacity: 0.5; mix-blend-mode: screen; }
+  #heat-canvas { position: absolute; inset: 0; width: 100%; height: 100%; filter: blur(40px); opacity: 0.25; mix-blend-mode: screen; }
+  .logo-wrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    animation: logo-pop 1.8s ease forwards;
+    pointer-events: none; z-index: 10;
   }
-  .slash {
-    position: absolute; top: -20%; left: var(--slash-start, -20%);
-    width: 9.4%; height: 150%;
-    background: linear-gradient(90deg, transparent 0%, rgba(204,0,0,0.15) 20%, rgba(255,32,32,0.95) 50%, rgba(204,0,0,0.95) 52%, rgba(204,0,0,0.15) 80%, transparent 100%);
-    transform: rotate(18deg); filter: blur(2px);
-    animation: slash-sweep 1.4s cubic-bezier(0.4,0,0.2,1) forwards;
-  }
-  .slash2 {
-    position: absolute; top: -20%; left: var(--slash-start, -20%);
-    width: 2.1%; height: 150%;
-    background: linear-gradient(90deg, transparent 0%, rgba(245,166,35,0.6) 40%, rgba(245,166,35,1) 50%, rgba(245,166,35,0.6) 60%, transparent 100%);
-    transform: rotate(18deg); filter: blur(1px);
-    animation: slash-sweep 1.4s cubic-bezier(0.4,0,0.2,1) 0.08s forwards;
-  }
-  .slash3 {
-    position: absolute; top: -20%; left: var(--slash-start, -20%);
-    width: 0.9%; height: 150%;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,245,245,0.8) 50%, transparent 100%);
-    transform: rotate(18deg); filter: blur(0.5px);
-    animation: slash-sweep 1.4s cubic-bezier(0.4,0,0.2,1) 0.16s forwards;
-  }
-  @keyframes slash-sweep {
-    0%   { left: var(--slash-start, -20%); opacity: 0; }
-    10%  { opacity: 1; }
-    60%  { left: var(--slash-end, 115%); opacity: 1; }
-    100% { left: var(--slash-end, 115%); opacity: 0; }
-  }
-  .logo-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; animation: logo-pop 1.4s ease forwards; }
   @keyframes logo-pop {
-    0%   { opacity: 0; transform: scale(0.5); }
-    25%  { opacity: 0; transform: scale(0.5); }
-    45%  { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 50px #cc0000) drop-shadow(0 0 100px rgba(204,0,0,0.5)); }
-    60%  { opacity: 1; transform: scale(1);   filter: drop-shadow(0 0 24px #cc0000) drop-shadow(0 0 48px rgba(204,0,0,0.3)); }
-    80%  { opacity: 1; transform: scale(1); }
-    100% { opacity: 0; transform: scale(1.15); }
+    0%    { opacity: 0; transform: scale(0.1) rotate(-12deg); }
+    15%   { opacity: 0; transform: scale(0.1) rotate(-12deg); }
+    35%   { opacity: 1; transform: scale(1.2) rotate(2deg); filter: brightness(4) drop-shadow(0 0 60px #ff5500) drop-shadow(0 0 140px rgba(255,80,0,0.9)); }
+    50%   { opacity: 1; transform: scale(0.97) rotate(0deg); filter: brightness(2.2) drop-shadow(0 0 30px #ff2200) drop-shadow(0 0 80px rgba(220,30,0,0.7)); }
+    78%   { opacity: 1; transform: scale(1.02); filter: brightness(1.2) drop-shadow(0 0 18px #cc0000) drop-shadow(0 0 50px rgba(180,0,0,0.5)); }
+    100%  { opacity: 0; transform: scale(1.3); filter: none; }
   }
-  .logo-wrap img { width: clamp(160px, 20%, 340px); height: clamp(160px, 20%, 340px); object-fit: contain; }
+  .logo-wrap img { width: clamp(200px, 28%, 460px); height: clamp(200px, 28%, 460px); object-fit: contain; }
   .brand {
     position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding-top: 24%; gap: 0.5%;
-    animation: brand-in 1.4s ease forwards;
+    align-items: center; justify-content: center; padding-top: 21%; gap: 0.4%;
+    animation: brand-in 1.8s ease forwards;
+    z-index: 10; pointer-events: none;
   }
   @keyframes brand-in {
-    0%,30% { opacity: 0; transform: translateY(14px); }
-    50%    { opacity: 1; transform: translateY(0); }
-    75%    { opacity: 1; transform: translateY(0); }
-    100%   { opacity: 0; transform: translateY(-10px); }
+    0%,34% { opacity: 0; transform: translateY(22px) scale(0.95); }
+    52%    { opacity: 1; transform: translateY(0) scale(1); }
+    78%    { opacity: 1; transform: translateY(0) scale(1); }
+    100%   { opacity: 0; transform: translateY(-16px) scale(1.04); }
   }
-  .brand-name { font-size: clamp(28px, 4.6vw, 72px); font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: #fff5f5; text-shadow: 0 0 30px rgba(255,32,32,0.9), 0 0 60px rgba(204,0,0,0.5); font-family: 'Orbitron', monospace; }
-  .brand-sub  { font-size: clamp(12px, 1.5vw, 22px); font-weight: 700; letter-spacing: 0.45em; text-transform: uppercase; color: #f5a623; font-family: 'Rajdhani', sans-serif; }
-  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 40%, rgba(13,0,0,0.75) 100%); animation: bg-flash 1.4s ease forwards; pointer-events: none; }
-  .particles { position: absolute; inset: 0; overflow: hidden; animation: bg-flash 1.4s ease forwards; }
-  .diamond-p { position: absolute; transform: rotate(45deg); animation: diamond-float linear forwards; }
-  @keyframes diamond-float {
-    0%   { transform: rotate(45deg) scale(0); opacity: 0; }
-    20%  { opacity: 1; transform: rotate(45deg) scale(1) translateY(-20px); }
-    100% { transform: rotate(45deg) scale(0.4) translateY(-180px); opacity: 0; }
+  .brand-name {
+    font-size: clamp(24px, 4.2vw, 64px); font-weight: 900;
+    letter-spacing: 0.18em; text-transform: uppercase; color: #fff5f5;
+    text-shadow: 0 0 18px rgba(255,70,0,1), 0 0 50px rgba(255,100,0,0.7), 0 0 100px rgba(200,0,0,0.4);
+    font-family: 'Orbitron', monospace;
   }
-  .speed-line { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, rgba(204,0,0,0.8), transparent); animation: speed-in 1.4s ease forwards; }
-  @keyframes speed-in {
-    0%   { width: 0; opacity: 0; }
-    15%  { opacity: 0; }
-    30%  { width: 30%; opacity: 0.8; }
-    55%  { width: 60%; opacity: 0.6; }
-    80%  { width: 80%; opacity: 0.4; }
-    100% { opacity: 0; }
+  .brand-sub {
+    font-size: clamp(10px, 1.3vw, 20px); font-weight: 700;
+    letter-spacing: 0.42em; text-transform: uppercase;
+    color: #f5a623; font-family: 'Rajdhani', sans-serif;
   }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 <div id="root">
-  <div class="bg"></div>
-  <div class="vignette"></div>
-  <div class="particles" id="particles"></div>
-  <div class="slash"></div>
-  <div class="slash2"></div>
-  <div class="slash3"></div>
+  <canvas id="fire-canvas"></canvas>
+  <canvas id="bloom-canvas"></canvas>
+  <canvas id="heat-canvas"></canvas>
   <div class="logo-wrap"><img src="img/logo.png" alt="INC eSports"></div>
   <div class="brand">
     <div class="brand-name">INC eSports</div>
     <div class="brand-sub">Smash Bros Argentina</div>
   </div>
-  <div class="speed-line" style="top:32%;left:0;width:0;animation-delay:0.1s;"></div>
-  <div class="speed-line" style="top:38%;left:0;width:0;animation-delay:0.15s;background:linear-gradient(90deg,transparent,rgba(245,166,35,0.6),transparent);"></div>
-  <div class="speed-line" style="top:65%;left:0;width:0;animation-delay:0.12s;"></div>
-  <div class="speed-line" style="top:70%;left:0;width:0;animation-delay:0.18s;background:linear-gradient(90deg,transparent,rgba(245,166,35,0.5),transparent);"></div>
 </div>
 <script>
-var W = document.documentElement.clientWidth  || window.innerWidth  || 1920;
-var H = document.documentElement.clientHeight || window.innerHeight || 1080;
-document.documentElement.style.setProperty('--slash-start', (-300/W*100).toFixed(2)+'%');
-document.documentElement.style.setProperty('--slash-end',   ((W+300)/W*100).toFixed(2)+'%');
-var colors = ['#cc0000','#ff2020','#f5a623','#fff5f5'];
-var container = document.getElementById('particles');
-for (var i = 0; i < 20; i++) {
-  var d = document.createElement('div');
-  d.className = 'diamond-p';
-  var size=6+Math.random()*14, x=Math.random()*W, y=H*0.32+Math.random()*(H*0.42);
-  var delay=0.3+Math.random()*0.7, dur=0.7+Math.random()*0.6;
-  var color=colors[Math.floor(Math.random()*colors.length)];
-  d.style.cssText='width:'+size+'px;height:'+size+'px;left:'+x+'px;top:'+y+'px;background:'+color+';opacity:0;animation-duration:'+dur+'s;animation-delay:'+delay+'s;';
-  container.appendChild(d);
-}
+(function () {
+  /* ── Canvas setup ─────────────────────────────────────────── */
+  var C  = document.getElementById('fire-canvas');
+  var Cb = document.getElementById('bloom-canvas');
+  var Ch = document.getElementById('heat-canvas');
+  var ctx  = C.getContext('2d');
+  var bctx = Cb.getContext('2d');
+  var hctx = Ch.getContext('2d');
+  var W, H, cx, cy, diag;
+
+  function resize() {
+    W = C.width = Cb.width = Ch.width  = document.documentElement.clientWidth  || window.innerWidth  || 1920;
+    H = C.height = Cb.height = Ch.height = document.documentElement.clientHeight || window.innerHeight || 1080;
+    cx = W / 2; cy = H / 2;
+    diag = Math.sqrt(cx*cx + cy*cy);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ── Helpers ──────────────────────────────────────────────── */
+  var PI2 = Math.PI * 2;
+  function lerp(a,b,t) { return a + (b-a)*t; }
+  function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+
+  /* ── Fire color palette (t:0=white → 1=ember/dark) ──────── */
+  function fireRGBA(t, a) {
+    t = clamp01(t); a = clamp01(a);
+    var r, g, b;
+    if      (t < 0.08) { r=255; g=255;                       b=Math.round(lerp(255,180,t/0.08)); }
+    else if (t < 0.18) { r=255; g=Math.round(lerp(255,220,(t-0.08)/0.10)); b=Math.round(lerp(180,40,(t-0.08)/0.10)); }
+    else if (t < 0.35) { r=255; g=Math.round(lerp(220,140,(t-0.18)/0.17)); b=0; }
+    else if (t < 0.55) { r=255; g=Math.round(lerp(140,50,(t-0.35)/0.20));  b=0; }
+    else if (t < 0.75) { r=Math.round(lerp(255,180,(t-0.55)/0.20)); g=Math.round(lerp(50,8,(t-0.55)/0.20)); b=0; }
+    else               { r=Math.round(lerp(180,30,(t-0.75)/0.25));  g=0; b=0; }
+    return 'rgba('+r+','+g+','+b+','+a.toFixed(3)+')';
+  }
+
+  /* ── Particle types ───────────────────────────────────────── */
+  // type: 'flame' | 'ember' | 'smoke' | 'ring'
+  var particles = [];
+  var rings     = [];
+
+  /* ── Spiral config ────────────────────────────────────────── */
+  var ARMS        = 5;
+  var SPIN_SPEED  = PI2 * 2.8;   // radians/sec base arm rotation
+  var WINDING     = 0.035;       // how tightly spiral winds (higher = tighter)
+  var TOTAL       = 1800;        // ms total animation
+  var PEAK_RATE   = 80;          // particles per frame at peak
+
+  /* ── Spawn logic ──────────────────────────────────────────── */
+  function spawnParticles(elapsed, dt) {
+    var p = elapsed / TOTAL;
+    if (p > 0.88) return;
+
+    // ── Rate curve ──
+    var rate;
+    if      (p < 0.06) rate = (p / 0.06) * PEAK_RATE * 0.5;
+    else if (p < 0.20) rate = lerp(PEAK_RATE*0.5, PEAK_RATE, (p-0.06)/0.14);
+    else if (p < 0.55) rate = PEAK_RATE;
+    else               rate = PEAK_RATE * (1 - (p - 0.55) / 0.33);
+    rate = Math.max(0, rate) * dt;
+
+    var n = Math.floor(rate) + (Math.random() < (rate % 1) ? 1 : 0);
+    var armAngle = (elapsed / 1000) * SPIN_SPEED;
+
+    // ── Spiral expansion radius grows over time ──
+    var maxR = 12 + diag * 0.7 * Math.min(p / 0.5, 1);
+
+    for (var i = 0; i < n; i++) {
+      var arm     = Math.floor(Math.random() * ARMS);
+      var armOff  = arm * (PI2 / ARMS);
+
+      // Spawn along the spiral arm with some radial spread
+      var rFrac   = Math.random();  // 0=center, 1=edge
+      var r0      = 4 + rFrac * maxR;
+
+      // Logarithmic spiral: theta = armAngle + armOffset + winding * r
+      var theta   = armAngle + armOff + WINDING * r0 + (Math.random()-0.5) * 0.35;
+
+      var sx = cx + Math.cos(theta) * r0;
+      var sy = cy + Math.sin(theta) * r0;
+
+      // Velocity: tangential (spin) + radial (expansion) + buoyancy
+      var speed   = lerp(100, 420, rFrac) + Math.random() * 140;
+      var tanRatio = 0.5 + Math.random() * 0.5;
+      var radRatio = 1 - tanRatio * 0.4;
+
+      var cosT = Math.cos(theta), sinT = Math.sin(theta);
+      var vx = cosT * speed * radRatio - sinT * speed * tanRatio + (Math.random()-0.5)*60;
+      var vy = sinT * speed * radRatio + cosT * speed * tanRatio - (30 + Math.random()*50);
+
+      var isEmber = Math.random() < 0.18;
+      var isSmoke = !isEmber && Math.random() < 0.08;
+
+      particles.push({
+        x: sx, y: sy, vx: vx, vy: vy,
+        size:   isEmber ? (1 + Math.random()*3) : isSmoke ? (20+Math.random()*50) : (6 + Math.random()*28),
+        life:   isSmoke ? (0.6+Math.random()*0.5) : (0.3 + Math.random()*0.75),
+        age:    0,
+        cBase:  isSmoke ? 0.85 : Math.random()*0.15,
+        type:   isEmber ? 'ember' : isSmoke ? 'smoke' : 'flame'
+      });
+    }
+
+    // ── Dense core emitters (make center very bright) ──
+    if (p < 0.65) {
+      var coreN = Math.floor(8 * dt * (p < 0.2 ? p/0.2 : 1));
+      for (var j = 0; j < coreN; j++) {
+        var a = Math.random() * PI2;
+        var r = Math.random() * (15 + 45 * p);
+        particles.push({
+          x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r,
+          vx: Math.cos(a) * (30+Math.random()*80) - Math.sin(a) * 100,
+          vy: Math.sin(a) * (30+Math.random()*80) + Math.cos(a) * 100 - 40,
+          size: 12 + Math.random()*22, life: 0.18 + Math.random()*0.3,
+          age: 0, cBase: 0, type: 'flame'
+        });
+      }
+    }
+
+    // ── Fast ember streaks from center ──
+    if (p > 0.05 && p < 0.55 && Math.random() < 0.65) {
+      var ea = Math.random() * PI2;
+      var es = 600 + Math.random() * 1200;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(ea)*es, vy: Math.sin(ea)*es - 180,
+        size: 1 + Math.random()*2.5,
+        life: 0.35 + Math.random()*0.55,
+        age: 0, cBase: 0.03, type: 'ember'
+      });
+    }
+
+    // ── Expanding shockwave rings ──
+    if (p > 0.15 && p < 0.5 && elapsed % 200 < dt * 1000 + 5) {
+      rings.push({ r: 10, maxR: diag * 0.7, speed: 800 + Math.random()*400, age: 0, life: 0.45 + Math.random()*0.2 });
+    }
+  }
+
+  /* ── Render fire particles ────────────────────────────────── */
+  function renderFire(context, isBloom) {
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < particles.length; i++) {
+      var q = particles[i];
+      var t = q.age / q.life;
+      // Alpha: fade in, hold, fade out
+      var a = t < 0.10 ? t / 0.10 : t < 0.6 ? 1 : Math.pow((1-t)/0.4, 0.7);
+      if (a <= 0.005) continue;
+
+      var ct = clamp01(q.cBase + t * 0.88);
+
+      if (q.type === 'ember') {
+        var sz = Math.max(q.size * (1 - t*0.3), 0.4);
+        context.beginPath();
+        context.arc(q.x, q.y, sz, 0, PI2);
+        context.fillStyle = fireRGBA(ct * 0.35, a * 0.9);
+        context.fill();
+        // Ember trail
+        if (!isBloom) {
+          context.beginPath();
+          context.moveTo(q.x, q.y);
+          context.lineTo(q.x - q.vx*0.012, q.y - q.vy*0.012);
+          context.strokeStyle = fireRGBA(ct * 0.5, a * 0.4);
+          context.lineWidth = sz * 0.6;
+          context.stroke();
+        }
+      } else if (q.type === 'smoke') {
+        var sz = q.size * (1 + t * 2.5);
+        var sa = a * 0.15;
+        var g = context.createRadialGradient(q.x, q.y, 0, q.x, q.y, sz);
+        g.addColorStop(0,   'rgba(40,8,0,' + sa.toFixed(3) + ')');
+        g.addColorStop(0.5, 'rgba(20,4,0,' + (sa*0.5).toFixed(3) + ')');
+        g.addColorStop(1,   'rgba(0,0,0,0)');
+        context.beginPath();
+        context.arc(q.x, q.y, sz, 0, PI2);
+        context.fillStyle = g;
+        context.fill();
+      } else {
+        // Flame
+        var sz = Math.max(q.size * (1 + t*0.7) * (1 - t*0.2), 0.5);
+        var g  = context.createRadialGradient(q.x, q.y, 0, q.x, q.y, sz);
+        g.addColorStop(0,    fireRGBA(ct * 0.08, a));
+        g.addColorStop(0.30, fireRGBA(ct * 0.35, a * 0.9));
+        g.addColorStop(0.60, fireRGBA(ct * 0.65, a * 0.5));
+        g.addColorStop(0.85, fireRGBA(ct * 0.88, a * 0.15));
+        g.addColorStop(1,    'rgba(0,0,0,0)');
+        context.beginPath();
+        context.arc(q.x, q.y, sz, 0, PI2);
+        context.fillStyle = g;
+        context.fill();
+      }
+    }
+    context.restore();
+  }
+
+  /* ── Render spiral arms (continuous lines) ────────────────── */
+  function renderSpiralArms(context, elapsed, progress) {
+    if (progress < 0.05 || progress > 0.82) return;
+    var armAlpha = progress < 0.15 ? (progress-0.05)/0.10 : progress > 0.65 ? (0.82-progress)/0.17 : 1;
+    armAlpha *= 0.35;
+    if (armAlpha <= 0) return;
+
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    var armAngle = (elapsed / 1000) * SPIN_SPEED;
+    var maxR = 20 + diag * 0.55 * Math.min(progress / 0.4, 1);
+
+    for (var arm = 0; arm < ARMS; arm++) {
+      var armOff = arm * (PI2 / ARMS);
+      context.beginPath();
+      var started = false;
+      for (var r = 3; r < maxR; r += 3) {
+        var theta = armAngle + armOff + WINDING * r;
+        var px = cx + Math.cos(theta) * r;
+        var py = cy + Math.sin(theta) * r;
+        if (!started) { context.moveTo(px, py); started = true; }
+        else context.lineTo(px, py);
+      }
+      // Gradient along arm: bright center → dim edge
+      var g = context.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+      g.addColorStop(0,   fireRGBA(0.05, armAlpha));
+      g.addColorStop(0.3, fireRGBA(0.25, armAlpha * 0.8));
+      g.addColorStop(0.7, fireRGBA(0.55, armAlpha * 0.4));
+      g.addColorStop(1,   'rgba(0,0,0,0)');
+      context.strokeStyle = g;
+      context.lineWidth = 12 + progress * 15;
+      context.lineCap = 'round';
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  /* ── Render shockwave rings ───────────────────────────────── */
+  function renderRings(context) {
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < rings.length; i++) {
+      var rn = rings[i];
+      var t  = rn.age / rn.life;
+      var a  = t < 0.15 ? t/0.15 : Math.pow(1-t, 1.5);
+      if (a <= 0.01) continue;
+      context.beginPath();
+      context.arc(cx, cy, rn.r, 0, PI2);
+      context.strokeStyle = fireRGBA(0.25 + t*0.4, a * 0.5);
+      context.lineWidth = Math.max(3, 18 * (1 - t));
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  /* ── Core glow ────────────────────────────────────────────── */
+  function renderCoreGlow(context, progress) {
+    var gp = progress < 0.14 ? progress/0.14 : progress < 0.80 ? 1 : 1-(progress-0.80)/0.20;
+    if (gp <= 0) return;
+    context.save();
+    context.globalCompositeOperation = 'screen';
+    var r = Math.min(W,H) * (0.08 + progress * 0.14);
+    var g = context.createRadialGradient(cx, cy, 0, cx, cy, r * 3.5);
+    g.addColorStop(0,    'rgba(255,250,180,'+(0.7*gp).toFixed(3)+')');
+    g.addColorStop(0.06, 'rgba(255,180,30,'+ (0.95*gp).toFixed(3)+')');
+    g.addColorStop(0.15, 'rgba(255,90,5,'+   (0.8*gp).toFixed(3)+')');
+    g.addColorStop(0.32, 'rgba(200,20,0,'+   (0.45*gp).toFixed(3)+')');
+    g.addColorStop(0.60, 'rgba(60,0,0,'+     (0.15*gp).toFixed(3)+')');
+    g.addColorStop(1,    'rgba(0,0,0,0)');
+    context.beginPath();
+    context.arc(cx, cy, r * 3.5, 0, PI2);
+    context.fillStyle = g;
+    context.fill();
+    context.restore();
+  }
+
+  /* ── Animation loop ───────────────────────────────────────── */
+  var start = null, last = null;
+
+  function frame(ts) {
+    if (!start) { start = ts; last = ts; }
+    var elapsed  = ts - start;
+    var dt       = Math.min((ts - last) / 1000, 0.04);
+    last = ts;
+    var progress = Math.min(elapsed / TOTAL, 1);
+
+    // ── Background ──
+    var bgA = progress < 0.10 ? progress/0.10 : progress < 0.82 ? 1 : 1-(progress-0.82)/0.18;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(3,0,0,' + bgA.toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Spawn ──
+    spawnParticles(elapsed, dt);
+
+    // ── Update particles ──
+    var alive = [];
+    for (var i = 0; i < particles.length; i++) {
+      var q = particles[i];
+      q.age += dt;
+      if (q.age >= q.life) continue;
+      var drag = q.type === 'ember' ? 1.2 : q.type === 'smoke' ? 2.8 : 1.8;
+      q.vx *= Math.exp(-drag * dt);
+      q.vy *= Math.exp(-drag * dt);
+      q.vy -= (q.type === 'smoke' ? 50 : 25) * dt; // fire rises
+      q.x  += q.vx * dt;
+      q.y  += q.vy * dt;
+      alive.push(q);
+    }
+    particles = alive;
+
+    // ── Update rings ──
+    var aliveR = [];
+    for (var j = 0; j < rings.length; j++) {
+      var rn = rings[j];
+      rn.age += dt;
+      if (rn.age >= rn.life) continue;
+      rn.r += rn.speed * dt;
+      aliveR.push(rn);
+    }
+    rings = aliveR;
+
+    // ── Render main canvas ──
+    renderSpiralArms(ctx, elapsed, progress);
+    renderFire(ctx, false);
+    renderRings(ctx);
+    renderCoreGlow(ctx, progress);
+
+    // ── Render bloom canvas ──
+    bctx.clearRect(0, 0, W, H);
+    renderSpiralArms(bctx, elapsed, progress);
+    renderFire(bctx, true);
+    renderCoreGlow(bctx, progress);
+
+    // ── Render heat haze canvas ──
+    hctx.clearRect(0, 0, W, H);
+    renderCoreGlow(hctx, progress);
+
+    if (elapsed < TOTAL + 800) {
+      requestAnimationFrame(frame);
+    } else {
+      ctx.clearRect(0,0,W,H);
+      bctx.clearRect(0,0,W,H);
+      hctx.clearRect(0,0,W,H);
+    }
+  }
+
+  requestAnimationFrame(frame);
+})();
 </script>
 </body>
 </html>
