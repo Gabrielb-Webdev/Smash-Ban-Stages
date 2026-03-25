@@ -1167,6 +1167,15 @@ export default function TestAdminPage() {
   const pendingSets    = bracketSets.filter(s => !assignedSetIds.has(s.id) && s.stateLabel !== 'COMPLETED' && s.stateLabel !== 'BYE');
   const completedSets  = bracketSets.filter(s => s.stateLabel === 'COMPLETED');
 
+  // Setups con match asignado pero sin sesión activa todavía (no llamados)
+  const setupsPendingCall = SETUPS.filter(s => assignedSets[s.id] && !assignedSets[s.id]?.sessionId);
+
+  async function callAllAssigned() {
+    for (const setup of setupsPendingCall) {
+      await callMatch(setup.id);
+    }
+  }
+
   if (checking) return (
     <div style={{ minHeight: '100vh', background: '#0B0B12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 32, height: 32, border: '3px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -1362,6 +1371,15 @@ export default function TestAdminPage() {
               {startState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
               {phaseStarted ? '✅ Iniciado' : startState === 'error' ? '❌ Error' : startState === 'loading' ? 'Iniciando...' : '🚀 Iniciar'}
             </button>
+            {setupsPendingCall.length > 0 && (
+              <button
+                onClick={callAllAssigned}
+                title={`Iniciar ${setupsPendingCall.length} match${setupsPendingCall.length > 1 ? 's' : ''} asignado${setupsPendingCall.length > 1 ? 's' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.45)', color: '#A5B4FC', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: 'pointer' }}
+              >
+                🎮 <span className="btn-text-collapse">Iniciar matchs ({setupsPendingCall.length})</span>
+              </button>
+            )}
             <button onClick={notifyTournament} disabled={notifyState === 'loading'} style={{ display: 'flex', alignItems: 'center', gap: 5, background: notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.14)' : notifyState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(255,140,0,0.14)', border: `1px solid ${notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.35)' : notifyState === 'error' ? 'rgba(239,68,68,0.35)' : 'rgba(255,140,0,0.35)'}`, color: notifyState === 'ok' || notifyState === 'ok_no_new' ? '#22C55E' : notifyState === 'error' ? '#F87171' : '#FF8C00', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: notifyState === 'loading' ? 'wait' : 'pointer' }}>
               {notifyState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
               {notifyState === 'ok' || notifyState === 'ok_no_new' ? '✅ Enviado' : notifyState === 'error' ? '❌ Error' : notifyState === 'loading' ? 'Enviando...' : '🔔 Notificar'}

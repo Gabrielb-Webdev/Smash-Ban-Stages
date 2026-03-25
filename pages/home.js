@@ -83,6 +83,8 @@ export default function HomePage() {
   const [showIOSTip, setShowIOSTip] = useState(false);
   const [showIOSPushBtn, setShowIOSPushBtn] = useState(false);
   const [iosPushState, setIosPushState] = useState(null); // null | 'loading' | 'ok' | 'error'
+  const [showPushBanner, setShowPushBanner] = useState(false); // Android/Desktop: permiso no concedido
+  const [pushBannerState, setPushBannerState] = useState(null); // null | 'loading' | 'ok' | 'error' | 'denied'
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [activeTournamentMatch, setActiveTournamentMatch] = useState(null);
@@ -267,7 +269,17 @@ export default function HomePage() {
     // Android / Desktop: auto-suscribir
     const uid = String(user?.id || user?.slug || '');
     if (!uid) { console.warn('[PUSH] No hay userId'); return; }
-    registerPush(uid, user.name);
+    // Si ya tiene permiso, suscribir silenciosamente
+    if (Notification.permission === 'granted') {
+      registerPush(uid, user.name);
+    } else if (Notification.permission === 'denied') {
+      // Bloqueado por el usuario: mostrar banner con instrucciones
+      setShowPushBanner(true);
+      setPushBannerState('denied');
+    } else {
+      // 'default' (no preguntado aún): mostrar banner para solicitar con gesto explícito
+      setShowPushBanner(true);
+    }
   }, [user]);
 
   // Polling match activo de torneo
@@ -619,6 +631,47 @@ export default function HomePage() {
               {iosPushState === 'loading' ? '...' : iosPushState === 'error' ? '❌ Error' : 'Activar'}
             </button>
             <button onClick={() => setShowIOSPushBtn(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+          </div>
+        )}
+
+        {/* Android/Desktop: activar notificaciones push */}
+        {showPushBanner && (
+          <div style={{ background: pushBannerState === 'denied' ? 'rgba(239,68,68,0.08)' : 'rgba(124,58,237,0.10)', border: `1px solid ${pushBannerState === 'denied' ? 'rgba(239,68,68,0.25)' : 'rgba(124,58,237,0.28)'}`, margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: pushBannerState === 'denied' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#7C3AED,#5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🔔</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: pushBannerState === 'denied' ? '#F87171' : '#A78BFA' }}>
+                {pushBannerState === 'denied' ? 'Notificaciones bloqueadas' : 'Activar notificaciones'}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {pushBannerState === 'denied'
+                  ? 'Habilitalo en los ajustes del sitio (🔒 en la barra de URL)'
+                  : 'Recibí alertas cuando te llamen a jugar'}
+              </p>
+            </div>
+            {pushBannerState !== 'denied' && (
+              <button
+                onClick={async () => {
+                  if (pushBannerState === 'loading') return;
+                  setPushBannerState('loading');
+                  const uid = String(user?.id || user?.slug || '');
+                  const ok = await registerPush(uid, user?.name);
+                  if (ok) { setPushBannerState('ok'); setShowPushBanner(false); }
+                  else {
+                    const blocked = typeof Notification !== 'undefined' && Notification.permission === 'denied';
+                    setPushBannerState(blocked ? 'denied' : 'error');
+                  }
+                }}
+                style={{
+                  background: pushBannerState === 'error' ? 'rgba(239,68,68,0.2)' : 'linear-gradient(135deg,#7C3AED,#5B21B6)',
+                  border: 'none', color: '#fff', borderRadius: 10, padding: '8px 14px',
+                  fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0,
+                  opacity: pushBannerState === 'loading' ? 0.6 : 1,
+                }}
+              >
+                {pushBannerState === 'loading' ? '...' : pushBannerState === 'error' ? '❌ Reintentar' : 'Activar'}
+              </button>
+            )}
+            <button onClick={() => setShowPushBanner(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
           </div>
         )}
 
