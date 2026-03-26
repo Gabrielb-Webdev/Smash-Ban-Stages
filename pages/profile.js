@@ -655,12 +655,14 @@ export default function ProfilePage() {
                 const rankName = s?.rank || '';
                 const pts      = s?.rankPoints || 0;
                 const isSmasher= rankName === 'SMASHer';
-                const rankObj  = RANKS.find(r => r.name === rankName);
+                const rankObj  = RANKS.find(r => r.name === rankName)
+                  || (typeof s?.rankIndex === 'number' ? RANKS[s.rankIndex] : null)
+                  || null;
                 const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
                 const tierIconVal = rankObj
                   ? (TIER_ICONS[rankObj.tier] || '🎮')
-                  : (rankName ? (TIER_ICONS[rankName.split(' ')[0]] || '🎮') : '?');
-                const tierIcon = (unranked || inPlac) ? null : tierIconVal;
+                  : (rankName ? (TIER_ICONS[rankName.split(' ')[0]] || null) : null);
+                const tierIcon = unranked ? null : tierIconVal;
                 const pColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                 const pLabel   = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
                 const platWR   = tot > 0 ? Math.round((s?.wins || 0) * 100 / tot) : null;

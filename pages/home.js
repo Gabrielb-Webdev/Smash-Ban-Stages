@@ -3040,14 +3040,14 @@ function TabPerfil({ user }) {
             const rankName  = st?.rank || '';
             const pts       = st?.rankPoints || 0;
             const isSmasher = rankName === 'SMASHer';
-            const rankObj   = RANKS.find(r => r.name === rankName);
+            const rankObj   = RANKS.find(r => r.name === rankName) || (typeof st?.rankIndex === 'number' ? RANKS[st.rankIndex] : null) || null;
             const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-            const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+            const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : null;
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'transform 0.15s', position: 'relative' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>{platLabel(plat)}</p>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: unranked ? 'rgba(255,255,255,0.05)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(255,255,255,0.1)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                  {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
+                  {(unranked || !tierIcon) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#FF8C00' : rankColor, textAlign: 'center' }}>
                   {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/10' : rankName}
@@ -3086,14 +3086,14 @@ function TabPerfil({ user }) {
             const rankName = st?.rank || '';
             const pts = st?.rankPoints || 0;
             const isSmasher = rankName === 'SMASHer';
-            const rankObj = RANKS.find(r => r.name === rankName);
+            const rankObj = RANKS.find(r => r.name === rankName) || (typeof st?.rankIndex === 'number' ? RANKS[st.rankIndex] : null) || null;
             const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-            const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+            const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : null;
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(124,58,237,0.04)' : inPlace ? 'rgba(124,58,237,0.06)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(124,58,237,0.12)' : inPlace ? 'rgba(124,58,237,0.25)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', position: 'relative' }}>
                 <p style={{ margin: '0 0 4px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>2v2 {platLabel(plat)}</p>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', background: unranked ? 'rgba(124,58,237,0.08)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(124,58,237,0.2)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                  {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon}
+                  {(unranked || !tierIcon) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#7C3AED' : rankColor, textAlign: 'center' }}>
                   {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/10' : rankName}

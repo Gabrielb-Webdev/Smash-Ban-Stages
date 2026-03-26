@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     const profile = await redis.get(playerKey(cleanId));
 
     if (full === 'true') {
-      const empty = { wins: 0, losses: 0, rankedPoints: 0, rank: 'Plástico 1' };
+      const empty = { wins: 0, losses: 0, rankPoints: 0, rank: 'Plástico I', rankIndex: 0, placementDone: false };
       const [sw1v1, pc1v1, sw2v2, pc2v2, history, recentChars] = await Promise.all([
         redis.get(rankedStatsKey(cleanId, 'switch')),
         redis.get(rankedStatsKey(cleanId, 'parsec')),

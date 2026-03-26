@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(400).json({ error: 'userId requerido' });
 
   const cleanId = sanitize(userId);
-  const empty = { wins: 0, losses: 0, rankedPoints: 0, rank: 'Plástico 1' };
+  const empty = { wins: 0, losses: 0, rankPoints: 0, rank: 'Plástico I', rankIndex: 0, placementDone: false };
 
   if (mode === 'doubles') {
     const [switchStats, parsecStats] = await Promise.all([
