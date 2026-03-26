@@ -3258,80 +3258,111 @@ function TabPerfil({ user }) {
 
         {/* ═══ MODAL RANGOS ═══ */}
         {showRanks && (
-          <div onClick={() => setShowRanks(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 360, maxHeight: '85vh', overflowY: 'auto', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
-              {/* Modal header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#12121E', borderRadius: '20px 20px 0 0', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 16 }}>🏅</span>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#fff' }}>Todos los rangos</p>
-                </div>
-                <button onClick={() => setShowRanks(false)} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <div onClick={() => setShowRanks(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderTop: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' }}>
+              {/* Drag handle */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 0', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
               </div>
-              {/* Ranks grid — estilo Valorant */}
-              <div style={{ padding: '8px 6px' }}>
-                {/* Tier headers */}
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🏅</span>
+                  <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Todos los rangos</p>
+                </div>
+                <button onClick={() => setShowRanks(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              </div>
+
+              {/* Scrollable content */}
+              <div style={{ overflowY: 'auto', flex: 1, padding: '12px 14px 24px' }}>
                 {(() => {
-                  const tiers = ['Plástico','Madera','Hierro','Bronce','Plata','Oro','Platino','Diamante','SMASHer'];
-                  const subLabels = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
+                  const tiers = [
+                    { name: 'Plástico', subs: 4 },
+                    { name: 'Madera',   subs: 4 },
+                    { name: 'Hierro',   subs: 4 },
+                    { name: 'Bronce',   subs: 4 },
+                    { name: 'Plata',    subs: 3 },
+                    { name: 'Oro',      subs: 3 },
+                    { name: 'Platino',  subs: 3 },
+                    { name: 'Diamante', subs: 3 },
+                  ];
+                  const subLabel = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
+                  const smasher = RANKS.find(x => x.name === 'SMASHer');
+
                   return (
-                    <>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 3, marginBottom: 3 }}>
-                        {tiers.map(tier => {
-                          const r0 = RANKS.find(r => r.tier === tier);
-                          return (
-                            <div key={tier} style={{ textAlign: 'center', padding: '4px 1px', borderBottom: '2px solid ' + (r0?.color || '#555') }}>
-                              <p style={{ margin: 0, fontSize: 7, fontWeight: 900, color: r0?.color || '#fff', textTransform: 'uppercase', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden' }}>{tier === 'SMASHer' ? 'SMSH' : tier.slice(0, 4).toUpperCase()}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {/* SMASHer — fila destacada arriba */}
+                      {smasher && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: smasher.bg, border: '1px solid ' + smasher.border, borderRadius: 14, marginBottom: 4 }}>
+                          <span style={{ fontSize: 28, lineHeight: 1 }}>{TIER_ICONS['SMASHer']}</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: '0 0 1px', fontSize: 16, fontWeight: 900, color: smasher.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>SMASHer</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>El rango más alto. Top 2% MMR de los jugadores activos.</p>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: smasher.color, background: smasher.bg, border: '1px solid ' + smasher.border, borderRadius: 8, padding: '3px 8px', whiteSpace: 'nowrap' }}>MMR visible</span>
+                        </div>
+                      )}
+
+                      {/* Tiers normales: Diamante → Plástico (de mayor a menor) */}
+                      {[...tiers].reverse().map(({ name, subs }) => {
+                        const icon = TIER_ICONS[name] || '🎮';
+                        const baseRank = RANKS.find(r => r.tier === name);
+                        if (!baseRank) return null;
+                        return (
+                          <div key={name} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden' }}>
+                            {/* Tier row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', borderLeft: '3px solid ' + baseRank.color }}>
+                              <span style={{ fontSize: 18 }}>{icon}</span>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: baseRank.color, textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1 }}>{name}</p>
+                              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{subs} subdivisiones</p>
                             </div>
-                          );
-                        })}
-                      </div>
-                      {/* Filas: subdivisión IV (top, mejor) → I (bottom, base) */}
-                      {[4, 3, 2, 1].map(sub => (
-                        <div key={sub} style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 3, marginBottom: 3 }}>
-                          {tiers.map(tier => {
-                            const icon = TIER_ICONS[tier] || '🎮';
-                            if (tier === 'SMASHer') {
-                              if (sub !== 4) return <div key={tier} />;
-                              const r = RANKS.find(x => x.name === 'SMASHer');
-                              if (!r) return <div key={tier} />;
-                              return (
-                                <div key={tier} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '5px 1px', background: r.bg, border: '1px solid ' + r.border, borderRadius: 8, gridRow: '1 / 5' }}>
-                                  <span style={{ fontSize: 16 }}>{icon}</span>
-                                  <p style={{ margin: 0, fontSize: 7, fontWeight: 800, color: r.color, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.2 }}>SMH</p>
-                                </div>
-                              );
-                            }
-                            const r = RANKS.find(x => x.tier === tier && x.subdivision === sub);
-                            if (!r) return <div key={tier} />;
-                            return (
-                              <div key={tier} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '5px 1px', background: r.bg, border: '1px solid ' + r.border, borderRadius: 8 }}>
-                                <span style={{ fontSize: 16 }}>{icon}</span>
-                                <p style={{ margin: 0, fontSize: 7, fontWeight: 800, color: r.color, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.2 }}>
-                                  {subLabels[sub]}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                      {/* Unranked row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 3, marginTop: 6 }}>
-                        <div style={{ gridColumn: '8 / 10', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '5px 2px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
-                          <span style={{ fontSize: 16 }}>❓</span>
-                          <p style={{ margin: 0, fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>UNRANKED</p>
+                            {/* Subdivisions row */}
+                            <div style={{ display: 'flex', padding: '8px 10px', gap: 6 }}>
+                              {Array.from({ length: subs }, (_, i) => subs - i).map(sub => {
+                                const r = RANKS.find(x => x.tier === name && x.subdivision === sub);
+                                if (!r) return null;
+                                return (
+                                  <div key={sub} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 4px', background: r.bg, border: '1px solid ' + r.border, borderRadius: 10 }}>
+                                    <span style={{ fontSize: 20 }}>{icon}</span>
+                                    <p style={{ margin: 0, fontSize: 11, fontWeight: 900, color: r.color }}>{subLabel[sub]}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Unranked */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12 }}>
+                        <span style={{ fontSize: 20 }}>❓</span>
+                        <div>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Unranked</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Sin partidas clasificatorias</p>
                         </div>
                       </div>
-                    </>
+
+                      {/* Explicación */}
+                      <div style={{ marginTop: 6, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>¿Cómo funciona?</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {[
+                            ['🎯', 'Jugá 10 partidas de clasificación para obtener tu rango inicial basado en MMR.'],
+                            ['📈', 'Cada victoria suma RR (Rank Rating, 0–100). Al llegar a 100 ascendés de subdivisión.'],
+                            ['⚡', 'Los upsets (ganar a alguien más fuerte) dan RR bonus. Perder contra más débiles penaliza más.'],
+                            ['🛡️', 'Al ascender tenés 2 partidas de escudo que te protegen del descenso.'],
+                            ['👑', 'SMASHer es dinámico: necesitás estar en el top 2% de MMR de jugadores activos.'],
+                          ].map(([emoji, text]) => (
+                            <div key={emoji} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                              <span style={{ fontSize: 13, flexShrink: 0 }}>{emoji}</span>
+                              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })()}
-                {/* Explicación */}
-                <div style={{ padding: '10px 8px', marginTop: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>¿Cómo funciona?</p>
-                  <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.5 }}>
-                    Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Ganá +20 RP por victoria, perdé -10 RP por derrota. Al llegar a 100 RP ascendés al siguiente rango. ¡Llegá a Smasher para ser el mejor!
-                  </p>
-                </div>
               </div>
             </div>
           </div>
