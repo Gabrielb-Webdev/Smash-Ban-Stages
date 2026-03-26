@@ -150,14 +150,7 @@ export default function StreamOverlayInc({ sessionId }) {
           boxShadow: '0 -4px 24px rgba(220,38,38,0.35), 0 -1px 0 rgba(220,38,38,0.5)',
         }}
       >
-        {/* Logo INC de fondo */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden" style={{ zIndex: 0 }}>
-          <img
-            src="/images/inc.png"
-            alt="INC"
-            style={{ width: '125px', height: 'auto', opacity: 0.75 }}
-          />
-        </div>
+        {/* Logo INC de fondo — eliminado */}
 
         {/* Personajes - entran girando cuando ambos seleccionaron */}
         {session.player1.character && session.player2.character && (
