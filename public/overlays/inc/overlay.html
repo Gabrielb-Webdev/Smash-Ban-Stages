@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=1920">
 <title>INC eSports – Overlay</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Bebas+Neue&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -25,14 +25,15 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 20px;
-    min-height: 100vh;
+    padding: 0;
+    overflow: hidden;
   }
 
   .overlay {
     width: 1200px;
     position: relative;
     user-select: none;
+    transform-origin: top center;
   }
 
   /* ══ BARRA PRINCIPAL ══ */
@@ -337,6 +338,15 @@
       }
     } catch {}
   }, 2000);
+
+  // Escala el overlay para que llene el ancho de la ventana
+  function scaleOverlay() {
+    const overlay = document.querySelector('.overlay');
+    const scale = window.innerWidth / 1200;
+    overlay.style.transform = `scale(${scale})`;
+  }
+  window.addEventListener('resize', scaleOverlay);
+  scaleOverlay();
 </script>
 </body>
 </html>
