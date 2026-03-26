@@ -129,32 +129,9 @@ export default function StreamOverlayInc({ sessionId }) {
     );
   }
 
-  if (error && error === 'Sesión no encontrada') {
+  if (!session || session.phase === 'IDLE' || !session.player1?.name) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Sesión no encontrada</h2>
-          <p className="text-white/70 text-lg mb-6">
-            Esta sesión no existe o ha expirado. Crea una nueva sesión desde el panel de administración.
-          </p>
-          <a href="/" className="inline-block px-6 py-3 bg-smash-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-all">
-            Ir al Panel de Administración
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-pulse text-6xl mb-4">🎮</div>
-          <p className="text-white text-xl">Esperando sesión...</p>
-          {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
-        </div>
-      </div>
+      <div className="min-h-screen bg-transparent" />
     );
   }
 

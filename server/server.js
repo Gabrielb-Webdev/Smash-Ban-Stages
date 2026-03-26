@@ -5,15 +5,17 @@ const { v4: uuidv4 } = require('uuid');
 // ── Persistencia de sesiones en Redis (Upstash REST) ─────────────────────────
 const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-const SESSION_TTL = 4 * 60 * 60; // 4 horas en segundos
+const SESSION_TTL        = 4 * 60 * 60;       // 4 horas en segundos (sesiones de match normales)
+const SESSION_TTL_STREAM = 30 * 24 * 60 * 60; // 30 días (sesiones de stream persistentes)
 
 async function redisSessionSet(sessionId, session) {
   if (!REDIS_URL || !REDIS_TOKEN) return;
+  const ttl = sessionId.endsWith('-stream') ? SESSION_TTL_STREAM : SESSION_TTL;
   try {
     await fetch(`${REDIS_URL}/pipeline`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify([['SET', `tournament:session:${sessionId}`, JSON.stringify(session), 'EX', String(SESSION_TTL)]]),
+      body: JSON.stringify([['SET', `tournament:session:${sessionId}`, JSON.stringify(session), 'EX', String(ttl)]]),
     });
   } catch (e) {
     console.error('⚠️ Redis session save error:', e.message);
@@ -751,6 +753,29 @@ io.on('connection', (socket) => {
         sessions._map.set(sessionId, session); // re-hidratar sin doble guardado
         console.log('📥 Sesión recuperada desde Redis:', sessionId);
       }
+    }
+    // Para sesiones de stream (*-stream): auto-crear sesión idle si no existe,
+    // así el overlay de OBS siempre puede suscribirse y recibirá updates cuando
+    // el admin llame un match (en lugar de reintentar indefinidamente).
+    if (!session && sessionId.endsWith('-stream')) {
+      const communityPrefix = sessionId.replace(/-stream$/, '');
+      session = {
+        sessionId,
+        community: communityPrefix,
+        createdAt: Date.now(),
+        phase: 'IDLE',
+        player1: { name: '', score: 0, character: null, wonStages: [] },
+        player2: { name: '', score: 0, character: null, wonStages: [] },
+        format: 'BO3',
+        currentGame: 1,
+        rpsWinner: null,
+        bannedStages: [],
+        selectedStage: null,
+        banHistory: [],
+        games: [],
+      };
+      sessions.set(sessionId, session); // persiste en Redis con TTL de 30 días
+      console.log('✨ Sesión stream auto-creada (idle):', sessionId);
     }
     if (session) {
       socket.join(sessionId);
