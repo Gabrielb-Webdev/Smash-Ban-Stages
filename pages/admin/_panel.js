@@ -195,7 +195,9 @@ export default function TestAdminPage() {
       const elapsed = Math.floor((Date.now() - set.timerStartedAt) / 1000);
       const remaining = 300 - elapsed;
       if (remaining <= 0) {
-        setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+        // Tiempo agotado al restaurar: cancelar match completo (session + start.gg + estado)
+        // Usar setTimeout para que stopMatchTimer tenga acceso al estado ya hidratado
+        setTimeout(() => stopMatchTimer(setupId), 0);
         return;
       }
       matchTimersRef.current[setupId] = { secondsLeft: remaining };
@@ -210,7 +212,8 @@ export default function TestAdminPage() {
           clearInterval(iv);
           delete matchTimersRef.current[setupId];
           setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-          setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+          // Cancelar match completo: session WS + reset start.gg + liberar setup
+          stopMatchTimer(setupId);
         }
       }, 1000);
       matchTimersRef.current[setupId].intervalId = iv;
