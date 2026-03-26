@@ -22,6 +22,16 @@ export default function StreamOverlayInc({ sessionId }) {
   const [showBanOnCard, setShowBanOnCard] = useState(false);
   const [showSelectOnCard, setShowSelectOnCard] = useState(false);
 
+  // Fondo transparente para usar sobre cámara en OBS
+  useEffect(() => {
+    document.body.style.background = 'transparent';
+    document.documentElement.style.background = 'transparent';
+    return () => {
+      document.body.style.background = '';
+      document.documentElement.style.background = '';
+    };
+  }, []);
+
   // Detectar ganador del RPS
   useEffect(() => {
     if (!session) return;
