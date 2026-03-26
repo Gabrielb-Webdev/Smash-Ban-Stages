@@ -237,7 +237,7 @@ async function applyFinishedStats(match, matchId) {
   lStats.rankIndex = lStats.rankIndex ?? getRankIndex(lStats.rank);
 
   // ── Procesar resultado con el nuevo sistema ──
-  const result = processMatchResult(wStats, lStats);
+  const result = processMatchResult(wStats, lStats, { stocksWon: finalStocks });
 
   // ── Guardar stats actualizados ──
   await redis.set(wKey, wStats);

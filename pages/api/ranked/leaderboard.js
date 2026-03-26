@@ -47,9 +47,18 @@ export default async function handler(req, res) {
     } : null)
     .filter(Boolean)
     .sort((a, b) => {
-      const sa = (a.rankIndex || 0) * 100 + (a.rankPoints || 0);
-      const sb = (b.rankIndex || 0) * 100 + (b.rankPoints || 0);
-      return sb - sa;
+      const aRanked = !!a.placementDone;
+      const bRanked = !!b.placementDone;
+      // Rankeados siempre antes que los que están en placement
+      if (aRanked !== bRanked) return aRanked ? -1 : 1;
+      if (aRanked) {
+        // Dentro de rankeados: por tier (rankIndex) y luego puntos
+        const sa = (a.rankIndex || 0) * 100 + (a.rankPoints || 0);
+        const sb = (b.rankIndex || 0) * 100 + (b.rankPoints || 0);
+        return sb - sa;
+      }
+      // Ambos en placement: por victorias
+      return (b.wins || 0) - (a.wins || 0);
     });
 
   return res.status(200).json({ players: leaderboard, total: total || leaderboard.length });

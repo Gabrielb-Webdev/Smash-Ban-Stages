@@ -70,6 +70,39 @@ function getNotifRoute(notif) {
   return { tab: 'match' };
 }
 
+const TOUR_STEPS = [
+  {
+    tab: 'perfil',
+    emoji: '👤',
+    title: 'Tu perfil',
+    desc: 'Acá ves tu rango ranked 1v1 y 2v2, tu personaje principal, historial de partidas y tus estadísticas generales. También podés cambiar tu main desde acá.',
+  },
+  {
+    tab: 'match',
+    emoji: '⚔️',
+    title: 'Ranked – Buscar partida',
+    desc: 'El botón central te manda a la cola de matchmaking. Te emparejamos con jugadores de rango similar; al terminar, tu rango, RR y MMR se actualizan según el resultado y los stocks con que ganaste.',
+  },
+  {
+    tab: 'rankings',
+    emoji: '🏆',
+    title: 'Rankings',
+    desc: 'El leaderboard de todos los jugadores, ordenado por rango. Los rankeados van primero (el de mayor tier y puntos arriba); los que aún están en sus 10 partidas de clasificatoria aparecen al fondo, ordenados por victorias.',
+  },
+  {
+    tab: 'torneos',
+    emoji: '📅',
+    title: 'Torneos',
+    desc: 'Los torneos activos de la comunidad. Podés inscribirte, seguir el bracket en tiempo real y ver tus partidas pendientes sin salir de la app.',
+  },
+  {
+    tab: 'tips',
+    emoji: '💡',
+    title: 'Tips',
+    desc: 'Consejos y guías de la comunidad para mejorar tu juego. 🎮 Daéle una mirada cuando quieras subir de rango más rápido.',
+  },
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser]       = useState(null);
@@ -104,6 +137,10 @@ export default function HomePage() {
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
   const [acceptCountdown, setAcceptCountdown] = useState(15);
+
+  // Tour de bienvenida
+  const [showTour, setShowTour]   = useState(false);
+  const [tourStep, setTourStep]   = useState(0);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -140,6 +177,23 @@ export default function HomePage() {
       }).catch(() => {});
     }
   }, []);
+
+  // Tour: mostrar en el primer uso
+  useEffect(() => {
+    if (!user) return;
+    try {
+      if (!localStorage.getItem('tour_done')) {
+        setTimeout(() => { setShowTour(true); setTourStep(0); }, 700);
+      }
+    } catch {}
+  }, [user?.id]);
+
+  // Tour: navegar al tab del paso actual
+  useEffect(() => {
+    if (!showTour) return;
+    const step = TOUR_STEPS[tourStep];
+    if (step?.tab) setTab(step.tab);
+  }, [showTour, tourStep]);
 
   // Capturar beforeinstallprompt (Android Chrome / Edge mobile)
   useEffect(() => {
@@ -1170,6 +1224,63 @@ export default function HomePage() {
           );
         })()}
       </div>
+
+      {/* ══ TOUR DE BIENVENIDA ══ */}
+      {showTour && (() => {
+        const step = TOUR_STEPS[tourStep];
+        const isLast = tourStep >= TOUR_STEPS.length - 1;
+        const finishTour = () => { setShowTour(false); try { localStorage.setItem('tour_done', '1'); } catch {} };
+        const nextTour = () => isLast ? finishTour() : setTourStep(s => s + 1);
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }}>
+            {/* Backdrop semitransparente — no bloquea interacción con la app */}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.60)', backdropFilter: 'blur(2px)' }} onClick={finishTour} />
+            {/* Tarjeta del tour */}
+            <div style={{
+              position: 'absolute', bottom: 88, left: 12, right: 12,
+              background: 'linear-gradient(160deg,#1A1A2E,#111118)',
+              border: '1px solid rgba(255,140,0,0.35)',
+              borderRadius: 20, padding: '18px 18px 14px',
+              boxShadow: '0 -4px 40px rgba(255,140,0,0.15)',
+              animation: 'slideUp 0.25s ease',
+              zIndex: 9999,
+            }} onClick={e => e.stopPropagation()}>
+              {/* Barra de progreso */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+                {TOUR_STEPS.map((_, i) => (
+                  <div key={i} style={{
+                    flex: 1, height: 3, borderRadius: 2,
+                    background: i <= tourStep ? '#FF8C00' : 'rgba(255,255,255,0.1)',
+                    transition: 'background 0.3s',
+                  }} />
+                ))}
+              </div>
+              {/* Paso actual */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 28, lineHeight: 1 }}>{step.emoji}</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color: '#fff', letterSpacing: '0.01em' }}>{step.title}</span>
+              </div>
+              <p style={{ margin: '0 0 14px', fontSize: 13.5, color: 'rgba(255,255,255,0.72)', lineHeight: 1.55 }}>
+                {step.desc}
+              </p>
+              {/* Botones */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button onClick={finishTour} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 13, cursor: 'pointer', padding: '6px 4px' }}>
+                  Saltar
+                </button>
+                <button onClick={nextTour} style={{
+                  background: 'linear-gradient(90deg,#FF8C00,#E85D00)', border: 'none',
+                  color: '#fff', fontWeight: 800, fontSize: 14,
+                  padding: '10px 26px', borderRadius: 12, cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(255,140,0,0.35)',
+                }}>
+                  {isLast ? '¡Entendido! 🎮' : 'Siguiente →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }
@@ -2928,11 +3039,11 @@ function TabPerfil({ user }) {
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'transform 0.15s', position: 'relative' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>{platLabel(plat)}</p>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: (unranked || inPlace) ? 'rgba(255,255,255,0.05)' : rankColor + '18', border: '2px solid ' + ((unranked || inPlace) ? 'rgba(255,255,255,0.1)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                  {(unranked || inPlace) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: unranked ? 'rgba(255,255,255,0.05)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(255,255,255,0.1)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                  {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#FF8C00' : rankColor, textAlign: 'center' }}>
-                  {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/5' : rankName}
+                  {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/10' : rankName}
                 </p>
                 {!unranked && !inPlace && !isSmasher && (
                   <div style={{ width: '100%', marginTop: 6 }}>
@@ -2974,11 +3085,11 @@ function TabPerfil({ user }) {
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(124,58,237,0.04)' : inPlace ? 'rgba(124,58,237,0.06)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(124,58,237,0.12)' : inPlace ? 'rgba(124,58,237,0.25)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', position: 'relative' }}>
                 <p style={{ margin: '0 0 4px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>2v2 {platLabel(plat)}</p>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: (unranked || inPlace) ? 'rgba(124,58,237,0.08)' : rankColor + '18', border: '2px solid ' + ((unranked || inPlace) ? 'rgba(124,58,237,0.2)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                  {(unranked || inPlace) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon}
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: unranked ? 'rgba(124,58,237,0.08)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(124,58,237,0.2)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                  {unranked ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#7C3AED' : rankColor, textAlign: 'center' }}>
-                  {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/5' : rankName}
+                  {unranked ? 'UNRANKED' : inPlace ? 'CLAS. ' + total + '/10' : rankName}
                 </p>
                 {!unranked && !inPlace && !isSmasher && (
                   <div style={{ width: '100%', marginTop: 4 }}>
