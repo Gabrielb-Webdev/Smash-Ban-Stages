@@ -546,11 +546,12 @@ const httpServer = createServer(async (req, res) => {
         const p1 = (session.player1?.name || '').toLowerCase().trim();
         const p2 = (session.player2?.name || '').toLowerCase().trim();
         if (p1.includes(name) || p2.includes(name) || (name.length > 2 && (p1.startsWith(name) || p2.startsWith(name)))) {
-          found.push({ sessionId, player1: session.player1?.name, player2: session.player2?.name, phase: session.phase, checkIns: session.checkIns || [] });
+          found.push({ sessionId, player1: session.player1?.name, player2: session.player2?.name, phase: session.phase, checkIns: session.checkIns || [], createdAt: session.createdAt || 0 });
         }
       });
-      // Ordenar por sessionId descendente (los IDs contienen timestamp base-36 al final → más nuevo primero)
-      found.sort((a, b) => b.sessionId.localeCompare(a.sessionId));
+      // Ordenar por createdAt descendente — la sesión más reciente va primero
+      // (sort lexicográfico previo era incorrecto: 'stream' > '1' y tapaba setups numerados)
+      found.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(found));
     } catch (e) {
