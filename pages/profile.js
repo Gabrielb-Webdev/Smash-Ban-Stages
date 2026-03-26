@@ -635,7 +635,7 @@ export default function ProfilePage() {
                 const inPlac   = !s?.placementDone && tot > 0;
                 const rankName = s?.rank || '';
                 const pts      = s?.rankPoints || 0;
-                const isSmasher= rankName === 'Smasher';
+                const isSmasher= rankName === 'SMASHer';
                 const rankObj  = RANKS.find(r => r.name === rankName);
                 const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
                 const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || 'ðŸŽ®') : '?';
@@ -654,7 +654,7 @@ export default function ProfilePage() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: unranked ? 'rgba(255,255,255,0.2)' : inPlac ? '#FF8C00' : rankColor }}>
-                          {unranked ? 'UNRANKED' : inPlac ? `CLAS. ${tot}/5` : rankName}
+                          {unranked ? 'UNRANKED' : inPlac ? `CLAS. ${tot}/10` : rankName}
                         </p>
                         <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
                           <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
