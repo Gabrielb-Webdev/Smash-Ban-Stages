@@ -1,7 +1,8 @@
 // ============================================================
 // TABLET CONTROL - INC
 // Archivo exclusivo para INC. No tocar para otras comunidades.
-// Stages Game 1: Small Battlefield, Town and City, Pokemon Stadium 2, Hollow Bastion, Battlefield
+// Stages Game 1: Battlefield, Small Battlefield, Town and City, Smashville, Pokemon Stadium 2
+// Stages Game 2+: + Final Destination, Hollow Bastion, Kalos
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -71,11 +72,11 @@ function StageSelectButton({ stageId, stageName, stageImage, isBanned, onClick, 
 
 // ── Stages hardcodeados para Game 1 de INC ─────────────────
 const GAME1_STAGES_INC = [
+  { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
   { id: 'small-battlefield', name: 'Small Battlefield', image: '/images/stages/Small Battlefield.png' },
   { id: 'town-and-city',     name: 'Town and City',     image: '/images/stages/Town and City.png' },
+  { id: 'smashville',        name: 'Smashville',        image: '/images/stages/Smashville.png' },
   { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', image: '/images/stages/Pokemon Stadium 2.png' },
-  { id: 'hollow-bastion',    name: 'Hollow Bastion',    image: '/images/stages/Hollow Bastion.png' },
-  { id: 'battlefield',       name: 'Battlefield',       image: '/images/stages/Battlefield.png' },
 ];
 
 // ── Pantalla de espera de turno ──

@@ -71,6 +71,7 @@ export default function ProfilePage() {
   const [mainCharAlt, setMainCharAlt] = useState(null);
   const [showMainPicker, setShowMainPicker] = useState(false);
   const [pickerStep, setPickerStep] = useState('char'); // 'char' | 'alt'
+  const [parsecRole, setParsecRole] = useState(null); // 'host' | 'nohost' | null
 
   const refreshStartgg = () => {
     if (refreshing) return;
@@ -125,6 +126,7 @@ export default function ProfilePage() {
       .then(p => {
         if (p?.mainChar) { setMainChar(p.mainChar); try { localStorage.setItem('afk_main_char', p.mainChar); } catch {} }
         if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
+        if (p?.parsecRole) { setParsecRole(p.parsecRole); }
       })
       .catch(() => {});
 
@@ -237,6 +239,23 @@ export default function ProfilePage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: uid, mainChar: null, mainCharAlt: null }),
+      }).catch(() => {});
+    }
+  };
+
+  const changeParsecRole = (role) => {
+    const newRole = parsecRole === role ? null : role; // toggle off si es el mismo
+    setParsecRole(newRole);
+    try {
+      if (newRole) localStorage.setItem('afk_parsec_role', newRole);
+      else localStorage.removeItem('afk_parsec_role');
+    } catch {}
+    const uid = user?.id || user?.slug;
+    if (uid) {
+      fetch('/api/players/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid, parsecRole: newRole }),
       }).catch(() => {});
     }
   };
@@ -394,8 +413,8 @@ export default function ProfilePage() {
                 {/* Platform breakdown */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                   {[
-                    { label: 'ðŸŽ® Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
-                    { label: 'ðŸ–¥ï¸ Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
+                    { label: '🎮 Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
+                    { label: '🖥️ Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
                   ].map((p, i) => (
                     <div key={i} style={{ padding: '14px 20px', borderRight: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                       <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</p>
@@ -638,9 +657,12 @@ export default function ProfilePage() {
                 const isSmasher= rankName === 'SMASHer';
                 const rankObj  = RANKS.find(r => r.name === rankName);
                 const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-                const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || 'ðŸŽ®') : '?';
+                const tierIconVal = rankObj
+                  ? (TIER_ICONS[rankObj.tier] || '🎮')
+                  : (rankName ? (TIER_ICONS[rankName.split(' ')[0]] || '🎮') : '?');
+                const tierIcon = (unranked || inPlac) ? null : tierIconVal;
                 const pColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
-                const pLabel   = plat === 'switch' ? 'ðŸŽ® Switch Online' : 'ðŸ–¥ï¸ Parsec';
+                const pLabel   = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
                 const platWR   = tot > 0 ? Math.round((s?.wins || 0) * 100 / tot) : null;
                 return (
                   <div key={plat} style={{ background: unranked ? 'rgba(255,255,255,0.03)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : rankColor + '35'}`, borderRadius: 20, padding: '20px' }}>
@@ -649,8 +671,8 @@ export default function ProfilePage() {
                       <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{tot} partidas</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                      <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: (unranked || inPlac) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(unranked || inPlac) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
-                        {(unranked || inPlac) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 24 }}>?</span> : tierIcon}
+                      <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: tierIcon ? `${rankColor}18` : 'rgba(255,255,255,0.05)', border: `2px solid ${tierIcon ? rankColor + '55' : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
+                        {tierIcon || <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 24 }}>?</span>}
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: unranked ? 'rgba(255,255,255,0.2)' : inPlac ? '#FF8C00' : rankColor }}>
@@ -698,7 +720,7 @@ export default function ProfilePage() {
                   {history.map((m, i) => {
                     const isWin    = String(m.winnerId) === String(user.id || user.slug);
                     const opponent = isWin ? m.loserName : m.winnerName;
-                    const pLabel   = m.platform === 'switch' ? 'ðŸŽ® Switch' : 'ðŸ–¥ï¸ Parsec';
+                    const pLabel   = m.platform === 'switch' ? '🎮 Switch' : '🖥️ Parsec';
                     return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
                         <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
@@ -718,8 +740,26 @@ export default function ProfilePage() {
           )}
 
           {/* Logout */}
-          <button onClick={() => { logout(); window.location.href = '/login'; }} style={{ marginTop: 32, width: '100%', padding: '14px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            Cerrar sesiÃ³n
+          <div style={{ marginTop: 28 }}>
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ajustes de Parsec</p>
+            <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 16, padding: '14px 16px' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#fff' }}>Modo de conexión en Parsec</p>
+              <p style={{ margin: '0 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+                Indicá si podés hostear una sesión. Esto evita que el sistema te empareje con otro jugador que tampoco puede hostear.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => changeParsecRole('host')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+                  {parsecRole === 'host' ? '✓ ' : ''}Host
+                </button>
+                <button onClick={() => changeParsecRole('nohost')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+                  {parsecRole === 'nohost' ? '✓ ' : ''}No Host
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={() => { logout(); window.location.href = '/login'; }} style={{ marginTop: 24, width: '100%', padding: '14px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+            Cerrar sesión
           </button>
         </div>
       </div>

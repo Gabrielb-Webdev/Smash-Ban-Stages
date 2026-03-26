@@ -1206,19 +1206,26 @@ export default function HomePage() {
                     }}>{acceptCountdown}</p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={handleDeclineMatch} style={{
-                    flex: 1, padding: '13px', borderRadius: 14,
-                    border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
-                    color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer',
-                  }}>Rechazar</button>
-                  <button onClick={handleAcceptMatch} style={{
-                    flex: 2, padding: '13px', borderRadius: 14, border: 'none',
-                    background: 'linear-gradient(135deg,#22C55E,#16A34A)',
-                    color: '#fff', fontWeight: 900, fontSize: 15, cursor: 'pointer',
-                    boxShadow: '0 6px 20px rgba(34,197,94,0.35)',
-                  }}>✅ Aceptar</button>
-                </div>
+                {(() => {
+                  const iDidAccept = bgMM.room?.acceptedBy?.includes(uid);
+                  return (
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button onClick={handleDeclineMatch} disabled={iDidAccept} style={{
+                        flex: 1, padding: '13px', borderRadius: 14,
+                        border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
+                        color: iDidAccept ? 'rgba(239,68,68,0.3)' : '#EF4444', fontWeight: 800, fontSize: 14, cursor: iDidAccept ? 'default' : 'pointer',
+                      }}>Rechazar</button>
+                      <button onClick={iDidAccept ? undefined : handleAcceptMatch} disabled={iDidAccept} style={{
+                        flex: 2, padding: '13px', borderRadius: 14,
+                        border: iDidAccept ? '1px solid rgba(34,197,94,0.35)' : 'none',
+                        background: iDidAccept ? 'rgba(34,197,94,0.12)' : 'linear-gradient(135deg,#22C55E,#16A34A)',
+                        color: iDidAccept ? '#22C55E' : '#fff', fontWeight: 900, fontSize: 15,
+                        cursor: iDidAccept ? 'default' : 'pointer',
+                        boxShadow: iDidAccept ? 'none' : '0 6px 20px rgba(34,197,94,0.35)',
+                      }}>{iDidAccept ? '✅ Aceptado — Esperando rival…' : '✅ Aceptar'}</button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );
@@ -3408,7 +3415,7 @@ function TabPerfil({ user }) {
                           <span style={{ fontSize: 28, lineHeight: 1 }}>{TIER_ICONS['SMASHer']}</span>
                           <div style={{ flex: 1 }}>
                             <p style={{ margin: '0 0 1px', fontSize: 16, fontWeight: 900, color: smasher.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>SMASHer</p>
-                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>El rango más alto. Top 2% MMR de los jugadores activos.</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>El rango más alto. Dinámico: se requiere estar entre los mejores MMR activos.</p>
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 800, color: smasher.color, background: smasher.bg, border: '1px solid ' + smasher.border, borderRadius: 8, padding: '3px 8px', whiteSpace: 'nowrap' }}>MMR visible</span>
                         </div>
@@ -3462,7 +3469,7 @@ function TabPerfil({ user }) {
                             ['📈', 'Cada victoria suma RR (Rank Rating, 0–100). Al llegar a 100 ascendés de subdivisión.'],
                             ['⚡', 'Los upsets (ganar a alguien más fuerte) dan RR bonus. Perder contra más débiles penaliza más.'],
                             ['🛡️', 'Al ascender tenés 2 partidas de escudo que te protegen del descenso.'],
-                            ['👑', 'SMASHer es dinámico: necesitás estar en el top 2% de MMR de jugadores activos.'],
+                            ['👑', 'SMASHer es dinámico: necesitás mantenerte entre los mejores MMR de la comunidad activa.'],
                           ].map(([emoji, text]) => (
                             <div key={emoji} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                               <span style={{ fontSize: 13, flexShrink: 0 }}>{emoji}</span>
@@ -4576,7 +4583,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
     return (
       <div style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(232,142,0,0.07)' }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#FF8C00' }}>âœï¸ Editando tip</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#FF8C00' }}>✏️ Editando tip</span>
         </div>
         {previewMedia && (
           previewIsVideo
@@ -4638,7 +4645,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
           {isOwner && (
             <>
               <button onClick={openEdit} title="Editar"
-                style={{ background: 'none', border: 'none', color: 'rgba(255,200,0,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>âœï¸</button>
+                style={{ background: 'none', border: 'none', color: 'rgba(255,200,0,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>✏️</button>
               <button onClick={handleDelete} title="Eliminar"
                 style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>🗑️</button>
             </>
@@ -5271,9 +5278,10 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
     setLoading(true); setFormError(null);
     try {
+      const parsecRole = typeof window !== 'undefined' ? localStorage.getItem('afk_parsec_role') : null;
       const r = await fetch('/api/matchmaking/queue', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar }),
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, parsecRole }),
       });
       const data = await r.json();
       if (r.status === 409) {
@@ -5517,12 +5525,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </div>
         )}
 
-        <div style={{ background: 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 32 }}>{STAGE_EMOJI[stage] || '🗺️'}</span>
-          <div>
-            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,165,0,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario</p>
+        <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(232,142,0,0.2)', height: 88 }}>
+          {STAGE_IMG[stage] && (
+            <img src={STAGE_IMG[stage]} alt={stage} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+          <div style={{ position: 'relative', background: STAGE_IMG[stage] ? 'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 65%, transparent 100%)' : 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', padding: '14px 16px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,165,0,0.8)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario</p>
             <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#FF8C00' }}>{stage}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Stock 3 · 7 min · Sin objetos</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stock 3 · 7 min · Sin objetos</p>
           </div>
         </div>
 
@@ -5634,6 +5644,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   // ═══ RENDER: BANNING (Bo3 stage bans) ══════════════════════════════════
   if (matchStatus === 'banning' && matchData) {
     const opponent = uid === matchData.host?.userId ? matchData.guest : matchData.host;
+    const myData = uid === matchData.host?.userId ? matchData.host : matchData.guest;
+    const myChar = CHARACTERS.find(c => c.id === myData?.charId);
+    const oppChar = CHARACTERS.find(c => c.id === opponent?.charId);
     const gameNum = matchData.currentGame || 1;
     const myScore = matchData.score?.[uid] || 0;
     const oppScore = matchData.score?.[opponent?.userId] || 0;
@@ -5723,6 +5736,21 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             </p>
           </div>
         </div>
+
+        {/* Personajes */}
+        {(myChar || oppChar) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '10px 14px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(34,197,94,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#34D399' }}>{myChar?.name || '—'}</p>
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
+              {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+            </div>
+          </div>
+        )}
 
         {/* Subtitle / Phase */}
         <div style={{ textAlign: 'center', padding: '10px 16px', background: 'rgba(232,142,0,0.08)', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 14 }}>

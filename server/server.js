@@ -140,6 +140,10 @@ const MENDOZA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemo
 const CORDOBA_STAGES_GAME1 = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield'];
 const CORDOBA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
 
+// Constantes para stages - INC
+const INC_STAGES_GAME1 = ['battlefield', 'small-battlefield', 'town-and-city', 'smashville', 'pokemon-stadium-2'];
+const INC_STAGES_GAME2_PLUS = ['battlefield', 'small-battlefield', 'town-and-city', 'smashville', 'pokemon-stadium-2', 'final-destination', 'hollow-bastion', 'kalos'];
+
 // Función para detectar el torneo basado en sessionId
 function detectTournament(sessionId) {
   console.log('🔍 SERVER detectTournament input:', sessionId);
@@ -183,6 +187,12 @@ function detectTournament(sessionId) {
       return 'mendoza';
     }
   }
+
+  // Detectar INC
+  if (s === 'inc' || s.startsWith('inc-') || s.includes('-inc') || s.includes('/inc')) {
+    console.log('✅ INC detected');
+    return 'inc';
+  }
   
   console.log('⚪ No match found, defaulting to cordoba');
   return 'cordoba'; // Por defecto
@@ -208,6 +218,12 @@ function getStagesForTournament(sessionId, currentGame) {
   if (tournament === 'mendoza') {
     const stages = currentGame === 1 ? MENDOZA_STAGES_GAME1 : MENDOZA_STAGES_GAME2_PLUS;
     console.log('✅ Mendoza ruleset selected:', stages);
+    return stages;
+  }
+
+  if (tournament === 'inc') {
+    const stages = currentGame === 1 ? INC_STAGES_GAME1 : INC_STAGES_GAME2_PLUS;
+    console.log('✅ INC ruleset selected:', stages);
     return stages;
   }
   
@@ -1369,10 +1385,41 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0'; // Escuchar en todas las interfaces (necesario para Railway)
 
-httpServer.listen(PORT, HOST, () => {
-  console.log(`✅ Servidor WebSocket corriendo en ${HOST}:${PORT}`);
-  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check disponible en http://${HOST}:${PORT}/health`);
+// Re-hidratar sesiones activas desde Redis al arrancar (evita pérdida de datos en deploy)
+async function hydrateSessionsFromRedis() {
+  if (!REDIS_URL || !REDIS_TOKEN) return;
+  try {
+    let cursor = '0';
+    let totalLoaded = 0;
+    do {
+      const r = await fetch(
+        `${REDIS_URL}/scan/${cursor}/match/${encodeURIComponent('tournament:session:*')}/count/100`,
+        { headers: { Authorization: `Bearer ${REDIS_TOKEN}` } }
+      );
+      const data = await r.json();
+      if (!data.result) break;
+      cursor = String(data.result[0]);
+      const keys = data.result[1] || [];
+      for (const key of keys) {
+        const sessionId = key.replace('tournament:session:', '');
+        if (!sessions._map.has(sessionId)) {
+          const session = await redisSessionGet(sessionId);
+          if (session) { sessions._map.set(sessionId, session); totalLoaded++; }
+        }
+      }
+    } while (cursor !== '0');
+    if (totalLoaded > 0) console.log(`✅ Re-hidratadas ${totalLoaded} sesiones desde Redis`);
+  } catch (e) {
+    console.error('⚠️  Error al hidratar sesiones desde Redis:', e.message);
+  }
+}
+
+hydrateSessionsFromRedis().then(() => {
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`✅ Servidor WebSocket corriendo en ${HOST}:${PORT}`);
+    console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Health check disponible en http://${HOST}:${PORT}/health`);
+  });
 });
 
 // Mantener el proceso vivo

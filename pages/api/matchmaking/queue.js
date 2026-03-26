@@ -105,6 +105,9 @@ async function tryMatch(platform) {
       // Ambos jugadores deben aceptar la diferencia dentro de SU bracket
       if (mmrDiff > p1Range || mmrDiff > p2Range) continue;
 
+      // Bloquear no-host vs no-host en Parsec
+      if (platform === 'parsec' && p1.parsecRole === 'nohost' && p2.parsecRole === 'nohost') continue;
+
       // Anti queue-sniping
       const pairKey = matchupPairKey(p1.userId, p2.userId);
       const dailyCount = matchupsRaw[pairKey] || 0;
@@ -197,14 +200,15 @@ export default async function handler(req, res) {
 
   // ── POST: unirse a la cola ────────────────────────────
   if (req.method === 'POST') {
-    const { userId, userName, platform, charId } = req.body || {};
+    const { userId, userName, platform, charId, parsecRole } = req.body || {};
     if (!userId || !userName || !['switch', 'parsec'].includes(platform)) {
       return res.status(400).json({ error: 'userId, userName y platform requeridos' });
     }
 
-    const cleanUserId   = sanitize(userId);
-    const cleanUserName = sanitize(userName);
-    const cleanCharId   = sanitize(charId || '');
+    const cleanUserId    = sanitize(userId);
+    const cleanUserName  = sanitize(userName);
+    const cleanCharId    = sanitize(charId || '');
+    const cleanParsecRole = parsecRole === 'host' || parsecRole === 'nohost' ? parsecRole : null;
 
     // Check si ya está en cola
     const queue = await pruneQueue(platform);
@@ -215,6 +219,7 @@ export default async function handler(req, res) {
     const entry = {
       userId: cleanUserId, userName: cleanUserName, platform,
       charId: cleanCharId || null,
+      parsecRole: cleanParsecRole,
       joinedAt: new Date().toISOString(),
     };
 
