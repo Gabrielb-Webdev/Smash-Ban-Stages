@@ -145,6 +145,7 @@ export default function TestAdminPage() {
   const panelSocketRef    = useRef(null);
   const isRemoteAssignRef  = useRef(false); // true cuando el cambio viene de otro cliente
   const isRemoteStateRef   = useRef(false); // true cuando el cambio de estado viene de otro cliente
+  const hasReceivedInitialPanelState = useRef(false); // true una vez recibido el estado inicial del servidor
 
   // Formato por setup (BO3 o BO5): { [setupId]: 'BO3'|'BO5' }
   const [setupFormats, setSetupFormats] = useState(() => {
@@ -173,7 +174,8 @@ export default function TestAdminPage() {
     assignedSetsRef.current = assignedSets;
     try { localStorage.setItem(lsk('assignedSets', community), JSON.stringify(assignedSets)); } catch {}
     // Broadcast a otros admins conectados, salvo que el cambio viniera de ellos
-    if (!isRemoteAssignRef.current && panelSocketRef.current?.connected) {
+    // Esperar a recibir el estado inicial del servidor antes de emitir (evita sobrescribir datos válidos al recargar)
+    if (!isRemoteAssignRef.current && hasReceivedInitialPanelState.current && panelSocketRef.current?.connected) {
       panelSocketRef.current.emit('panel:assign-update', { community, assignedSets });
     }
     isRemoteAssignRef.current = false;
@@ -463,7 +465,11 @@ export default function TestAdminPage() {
     verifySession().then(data => {
       if (!data) { router.replace('/login'); return; }
       const comm = _communitySync();
-      const hasAccess = data.isAdmin || data.adminCommunities?.includes(comm);
+      // Las comunidades en Redis usan claves cortas (ej: 'afk'), pero la URL puede
+      // usar nombres distintos (ej: 'afk-multi'). Mapear para la verificación de acceso.
+      const COMMUNITY_KEY_MAP = { 'afk-multi': 'afk' };
+      const authComm = COMMUNITY_KEY_MAP[comm] || comm;
+      const hasAccess = data.isAdmin || data.adminCommunities?.includes(authComm);
       if (!hasAccess) { router.replace('/'); return; }
       setUser(data.user);
       setChecking(false);
@@ -510,6 +516,8 @@ export default function TestAdminPage() {
     socket.on('connect', () => {
       console.log('🎮 Panel admin conectado al WS');
       socket.emit('panel:join', { community: comm });
+      // Si el servidor no tiene estado guardado, habilitar broadcast después de 5s como fallback
+      setTimeout(() => { hasReceivedInitialPanelState.current = true; }, 5000);
     });
 
     // Reconstruye/sincroniza los timers locales cuando llegan assignedSets por WS.
@@ -570,6 +578,7 @@ export default function TestAdminPage() {
 
     socket.on('panel:state-update', ({ state }) => {
       if (!state) return;
+      hasReceivedInitialPanelState.current = true;
       isRemoteStateRef.current = true;
       if (state.selectedSlug         !== undefined) setSelectedSlug(state.selectedSlug);
       if (state.selectedPhaseGroupId !== undefined) setSelectedPhaseGroupId(state.selectedPhaseGroupId);
@@ -815,8 +824,8 @@ export default function TestAdminPage() {
         const slugsList = savedData.slugs || [];
         setSavedSlugs(slugsList);
 
-        // Solo mostrar torneos que no estén completados (state 1=CREATED, 2=ACTIVE)
-        const available = (syncData.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE');
+        // Solo mostrar torneos activos/creados; también incluir series aunque estén completadas
+        const available = (syncData.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE' || t.series);
 
         // Incluir el torneo actualmente gestionado aunque no esté en sync-startgg
         const activeTournament = tournament;

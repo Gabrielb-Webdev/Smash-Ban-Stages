@@ -265,6 +265,8 @@ async function fetchStartggTournaments(token) {
   }).filter(t => {
     const state = t.state;
     if (state === 4 || state === 'CANCELLED') return false;
+    // Las series se mantienen aunque estén completadas (se elige la más reciente luego)
+    if (t.series) return true;
     if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;
     if (t.endAt && new Date(t.endAt).getTime() > now) return true;
     if (t.startAt && new Date(t.startAt).getTime() > now) return true;

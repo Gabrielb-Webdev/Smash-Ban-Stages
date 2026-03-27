@@ -654,6 +654,7 @@ io.on('connection', (socket) => {
       session.phase = 'RPS';
       session.rpsWinner = null;
       session.rpsProposal = null;
+      session.rpsGame = null;
       session.lastGameWinner = null;
       session.currentTurn = null;
       session.availableStages = [];
@@ -685,6 +686,7 @@ io.on('connection', (socket) => {
         phase: 'RPS', // "RPS", "STAGE_BAN", "STAGE_SELECT", "CHARACTER_SELECT", "PLAYING", "FINISHED"
         rpsWinner: null,
         rpsProposal: null,
+        rpsGame: null,
         lastGameWinner: null,
         currentTurn: null,
         availableStages: [],
@@ -997,6 +999,101 @@ io.on('connection', (socket) => {
     }
   });
 
+  // RPS real — cada jugador elige piedra, papel o tijeras; el servidor determina el ganador
+  socket.on('rps-pick', ({ sessionId, pick, pickedBy }) => {
+    const session = sessions.get(sessionId);
+    if (!session || session.phase !== 'RPS') return;
+
+    const validPicks = ['rock', 'paper', 'scissors'];
+    if (!validPicks.includes(pick)) return;
+
+    // Solo jugadores identificados pueden elegir
+    if (pickedBy !== 'player1' && pickedBy !== 'player2') return;
+
+    // Inicializar rpsGame si es necesario
+    if (!session.rpsGame) {
+      session.rpsGame = { picks: { player1: null, player2: null }, revealed: false, winner: null, round: 1 };
+    }
+
+    // Si ya está revelado (empate reseteando o partida terminada), ignorar
+    if (session.rpsGame.revealed) return;
+
+    // Si este jugador ya eligió, ignorar (no se puede cambiar)
+    if (session.rpsGame.picks[pickedBy]) return;
+
+    session.rpsGame.picks[pickedBy] = pick;
+    sessions.set(sessionId, session);
+    io.to(sessionId).emit('session-updated', { session });
+    console.log(`✊ RPS: ${pickedBy} eligió ${pick} en ${sessionId} (ronda ${session.rpsGame.round})`);
+
+    // Si no están los dos, esperar
+    const { player1: p1pick, player2: p2pick } = session.rpsGame.picks;
+    if (!p1pick || !p2pick) return;
+
+    // Ambos eligieron — determinar ganador
+    let winner = null;
+    if (p1pick === p2pick) {
+      winner = null; // empate
+    } else if (
+      (p1pick === 'rock'     && p2pick === 'scissors') ||
+      (p1pick === 'paper'    && p2pick === 'rock')     ||
+      (p1pick === 'scissors' && p2pick === 'paper')
+    ) {
+      winner = 'player1';
+    } else {
+      winner = 'player2';
+    }
+
+    session.rpsGame.revealed = true;
+    session.rpsGame.winner = winner;
+    sessions.set(sessionId, session);
+    io.to(sessionId).emit('session-updated', { session });
+    console.log(`✊ RPS revelado: ${p1pick} vs ${p2pick} → ${winner || 'EMPATE'} en ${sessionId}`);
+
+    if (winner === null) {
+      // Empate: resetear después de 3s
+      setTimeout(() => {
+        const s = sessions.get(sessionId);
+        if (!s || s.phase !== 'RPS') return;
+        s.rpsGame = { picks: { player1: null, player2: null }, revealed: false, winner: null, round: (s.rpsGame?.round || 1) + 1 };
+        sessions.set(sessionId, s);
+        io.to(sessionId).emit('session-updated', { session: s });
+        console.log(`☏️ RPS empate — reiniciando ronda ${s.rpsGame.round} en ${sessionId}`);
+      }, 3000);
+    } else {
+      // Ganador: avanzar de fase después de 2.5s
+      setTimeout(() => {
+        const s = sessions.get(sessionId);
+        if (!s || s.phase !== 'RPS') return;
+
+        s.rpsWinner = winner;
+        s.rpsProposal = null;
+        s.phase = 'CHARACTER_SELECT';
+        s.currentTurn = s.currentGame === 1 ? winner : s.lastGameWinner || winner;
+
+        const availableStages = getStagesForTournament(sessionId, s.currentGame);
+        s.availableStages = [...availableStages];
+
+        if (s.currentGame === 1) {
+          s.totalBansNeeded = 3;
+          s.bansRemaining = 1;
+        } else {
+          if (s.lastGameWinner) {
+            const winnerStages = s[s.lastGameWinner].wonStages;
+            s.availableStages = s.availableStages.filter(st => !winnerStages.includes(st));
+          }
+          s.currentTurn = s.lastGameWinner;
+          s.totalBansNeeded = 3;
+          s.bansRemaining = 3;
+        }
+        s.bannedStages = [];
+        sessions.set(sessionId, s);
+        io.to(sessionId).emit('session-updated', { session: s });
+        console.log(`\uD83D\uDE80 RPS resuelto → CHARACTER_SELECT en ${sessionId} (ganador: ${winner})`);
+      }, 2500);
+    }
+  });
+
   // Banear un stage
   socket.on('ban-stage', ({ sessionId, stage, player }) => {
     const session = sessions.get(sessionId);
@@ -1138,11 +1235,11 @@ io.on('connection', (socket) => {
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
       } else {
-        // Ambos han seleccionado, cambiar a STAGE_BAN (delay solo en stream)
+        // Ambos han seleccionado, cambiar a STAGE_BAN (delay para animación VS)
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
         
-        const phaseDelay = sessionId.toLowerCase().includes('stream') ? 2000 : 0;
+        const phaseDelay = 2500;
         setTimeout(() => {
           const updatedSession = sessions.get(sessionId);
           if (updatedSession && updatedSession.phase === 'CHARACTER_SELECT') {
@@ -1309,6 +1406,7 @@ io.on('connection', (socket) => {
       session.phase = 'RPS';
       session.rpsWinner = null;
       session.rpsProposal = null;
+      session.rpsGame = null;
       session.lastGameWinner = null;
       session.currentTurn = null;
       session.availableStages = [];

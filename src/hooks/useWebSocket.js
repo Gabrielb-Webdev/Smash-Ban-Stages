@@ -167,6 +167,12 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
+  const rpsPick = (sessionId, pick, pickedBy) => {
+    if (socket) {
+      socket.emit('rps-pick', { sessionId, pick, pickedBy });
+    }
+  };
+
   const banStage = (sessionId, stage, player) => {
     if (socket) {
       socket.emit('ban-stage', { sessionId, stage, player });
@@ -286,5 +292,6 @@ export const useWebSocket = (sessionId) => {
     requestMatchDelay,
     playerUnavailable,
     enableSingleDevice,
+    rpsPick,
   };
 };

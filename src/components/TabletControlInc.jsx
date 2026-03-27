@@ -97,7 +97,7 @@ const INC_BG = 'linear-gradient(160deg, #0c0102 0%, #260206 50%, #3d0508 100%)';
 
 // ───────────────────────────────────────────────────────────────
 export default function TabletControlInc({ sessionId, playerName, playerIndex }) {
-  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay } = useWebSocket(sessionId);
+  const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay, rpsPick } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
@@ -268,6 +268,11 @@ export default function TabletControlInc({ sessionId, playerName, playerIndex })
   const handleRPSWinner = (winner) => {
     const proposedBy = myPlayer || 'admin';
     setPendingAction({ type: 'rps', winner, playerName: session[winner].name, proposedBy });
+  };
+
+  const handleRpsPick = (pick, playerKey) => {
+    if (!playerKey) return;
+    rpsPick(sessionId, pick, playerKey);
   };
 
   const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
@@ -572,78 +577,93 @@ export default function TabletControlInc({ sessionId, playerName, playerIndex })
         {/* ── RPS Phase ── */}
         {session.phase === 'RPS' && (
           <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-white/30 flex-1 flex flex-col justify-center relative overflow-hidden">
-            {/* Si hay propuesta pendiente y soy el otro jugador: mostrar confirmar/rechazar */}
-            {session.rpsProposal && myPlayer && session.rpsProposal.proposedBy !== myPlayer ? (
-              <div className="text-center relative z-10">
-                <div className="text-5xl mb-4">🤔</div>
-                <h3 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
-                  ¿Confirmás el resultado?
-                </h3>
-                <p className="text-base text-white/70 mb-6">
-                  {session[session.rpsProposal.proposedBy]?.name} dice que <span className="font-bold text-yellow-400">{session[session.rpsProposal.winner]?.name}</span> ganó el RPS
-                </p>
-                <div className="flex gap-4 max-w-sm mx-auto">
-                  <button
-                    onClick={() => handleRPSWinner(session.rpsProposal.winner)}
-                    className="flex-1 py-4 bg-gradient-to-br from-green-500 to-green-700 text-white font-black text-lg rounded-2xl active:scale-95 transition-all shadow-xl border-2 border-white/30 touch-manipulation"
-                  >
-                    ✅ Confirmar
-                  </button>
-                  <button
-                    onClick={() => {
-                      const otherWinner = session.rpsProposal.winner === 'player1' ? 'player2' : 'player1';
-                      handleRPSWinner(otherWinner);
-                    }}
-                    className="flex-1 py-4 bg-gradient-to-br from-red-500 to-red-700 text-white font-black text-lg rounded-2xl active:scale-95 transition-all shadow-xl border-2 border-white/30 touch-manipulation"
-                  >
-                    ❌ No, gané yo
-                  </button>
-                </div>
-              </div>
-            ) : session.rpsProposal && myPlayer && session.rpsProposal.proposedBy === myPlayer ? (
-              <div className="text-center relative z-10">
-                <div className="text-5xl mb-4 animate-pulse">⏳</div>
-                <h3 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
-                  Esperando confirmación
-                </h3>
-                <p className="text-base text-white/70 mb-4">
-                  Dijiste que <span className="font-bold text-yellow-400">{session[session.rpsProposal.winner]?.name}</span> ganó el RPS
-                </p>
-                <p className="text-sm text-white/40">
-                  Tu rival debe confirmar...
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="text-center mb-4 sm:mb-6 relative z-10">
-                  <h3 className="text-3xl sm:text-5xl font-black animate-pulse">✊ ✋ ✌️</h3>
-                  <h3 className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">Piedra, Papel o Tijera</h3>
-                  <p className="text-base sm:text-lg text-white/80 font-semibold">¿Quién ganó el RPS? 🏆</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto relative z-10 w-full px-2 sm:px-0">
-                  <button
-                    onClick={() => handleRPSWinner('player1')}
-                    className="group py-12 sm:py-16 bg-gradient-to-br from-smash-red via-red-600 to-red-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                    <div className="relative z-10">
-                      <div className="text-5xl sm:text-6xl mb-2 sm:mb-3">🔴</div>
-                      <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player1.name}</div>
+            {(() => {
+              const rg = session.rpsGame;
+              const myKey = effectivePlayer;
+              const oppKey = myKey === 'player1' ? 'player2' : 'player1';
+              const PICKS = [
+                { id: 'rock',     emoji: '✊', label: 'Piedra', cls: 'from-orange-500 to-orange-700 border-orange-400/60' },
+                { id: 'paper',    emoji: '✋', label: 'Papel',  cls: 'from-green-500 to-green-700 border-green-400/60' },
+                { id: 'scissors', emoji: '✌️', label: 'Tijera', cls: 'from-blue-500 to-blue-700 border-blue-400/60' },
+              ];
+              const renderButtons = (forPlayer) => {
+                const pickedId = rg?.picks?.[forPlayer];
+                if (pickedId) return (
+                  <div className="text-center py-2 px-3 bg-white/10 rounded-xl border border-white/20">
+                    <div className="text-4xl sm:text-5xl mb-1">{PICKS.find(p => p.id === pickedId)?.emoji}</div>
+                    <p className="text-white font-black text-sm">{PICKS.find(p => p.id === pickedId)?.label}</p>
+                    <p className="text-white/50 text-xs mt-1">¡Listo!</p>
+                  </div>
+                );
+                return (
+                  <div className="grid grid-cols-3 gap-2 w-full">
+                    {PICKS.map(({ id, emoji, label, cls }) => (
+                      <button key={id} onClick={() => handleRpsPick(id, forPlayer)} disabled={rg?.revealed}
+                        className={`group py-5 sm:py-7 bg-gradient-to-br ${cls} text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl active:scale-95 transition-all duration-200 shadow-xl border-2 relative overflow-hidden touch-manipulation`}>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                        <div className="relative z-10">
+                          <div className="text-2xl sm:text-3xl mb-1 group-active:scale-110 transition-transform">{emoji}</div>
+                          <div>{label}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                );
+              };
+              if (rg?.revealed) {
+                const isDraw = rg.winner === null;
+                return (
+                  <div className="text-center relative z-10 py-2">
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-4 drop-shadow-lg">
+                      {isDraw ? '💥 ¡EMPATE!' : `🏆 ¡Ganó ${session[rg.winner]?.name}!`}
+                    </h3>
+                    <div className="flex justify-center gap-6 sm:gap-10 mb-4">
+                      {['player1', 'player2'].map((pk, i) => (
+                        <div key={pk} className="text-center">
+                          <p className="text-white/60 text-xs mb-1">{i === 0 ? '🔴' : '🔵'} {session[pk]?.name}</p>
+                          <div className="text-5xl sm:text-6xl">{PICKS.find(p => p.id === rg.picks?.[pk])?.emoji || '❓'}</div>
+                          <p className="text-white font-bold text-sm mt-1">{PICKS.find(p => p.id === rg.picks?.[pk])?.label || '?'}</p>
+                        </div>
+                      ))}
                     </div>
-                  </button>
-                  <button
-                    onClick={() => handleRPSWinner('player2')}
-                    className="group py-12 sm:py-16 bg-gradient-to-br from-smash-blue via-blue-600 to-blue-800 text-white font-black text-2xl sm:text-3xl rounded-2xl sm:rounded-3xl active:scale-95 transition-all duration-200 shadow-2xl border-4 border-white/30 relative overflow-hidden touch-manipulation"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                    <div className="relative z-10">
-                      <div className="text-5xl sm:text-6xl mb-2 sm:mb-3">🔵</div>
-                      <div className="text-xl sm:text-2xl px-2 leading-tight">{session.player2.name}</div>
+                    {isDraw
+                      ? <p className="text-sm text-white/50 animate-pulse">¡Empataron! Siguiente ronda...</p>
+                      : <p className="text-sm text-white/50 animate-pulse">Comenzando torneo...</p>
+                    }
+                  </div>
+                );
+              }
+              return (
+                <>
+                  <div className="text-center mb-4 sm:mb-5 relative z-10">
+                    <div className="text-3xl sm:text-4xl mb-1">✊✋✌️</div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-1 drop-shadow-lg">
+                      Piedra, Papel o Tijera{rg?.round > 1 ? ` — Ronda ${rg.round}` : ''}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-white/60">Elegí sin que el rival vea tu elección</p>
+                  </div>
+                  {myKey ? (
+                    <div className="relative z-10 w-full max-w-xs mx-auto">
+                      {renderButtons(myKey)}
+                      {rg?.picks?.[myKey] && !rg?.picks?.[oppKey] && (
+                        <p className="text-center text-white/50 text-xs mt-3 animate-pulse">Esperando a {session[oppKey]?.name}...</p>
+                      )}
                     </div>
-                  </button>
-                </div>
-              </>
-            )}
+                  ) : (
+                    <div className="relative z-10 w-full flex flex-col gap-4">
+                      <div>
+                        <p className="text-white/60 text-xs text-center mb-2">🔴 {session.player1?.name}</p>
+                        {renderButtons('player1')}
+                      </div>
+                      <div>
+                        <p className="text-white/60 text-xs text-center mb-2">🔵 {session.player2?.name}</p>
+                        {renderButtons('player2')}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 
@@ -777,6 +797,41 @@ export default function TabletControlInc({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Character Select Phase ── */}
+
+        {/* Animación VS: ambos eligieron, esperando transición a STAGE_BAN */}
+        {session.phase === 'CHARACTER_SELECT' && session.player1.character && session.player2.character && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ background: 'rgba(0,0,0,0.97)' }}>
+            <style>{`
+              @keyframes vsSlideLeft { from{transform:translateX(-70px);opacity:0} to{transform:translateX(0);opacity:1} }
+              @keyframes vsSlideRight { from{transform:translateX(70px);opacity:0} to{transform:translateX(0);opacity:1} }
+              @keyframes vsPopIn { 0%{transform:scale(0.3) rotate(-8deg);opacity:0} 70%{transform:scale(1.12) rotate(2deg);opacity:1} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+            `}</style>
+            <p className="text-white/50 text-xs uppercase tracking-widest font-semibold">¡Ambos eligieron!</p>
+            <div className="flex items-center gap-6 sm:gap-14">
+              <div className="text-center" style={{ animation: 'vsSlideLeft 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
+                <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto">
+                  <img src={getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                </div>
+                <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
+                <p className="text-white/50 text-xs">{getCharacterData(session.player1.character)?.name}</p>
+              </div>
+              <div style={{ animation: 'vsPopIn 0.45s 0.3s cubic-bezier(.22,.68,0,1.2) both' }}>
+                <span style={{ fontFamily: 'Anton', fontSize: 'clamp(3rem, 10vw, 5rem)', color: '#F59E0B', textShadow: '0 0 40px rgba(245,158,11,0.9), 3px 3px 0 #000' }}>VS</span>
+              </div>
+              <div className="text-center" style={{ animation: 'vsSlideRight 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
+                <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
+                  <img src={getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                </div>
+                <div style={{ transform: 'scaleX(-1)' }}>
+                  <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
+                  <p className="text-white/50 text-xs">{getCharacterData(session.player2.character)?.name}</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-white/30 text-xs mt-2">Preparando ban de escenarios...</p>
+          </div>
+        )}
+
         {session.phase === 'CHARACTER_SELECT' && effectivePlayer && session.currentTurn !== effectivePlayer && (
           <WaitingTurnCard icon="👤" turnPlayerName={session[session.currentTurn]?.name} action="eligiendo su personaje" />
         )}
@@ -792,6 +847,22 @@ export default function TabletControlInc({ sessionId, playerName, playerIndex })
                   </p>
                 </div>
               </div>
+              {/* Banner: el rival ya eligió su personaje */}
+              {effectivePlayer && (() => {
+                const oppKey = effectivePlayer === 'player1' ? 'player2' : 'player1';
+                const oppChar = session[oppKey]?.character;
+                if (!oppChar) return null;
+                const cd = getCharacterData(oppChar);
+                return (
+                  <div className="mb-2 flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-2 py-1.5">
+                    <img src={cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                    <div>
+                      <p className="text-yellow-300 text-[10px] sm:text-xs font-bold uppercase tracking-wide">Tu rival ya eligió:</p>
+                      <p className="text-white text-xs sm:text-sm font-black leading-tight">{cd?.name}</p>
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Picks anteriores del jugador */}
               {playerPickHistory.length > 0 && (
                 <div className="mb-2">
