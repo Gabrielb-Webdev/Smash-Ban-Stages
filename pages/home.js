@@ -2661,7 +2661,7 @@ function TabAmigos({ user }) {
                   })}
                 </div>
 
-                {/* Historial */
+                {/* Historial */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
