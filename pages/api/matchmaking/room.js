@@ -70,9 +70,10 @@ export default async function handler(req, res) {
       // Verificar si el usuario está en alguna cola de búsqueda
       for (const plat of ['switch', 'parsec']) {
         const queue = (await redis.get(mmQueueKey(plat))) || [];
-        if (queue.find(e => e.userId === cleanId)) {
+        const qEntry = queue.find(e => e.userId === cleanId);
+        if (qEntry) {
           if (queue.length >= 2) tryMatch(plat).catch(() => {});
-          return res.status(200).json({ status: 'searching', platform: plat });
+          return res.status(200).json({ status: 'searching', platform: plat, joinedAt: qEntry.joinedAt });
         }
         // También verificar cola de 2v2
         const queue2v2 = (await redis.get(mmQueueDoublesKey(plat))) || [];

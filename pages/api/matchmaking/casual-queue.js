@@ -184,12 +184,18 @@ export default async function handler(req, res) {
     // Check cola 1v1
     const queue = await pruneQueue(platform);
     const entry = queue.find(e => e.userId === clean);
-    if (entry) return res.status(200).json({ status: 'waiting', position: queue.indexOf(entry) + 1, queueSize: queue.length });
+    if (entry) {
+      if (queue.length >= 2) tryMatch(platform).catch(() => {});
+      return res.status(200).json({ status: 'searching', joinedAt: entry.joinedAt, queueSize: queue.length });
+    }
 
     // Check cola 2v2
     const queue2v2 = await pruneQueue2v2(platform);
     const entry2v2 = queue2v2.find(e => e.team?.some(p => p.userId === clean));
-    if (entry2v2) return res.status(200).json({ status: 'waiting', mode: '2v2', position: queue2v2.indexOf(entry2v2) + 1, queueSize: queue2v2.length });
+    if (entry2v2) {
+      if (queue2v2.length >= 2) tryMatch2v2(platform).catch(() => {});
+      return res.status(200).json({ status: 'searching', mode: '2v2', joinedAt: entry2v2.joinedAt || entry2v2.team?.[0]?.joinedAt, queueSize: queue2v2.length });
+    }
 
     return res.status(200).json({ status: 'idle' });
   }

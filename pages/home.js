@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout, verifySession } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, CHARACTER_ALT_FOLDERS, charAltPaths } from '../lib/characters';
+import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
 import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback, setReconnectCallback } from '../src/hooks/useWebSocket';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
@@ -446,6 +446,7 @@ export default function HomePage() {
           room:     data.room  || prev.room,
           code:     data.code  || prev.code,
           timeLeft: data.timeLeft,
+          searchStartedAt: prev.searchStartedAt || (data.joinedAt ? new Date(data.joinedAt).getTime() : prev.searchStartedAt),
           polling:  !['finished', 'idle', 'timeout', 'declined'].includes(data.status),
         } : prev);
       } catch {}
@@ -468,12 +469,12 @@ export default function HomePage() {
         const r = await fetch(`/api/matchmaking/casual-queue?userId=${encodeURIComponent(uid)}&platform=${plat}`);
         if (!r.ok || !active) return;
         const data = await r.json();
-        if (data.status === 'idle' && bgMM?.status === 'searching') return; // aún buscando
         if (data.status === 'idle') { if (active) setBgMM(null); return; }
         setBgMM(prev => prev ? {
           ...prev,
           status:  data.status,
           room:    data.room || prev.room,
+          searchStartedAt: prev.searchStartedAt || (data.joinedAt ? new Date(data.joinedAt).getTime() : prev.searchStartedAt),
           polling: !['finished', 'idle'].includes(data.status),
         } : prev);
       } catch {}
@@ -490,27 +491,46 @@ export default function HomePage() {
     const uid = String(user?.id || user?.slug || '');
     if (!uid) return;
     let active = true;
-    const checkRoom = () => {
+    const checkRoom = async () => {
       if (!active) return;
-      fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid))
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!active) return;
-          if (!data || ['idle', 'timeout', 'declined'].includes(data.status)) return;
+      try {
+        // 1) Chequear ranked (room.js)
+        const r = await fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid));
+        const data = r.ok ? await r.json() : null;
+        if (!active) return;
+        if (data && !['idle', 'timeout', 'declined'].includes(data.status)) {
           if (data.status === 'searching') {
-            setBgMM({ status: 'searching', plat: data.platform, mode: data.mode || '1v1', polling: true });
+            const startedAt = data.joinedAt ? new Date(data.joinedAt).getTime() : Date.now();
+            setBgMM({ status: 'searching', plat: data.platform, mode: data.mode || '1v1', polling: true, searchStartedAt: startedAt });
+          } else {
+            setBgMM({
+              status: data.status,
+              code: data.code,
+              room: data.room,
+              plat: data.room?.platform,
+              mode: data.room?.mode || '1v1',
+              polling: true,
+            });
+          }
+          return;
+        }
+        // 2) Chequear casual (casual-queue) en ambas plataformas
+        for (const plat of ['switch', 'parsec']) {
+          if (!active) return;
+          const r2 = await fetch('/api/matchmaking/casual-queue?userId=' + encodeURIComponent(uid) + '&platform=' + plat);
+          const d2 = r2.ok ? await r2.json() : null;
+          if (!active) return;
+          if (d2 && d2.status !== 'idle') {
+            if (d2.status === 'searching') {
+              const startedAt = d2.joinedAt ? new Date(d2.joinedAt).getTime() : Date.now();
+              setBgMM({ status: 'searching', plat, gameType: 'casual', polling: true, searchStartedAt: startedAt });
+            } else if (d2.room) {
+              setBgMM({ status: d2.status, room: d2.room, plat: d2.room?.platform || plat, gameType: 'casual', polling: true });
+            }
             return;
           }
-          setBgMM({
-            status: data.status,
-            code: data.code,
-            room: data.room,
-            plat: data.room?.platform,
-            mode: data.room?.mode || '1v1',
-            polling: true,
-          });
-        })
-        .catch(() => {});
+        }
+      } catch {}
     };
     checkRoom();
     const iv = setInterval(checkRoom, 8000);
@@ -3945,7 +3965,7 @@ function TabPerfil({ user }) {
                 const charObj = CHARACTERS.find(c => c.id === charId);
                 const isSelected = mainChar === charId;
                 return (
-                  <button key={charId} onClick={() => { if (CHARACTER_ALT_FOLDERS[charId]) { setMainChar(charId); setPickerStep('alt'); } else { selectMainChar(charId, null); } }} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <button key={charId} onClick={() => { if (CHARACTERS.find(c => c.id === charId)?.alts?.length > 1) { setMainChar(charId); setPickerStep('alt'); } else { selectMainChar(charId, null); } }} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                     <span style={{ fontSize: 8, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{charObj?.name || charId}</span>
                   </button>
@@ -3955,9 +3975,9 @@ function TabPerfil({ user }) {
           ) : (
             <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                {CHARACTER_RENDERS[mainChar] && (
+                {charDefaultAltPath(mainChar) && (
                   <button onClick={() => selectMainChar(mainChar, null)} style={{ background: !mainCharAlt ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${!mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <img src={charRenderPath(CHARACTER_RENDERS[mainChar])} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                    <img src={charDefaultAltPath(mainChar)} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                     <span style={{ fontSize: 9, fontWeight: 700, color: !mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Default</span>
                   </button>
                 )}
@@ -3966,7 +3986,7 @@ function TabPerfil({ user }) {
                   return (
                     <button key={i} onClick={() => selectMainChar(mainChar, altPath)} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                       <img src={altPath} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-                      <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Alt {i + 3}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Skin {i + 2}</span>
                     </button>
                   );
                 })}
@@ -5726,13 +5746,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [uid, matchTypeMode, matchMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Timer de búsqueda
+  // Timer de búsqueda (basado en searchStartedAt para sobrevivir F5)
   useEffect(() => {
     if (matchStatus !== 'searching') { setSearchElapsed(0); return; }
-    setSearchElapsed(0);
-    const iv = setInterval(() => setSearchElapsed(s => s + 1), 1000);
+    const startedAt = bgMM?.searchStartedAt || Date.now();
+    setSearchElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    const iv = setInterval(() => setSearchElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     return () => clearInterval(iv);
-  }, [matchStatus]);
+  }, [matchStatus, bgMM?.searchStartedAt]);
 
   const reportResult = async (winnerId, stocks, action) => {
     if (!matchData?.matchId) return;
@@ -5810,7 +5831,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         return;
       }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
-      setBgMM({ status: 'searching', plat: platform, polling: true });
+      setBgMM({ status: 'searching', plat: platform, polling: true, searchStartedAt: Date.now() });
     } catch { setFormError('Error de conexión'); }
     finally { setLoading(false); }
   };
@@ -5826,7 +5847,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const data = await r.json();
       if (r.status === 409) { setFormError(data.error); return; }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
-      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', polling: true });
+      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', polling: true, searchStartedAt: Date.now() });
     } catch { setFormError('Error de conexión'); }
     finally { setLoading(false); }
   };
@@ -5855,7 +5876,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       });
       const data = await r.json();
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
-      setBgMM({ status: 'searching', plat: platform, mode: '2v2', polling: true });
+      setBgMM({ status: 'searching', plat: platform, mode: '2v2', polling: true, searchStartedAt: Date.now() });
     } catch { setFormError('Error de conexión'); }
     finally { setLoading(false); }
   };
@@ -6485,7 +6506,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <div style={{ position: 'absolute', inset: '16px', background: sp ? 'linear-gradient(135deg,' + sp.from + ',' + sp.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{sp?.icon || '⚡'}</div>
           </div>
           <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>{bgMM?.mode === '2v2' ? 'Buscando rivales 2v2…' : 'Buscando rival…'}</p>
-          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || 'Ranked'}</p>
+          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || ''}{bgMM?.gameType === 'casual' ? ' (Normal)' : ''}</p>
           <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
           <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'rgba(255,255,255,0.5)', fontVariantNumeric: 'tabular-nums' }}>
             {Math.floor(searchElapsed / 60)}:{String(searchElapsed % 60).padStart(2, '0')}

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, CHARACTER_ALT_FOLDERS } from '../lib/characters';
+import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
 
 function timeAgo(iso) {
@@ -798,7 +798,7 @@ export default function ProfilePage() {
                   const isSelected = mainChar === charId;
                   return (
                     <button key={charId} onClick={() => {
-                      if (CHARACTER_ALT_FOLDERS[charId]) {
+                      if (CHARACTERS.find(c => c.id === charId)?.alts?.length > 1) {
                         setMainChar(charId);
                         setPickerStep('alt');
                       } else {
@@ -816,9 +816,9 @@ export default function ProfilePage() {
               <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   {/* Default render */}
-                  {CHARACTER_RENDERS[mainChar] && (
+                  {charDefaultAltPath(mainChar) && (
                     <button onClick={() => selectMainChar(mainChar, null)} style={{ background: !mainCharAlt ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${!mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <img src={charRenderPath(CHARACTER_RENDERS[mainChar])} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                      <img src={charDefaultAltPath(mainChar)} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                       <span style={{ fontSize: 9, fontWeight: 700, color: !mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Default</span>
                     </button>
                   )}
@@ -828,7 +828,7 @@ export default function ProfilePage() {
                     return (
                       <button key={i} onClick={() => selectMainChar(mainChar, altPath)} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                         <img src={altPath} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Alt {i + 3}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Skin {i + 2}</span>
                       </button>
                     );
                   })}
