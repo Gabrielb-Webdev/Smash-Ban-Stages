@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: Smash-Ban-Stages
+    env: node
+    buildCommand: npm install --omit=dev
+    startCommand: node server/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
