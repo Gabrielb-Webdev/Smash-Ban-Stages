@@ -23,7 +23,7 @@ const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || '')
 // Series de torneos a auto-trackear — descubre nuevas ediciones automáticamente
 // Cada entrada: { base: 'slug-prefix', startN: primera edición conocida, community: id del panel }
 const TOURNAMENT_SERIES = [
-  { base: 'true-combo-weeklies', startN: 61, community: 'afk-multi' },
+  { base: 'true-combo-weeklies', startN: 62, community: 'afk-multi' },
   { base: 'to-the-top', startN: 22, community: 'afk-multi' },
 ];
 const SERIES_LAST_N_PREFIX = 'startgg:series:lastN:';
@@ -249,9 +249,7 @@ async function fetchStartggTournaments(token) {
   // Quitar blacklisted
   const clean = results.filter(t => !BLACKLISTED_SLUGS.has(t.slug));
 
-  // Filtrar solo torneos futuros o en curso (no pasados)
   // Start.gg states: 1=CREATED, 2=ACTIVE, 3=COMPLETED, 4=CANCELLED
-  const now = Date.now();
   const formatted = clean.map(t => {
     const f = formatTournament(t);
     if (t._series) {
@@ -265,13 +263,8 @@ async function fetchStartggTournaments(token) {
   }).filter(t => {
     const state = t.state;
     if (state === 4 || state === 'CANCELLED') return false;
-    // Las series se mantienen aunque estén completadas (se elige la más reciente luego)
-    if (t.series) return true;
-    if (state === 1 || state === 2 || state === 'CREATED' || state === 'ACTIVE') return true;
-    if (t.endAt && new Date(t.endAt).getTime() > now) return true;
-    if (t.startAt && new Date(t.startAt).getTime() > now) return true;
-    if (!t.endAt && !t.startAt) return true;
-    return false;
+    // Incluir todos: activos, creados, completados y series
+    return true;
   });
 
   // Para series: solo conservar la edición más reciente de cada una

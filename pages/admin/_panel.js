@@ -158,6 +158,9 @@ export default function TestAdminPage() {
   // Log de reportes Start.gg: [{ time, setId, players, type }]
   const [reportLog, setReportLog] = useState([]);
 
+  // DQ: setupId en proceso de DQ
+  const [dqingSetup, setDqingSetup] = useState(null);
+
   // Tab activa en móvil: 'setups' | 'bracket'
   const [mobileTab, setMobileTab] = useState('setups');
 
@@ -817,15 +820,15 @@ export default function TestAdminPage() {
     const authHeaders = { 'Authorization': `Bearer ${ADMIN_SECRET}` };
 
     Promise.all([
-      fetch(`/api/tournaments/sync-startgg?community=${encodeURIComponent(community)}`).then(r => r.json()),
+      fetch(`/api/tournaments/sync-startgg?community=${encodeURIComponent(community)}&refresh=true`).then(r => r.json()),
       fetch(`/api/tournaments/saved-slugs?community=${encodeURIComponent(community)}`, { headers: authHeaders }).then(r => r.json()),
     ])
       .then(async ([syncData, savedData]) => {
         const slugsList = savedData.slugs || [];
         setSavedSlugs(slugsList);
 
-        // Solo mostrar torneos activos/creados; también incluir series aunque estén completadas
-        const available = (syncData.tournaments || []).filter(t => t.state === 1 || t.state === 2 || t.state === 'CREATED' || t.state === 'ACTIVE' || t.series);
+        // Mostrar todos los torneos excepto cancelados (incluyendo terminados)
+        const available = (syncData.tournaments || []).filter(t => t.state !== 4 && t.state !== 'CANCELLED');
 
         // Incluir el torneo actualmente gestionado aunque no esté en sync-startgg
         const activeTournament = tournament;
@@ -948,6 +951,15 @@ export default function TestAdminPage() {
     }
     setPickTour(null);
     setPickPhases(null);
+    // Auto-guardar slug para que el torneo siga apareciendo en el picker aunque termine
+    if (slug && !savedSlugs.includes(slug)) {
+      const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025';
+      fetch('/api/tournaments/saved-slugs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ community, slug }),
+      }).then(r => r.json()).then(d => { if (d.slugs) setSavedSlugs(d.slugs); }).catch(() => {});
+    }
     // Fetch en paralelo sin esperar re-render + effects
     fetch(`/api/tournaments/bracket?phaseGroupId=${pgIdStr}`)
       .then(r => r.json())
@@ -1045,8 +1057,9 @@ export default function TestAdminPage() {
     setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
     checkedInSetups.current.delete(setupId);
     // Cancelar la sesión en el servidor WS para que los jugadores dejen de verla como activa
-    const sessionId = assignedSets[setupId]?.sessionId;
-    const startggSetId = assignedSets[setupId]?.startggSetId;
+    // Usar el ref para evitar leer una closure obsoleta del state
+    const sessionId = assignedSetsRef.current[setupId]?.sessionId;
+    const startggSetId = assignedSetsRef.current[setupId]?.startggSetId;
     if (sessionId) {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
       fetch(`${socketUrl}/session/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(() => {});
@@ -1070,6 +1083,71 @@ export default function TestAdminPage() {
           .then(d => { if (d.sets) setBracketSets(d.sets); })
           .catch(() => {});
       }, 1500);
+    }
+  }
+
+  async function dqPlayer(setupId, loserSlotIndex) {
+    const set = assignedSetsRef.current[setupId];
+    if (!set) return;
+    const loserSlot = set.slots?.[loserSlotIndex];
+    const winnerSlot = set.slots?.[loserSlotIndex === 0 ? 1 : 0];
+    const loserName = loserSlot?.entrant?.name || `Jugador ${loserSlotIndex + 1}`;
+    const winnerName = winnerSlot?.entrant?.name || `Jugador ${loserSlotIndex === 0 ? 2 : 1}`;
+    const winnerId = winnerSlot?.entrant?.id;
+    const setId = set.startggSetId || set.id;
+    if (!winnerId || !setId) {
+      alert('No hay IDs de start.gg para este set. Asegurate de tener un torneo seleccionado.');
+      return;
+    }
+    if (!confirm(`¿DQ a ${loserName}?\nSe reportará como ganador a ${winnerName}.`)) return;
+    setDqingSetup(setupId);
+    try {
+      const res = await fetch('/api/tournaments/dq-set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: String(setId), winnerId: String(winnerId) }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert('Error al aplicar DQ: ' + (data.error || 'Error desconocido'));
+        return;
+      }
+      setReportLog(prev => [{
+        time: new Date(),
+        setId: setId,
+        players: `DQ ${loserName}`,
+        round: set.fullRoundText || set.round || '',
+        score: `🚫 DQ → ${winnerName} avanza`,
+      }, ...prev].slice(0, 20));
+      // Cancelar sesión WS y liberar el setup (sin reset-set porque ya está completado)
+      const sessionId = assignedSetsRef.current[setupId]?.sessionId;
+      if (sessionId) {
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        fetch(`${socketUrl}/session/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(() => {});
+      }
+      const t = matchTimersRef.current[setupId];
+      if (t?.intervalId) clearInterval(t.intervalId);
+      delete matchTimersRef.current[setupId];
+      setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+      const et = elapsedTimersRef.current[setupId];
+      if (et?.intervalId) clearInterval(et.intervalId);
+      delete elapsedTimersRef.current[setupId];
+      setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+      checkedInSetups.current.delete(setupId);
+      autoReleasedSetups.current.delete(setupId);
+      setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+      if (selectedPhaseGroupId) {
+        setTimeout(() => {
+          fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+            .then(r => r.json())
+            .then(d => { if (d.sets) setBracketSets(d.sets); })
+            .catch(() => {});
+        }, 1500);
+      }
+    } catch (e) {
+      alert('Error de red: ' + e.message);
+    } finally {
+      setDqingSetup(null);
     }
   }
 
@@ -1537,6 +1615,14 @@ export default function TestAdminPage() {
                               <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: checked ? '#4ADE80' : slotName ? '#fff' : 'rgba(255,255,255,0.28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slotName || 'TBD'}</span>
                               {status && (status.score1 != null || status.score2 != null) && <span style={{ fontSize: 12, fontWeight: 900, color: '#fff', flexShrink: 0, fontFamily: "'Outfit',sans-serif" }}>{i === 0 ? (status.score1 ?? 0) : (status.score2 ?? 0)}</span>}
                               {assigned.sessionId && status && !checked && !(status.score1 != null || status.score2 != null) && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>⏳</span>}
+                              {slot?.entrant?.id && assigned.slots?.[i === 0 ? 1 : 0]?.entrant?.id && (
+                                <button
+                                  onClick={e => { e.stopPropagation(); dqPlayer(setup.id, i); }}
+                                  disabled={dqingSetup === setup.id}
+                                  title={`DQ a ${slotName}`}
+                                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 5, padding: '1px 5px', fontSize: 8, fontWeight: 900, color: '#F87171', cursor: dqingSetup === setup.id ? 'wait' : 'pointer', flexShrink: 0, fontFamily: "'Outfit',sans-serif", lineHeight: 1.6 }}
+                                >DQ</button>
+                              )}
                             </div>
                           );
                         })}
@@ -1980,6 +2066,7 @@ export default function TestAdminPage() {
                                       <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
                                       {t._current && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 5, flexShrink: 0 }}>activo</span>}
                                       {t._saved && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(34,197,94,0.1)', color: 'rgba(74,222,128,0.7)', borderRadius: 5, flexShrink: 0 }}>guardado</span>}
+                                      {(t.state === 3 || t.state === 'COMPLETED') && !t._current && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(107,114,128,0.15)', color: '#9CA3AF', border: '1px solid rgba(107,114,128,0.3)', borderRadius: 5, flexShrink: 0 }}>terminado</span>}
                                     </div>
                                     <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>👥 {t.attendees || 0} inscriptos · {t.slug}</p>
                                   </div>
