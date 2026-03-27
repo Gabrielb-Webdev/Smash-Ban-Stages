@@ -1179,6 +1179,7 @@ export default function TestAdminPage() {
     delete elapsedTimersRef.current[setupId];
     setElapsedTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
     checkedInSetups.current.delete(setupId);
+    autoReleasedSetups.current.delete(setupId); // Reset para que el nuevo match pueda auto-liberarse
 
     // IDs de start.gg del set seleccionado (para reportar resultados automáticamente)
     const startggSetId      = set.id;
@@ -1237,9 +1238,12 @@ export default function TestAdminPage() {
     } catch {}
 
     // Enviar datos de start.gg al servidor WebSocket
+    // await garantiza que la sesión esté en CHECKIN antes de que el primer poll se ejecute.
+    // Esto evita una race condition en setups de stream (mismo sessionId fijo) donde el
+    // poll inmediato podría ver el estado CANCELLED de la sesión anterior.
     try {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-      fetch(`${socketUrl}/session-meta`, {
+      await fetch(`${socketUrl}/session-meta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id,
@@ -1316,8 +1320,8 @@ export default function TestAdminPage() {
         clearInterval(iv);
         delete matchTimersRef.current[setupId];
         setMatchTimers(prev => { const n = { ...prev }; delete n[setupId]; return n; });
-        // Liberar setup automáticamente
-        setAssignedSets(prev => { const n = { ...prev }; delete n[setupId]; return n; });
+        // Cancelar match completo: sesión WS + reset start.gg + liberar setup
+        stopMatchTimer(setupId);
       }
     }, 1000);
     matchTimersRef.current[setupId].intervalId = iv;

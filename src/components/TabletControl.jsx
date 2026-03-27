@@ -2018,7 +2018,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
                   <img src={getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
-                <div style={{ transform: 'scaleX(-1)' }}>
+                <div>
                   <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
                   <p className="text-white/50 text-xs">{getCharacterData(session.player2.character)?.name}</p>
                 </div>
