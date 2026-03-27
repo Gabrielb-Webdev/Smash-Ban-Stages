@@ -1896,7 +1896,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
           </div>
         ) : (
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '24px 16px', textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Sin detalle de juegos disponible para esta partida</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>{isCasual ? 'Las partidas normales son BO1 — sin detalle por juego' : 'Sin detalle de juegos disponible para esta partida'}</p>
           </div>
         )}
       </div>
