@@ -177,7 +177,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
 
   return (
     <>
-    <div style={{ overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', paddingBottom: 8 }}>
+    <div style={{ overflowX: 'auto', overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', maxHeight: '100%', minHeight: 0, paddingBottom: 8 }}>
       <div style={{ minWidth: 'max-content', padding: '4px 2px 8px', display: 'flex', flexDirection: 'column', gap: 0 }}>
 
         {/* ── WINNERS ── */}

@@ -1578,7 +1578,7 @@ export default function TestAdminPage() {
         </div>
 
         {/* ── MAIN BODY: izquierda setups + derecha bracket ── */}
-        <div className="panel-body" style={{ display: 'flex', gap: 16, padding: '16px 20px 24px', alignItems: 'stretch', flex: 1 }}>
+        <div className="panel-body" style={{ display: 'flex', gap: 16, padding: '16px 20px 24px', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
 
           {/* ◀ COLUMNA IZQUIERDA: Setups + Info torneo */}
           <div className={`panel-left${mobileTab !== 'setups' ? ' mobile-hidden' : ''}`} style={{ flex: '0 0 55%', maxWidth: '55%', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1789,9 +1789,9 @@ export default function TestAdminPage() {
           </div>{/* /columna izquierda */}
 
           {/* ▶ COLUMNA DERECHA: Bracket */}
-          <div className={`panel-right${mobileTab !== 'bracket' ? ' mobile-hidden' : ''}`} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className={`panel-right${mobileTab !== 'bracket' ? ' mobile-hidden' : ''}`} style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {/* ── BRACKET POR RONDAS ── */}
-        <div style={{ padding: '0', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ padding: '0', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h2 style={{ fontWeight: 900, fontSize: 18, color: '#fff', marginBottom: 3 }}>🎯 Bracket{phaseName ? ` — ${phaseName}` : ''}</h2>
@@ -1818,7 +1818,7 @@ export default function TestAdminPage() {
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 400, overflow: 'auto', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowX: 'auto', overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
             {bracketLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '40px 0' }}>
                 <div style={{ width: 22, height: 22, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
