@@ -11,6 +11,8 @@ export function getStoredUser() {
 export function logout() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('afk_user');
+  // Limpiar datos per-user para evitar filtración entre cuentas
+  ['afk_main_char','afk_main_alt','afk_my_status','afk_recent_chars','afk_parsec_role','chat_last_opened','afk_last_uid'].forEach(k => localStorage.removeItem(k));
 }
 
 /**

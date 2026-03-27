@@ -170,6 +170,16 @@ export default function HomePage() {
       return;
     }
 
+    // Limpiar localStorage per-user si cambió el usuario (otra cuenta en el mismo dispositivo)
+    try {
+      const lastUid = localStorage.getItem('afk_last_uid');
+      const currentUid = String(u.id || u.slug || '');
+      if (lastUid && lastUid !== currentUid) {
+        ['afk_main_char','afk_main_alt','afk_my_status','afk_recent_chars','afk_parsec_role','chat_last_opened'].forEach(k => localStorage.removeItem(k));
+      }
+      localStorage.setItem('afk_last_uid', currentUid);
+    } catch {}
+
     setUser(u);
     setIsAdmin(!!stored.isAdmin);
     setAdminCommunities(stored.adminCommunities || []);
@@ -2908,8 +2918,8 @@ function TabPerfil({ user }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileStartggStats, setProfileStartggStats] = useState(null);
   const [viewMatchDetail, setViewMatchDetail] = useState(null);
-  const [mainChar, setMainChar]         = useState(() => { try { return localStorage.getItem('afk_main_char') || null; } catch { return null; } });
-  const [mainCharAlt, setMainCharAlt]   = useState(() => { try { return localStorage.getItem('afk_main_alt') || null; } catch { return null; } });
+  const [mainChar, setMainChar]         = useState(null);
+  const [mainCharAlt, setMainCharAlt]   = useState(null);
   const [showMainPicker, setShowMainPicker] = useState(false);
   const [pickerStep, setPickerStep]     = useState('char');
 
@@ -2942,14 +2952,16 @@ function TabPerfil({ user }) {
       }
     } catch (e) {}
 
-    // Load mainChar from Redis profile
+    // Load mainChar from Redis profile (fuente de verdad)
     const uid2 = String(user?.id || user?.slug || '');
     if (uid2) {
       fetch('/api/players/profile?id=' + encodeURIComponent(uid2))
         .then(r => r.ok ? r.json() : null)
         .then(p => {
           if (p?.mainChar) { setMainChar(p.mainChar); try { localStorage.setItem('afk_main_char', p.mainChar); } catch {} }
+          else { setMainChar(null); try { localStorage.removeItem('afk_main_char'); } catch {} }
           if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
+          else { setMainCharAlt(null); try { localStorage.removeItem('afk_main_alt'); } catch {} }
         }).catch(() => {});
     }
   }, [user?.id]);
