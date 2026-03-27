@@ -56,7 +56,7 @@ function matchupPairKey(userId1, userId2) {
  * 2. Anti queue-sniping: evita emparejar >3 veces al día
  * 3. Prioriza la menor diferencia de MMR
  */
-async function tryMatch(platform) {
+export async function tryMatch(platform) {
   const queue = (await redis.get(mmQueueKey(platform))) || [];
   if (queue.length < 2) return;
 

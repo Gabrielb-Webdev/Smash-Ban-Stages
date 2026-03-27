@@ -1,6 +1,7 @@
 // API de salas para matchmaking Host/Join — Upstash Redis
 
 import redis, { mmMatchKey, mmQueueKey, mmQueueDoublesKey } from '../../../lib/redis';
+import { tryMatch } from './queue';
 
 const ROOM_TTL_MS = 30 * 60 * 1000; // 30 min
 const ACCEPT_MS   = 90 * 1000;       // 90s para aceptar (Render cold start + F5 reload)
@@ -70,6 +71,7 @@ export default async function handler(req, res) {
       for (const plat of ['switch', 'parsec']) {
         const queue = (await redis.get(mmQueueKey(plat))) || [];
         if (queue.find(e => e.userId === cleanId)) {
+          if (queue.length >= 2) tryMatch(plat).catch(() => {});
           return res.status(200).json({ status: 'searching', platform: plat });
         }
         // También verificar cola de 2v2
