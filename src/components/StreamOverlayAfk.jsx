@@ -158,9 +158,9 @@ export default function StreamOverlayAfk({ sessionId }) {
       <footer
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between"
         style={{
-          height: '14.58vw',
-          paddingLeft: '4vw',
-          paddingRight: '4vw',
+          height: '11vw',
+          paddingLeft: '3vw',
+          paddingRight: '3vw',
           background: '#000000',
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
@@ -170,7 +170,7 @@ export default function StreamOverlayAfk({ sessionId }) {
           <img
             src="/images/AFK.webp"
             alt="AFK Background"
-            style={{ width: '11.46vw', height: 'auto', opacity: 0.75 }}
+            style={{ width: '8.6vw', height: 'auto', opacity: 0.75 }}
           />
         </div>
 
@@ -186,13 +186,13 @@ export default function StreamOverlayAfk({ sessionId }) {
               style={{ zIndex: 10 }}
             >
               {session.player1.character === 'random' ? (
-                <span className="text-white font-black flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '7.29vw', width: '11.46vw', height: '11.46vw' }}>?</span>
+                <span className="text-white font-black flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '5.5vw', width: '8.6vw', height: '8.6vw' }}>?</span>
               ) : (
                 <img
                   src={getCharacterData(session.player1.character)?.image}
                   alt={getCharacterData(session.player1.character)?.name}
                   className="rounded-full"
-                  style={{ objectFit: 'cover', width: '11.46vw', height: '11.46vw' }}
+                  style={{ objectFit: 'cover', width: '8.6vw', height: '8.6vw' }}
                 />
               )}
               <motion.div
@@ -200,7 +200,7 @@ export default function StreamOverlayAfk({ sessionId }) {
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
                 className="bg-white"
-                style={{ height: '11.46vw', width: '0.21vw', marginLeft: '1.25vw', flexShrink: 0 }}
+                style={{ height: '8.6vw', width: '0.16vw', marginLeft: '1vw', flexShrink: 0 }}
               />
             </motion.div>
 
@@ -217,16 +217,16 @@ export default function StreamOverlayAfk({ sessionId }) {
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
                 className="bg-white"
-                style={{ height: '11.46vw', width: '0.21vw', marginRight: '1.25vw', flexShrink: 0 }}
+                style={{ height: '8.6vw', width: '0.16vw', marginRight: '1vw', flexShrink: 0 }}
               />
               {session.player2.character === 'random' ? (
-                <span className="text-white font-black flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '7.29vw', width: '11.46vw', height: '11.46vw' }}>?</span>
+                <span className="text-white font-black flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '5.5vw', width: '8.6vw', height: '8.6vw' }}>?</span>
               ) : (
                 <img
                   src={getCharacterData(session.player2.character)?.image}
                   alt={getCharacterData(session.player2.character)?.name}
                   className="rounded-full"
-                  style={{ objectFit: 'cover', width: '11.46vw', height: '11.46vw' }}
+                  style={{ objectFit: 'cover', width: '8.6vw', height: '8.6vw' }}
                 />
               )}
             </motion.div>
@@ -239,15 +239,15 @@ export default function StreamOverlayAfk({ sessionId }) {
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{ zIndex: 20 }}
           >
-            <div className="overflow-hidden flex items-center justify-center" style={{ height: '7.92vw', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="overflow-hidden flex items-center justify-center" style={{ height: '6vw', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <AnimatePresence>
                 <motion.h2
                   key="stage-bans-text"
-                  initial={{ y: 150 }}
-                  animate={{ y: [150, 0, 0, -150] }}
+                  initial={{ y: 110 }}
+                  animate={{ y: [110, 0, 0, -110] }}
                   transition={{ duration: 3, times: [0, 0.3, 0.6, 1], ease: 'easeInOut', delay: 0.8 }}
                   className="whitespace-nowrap"
-                  style={{ fontFamily: 'Anton', fontSize: '7.29vw', fontWeight: '400', color: '#FFFFFF' }}
+                  style={{ fontFamily: 'Anton', fontSize: '5.5vw', fontWeight: '400', color: '#FFFFFF' }}
                 >
                   STAGE BANS
                 </motion.h2>
@@ -260,7 +260,7 @@ export default function StreamOverlayAfk({ sessionId }) {
         {session.player1.character && session.player2.character && (
           <div
             className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none"
-            style={{ zIndex: 15, paddingLeft: '9.17vw', paddingRight: '9.17vw', gap: session.currentGame === 1 ? '1vw' : '1.25vw' }}
+            style={{ zIndex: 15, paddingLeft: '7vw', paddingRight: '7vw', gap: session.currentGame === 1 ? '0.75vw' : '1vw' }}
           >
             {getStagesForTournament(sessionId, session.currentGame).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
@@ -268,9 +268,9 @@ export default function StreamOverlayAfk({ sessionId }) {
               const showBanOverlay = isBanned && (bannedStage?.id === stage.id ? showBanOnCard : true);
               const showSelectOverlay = isSelected && (selectedStage?.id === stage.id ? showSelectOnCard : true);
               const isGame1 = session.currentGame === 1;
-              const imageSize = isGame1 ? { width: '13.33vw', height: '7.5vw' } : { width: '9.17vw', height: '5.21vw' };
+              const imageSize = isGame1 ? { width: '10vw', height: '5.6vw' } : { width: '7vw', height: '3.9vw' };
               const borderRadius = isGame1 ? 'rounded-xl' : 'rounded-lg';
-              const iconFontSize = isGame1 ? '7vw' : '5vw';
+              const iconFontSize = isGame1 ? '5.5vw' : '4vw';
 
               return (
                 <motion.div
@@ -334,7 +334,7 @@ export default function StreamOverlayAfk({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '14.58vw' }}
+            style={{ height: '11vw' }}
           >
             <div className="absolute inset-0">
               <img src={bannedStage.image} alt={bannedStage.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -346,13 +346,13 @@ export default function StreamOverlayAfk({ sessionId }) {
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 250, damping: 15, delay: 0.2 }}
                 className="text-red-500 font-black drop-shadow-2xl"
-                style={{ fontSize: '7vw', marginRight: '2vw', textShadow: '0 0 40px rgba(239, 68, 68, 0.8)' }}
+                style={{ fontSize: '5.5vw', marginRight: '1.5vw', textShadow: '0 0 40px rgba(239, 68, 68, 0.8)' }}
               >
                 ✖
               </motion.div>
               <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="text-center">
-                <p className="text-red-500 font-black drop-shadow-xl" style={{ fontFamily: 'Anton', fontSize: '5.5vw', marginBottom: '0.5vw', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>BANEADO</p>
-                <p className="text-white font-bold drop-shadow-lg" style={{ fontSize: '3.5vw' }}>{bannedStage.name}</p>
+                <p className="text-red-500 font-black drop-shadow-xl" style={{ fontFamily: 'Anton', fontSize: '4vw', marginBottom: '0.4vw', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>BANEADO</p>
+                <p className="text-white font-bold drop-shadow-lg" style={{ fontSize: '2.5vw' }}>{bannedStage.name}</p>
               </motion.div>
             </div>
           </motion.div>
@@ -368,7 +368,7 @@ export default function StreamOverlayAfk({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '14.58vw' }}
+            style={{ height: '11vw' }}
           >
             <div className="absolute inset-0">
               <img src={selectedStage.image} alt={selectedStage.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -384,13 +384,13 @@ export default function StreamOverlayAfk({ sessionId }) {
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 250, damping: 15, delay: 0.2 }}
                 className="text-green-500 font-black drop-shadow-2xl"
-                style={{ fontSize: '7vw', marginRight: '2vw', textShadow: '0 0 40px rgba(34, 197, 94, 1), 0 0 80px rgba(34, 197, 94, 0.5)' }}
+                style={{ fontSize: '5.5vw', marginRight: '1.5vw', textShadow: '0 0 40px rgba(34, 197, 94, 1), 0 0 80px rgba(34, 197, 94, 0.5)' }}
               >
                 ✓
               </motion.div>
               <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="text-center">
-                <p className="text-green-400 font-black drop-shadow-xl uppercase" style={{ fontFamily: 'Anton', fontSize: '5.5vw', marginBottom: '0.5vw', textShadow: '4px 4px 0px rgba(0,0,0,1)', letterSpacing: '0.1em' }}>SELECCIONADO</p>
-                <p className="text-white font-bold drop-shadow-lg" style={{ fontSize: '3.5vw', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>{selectedStage.name}</p>
+                <p className="text-green-400 font-black drop-shadow-xl uppercase" style={{ fontFamily: 'Anton', fontSize: '4vw', marginBottom: '0.4vw', textShadow: '4px 4px 0px rgba(0,0,0,1)', letterSpacing: '0.1em' }}>SELECCIONADO</p>
+                <p className="text-white font-bold drop-shadow-lg" style={{ fontSize: '2.5vw', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>{selectedStage.name}</p>
               </motion.div>
             </div>
           </motion.div>
