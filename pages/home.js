@@ -7,6 +7,7 @@ import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, CHARACTER_A
 import CharacterDetail from '../src/components/CharacterDetail';
 import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback, setReconnectCallback } from '../src/hooks/useWebSocket';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
+const PLACEMENT_TOTAL = 5;
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const PLATFORMS = [
