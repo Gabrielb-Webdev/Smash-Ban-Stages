@@ -33,6 +33,9 @@ export default async function handler(req, res) {
       // Sólo valores permitidos: 'host', 'nohost', o null (sin preferencia)
       existing.parsecRole = ['host', 'nohost'].includes(parsecRole) ? parsecRole : null;
     }
+    if (req.body.dismissedIconBanner !== undefined) {
+      existing.dismissedIconBanner = !!req.body.dismissedIconBanner;
+    }
 
     await redis.set(playerKey(cleanId), existing);
     return res.status(200).json({ success: true });

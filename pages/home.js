@@ -131,6 +131,7 @@ export default function HomePage() {
   const [pushBannerState, setPushBannerState] = useState(null); // null | 'loading' | 'ok' | 'error' | 'denied'
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showIconUpdateBanner, setShowIconUpdateBanner] = useState(false); // iOS standalone: actualizar ícono
   const [activeTournamentMatch, setActiveTournamentMatch] = useState(null);
 
   // Chat flotante
@@ -884,6 +885,44 @@ export default function HomePage() {
                 { icon: '⎋', label: 'Tocá el botón', desc: 'Compartir (cuadrado con flecha)' },
                 { icon: '＋', label: 'Elegí', desc: '"Agregar a pantalla de inicio"' },
                 { icon: '✓', label: 'Confirmá', desc: 'Tocá "Agregar" arriba a la derecha' },
+              ].map((s, i) => (
+                <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 11, padding: '8px 7px', textAlign: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,140,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, margin: '0 auto 5px' }}>{s.icon}</div>
+                  <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 800, color: '#FF8C00' }}>{s.label}</p>
+                  <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3 }}>{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* iOS Standalone: actualizar ícono de la app */}
+        {showIconUpdateBanner && (
+          <div style={{ background: 'rgba(232,142,0,0.10)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <img src="/images/logo.app.png" alt="Nuevo ícono" style={{ width: 40, height: 40, borderRadius: 11, background: '#000', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00' }}>¡Nuevo ícono disponible!</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>Para actualizar el ícono en tu pantalla de inicio, borrá la app y volvé a agregarla desde Safari.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowIconUpdateBanner(false);
+                  const uid2 = String(user?.id || user?.slug || '');
+                  if (uid2) fetch('/api/players/profile', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: uid2, dismissedIconBanner: true }),
+                  }).catch(() => {});
+                }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}
+              >✕</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { icon: '🗑️', label: 'Borrá la app', desc: 'Mantené presionado el ícono y eliminá' },
+                { icon: '🌐', label: 'Abrí Safari', desc: 'Entrá a la app desde el navegador' },
+                { icon: '＋', label: 'Agregá de nuevo', desc: 'Compartir → "Agregar a pantalla de inicio"' },
               ].map((s, i) => (
                 <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 11, padding: '8px 7px', textAlign: 'center' }}>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,140,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, margin: '0 auto 5px' }}>{s.icon}</div>
@@ -2966,6 +3005,13 @@ function TabPerfil({ user }) {
           else { setMainChar(null); try { localStorage.removeItem('afk_main_char'); } catch {} }
           if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
           else { setMainCharAlt(null); try { localStorage.removeItem('afk_main_alt'); } catch {} }
+          // Banner de actualización de ícono: solo iOS standalone que aún no lo cerró
+          if (!p?.dismissedIconBanner && typeof window !== 'undefined') {
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            const isStandalone = window.navigator.standalone === true
+              || window.matchMedia('(display-mode: standalone)').matches;
+            if (isIOS && isStandalone) setShowIconUpdateBanner(true);
+          }
         }).catch(() => {});
     }
   }, [user?.id]);
