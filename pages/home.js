@@ -5793,9 +5793,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
     setLoading(true); setFormError(null);
     try {
+      let searchCharAlt = null;
+      try {
+        const savedChar = localStorage.getItem('afk_main_char');
+        const savedAlt = localStorage.getItem('afk_main_alt');
+        if (savedAlt && savedChar && String(savedChar) === String(searchChar)) searchCharAlt = savedAlt;
+      } catch {}
       const r = await fetch('/api/matchmaking/queue', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, parsecRole }),
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, charAlt: searchCharAlt, parsecRole }),
       });
       const data = await r.json();
       if (r.status === 409) {
