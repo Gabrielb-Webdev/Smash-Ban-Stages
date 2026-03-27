@@ -1493,10 +1493,14 @@ export default function TestAdminPage() {
         }
         @media(min-width:769px){
           .assign-dropdown-wrap{display:none!important}
+          .panel-outer{height:100vh!important;overflow:hidden!important}
+          .panel-body{min-height:0!important;overflow:hidden!important}
+          .panel-right{min-height:0!important;overflow:hidden!important}
+          .panel-left{min-height:0!important;overflow-y:auto!important}
         }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif", display: 'flex', flexDirection: 'column' }}>
+      <div className="panel-outer" style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
         {/* ── HEADER ── */}
         <div className="header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, background: 'rgba(11,11,18,0.96)', backdropFilter: 'blur(14px)', zIndex: 40, gap: 10, flexWrap: 'wrap' }}>

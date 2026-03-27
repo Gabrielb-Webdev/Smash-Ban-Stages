@@ -193,11 +193,11 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     if (!session) return;
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     if (session.currentGame >= 2 && session.phase === 'CHARACTER_SELECT') {
-      if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && previousCharacters.player1 && !showRepeatModal.player1) {
+      if (session.currentTurn === 'player1' && !hasAskedRepeat.player1 && !session.player1.character && (previousCharacters.player1 || session.lastCharacters?.player1) && !showRepeatModal.player1) {
         setShowRepeatModal({ player1: true, player2: false });
         setHasAskedRepeat(prev => ({ ...prev, player1: true }));
       }
-      if (session.currentTurn === 'player2' && !hasAskedRepeat.player2 && !session.player2.character && previousCharacters.player2 && !showRepeatModal.player2) {
+      if (session.currentTurn === 'player2' && !hasAskedRepeat.player2 && !session.player2.character && (previousCharacters.player2 || session.lastCharacters?.player2) && !showRepeatModal.player2) {
         setShowRepeatModal({ player1: false, player2: true });
         setHasAskedRepeat(prev => ({ ...prev, player2: true }));
       }
@@ -246,8 +246,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
 
   const handleRepeatCharacter = (player, repeat) => {
     setShowRepeatModal({ player1: false, player2: false });
-    if (repeat && previousCharacters[player]) {
-      selectCharacter(sessionId, previousCharacters[player], player);
+    const charToRepeat = previousCharacters[player] || session?.lastCharacters?.[player];
+    if (repeat && charToRepeat) {
+      selectCharacter(sessionId, charToRepeat, player);
     }
   };
 
@@ -1098,7 +1099,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Modal: Repetir personaje - Player 1 ── */}
-        {showRepeatModal.player1 && previousCharacters.player1 && (!effectivePlayer || effectivePlayer === 'player1') && (
+        {showRepeatModal.player1 && (previousCharacters.player1 || session?.lastCharacters?.player1) && (!effectivePlayer || effectivePlayer === 'player1') && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-red to-red-800 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full">
               <div className="text-center mb-6">
@@ -1106,8 +1107,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <h3 className="text-3xl font-bold text-white mb-4" style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>{session.player1.name}</h3>
                 <p className="text-white text-xl mb-4">¿Quieres repetir tu personaje anterior?</p>
                 <div className="bg-black/40 rounded-xl p-6 border-2 border-white/30">
-                  <img src={getCharacterData(previousCharacters.player1)?.image} alt={getCharacterData(previousCharacters.player1)?.name} className="w-32 h-32 mx-auto mb-3 rounded-full border-4 border-white shadow-2xl" onError={(e) => { e.target.style.display = 'none'; }} />
-                  <p className="text-white text-2xl font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{getCharacterData(previousCharacters.player1)?.name}</p>
+                  <img src={getCharacterData(previousCharacters.player1 || session?.lastCharacters?.player1)?.image} alt={getCharacterData(previousCharacters.player1 || session?.lastCharacters?.player1)?.name} className="w-32 h-32 mx-auto mb-3 rounded-full border-4 border-white shadow-2xl" onError={(e) => { e.target.style.display = 'none'; }} />
+                  <p className="text-white text-2xl font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{getCharacterData(previousCharacters.player1 || session?.lastCharacters?.player1)?.name}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1119,7 +1120,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
         )}
 
         {/* ── Modal: Repetir personaje - Player 2 ── */}
-        {showRepeatModal.player2 && previousCharacters.player2 && (!effectivePlayer || effectivePlayer === 'player2') && (
+        {showRepeatModal.player2 && (previousCharacters.player2 || session?.lastCharacters?.player2) && (!effectivePlayer || effectivePlayer === 'player2') && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-smash-blue to-blue-800 rounded-2xl p-8 shadow-2xl border-4 border-white max-w-lg w-full">
               <div className="text-center mb-6">
@@ -1127,8 +1128,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <h3 className="text-3xl font-bold text-white mb-4" style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>{session.player2.name}</h3>
                 <p className="text-white text-xl mb-4">¿Quieres repetir tu personaje anterior?</p>
                 <div className="bg-black/40 rounded-xl p-6 border-2 border-white/30">
-                  <img src={getCharacterData(previousCharacters.player2)?.image} alt={getCharacterData(previousCharacters.player2)?.name} className="w-32 h-32 mx-auto mb-3 rounded-full border-4 border-white shadow-2xl" onError={(e) => { e.target.style.display = 'none'; }} />
-                  <p className="text-white text-2xl font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{getCharacterData(previousCharacters.player2)?.name}</p>
+                  <img src={getCharacterData(previousCharacters.player2 || session?.lastCharacters?.player2)?.image} alt={getCharacterData(previousCharacters.player2 || session?.lastCharacters?.player2)?.name} className="w-32 h-32 mx-auto mb-3 rounded-full border-4 border-white shadow-2xl" onError={(e) => { e.target.style.display = 'none'; }} />
+                  <p className="text-white text-2xl font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{getCharacterData(previousCharacters.player2 || session?.lastCharacters?.player2)?.name}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

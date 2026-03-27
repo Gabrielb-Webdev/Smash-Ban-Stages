@@ -230,6 +230,14 @@ async function fetchStartggTournaments(token) {
             t._seriesN = n;
             results.push(t);
             debug.push({ id, name: t.name, series: series.base, n, role: 'series', owner: t.owner?.id, admins: (t.admins || []).map(a => a.id) });
+          } else {
+            // Ya en results (encontrado vía user tournaments) — adjuntar metadatos de serie
+            const existing = results.find(r => String(r.id) === id);
+            if (existing && !existing._series) {
+              existing._series = series.base;
+              existing._seriesN = n;
+              debug.push({ id, name: t.name, series: series.base, n, role: 'series-meta-attached' });
+            }
           }
         } else {
           misses++;
@@ -263,7 +271,8 @@ async function fetchStartggTournaments(token) {
   }).filter(t => {
     const state = t.state;
     if (state === 4 || state === 'CANCELLED') return false;
-    // Incluir todos: activos, creados, completados y series
+    // Series completadas: excluir (la próxima edición no está publicada aún)
+    if (t.series && (state === 3 || state === 'COMPLETED')) return false;
     return true;
   });
 

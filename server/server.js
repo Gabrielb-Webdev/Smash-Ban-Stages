@@ -1314,6 +1314,11 @@ io.on('connection', (socket) => {
       };
       session.repeatStageProposal = null;
       session.repeatStageRejected = false;
+      // Guardar personajes del game anterior para ofrecer repetir en el próximo
+      session.lastCharacters = {
+        player1: session.player1.character,
+        player2: session.player2.character,
+      };
       session.currentGame++;
       session.phase = 'CHARACTER_SELECT';
       session.selectedStage = null;
