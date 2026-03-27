@@ -4936,18 +4936,17 @@ function TabTorneos({ user }) {
   const [startggLoading, setStartggLoading] = useState(true);
   const [enrolledEvents, setEnrolledEvents] = useState({}); // { eventId: true/false }
 
-  useEffect(() => {
-    // Cargar en paralelo: torneos destacados (manuales) + torneos de start.gg
+  // Carga y normaliza torneos
+  const loadTorneos = (showLoading = false) => {
+    if (showLoading) setStartggLoading(true);
     Promise.all([
       fetch('/api/tournaments/featured').then(r => r.json()).catch(() => ({ featured: [] })),
       fetch('/api/tournaments/sync-startgg').then(r => r.json()).catch(() => ({ tournaments: [] })),
     ]).then(([featuredData, syncData]) => {
       const featured = Array.isArray(featuredData.featured) ? featuredData.featured.map(t => ({ ...t, _featured: true })) : [];
       const synced   = Array.isArray(syncData.tournaments) ? syncData.tournaments : [];
-      // Deduplicar: featured primero, luego los de sync que no estén ya en featured
       const featuredSlugs = new Set(featured.map(t => t.slug));
       const merged = [...featured, ...synced.filter(t => !featuredSlugs.has(t.slug))];
-      // Filtrar finalizados de hace más de 4 días y ordenar finalizados al final
       const _now = new Date();
       const _4d = 4 * 24 * 60 * 60 * 1000;
       const filtered = merged.filter(t => {
@@ -4962,6 +4961,13 @@ function TabTorneos({ user }) {
       });
       setStartggTorneos(filtered);
     }).finally(() => setStartggLoading(false));
+  };
+
+  useEffect(() => {
+    loadTorneos(true);
+    // Polling cada 30 segundos para reflejar cambios sin que el usuario recargue
+    const iv = setInterval(() => loadTorneos(false), 30000);
+    return () => clearInterval(iv);
   }, []);
 
   // Check enrollment for each event

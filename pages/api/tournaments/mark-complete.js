@@ -16,14 +16,22 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { slug } = req.body || {};
+  const { slug, checkOnly } = req.body || {};
   if (!slug || typeof slug !== 'string') {
     return res.status(400).json({ error: 'slug requerido' });
   }
 
   try {
+    const flagKey = AUTO_COMPLETE_PREFIX + slug;
+
+    // Modo solo consulta: verificar si ya fue marcado
+    if (checkOnly) {
+      const exists = await redis.get(flagKey);
+      return res.status(200).json({ alreadyDone: !!exists, slug });
+    }
+
     // Guardar flag persistente
-    await redis.set(AUTO_COMPLETE_PREFIX + slug, '1', { ex: FLAG_TTL });
+    await redis.set(flagKey, '1', { ex: FLAG_TTL });
 
     // Actualizar directamente el cache existente en Redis
     try {
