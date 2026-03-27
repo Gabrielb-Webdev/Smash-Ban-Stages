@@ -27,7 +27,7 @@ export default function StreamOverlayAfk({ sessionId }) {
   useEffect(() => {
     if (session?.player1?.character && session?.player2?.character) {
       setShowStageBansText(true);
-      const t = setTimeout(() => setShowStageBansText(false), 3400);
+      const t = setTimeout(() => setShowStageBansText(false), 3000);
       return () => clearTimeout(t);
     } else {
       setShowStageBansText(false);
@@ -246,23 +246,26 @@ export default function StreamOverlayAfk({ sessionId }) {
         )}
 
         {/* Texto "STAGE BANS" en el centro */}
-        {showStageBansText && (
+        {session.player1.character && session.player2.character && (
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{ zIndex: 20 }}
           >
             <div className="overflow-hidden flex items-center justify-center" style={{ height: '5.4vw', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <AnimatePresence>
-                <motion.h2
-                  key="stage-bans-text"
-                  initial={{ y: 100 }}
-                  animate={{ y: [100, 0, 0, -100] }}
-                  transition={{ duration: 3, times: [0, 0.3, 0.6, 1], ease: 'easeInOut', delay: 0.8 }}
-                  className="whitespace-nowrap"
-                  style={{ fontFamily: 'Anton', fontSize: '5vw', fontWeight: '400', color: '#FFFFFF' }}
-                >
-                  STAGE BANS
-                </motion.h2>
+                {showStageBansText && (
+                  <motion.h2
+                    key="stage-bans-text"
+                    initial={{ y: 80 }}
+                    animate={{ y: 0 }}
+                    exit={{ y: -80 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="whitespace-nowrap"
+                    style={{ fontFamily: 'Anton', fontSize: '5vw', fontWeight: '400', color: '#FFFFFF' }}
+                  >
+                    STAGE BANS
+                  </motion.h2>
+                )}
               </AnimatePresence>
             </div>
           </div>
