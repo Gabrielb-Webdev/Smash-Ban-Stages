@@ -3564,42 +3564,78 @@ function TabPerfil({ user }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filtered.map((m, i) => {
                 const isCasual = m.type === 'casual';
-                const isWin = String(m.winnerId) === String(user.id || user.slug);
-                const opponent = isWin ? m.loserName : m.winnerName;
-                const opponentId = isWin ? m.loserId : m.winnerId;
-                const myCharId = isWin ? m.winnerCharId : m.loserCharId;
-                const myRankName = isWin ? m.winnerRankAfter : m.loserRankAfter;
-                const rankObj = RANKS.find(r => r.name === myRankName);
+                const is2v2 = m.mode === '2v2';
+                // Para 2v2 (casual o ranked) usamos el campo isWin guardado por servidor
+                const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(user.id || user.slug);
+                const opponent = is2v2
+                  ? (isWin
+                    ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}`
+                    : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
+                  : (isWin ? m.loserName : m.winnerName);
+                const opponentId = is2v2 ? null : (isWin ? m.loserId : m.winnerId);
+                const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
                 const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                 const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
                 const charSrc = renderFile ? charRenderPath(renderFile) : null;
-                const rpDelta = isCasual ? null : (isWin ? m.rpDelta : -10);
+                const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                // Escenarios únicos para el fondo
+                const games = m.games || [];
+                const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                const uniqueStages = [...new Set(playedStages)];
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'stretch', gap: 0, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: '1px solid ' + (isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'), borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), borderRadius: 12, overflow: 'hidden' }}>
-                    {/* Izquierda: personaje + icono rango */}
-                    <div style={{ width: 58, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
-                      {charSrc ? (
-                        <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
-                      ) : (
-                        <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>⚔️</div>
-                      )}
-                      {isCasual ? (
-                        <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
-                      ) : tierIcon ? (
-                        <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
-                      ) : null}
-                    </div>
-                    {/* Centro: info */}
-                    <div style={{ flex: 1, padding: '9px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, cursor: opponentId ? 'pointer' : 'default' }} onClick={() => opponentId && openProfile(opponentId, opponent)}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                      <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
-                      {!isCasual && rpDelta != null && (
-                        <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                  <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+                    {/* Fondo: escenarios jugados */}
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                      {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                        <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                      )) : (
+                        <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
                       )}
                     </div>
-                    {/* Derecha: resultado */}
-                    <div style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                    {/* Overlay oscuro */}
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                    {/* Contenido */}
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                      {/* Izquierda: personaje + badge */}
+                      <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
+                        {charSrc ? (
+                          <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                        ) : (
+                          <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                        )}
+                        {isCasual ? (
+                          <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
+                        ) : is2v2 ? (
+                          <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
+                        ) : isMyPlacement ? (
+                          <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
+                        ) : tierIcon ? (
+                          <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
+                        ) : null}
+                      </div>
+                      {/* Centro: info */}
+                      <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, cursor: opponentId ? 'pointer' : 'default' }} onClick={() => opponentId && openProfile(opponentId, opponent)}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                          {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                        </p>
+                        {!isCasual && !is2v2 && (
+                          isMyPlacement ? (
+                            <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                          ) : rpDelta != null ? (
+                            <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                          ) : null
+                        )}
+                      </div>
+                      {/* Derecha: VICTORIA / DERROTA */}
+                      <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -5274,7 +5310,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [casualMode, setCasualMode]   = useState('1v1'); // '1v1' | '2v2' para casual
   const [casualParty, setCasualParty] = useState(null);
   const [joinCodeInput, setJoinCodeInput] = useState('');
-  const [partyInfo, setPartyInfo]     = useState(null); // Para 2v2 ranked
+  const [rankedParty, setRankedParty] = useState(null);
+  const [rankedJoinCodeInput, setRankedJoinCodeInput] = useState('');
+  const [partyInfo, setPartyInfo]     = useState(null); // Para 2v2 ranked (legado)
   const [parsecRole, setParsecRole]   = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('afk_parsec_role') || null;
     return null;
@@ -5325,6 +5363,21 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     const iv = setInterval(poll, 4000);
     return () => clearInterval(iv);
   }, [uid, matchTypeMode, casualMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll ranked party para 2v2
+  useEffect(() => {
+    if (!uid || matchTypeMode !== 'ranked' || matchMode !== '2v2') return;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/matchmaking/ranked-party?userId=' + encodeURIComponent(uid));
+        const d = await r.json();
+        setRankedParty(d.status === 'none' ? null : d.party);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 4000);
+    return () => clearInterval(iv);
+  }, [uid, matchTypeMode, matchMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer de búsqueda
   useEffect(() => {
@@ -5386,6 +5439,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     setSearchPlat(null); setSearchChar(null);
     setMatchTypeMode('ranked');
     setCasualMode('1v1'); setCasualParty(null); setJoinCodeInput('');
+    setRankedParty(null); setRankedJoinCodeInput('');
   };
 
   const startSearch = async (platform) => {
@@ -5436,8 +5490,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   };
 
   const startSearch2v2 = async (platform) => {
-    if (!partyInfo || partyInfo.status !== 'ready') {
-      setFormError('Necesitás un party listo. Invitá a un amigo desde tu perfil.');
+    if (!rankedParty || rankedParty.status !== 'ready') {
+      setFormError('El equipo no está completo todavía');
       return;
     }
     setLoading(true); setFormError(null);
@@ -5453,9 +5507,44 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     finally { setLoading(false); }
   };
 
-  const cancelSearch2v2 = async () => {
+  const createRankedParty = async (platform) => {
+    setLoading(true); setFormError(null);
     try {
-      await fetch('/api/matchmaking/queue-doubles', {
+      const r = await fetch('/api/matchmaking/ranked-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
+      setRankedParty(d.party);
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const joinRankedParty = async (code) => {
+    if (!code || code.length < 4) { setFormError('Ingresá el código de sala (4 caracteres)'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/ranked-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, code: code.toUpperCase() }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
+      setRankedParty(d.party); setRankedJoinCodeInput('');
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const leaveRankedParty = async () => {
+    try {
+      await fetch('/api/matchmaking/ranked-party', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid }),
+      });
+    } catch {}
+    setRankedParty(null);
+  };
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: uid, platform: bgMM?.plat }),
       });
@@ -6317,55 +6406,76 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         </>
       ) : (
         <>
-          {/* 2v2 Mode */}
-          {!partyInfo || partyInfo.status === 'none' ? (
-            <div style={{ textAlign: 'center', padding: '32px 16px', background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: 20 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 40 }}>👥</p>
-              <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 900, color: '#A78BFA' }}>Necesitás un compañero</p>
-              <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
-                Invitá a un amigo desde tu perfil para jugar ranked 2v2. Tocá 💬 en cualquier amigo y usá el botón "2v2".
-              </p>
-            </div>
-          ) : partyInfo.status === 'pending' ? (
-            <div style={{ textAlign: 'center', padding: '28px 16px', background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 20 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 36 }}>⏳</p>
-              <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 900, color: '#FBBF24' }}>Esperando respuesta</p>
-              <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                Tu compañero todavía no aceptó la invitación
-              </p>
-              <button onClick={() => { fetch('/api/party', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) }).then(() => setPartyInfo(null)).catch(() => {}); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar invitación</button>
-            </div>
-          ) : partyInfo.status === 'ready' ? (
-            <div>
-              <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.15)', borderRadius: 16, marginBottom: 16 }}>
-                <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#34D399' }}>✓ Party listo</p>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                  Con {partyInfo.party?.invited?.userName || partyInfo.party?.leader?.userName || '…'} · {partyInfo.party?.platform}
-                </p>
+          {/* 2v2 Ranked - Room code party system */}
+          {!rankedParty ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Formá un equipo antes de buscar rivales Ranked 2v2</p>
+              {PLATFORMS.map(px => (
+                <button key={'rp-' + px.id} onClick={() => createRankedParty(px.id)} disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,140,0,0.06)', border: '1px solid rgba(255,140,0,0.22)', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#FF8C00' }}>Crear sala en {px.label}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para invitar a tu compañero</p>
+                  </div>
+                </button>
+              ))}
+              <div style={{ marginTop: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unirse a sala existente</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input value={rankedJoinCodeInput} onChange={e => setRankedJoinCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4))} placeholder="Ej: AB3Z" maxLength={4}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: 6, padding: '8px 14px', outline: 'none', textAlign: 'center' }} />
+                  <button onClick={() => joinRankedParty(rankedJoinCodeInput)} disabled={loading || rankedJoinCodeInput.length < 4}
+                    style={{ padding: '8px 18px', background: 'rgba(255,140,0,0.18)', border: '1px solid rgba(255,140,0,0.4)', borderRadius: 10, color: '#FF8C00', fontWeight: 800, fontSize: 13, cursor: rankedJoinCodeInput.length < 4 || loading ? 'not-allowed' : 'pointer', opacity: rankedJoinCodeInput.length < 4 ? 0.5 : 1, transition: 'all 0.15s' }}>Unirse</button>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {PLATFORMS.filter(px => px.id === partyInfo.party?.platform).map(px => (
-                  <button
-                    key={px.id}
-                    onClick={() => startSearch2v2(px.id)}
-                    disabled={loading}
-                    style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
-                  >
-                    <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar 2v2 en {px.label}</p>
-                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Ranked dobles</p>
+            </div>
+          ) : rankedParty.status === 'waiting' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '8px 0' }}>
+              {rankedParty.leader?.userId === uid ? (
+                <>
+                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compartí este código con tu compañero</p>
+                  <div style={{ background: 'rgba(255,140,0,0.08)', border: '2px solid rgba(255,140,0,0.4)', borderRadius: 20, padding: '18px 32px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                    <p style={{ margin: 0, fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{rankedParty.code}</p>
+                    <button onClick={() => { try { navigator.clipboard.writeText(rankedParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(255,140,0,0.18)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 8, color: '#FF8C00', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{rankedParty.platform === 'switch' ? '🎮 Switch' : '💻 Parsec'}</strong></p>
+                </>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el líder comience la búsqueda...</p>
+              )}
+              <div style={{ width: 28, height: 28, border: '3px solid rgba(255,140,0,0.3)', borderTop: '3px solid #FF8C00', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <button onClick={leaveRankedParty} style={{ padding: '7px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#EF4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Cancelar sala</button>
+            </div>
+          ) : rankedParty.status === 'ready' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ background: 'rgba(255,140,0,0.05)', border: '1px solid rgba(255,140,0,0.18)', borderRadius: 16, padding: '14px 16px' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ✅</p>
+                {[rankedParty.leader, rankedParty.invited].map((p, idx) => p ? (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👤</div>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{p.userName}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.userId === uid ? '(vos)' : 'compañero'}</p>
                     </div>
-                    <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
-                  </button>
-                ))}
+                  </div>
+                ) : null)}
               </div>
+              {PLATFORMS.filter(px => px.id === rankedParty.platform).map(px => (
+                <button key={px.id} onClick={() => { setSearchPlat(px.id); startSearch2v2(px.id); }} disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>Buscar 2v2 Ranked en {px.label}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Ranked dobles</p>
+                  </div>
+                  <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                </button>
+              ))}
+              <button onClick={leaveRankedParty} style={{ padding: '7px 0', background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.6)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>Abandonar equipo</button>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '24px 16px', background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: 20 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: '#A78BFA' }}>Party: {partyInfo.status}</p>
-            </div>
-          )}
+          ) : null}
         </>
       )}
 

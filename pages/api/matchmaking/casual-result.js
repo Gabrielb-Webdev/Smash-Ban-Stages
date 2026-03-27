@@ -263,10 +263,11 @@ async function saveHistory(match) {
   if (match.mode === '2v2') {
     const { winnerTeam, winTeamPlayers = [], loseTeamPlayers = [], stocksWon } = result;
     const baseEntry = { matchId, platform, type: 'casual', mode: '2v2', winnerTeam, winTeamPlayers, loseTeamPlayers, stocksWon, rpDelta: 0, mmrDelta: 0, playedAt };
+    const winIds = winTeamPlayers.map(p => String(p.userId));
     const allPlayers = [...winTeamPlayers, ...loseTeamPlayers];
     for (const p of allPlayers) {
       const histKey = matchHistoryKey(String(p.userId));
-      await redis.lpush(histKey, { ...baseEntry, viewerTeam: winTeamPlayers.some(x => x.userId === p.userId) ? winnerTeam : (winnerTeam === 1 ? 2 : 1) });
+      await redis.lpush(histKey, { ...baseEntry, isWin: winIds.includes(String(p.userId)) });
       await redis.ltrim(histKey, 0, 49);
     }
     return;

@@ -202,7 +202,7 @@ export default async function handler(req, res) {
     }
 
     // Historial para los 4 jugadores
-    const matchEntry = {
+    const baseEntry = {
       matchId, platform, mode: '2v2',
       winnerTeam: winTeamKey,
       team1: { p1: match.team1.player1.userName, p2: match.team1.player2.userName },
@@ -210,9 +210,10 @@ export default async function handler(req, res) {
       stocksWon: finalStocks,
       playedAt: new Date().toISOString(),
     };
+    const winPlayerIds = [winTeam.player1.userId, winTeam.player2.userId].map(String);
     for (const uid of allPlayers) {
       const hKey = matchHistoryKey(String(uid));
-      await redis.lpush(hKey, matchEntry);
+      await redis.lpush(hKey, { ...baseEntry, isWin: winPlayerIds.includes(String(uid)) });
       await redis.ltrim(hKey, 0, 49);
     }
 

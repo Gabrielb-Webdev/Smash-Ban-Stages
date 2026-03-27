@@ -236,6 +236,10 @@ async function applyFinishedStats(match, matchId) {
   if (!lStats.mmr) lStats.mmr = MMR_DEFAULT;
   lStats.rankIndex = lStats.rankIndex ?? getRankIndex(lStats.rank);
 
+  // Capturar estado de placement ANTES de procesar (se usa en matchEntry)
+  const wWasInPlacement = !wStats.placementDone && ((wStats.wins || 0) + (wStats.losses || 0)) < PLACEMENT_MATCHES;
+  const lWasInPlacement = !lStats.placementDone && ((lStats.wins || 0) + (lStats.losses || 0)) < PLACEMENT_MATCHES;
+
   // ── Procesar resultado con el nuevo sistema ──
   const result = processMatchResult(wStats, lStats, { stocksWon: finalStocks });
 
@@ -293,7 +297,8 @@ async function applyFinishedStats(match, matchId) {
     winnerCharId: match.player1.userId === winnerId ? match.player1.charId : match.player2.charId,
     loserCharId:  match.player1.userId === loserId  ? match.player1.charId : match.player2.charId,
     stocksWon: finalStocks,
-    rpDelta:   result.winner.rrDelta,
+    rpDelta:      result.winner.rrDelta,
+    loserRpDelta: result.loser.rrDelta,
     mmrDelta:  result.winner.mmrDelta,
     mmrWinnerBefore: result.winner.mmrBefore,
     mmrWinnerAfter:  result.winner.mmrAfter,
@@ -301,6 +306,11 @@ async function applyFinishedStats(match, matchId) {
     mmrLoserAfter:   result.loser.mmrAfter,
     winnerRankAfter: wStats.rank,
     loserRankAfter:  lStats.rank,
+    isPlacementWinner: wWasInPlacement,
+    isPlacementLoser:  lWasInPlacement,
+    winnerScore: 2,
+    loserScore: match.score ? (match.score[String(loserId)] ?? match.score[loserId] ?? 0) : 0,
+    games: match.result?.games || [],
     playedAt: new Date().toISOString(),
   };
   const wHistKey = matchHistoryKey(String(winnerId));
