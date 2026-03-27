@@ -718,9 +718,7 @@ export default function HomePage() {
 
           {/* Center — Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, boxShadow: '0 0 16px rgba(232,142,0,0.55), 0 4px 12px rgba(0,0,0,0.4)', animation: 'glow-pulse 3s ease-in-out infinite' }}>
-              🎮
-            </div>
+            <img src="/images/logo.png" alt="Logo" style={{ width: 34, height: 34, borderRadius: 10, boxShadow: '0 0 16px rgba(232,142,0,0.55), 0 4px 12px rgba(0,0,0,0.4)' }} />
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>la app</span>
               <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>sin H</span>
@@ -2857,7 +2855,7 @@ function TabAmigos({ user }) {
                             <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                               <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}
                               </p>
                               {!isCasual && !is2v2 && (
                                 isMyPlacement ? (
@@ -2870,6 +2868,7 @@ function TabAmigos({ user }) {
                             <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                               {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                               <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                              {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
                             </div>
                           </div>
                         </div>
@@ -3712,7 +3711,7 @@ function TabPerfil({ user }) {
                               <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                                 <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                  {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                                  {platLabel(m.platform)} · {timeAgo(m.playedAt)}
                                 </p>
                                 {!isCasual && !is2v2 && (
                                   isMyPlacement ? (
@@ -3725,6 +3724,7 @@ function TabPerfil({ user }) {
                               <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                                 {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                                 <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
                               </div>
                             </div>
                           </div>
@@ -3946,7 +3946,7 @@ function TabPerfil({ user }) {
                       <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, }}> 
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                          {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                          {platLabel(m.platform)} · {timeAgo(m.playedAt)}
                         </p>
                         {!isCasual && !is2v2 && (
                           isMyPlacement ? (
@@ -3960,6 +3960,7 @@ function TabPerfil({ user }) {
                       <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                         {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                         <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                        {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
                       </div>
                     </div>
                   </div>
@@ -4831,7 +4832,7 @@ function TabRankings({ user, setTab }) {
                             <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                               <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}
                               </p>
                               {!isCasual && !is2v2 && (
                                 isMyPlacement ? (
@@ -4844,6 +4845,7 @@ function TabRankings({ user, setTab }) {
                             <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                               {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                               <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                              {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
                             </div>
                           </div>
                         </div>

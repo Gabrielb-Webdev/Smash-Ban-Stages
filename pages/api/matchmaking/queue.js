@@ -1,7 +1,7 @@
 // API de cola de matchmaking para Switch Online y Parsec — Upstash Redis
 // Matchmaking basado en MMR con expansión progresiva y anti queue-sniping
 
-import redis, { mmQueueKey, rankedStatsKey, mmMatchupKey } from '../../../lib/redis';
+import redis, { mmQueueKey, rankedStatsKey } from '../../../lib/redis';
 import { sendPush } from '../../../lib/push.js';
 import { MMR_DEFAULT } from '../../../lib/ranks';
 
@@ -17,8 +17,9 @@ const MMR_BRACKETS = [
 ];
 const MMR_HARD_CAP = 600; // NUNCA emparejar con >600 MMR de diferencia
 
-// Anti queue-sniping: máximo de matchups repetidos en un día
-const MAX_DAILY_MATCHUPS = 3;
+// Anti queue-sniping: máximo de rematches CONSECUTIVOS (sin jugar contra otro)
+const MAX_CONSECUTIVE_REMATCH = 2;
+const CONSECUTIVE_TTL_SECONDS = 6 * 60 * 60; // 6 horas
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
@@ -53,7 +54,7 @@ function matchupPairKey(userId1, userId2) {
  * Matchmaking basado en MMR con expansión progresiva.
  * Busca el mejor rival para cada jugador según:
  * 1. Diferencia de MMR dentro del bracket correspondiente a su tiempo en cola
- * 2. Anti queue-sniping: evita emparejar >3 veces al día
+ * 2. Anti queue-sniping: max 2 rematches consecutivos (se resetea si juegan contra otro)
  * 3. Prioriza la menor diferencia de MMR
  */
 export async function tryMatch(platform) {
@@ -61,12 +62,24 @@ export async function tryMatch(platform) {
   if (queue.length < 2) return;
 
   const now = Date.now();
-  // Cargar matchups del día para anti-snipe
-  const matchupsRaw = (await redis.get(mmMatchupKey(platform))) || {};
+
+  // ── Fix double-match: descartar jugadores que ya tienen room activo ──
+  const eligible = [];
+  for (const entry of queue) {
+    const existingCode = await redis.get(userRoomKey(String(entry.userId)));
+    if (!existingCode) {
+      eligible.push(entry);
+    }
+  }
+  // Actualizar cola si hubo jugadores descartados (tenían room fantasma)
+  if (eligible.length !== queue.length) {
+    await redis.set(mmQueueKey(platform), eligible);
+  }
+  if (eligible.length < 2) return;
 
   // Pre-cargar MMR de todos los jugadores en cola
   const mmrMap = {};
-  for (const entry of queue) {
+  for (const entry of eligible) {
     const stats = await redis.get(rankedStatsKey(String(entry.userId), platform));
     mmrMap[entry.userId] = (stats?.mmr) || MMR_DEFAULT;
   }
@@ -75,8 +88,8 @@ export async function tryMatch(platform) {
   let bestPair = null;
   let bestDiff = Infinity;
 
-  for (let i = 0; i < queue.length; i++) {
-    const p1 = queue[i];
+  for (let i = 0; i < eligible.length; i++) {
+    const p1 = eligible[i];
     const p1Mmr = mmrMap[p1.userId];
     const p1Wait = (now - new Date(p1.joinedAt).getTime()) / 1000;
 
@@ -86,8 +99,8 @@ export async function tryMatch(platform) {
       if (p1Wait >= seconds) p1Range = range;
     }
 
-    for (let j = i + 1; j < queue.length; j++) {
-      const p2 = queue[j];
+    for (let j = i + 1; j < eligible.length; j++) {
+      const p2 = eligible[j];
       const p2Mmr = mmrMap[p2.userId];
       const p2Wait = (now - new Date(p2.joinedAt).getTime()) / 1000;
 
@@ -108,10 +121,10 @@ export async function tryMatch(platform) {
       // Bloquear no-host vs no-host en Parsec
       if (platform === 'parsec' && p1.parsecRole === 'nohost' && p2.parsecRole === 'nohost') continue;
 
-      // Anti queue-sniping
+      // Anti queue-sniping: check rematches consecutivos
       const pairKey = matchupPairKey(p1.userId, p2.userId);
-      const dailyCount = matchupsRaw[pairKey] || 0;
-      if (dailyCount >= MAX_DAILY_MATCHUPS) continue;
+      const consecutiveCount = (await redis.get(`mm:consecutive:${platform}:${pairKey}`)) || 0;
+      if (consecutiveCount >= MAX_CONSECUTIVE_REMATCH) continue;
 
       // Mejor match = menor diferencia de MMR
       if (mmrDiff < bestDiff) {
@@ -124,22 +137,59 @@ export async function tryMatch(platform) {
   if (!bestPair) return; // nadie matcheó
 
   const [iP1, iP2] = bestPair;
-  const p1 = queue[iP1];
-  const p2 = queue[iP2];
+  const p1 = eligible[iP1];
+  const p2 = eligible[iP2];
+
+  // ── Double-match check final: verificar que ambos sigan sin room ──
+  const [p1Room, p2Room] = await Promise.all([
+    redis.get(userRoomKey(String(p1.userId))),
+    redis.get(userRoomKey(String(p2.userId))),
+  ]);
+  if (p1Room || p2Room) {
+    // Alguien ya fue matcheado por otra llamada concurrente, abortar
+    const cleanQueue = (await redis.get(mmQueueKey(platform))) || [];
+    const filtered = cleanQueue.filter(e =>
+      !(p1Room && e.userId === p1.userId) && !(p2Room && e.userId === p2.userId)
+    );
+    if (filtered.length !== cleanQueue.length) await redis.set(mmQueueKey(platform), filtered);
+    return;
+  }
 
   // Sacar ambos de la cola
-  const newQueue = queue.filter((_, idx) => idx !== iP1 && idx !== iP2);
+  const newQueue = eligible.filter((_, idx) => idx !== iP1 && idx !== iP2);
   await redis.set(mmQueueKey(platform), newQueue);
 
-  // Registrar matchup anti-snipe (expira a medianoche)
+  // ── Registrar rematch consecutivo ──
   const pairKey = matchupPairKey(p1.userId, p2.userId);
-  matchupsRaw[pairKey] = (matchupsRaw[pairKey] || 0) + 1;
-  await redis.set(mmMatchupKey(platform), matchupsRaw);
-  // TTL hasta medianoche: calcular segundos restantes del día
-  const midnight = new Date();
-  midnight.setHours(23, 59, 59, 999);
-  const ttlSeconds = Math.ceil((midnight.getTime() - now) / 1000);
-  await redis.expire(mmMatchupKey(platform), Math.max(60, ttlSeconds));
+  const prevCount = (await redis.get(`mm:consecutive:${platform}:${pairKey}`)) || 0;
+  await redis.set(`mm:consecutive:${platform}:${pairKey}`, prevCount + 1);
+  await redis.expire(`mm:consecutive:${platform}:${pairKey}`, CONSECUTIVE_TTL_SECONDS);
+
+  // Resetear contadores de otros pares (cada jugador ahora está jugando contra el otro)
+  // Obtener último oponente de cada jugador
+  const [p1LastOpp, p2LastOpp] = await Promise.all([
+    redis.get(`mm:last-opp:${platform}:${p1.userId}`),
+    redis.get(`mm:last-opp:${platform}:${p2.userId}`),
+  ]);
+
+  // Si P1 tenía otro oponente previo, resetear ese par consecutivo
+  if (p1LastOpp && p1LastOpp !== String(p2.userId)) {
+    const oldPairKey = matchupPairKey(p1.userId, p1LastOpp);
+    await redis.del(`mm:consecutive:${platform}:${oldPairKey}`);
+  }
+  // Si P2 tenía otro oponente previo, resetear ese par consecutivo
+  if (p2LastOpp && p2LastOpp !== String(p1.userId)) {
+    const oldPairKey = matchupPairKey(p2.userId, p2LastOpp);
+    await redis.del(`mm:consecutive:${platform}:${oldPairKey}`);
+  }
+
+  // Actualizar último oponente
+  await Promise.all([
+    redis.set(`mm:last-opp:${platform}:${p1.userId}`, String(p2.userId)),
+    redis.expire(`mm:last-opp:${platform}:${p1.userId}`, CONSECUTIVE_TTL_SECONDS),
+    redis.set(`mm:last-opp:${platform}:${p2.userId}`, String(p1.userId)),
+    redis.expire(`mm:last-opp:${platform}:${p2.userId}`, CONSECUTIVE_TTL_SECONDS),
+  ]);
 
   // Generar código único
   let code;
