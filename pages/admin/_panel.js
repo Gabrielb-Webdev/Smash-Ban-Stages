@@ -896,6 +896,18 @@ export default function TestAdminPage() {
     } catch {}
   }
 
+  async function changeTournamentState(slug, state) {
+    try {
+      const r = await fetch('/api/tournaments/featured', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025'}` },
+        body: JSON.stringify({ slug, state }),
+      });
+      const d = await r.json();
+      if (d.success) setFeaturedTours(prev => prev.map(t => t.slug === slug ? { ...t, state: d.tournament.state, stateLabel: d.tournament.stateLabel, registrationOpen: d.tournament.registrationOpen } : t));
+    } catch {}
+  }
+
   function parseStartGgSlug(raw) {
     let s = raw.trim();
     // Acepta URL completa: https://www.start.gg/tournament/mi-torneo/details/...
@@ -1919,21 +1931,33 @@ export default function TestAdminPage() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {featuredTours.map(t => (
-                    <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px' }}>
-                      {t.image && <img src={t.image} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-                          {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
-                          {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
-                          {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
-                        </p>
+                    <div key={t.slug} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {t.image && <img src={t.image} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                            {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                            {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeFeaturedTournament(t.slug)}
+                          title="Quitar de la app"
+                          style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}
+                        >✕</button>
                       </div>
-                      <button
-                        onClick={() => removeFeaturedTournament(t.slug)}
-                        title="Quitar de la app"
-                        style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}
-                      >✕</button>
+                      {/* Estado del torneo */}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                        {[{s:1,l:'Creado',c:'#9CA3AF'},{s:2,l:'En curso',c:'#FF8C00'},{s:3,l:'Finalizado',c:'#22C55E'}].map(o => {
+                          const active = t.state === o.s;
+                          return (
+                            <button key={o.s} onClick={() => { if (!active) changeTournamentState(t.slug, o.s); }}
+                              style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 6, cursor: active ? 'default' : 'pointer', border: `1px solid ${active ? o.c : 'rgba(255,255,255,0.1)'}`, background: active ? o.c + '22' : 'rgba(255,255,255,0.03)', color: active ? o.c : 'rgba(255,255,255,0.35)', fontFamily: "'Outfit',sans-serif" }}
+                            >{o.l}</button>
+                          );
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>

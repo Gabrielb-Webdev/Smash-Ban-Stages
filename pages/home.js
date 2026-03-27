@@ -2815,6 +2815,10 @@ function TabAmigos({ user }) {
                       const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                       const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
                       const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                      const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                      const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                      const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
+                      const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
                       const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                       const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                       const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -2863,7 +2867,8 @@ function TabAmigos({ user }) {
                                 ) : null
                               )}
                             </div>
-                            <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                            <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                              {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                               <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
                             </div>
                           </div>
@@ -3665,6 +3670,10 @@ function TabPerfil({ user }) {
                         const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                         const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
                         const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                        const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                        const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                        const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
+                        const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
                         const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                         const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                         const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3713,7 +3722,8 @@ function TabPerfil({ user }) {
                                   ) : null
                                 )}
                               </div>
-                              <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                              <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                                {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                                 <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
                               </div>
                             </div>
@@ -3884,7 +3894,14 @@ function TabPerfil({ user }) {
                 const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                 const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                 const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
-                const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                const charSrcRaw = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                // Fallback al mainChar del perfil si la partida no tiene charId
+                const mainCharObj = !charSrcRaw && mainChar ? CHARACTERS.find(ch => ch.id === mainChar) : null;
+                const charSrc = charSrcRaw || (mainCharAlt ? `/images/characters/${mainCharAlt}` : (mainCharObj ? charImgPath(mainCharObj.img) : null));
+                const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
+                const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
                 const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                 const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                 const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3939,8 +3956,9 @@ function TabPerfil({ user }) {
                           ) : null
                         )}
                       </div>
-                      {/* Derecha: VICTORIA / DERROTA */}
-                      <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                      {/* Derecha: oponente + VICTORIA / DERROTA */}
+                      <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                        {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                         <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
                       </div>
                     </div>
@@ -4771,6 +4789,10 @@ function TabRankings({ user, setTab }) {
                       const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                       const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
                       const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                      const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                      const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                      const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
+                      const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
                       const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                       const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                       const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -4819,7 +4841,8 @@ function TabRankings({ user, setTab }) {
                                 ) : null
                               )}
                             </div>
-                            <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                            <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                              {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                               <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
                             </div>
                           </div>

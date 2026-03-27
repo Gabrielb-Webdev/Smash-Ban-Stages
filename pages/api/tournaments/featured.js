@@ -150,6 +150,27 @@ export default async function handler(req, res) {
     return res.status(201).json({ success: true, tournament: tourData });
   }
 
+  // ── PATCH: cambiar estado manualmente ──
+  if (req.method === 'PATCH') {
+    if (!checkAuth(req)) return res.status(401).json({ error: 'No autorizado' });
+    const { slug, state } = req.body || {};
+    if (!slug || ![1, 2, 3, 4].includes(state))
+      return res.status(400).json({ error: 'slug y state (1-4) requeridos' });
+    try {
+      const existing = (await redis.get(FEATURED_KEY)) || [];
+      const list = Array.isArray(existing) ? existing : [];
+      const idx = list.findIndex(t => t.slug === slug);
+      if (idx === -1) return res.status(404).json({ error: 'Torneo no encontrado' });
+      list[idx].state = state;
+      list[idx].stateLabel = STATE_LABELS[state] || String(state);
+      if (state === 2) list[idx].registrationOpen = false;
+      await redis.set(FEATURED_KEY, list);
+      return res.status(200).json({ success: true, tournament: list[idx] });
+    } catch (err) {
+      return res.status(500).json({ error: 'Error en Redis', detail: err.message });
+    }
+  }
+
   // ── DELETE: quitar torneo ──
   if (req.method === 'DELETE') {
     if (!checkAuth(req)) return res.status(401).json({ error: 'No autorizado' });
