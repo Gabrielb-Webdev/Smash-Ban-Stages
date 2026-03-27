@@ -8,6 +8,16 @@ import CharacterDetail from '../src/components/CharacterDetail';
 import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback, setReconnectCallback } from '../src/hooks/useWebSocket';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 const PLACEMENT_TOTAL = 5;
+const STAGE_IMG = {
+  'Battlefield':       '/images/stages/Battlefield.png',
+  'Final Destination': '/images/stages/Final%20Destination.png',
+  'Small Battlefield': '/images/stages/Small%20Battlefield.png',
+  'Smashville':        '/images/stages/Smashville.png',
+  'Pokémon Stadium 2': '/images/stages/Pokemon%20Stadium%202.png',
+  'Town and City':     '/images/stages/Town%20and%20City.png',
+  'Hollow Bastion':    '/images/stages/Hollow%20Bastion.png',
+  'Kalos':             '/images/stages/Kalos.png',
+};
 
 /* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const PLATFORMS = [
@@ -1810,6 +1820,90 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 }
 
 
+/* --- MATCH DETAIL MODAL --------------------------------------- */
+function MatchDetail({ match: m, viewingId, onClose }) {
+  if (!m) return null;
+  const myId = String(viewingId);
+  const is2v2 = m.mode === '2v2';
+  const isCasual = m.type === 'casual';
+  const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === myId;
+  const opponent = is2v2 ? '?' : (isWin ? m.loserName : m.winnerName);
+  const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+  const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+  const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
+  const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
+  const myCharObj = myCharId ? CHARACTERS.find(c => c.id === myCharId) : null;
+  const oppCharObj = oppCharId ? CHARACTERS.find(c => c.id === oppCharId) : null;
+  const myCharSrc = myAlt ? `/images/characters/${myAlt}` : (myCharObj ? charImgPath(myCharObj.img) : null);
+  const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
+  const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+  const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+  const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+  const rpDelta = isCasual || is2v2 ? null : isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10));
+  const games = (m.games || []).filter(g => g?.result);
+  const CharIcon = ({ src, label }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+      {src ? <img src={src} alt="" style={{ width: 52, height: 52, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 52, height: 52, borderRadius: 12, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>⚔️</div>}
+      <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 70 }}>{label}</p>
+    </div>
+  );
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: '#0A0A12', zIndex: 10001, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#0D0D18', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 36, height: 36, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+        <p style={{ margin: 0, fontWeight: 800, fontSize: 15, flex: 1, color: '#fff' }}>Resumen de partida</p>
+      </div>
+      <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', padding: '16px' }}>
+        {/* Resultado */}
+        <div style={{ background: isWin ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 20, padding: '20px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CharIcon src={myCharSrc} label="Vos" />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            {myScore != null && <p style={{ margin: 0, fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: 2 }}>{myScore}–{oppScore ?? 0}</p>}
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+            {rpDelta != null && <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</p>}
+            {isMyPlacement && <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#FBBF24' }}>Posicionamiento</p>}
+          </div>
+          <CharIcon src={oppCharSrc} label={opponent} />
+        </div>
+        <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}{isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : ' · Ranked'}</p>
+        {/* Juegos */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Juegos</p>
+        </div>
+        {games.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {games.map((g, gi) => {
+              const gWon = String(g.result.winnerId) === myId;
+              const gStage = g.result.stage || g.stage;
+              const gStocks = g.result.stocksWon;
+              const stageSrc = gStage ? STAGE_IMG[gStage] : null;
+              return (
+                <div key={gi} style={{ position: 'relative', height: 80, borderRadius: 14, overflow: 'hidden', borderLeft: `3px solid ${gWon ? '#22C55E' : '#EF4444'}` }}>
+                  {stageSrc && <img src={stageSrc} alt={gStage} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  <div style={{ position: 'absolute', inset: 0, background: stageSrc ? 'linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 100%)' : (gWon ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)') }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%', padding: '0 14px' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Juego {g.result.gameNum || gi + 1}</p>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff' }}>{gStage || 'Escenario desconocido'}</p>
+                      {gStocks != null && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{gWon ? `Ganaste · ${gStocks} stock${gStocks !== 1 ? 's' : ''}` : `Perdiste · ${gStocks} stock${gStocks !== 1 ? 's' : ''}`}</p>}
+                    </div>
+                    <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: gWon ? '#22C55E' : '#EF4444', flexShrink: 0 }}>{gWon ? '✓' : '✗'}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '24px 16px', textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Detalle por juego solo disponible en partidas BO3</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* --- TAB AMIGOS ------------------------------------------------ */
 function TabAmigos({ user }) {
   const [friendTab, setFriendTab]       = useState('list');
@@ -1837,6 +1931,7 @@ function TabAmigos({ user }) {
   const [charFromModalAmigos, setCharFromModalAmigos] = useState(false);
   const [history, setHistory]           = useState([]);
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual'
+  const [viewMatchDetail, setViewMatchDetail] = useState(null);
   const chatEndRef = useRef(null);
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
@@ -2331,6 +2426,8 @@ function TabAmigos({ user }) {
         </div>
       )}
 
+      {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
+
       {/* ═══ MODAL PERFIL JUGADOR ═══ */}
       {viewProfile && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -2685,8 +2782,9 @@ function TabAmigos({ user }) {
                       const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
                       const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
                       const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                      const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
-                      const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                      const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                      const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
+                      const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
                       const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                       const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                       const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -2695,7 +2793,8 @@ function TabAmigos({ user }) {
                       const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
                       const uniqueStages = [...new Set(playedStages)];
                       return (
-                        <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+
+                        <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewProfile.userId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
                           <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
                             {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
                               <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -2788,6 +2887,7 @@ function TabPerfil({ user }) {
   const [profileData, setProfileData]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileStartggStats, setProfileStartggStats] = useState(null);
+  const [viewMatchDetail, setViewMatchDetail] = useState(null);
   const [mainChar, setMainChar]         = useState(() => { try { return localStorage.getItem('afk_main_char') || null; } catch { return null; } });
   const [mainCharAlt, setMainCharAlt]   = useState(() => { try { return localStorage.getItem('afk_main_alt') || null; } catch { return null; } });
   const [showMainPicker, setShowMainPicker] = useState(false);
@@ -3287,6 +3387,8 @@ function TabPerfil({ user }) {
           </div>
         )}
 
+        {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
+
         {/* ═══ MODAL PERFIL JUGADOR ═══ */}
         {viewProfile && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -3528,8 +3630,9 @@ function TabPerfil({ user }) {
                         const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
                         const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
                         const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                        const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
-                        const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                        const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                        const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
+                        const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
                         const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                         const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                         const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3538,7 +3641,8 @@ function TabPerfil({ user }) {
                         const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
                         const uniqueStages = [...new Set(playedStages)];
                         return (
-                          <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+
+                          <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewProfile.userId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
                             <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
                               {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
                                 <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -3746,8 +3850,9 @@ function TabPerfil({ user }) {
                 const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
                 const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
                 const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
-                const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
+                const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
                 const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                 const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                 const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3757,7 +3862,8 @@ function TabPerfil({ user }) {
                 const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
                 const uniqueStages = [...new Set(playedStages)];
                 return (
-                  <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+
+                  <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(user.id || user.slug) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
                     {/* Fondo: escenarios jugados */}
                     <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
                       {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
@@ -3788,7 +3894,7 @@ function TabPerfil({ user }) {
                         ) : null}
                       </div>
                       {/* Centro: info */}
-                      <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, cursor: opponentId ? 'pointer' : 'default' }} onClick={() => opponentId && openProfile(opponentId, opponent)}>
+                      <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, }}> 
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
                           {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
@@ -3983,6 +4089,7 @@ function TabRankings({ user, setTab }) {
   const [profileData, setProfileData]           = useState(null);
   const [profileLoading, setProfileLoading]     = useState(false);
   const [profileStartggStats, setProfileStartggStats] = useState(null);
+  const [viewMatchDetail, setViewMatchDetail] = useState(null);
   const [selectedCharRank, setSelectedCharRank]       = useState(null);
   const [showCharsModalRank, setShowCharsModalRank]   = useState(false);
   const [charFromModalRank, setCharFromModalRank]     = useState(false);
@@ -4281,6 +4388,8 @@ function TabRankings({ user, setTab }) {
           )}
         </>
       )}
+
+      {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
 
       {/* ═══ MODAL PERFIL JUGADOR (Rankings) ═══ */}
       {viewProfile && (
@@ -4627,8 +4736,9 @@ function TabRankings({ user, setTab }) {
                       const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
                       const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
                       const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                      const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
-                      const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                      const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                      const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
+                      const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
                       const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                       const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                       const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -4637,7 +4747,8 @@ function TabRankings({ user, setTab }) {
                       const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
                       const uniqueStages = [...new Set(playedStages)];
                       return (
-                        <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+
+                        <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewProfile.userId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
                           <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
                             {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
                               <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />

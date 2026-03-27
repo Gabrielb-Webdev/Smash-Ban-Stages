@@ -154,8 +154,8 @@ async function tryMatch(platform) {
   const room = {
     code,
     platform,
-    host:  { userId: p1.userId, userName: p1.userName, charId: p1.charId || null, mmr: mmrMap[p1.userId] },
-    guest: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null, mmr: mmrMap[p2.userId] },
+    host:  { userId: p1.userId, userName: p1.userName, charId: p1.charId || null, charAlt: p1.charAlt || null, mmr: mmrMap[p1.userId] },
+    guest: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null, charAlt: p2.charAlt || null, mmr: mmrMap[p2.userId] },
     password: null,
     status: 'pending_accept',
     matchId,
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
 
   // ── POST: unirse a la cola ────────────────────────────
   if (req.method === 'POST') {
-    const { userId, userName, platform, charId, parsecRole } = req.body || {};
+    const { userId, userName, platform, charId, charAlt, parsecRole } = req.body || {};
     if (!userId || !userName || !['switch', 'parsec'].includes(platform)) {
       return res.status(400).json({ error: 'userId, userName y platform requeridos' });
     }
@@ -208,6 +208,7 @@ export default async function handler(req, res) {
     const cleanUserId    = sanitize(userId);
     const cleanUserName  = sanitize(userName);
     const cleanCharId    = sanitize(charId || '');
+    const cleanCharAlt   = charAlt ? sanitize(String(charAlt)).slice(0, 200) : null;
     const cleanParsecRole = parsecRole === 'host' || parsecRole === 'nohost' ? parsecRole : null;
 
     // Check si ya está en cola
@@ -219,6 +220,7 @@ export default async function handler(req, res) {
     const entry = {
       userId: cleanUserId, userName: cleanUserName, platform,
       charId: cleanCharId || null,
+      charAlt: cleanCharAlt,
       parsecRole: cleanParsecRole,
       joinedAt: new Date().toISOString(),
     };

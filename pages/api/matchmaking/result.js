@@ -296,6 +296,8 @@ async function applyFinishedStats(match, matchId) {
     matchId, platform, winnerId, loserId, winnerName, loserName,
     winnerCharId: match.player1.userId === winnerId ? match.player1.charId : match.player2.charId,
     loserCharId:  match.player1.userId === loserId  ? match.player1.charId : match.player2.charId,
+    winnerAltId:  match.player1.userId === winnerId ? match.player1.charAlt : match.player2.charAlt,
+    loserAltId:   match.player1.userId === loserId  ? match.player1.charAlt : match.player2.charAlt,
     stocksWon: finalStocks,
     rpDelta:      result.winner.rrDelta,
     loserRpDelta: result.loser.rrDelta,
