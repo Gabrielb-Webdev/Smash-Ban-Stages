@@ -718,7 +718,7 @@ export default function HomePage() {
 
           {/* Center — Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <img src="/images/logo.app.png" alt="Logo" style={{ width: 34, height: 34 }} />
+            <img src="/images/logo.app.png" alt="Logo" style={{ width: 45, height: 34 }} />
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>la app</span>
               <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>sin H</span>
