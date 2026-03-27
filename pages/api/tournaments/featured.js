@@ -47,8 +47,19 @@ export default async function handler(req, res) {
   // ── GET: lista pública ──
   if (req.method === 'GET') {
     try {
-      const list = (await redis.get(FEATURED_KEY)) || [];
-      return res.status(200).json({ featured: Array.isArray(list) ? list : [] });
+      let list = (await redis.get(FEATURED_KEY)) || [];
+      if (!Array.isArray(list)) list = [];
+      // Aplicar overrides de mark-complete
+      const AUTO_COMPLETE_PREFIX = 'startgg:auto_complete:';
+      for (const t of list) {
+        if (t.state !== 3 && t.state !== 4) {
+          try {
+            const done = await redis.get(AUTO_COMPLETE_PREFIX + t.slug);
+            if (done) { t.state = 3; t.stateLabel = 'COMPLETED'; }
+          } catch {}
+        }
+      }
+      return res.status(200).json({ featured: list });
     } catch (err) {
       return res.status(500).json({ error: 'Error al leer Redis', detail: err.message });
     }
