@@ -120,6 +120,7 @@ export default function TestAdminPage() {
 
   // Notificaciones
   const [notifyState, setNotifyState] = useState(null); // null | 'loading' | 'ok' | 'error'
+  const [finishTourState, setFinishTourState] = useState(null); // null | 'loading' | 'ok' | 'error'
 
   // Iniciar torneo
   const [startState, setStartState] = useState(null); // null | 'loading' | 'ok' | 'error'
@@ -774,6 +775,28 @@ export default function TestAdminPage() {
       localStorage.removeItem(lsk('phaseStarted', community));
     } catch {}
     emitPanelState({ selectedSlug: '', selectedPhaseGroupId: '', selectedBracketUrl: '', selectedEventId: null, phaseStarted: false, assignedSets: {} });
+  }
+
+  async function finishTournament() {
+    if (!selectedSlug || finishTourState === 'loading' || finishTourState === 'ok') return;
+    if (!window.confirm('¿Marcar el torneo como TERMINADO en la página de torneos?')) return;
+    setFinishTourState('loading');
+    try {
+      const r = await fetch('/api/tournaments/mark-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: selectedSlug }),
+      });
+      if (r.ok) {
+        setFinishTourState('ok');
+      } else {
+        setFinishTourState('error');
+        setTimeout(() => setFinishTourState(null), 4000);
+      }
+    } catch {
+      setFinishTourState('error');
+      setTimeout(() => setFinishTourState(null), 4000);
+    }
   }
 
   async function notifyTournament() {
@@ -1595,6 +1618,17 @@ export default function TestAdminPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.45)', color: '#A5B4FC', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: 'pointer' }}
               >
                 🎮 <span className="btn-text-collapse">Iniciar matchs ({setupsPendingCall.length})</span>
+              </button>
+            )}
+            {selectedSlug && (
+              <button
+                onClick={finishTournament}
+                disabled={finishTourState === 'loading' || finishTourState === 'ok'}
+                title="Marcar torneo como terminado en la página de torneos"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: finishTourState === 'ok' ? 'rgba(107,114,128,0.18)' : finishTourState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(107,114,128,0.12)', border: `1px solid ${finishTourState === 'ok' ? 'rgba(107,114,128,0.45)' : finishTourState === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(107,114,128,0.35)'}`, color: finishTourState === 'ok' ? '#9CA3AF' : finishTourState === 'error' ? '#F87171' : '#9CA3AF', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: finishTourState === 'loading' || finishTourState === 'ok' ? 'default' : 'pointer' }}
+              >
+                {finishTourState === 'loading' && <span style={{ width: 11, height: 11, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
+                {finishTourState === 'ok' ? '✅ Finalizado' : finishTourState === 'error' ? '❌ Error' : finishTourState === 'loading' ? 'Guardando...' : '🏁 Finalizar'}
               </button>
             )}
             <button onClick={notifyTournament} disabled={notifyState === 'loading'} style={{ display: 'flex', alignItems: 'center', gap: 5, background: notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.14)' : notifyState === 'error' ? 'rgba(239,68,68,0.14)' : 'rgba(255,140,0,0.14)', border: `1px solid ${notifyState === 'ok' || notifyState === 'ok_no_new' ? 'rgba(34,197,94,0.35)' : notifyState === 'error' ? 'rgba(239,68,68,0.35)' : 'rgba(255,140,0,0.35)'}`, color: notifyState === 'ok' || notifyState === 'ok_no_new' ? '#22C55E' : notifyState === 'error' ? '#F87171' : '#FF8C00', borderRadius: 9, padding: '6px 12px', fontWeight: 700, fontSize: 11, fontFamily: "'Outfit',sans-serif", cursor: notifyState === 'loading' ? 'wait' : 'pointer' }}>
