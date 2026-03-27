@@ -678,7 +678,7 @@ export default function ProfilePage() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: unranked ? 'rgba(255,255,255,0.2)' : inPlac ? '#FF8C00' : rankColor }}>
-                          {unranked ? 'UNRANKED' : inPlac ? `CLAS. ${tot}/10` : rankName}
+                          {unranked || inPlac ? 'UNRANKED' : rankName}
                         </p>
                         <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
                           <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
