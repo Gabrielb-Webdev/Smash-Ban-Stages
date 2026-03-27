@@ -197,6 +197,14 @@ export default function TestAdminPage() {
     try { localStorage.setItem(lsk('phaseStarted', community), phaseStarted ? '1' : ''); } catch {}
   }, [phaseStarted, community]);
   useEffect(() => { try { localStorage.setItem(lsk('selectedSlug', community), selectedSlug); } catch {} }, [selectedSlug, community]);
+  // Restaurar estado 'Finalizado' si el torneo ya fue marcado como terminado en esta sesión
+  useEffect(() => {
+    if (!selectedSlug) { setFinishTourState(null); return; }
+    try {
+      const finalized = JSON.parse(localStorage.getItem('afk_finalized_slugs') || '[]');
+      setFinishTourState(finalized.includes(selectedSlug) ? 'ok' : null);
+    } catch { setFinishTourState(null); }
+  }, [selectedSlug]);
   useEffect(() => { try { localStorage.setItem(lsk('selectedPhaseGroupId', community), selectedPhaseGroupId); } catch {} }, [selectedPhaseGroupId, community]);
   useEffect(() => { try { if (selectedEventId) localStorage.setItem(lsk('selectedEventId', community), selectedEventId); } catch {} }, [selectedEventId, community]);
   useEffect(() => { try { localStorage.setItem(lsk('selectedBracketUrl', community), selectedBracketUrl); } catch {} }, [selectedBracketUrl, community]);
@@ -789,6 +797,12 @@ export default function TestAdminPage() {
       });
       if (r.ok) {
         setFinishTourState('ok');
+        // Persistir en localStorage para sobrevivir F5
+        try {
+          const finalized = JSON.parse(localStorage.getItem('afk_finalized_slugs') || '[]');
+          if (!finalized.includes(selectedSlug)) finalized.push(selectedSlug);
+          localStorage.setItem('afk_finalized_slugs', JSON.stringify(finalized));
+        } catch {}
       } else {
         setFinishTourState('error');
         setTimeout(() => setFinishTourState(null), 4000);

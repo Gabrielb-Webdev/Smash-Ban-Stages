@@ -318,6 +318,16 @@ export default async function handler(req, res) {
         if (cached) {
           let data = typeof cached === 'string' ? JSON.parse(cached) : cached;
           if (Array.isArray(data) && data.length > 0) {
+            // Aplicar overrides de mark-complete también sobre el cache
+            const AUTO_COMPLETE_PREFIX = 'startgg:auto_complete:';
+            for (const t of data) {
+              if (t.state !== 3 && t.state !== 4) {
+                try {
+                  const done = await redis.get(AUTO_COMPLETE_PREFIX + t.slug);
+                  if (done) t.state = 3;
+                } catch {}
+              }
+            }
             if (communityFilter) data = data.filter(t => t.community === communityFilter);
             return res.status(200).json({ tournaments: data, source: 'cache' });
           }
