@@ -50,6 +50,7 @@ html, body {
 @keyframes glow-pulse   { 0%,100%{box-shadow:0 0 12px rgba(232,142,0,.35)} 50%{box-shadow:0 0 28px rgba(232,142,0,.7)} }
 @keyframes shimmer      { to { background-position:-200% 0 } }
 @keyframes neon-scan    { 0%{opacity:.4} 50%{opacity:.8} 100%{opacity:.4} }
+@keyframes bounce       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }
 
 @layer utilities {
   .animate-scale-in { animation: scale-in 0.2s ease-out; }

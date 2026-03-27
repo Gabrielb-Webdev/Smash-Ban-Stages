@@ -3,8 +3,15 @@
 import redis, { mmMatchKey, mmQueueKey, mmQueueDoublesKey } from '../../../lib/redis';
 import { tryMatch } from './queue';
 
-const ROOM_TTL_MS = 30 * 60 * 1000; // 30 min
-const ACCEPT_MS   = 90 * 1000;       // 90s para aceptar (Render cold start + F5 reload)
+const ROOM_TTL_MS         = 30 * 60 * 1000; // 30 min
+const ACCEPT_MS           = 90 * 1000;       // 90s para aceptar (Render cold start + F5 reload)
+const BAN_TURN_SECONDS    = 25;   // segundos para banear/elegir escenario
+const CONFIRM_TIMEOUT_SEC = 60;   // 1 minuto para confirmar resultado
+const CHAT_AFK_SEC        = 900;  // 15 minutos de detección AFK en chat
+
+function pickRandom(arr, n) {
+  return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+}
 
 const RANKED_STAGES_G1 = [
   'Battlefield', 'Small Battlefield', 'Town and City',
@@ -103,7 +110,97 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: 'pending_accept', code, room, timeLeft });
     }
 
-    return res.status(200).json({ status: room.status, code, room });
+    // ── Lazy-init banTurnStartedAt ──────────────────────────
+    if (room.status === 'banning' && !room.banTurnStartedAt) {
+      room.banTurnStartedAt = new Date().toISOString();
+      await redis.set(roomKey(code), room);
+    }
+
+    // ── Auto-ban/pick si el turno expiró (25s) ───────────────
+    if (room.status === 'banning' && room.banTurnStartedAt) {
+      const banElapsed = Date.now() - new Date(room.banTurnStartedAt).getTime();
+      if (banElapsed > BAN_TURN_SECONDS * 1000) {
+        const isGame1 = (room.currentGame || 1) === 1;
+        const STAGES = isGame1 ? RANKED_STAGES_G1 : RANKED_STAGES_G2;
+        const allBannedSet = new Set(Object.values(room.bans || {}).flat());
+        const available = STAGES.filter(s => !allBannedSet.has(s));
+        const phase = room.banPhase;
+        if (phase === 'j1_ban') {
+          room.bans = room.bans || {};
+          room.bans[room.j1] = pickRandom(available, 1);
+          room.banPhase = 'j2_ban';
+          room.banTurnStartedAt = new Date().toISOString();
+        } else if (phase === 'j2_ban') {
+          const j1Bans = (room.bans || {})[room.j1] || [];
+          const avail2 = available.filter(s => !j1Bans.includes(s));
+          room.bans = room.bans || {};
+          room.bans[room.j2] = pickRandom(avail2, 2);
+          room.banPhase = 'j1_pick';
+          room.banTurnStartedAt = new Date().toISOString();
+        } else if (phase === 'winner_ban') {
+          const prevWinnerId = room.games?.[room.games.length - 1]?.result?.winnerId;
+          if (prevWinnerId) {
+            room.bans = room.bans || {};
+            room.bans[prevWinnerId] = pickRandom(available, 3);
+            room.banPhase = 'loser_pick';
+            room.banTurnStartedAt = new Date().toISOString();
+          }
+        } else if (phase === 'j1_pick' || phase === 'loser_pick') {
+          const allBans2 = new Set(Object.values(room.bans || {}).flat());
+          const pickable = STAGES.filter(s => !allBans2.has(s));
+          const picked = pickable[Math.floor(Math.random() * pickable.length)] || STAGES[0];
+          room.games = [...(room.games || [])];
+          room.games.push({ gameNum: room.currentGame || 1, stage: picked, bans: { ...(room.bans || {}) }, result: null });
+          room.stage = picked;
+          room.status = 'active';
+          room.bans = {};
+          room.banTurnStartedAt = null;
+          room.activeAt = room.activeAt || new Date().toISOString();
+          const autoMatch = await redis.get(mmMatchKey(room.matchId));
+          if (autoMatch) {
+            autoMatch.stage = picked;
+            autoMatch.status = 'active';
+            autoMatch.games = room.games;
+            await redis.set(mmMatchKey(room.matchId), autoMatch);
+          }
+        }
+        await redis.set(roomKey(code), room);
+      }
+    }
+
+    // ── Lazy-init activeAt ────────────────────────────────────
+    if (room.status === 'active' && !room.activeAt) {
+      room.activeAt = new Date().toISOString();
+      await redis.set(roomKey(code), room);
+    }
+
+    // ── Chat AFK: detectar si alguien no se presentó en 15 min ─
+    if (room.status === 'active' && room.activeAt && !room.chatAfkWin && !room.mode) {
+      const activeElapsed = Date.now() - new Date(room.activeAt).getTime();
+      if (activeElapsed >= CHAT_AFK_SEC * 1000) {
+        const p1 = room.host?.userId;
+        const p2 = room.guest?.userId;
+        const p1Present = !!(room.chatPresence?.[p1]);
+        const p2Present = !!(room.chatPresence?.[p2]);
+        if (p1Present && !p2Present) {
+          room.chatAfkWin = p1;
+          await redis.set(roomKey(code), room);
+        } else if (p2Present && !p1Present) {
+          room.chatAfkWin = p2;
+          await redis.set(roomKey(code), room);
+        }
+      }
+    }
+
+    // ── Señal de auto-confirmación si expiró el tiempo ────────
+    let autoConfirmSignal = false;
+    if (room.status === 'pending_confirm' && room.pendingResult?.reportedAt) {
+      if (Date.now() - new Date(room.pendingResult.reportedAt).getTime() >= CONFIRM_TIMEOUT_SEC * 1000) {
+        autoConfirmSignal = true;
+      }
+    }
+
+    return res.status(200).json({ status: room.status, code, room, autoConfirmSignal });
   }
 
   // POST: acciones
@@ -237,6 +334,7 @@ export default async function handler(req, res) {
         if (is2v2) {
           // 2v2: Bo1 con stage aleatorio
           room.status = 'active';
+          room.activeAt = new Date().toISOString();
           room.stage  = RANKED_STAGES_G1[Math.floor(Math.random() * RANKED_STAGES_G1.length)];
           const matchRecord = {
             id:       room.matchId,
@@ -325,6 +423,7 @@ export default async function handler(req, res) {
         for (const s of bannedStages) { if (!VALID_STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
         room.bans[cleanUserId] = bannedStages;
         room.banPhase = 'j2_ban';
+        room.banTurnStartedAt = new Date().toISOString();
         await redis.set(roomKey(code), room);
         return res.status(200).json({ status: room.status, code, room });
       }
@@ -339,6 +438,7 @@ export default async function handler(req, res) {
         }
         room.bans[cleanUserId] = bannedStages;
         room.banPhase = 'j1_pick';
+        room.banTurnStartedAt = new Date().toISOString();
         await redis.set(roomKey(code), room);
         return res.status(200).json({ status: room.status, code, room });
       }
@@ -351,6 +451,7 @@ export default async function handler(req, res) {
         for (const s of bannedStages) { if (!VALID_STAGES.includes(s)) return res.status(400).json({ error: 'Stage inválido: ' + s }); }
         room.bans[cleanUserId] = bannedStages;
         room.banPhase = 'loser_pick';
+        room.banTurnStartedAt = new Date().toISOString();
         await redis.set(roomKey(code), room);
         return res.status(200).json({ status: room.status, code, room });
       }
@@ -387,6 +488,8 @@ export default async function handler(req, res) {
       room.stage = pickedStage;
       room.status = 'active';
       room.bans = {};
+      room.banTurnStartedAt = null;
+      room.activeAt = room.activeAt || new Date().toISOString();
       const match = await redis.get(mmMatchKey(room.matchId));
       if (match) { match.stage = pickedStage; match.status = 'active'; match.games = room.games; await redis.set(mmMatchKey(room.matchId), match); }
       await redis.set(roomKey(code), room);

@@ -457,6 +457,8 @@ export default function HomePage() {
           room:     data.room  || prev.room,
           code:     data.code  || prev.code,
           timeLeft: data.timeLeft,
+          autoConfirmSignal: data.autoConfirmSignal || false,
+          chatAfkWinId: data.room?.chatAfkWin || null,
           searchStartedAt: prev.searchStartedAt || (data.joinedAt ? new Date(data.joinedAt).getTime() : prev.searchStartedAt),
           polling:  !['finished', 'idle', 'timeout', 'declined'].includes(data.status),
         } : prev);
@@ -723,7 +725,7 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase' }}>la app</span>
               <span style={{ fontWeight: 300, fontSize: 17, color: 'rgba(232,142,0,0.7)', marginLeft: 3, letterSpacing: '0.06em' }}>sin H</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', marginLeft: 5, alignSelf: 'center' }}>by INC</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', marginLeft: 5, alignSelf: 'auto' }}>by INC</span>
             </div>
           </div>
 
@@ -5727,6 +5729,105 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // ── Timer de ban/pick (cuenta regresiva 25s) ──────────────
+  useEffect(() => {
+    if (matchStatus !== 'banning' || !matchData?.banTurnStartedAt) { setBanTimeLeft(null); return; }
+    const update = () => {
+      const left = Math.max(0, BAN_TURN_SECONDS - (Date.now() - new Date(matchData.banTurnStartedAt).getTime()) / 1000);
+      setBanTimeLeft(Math.ceil(left));
+    };
+    update();
+    const iv = setInterval(update, 500);
+    return () => clearInterval(iv);
+  }, [matchStatus, matchData?.banTurnStartedAt]); // eslint-disable-line
+
+  // ── Auto-ban/pick cuando el timer llega a 0 (lado cliente) ─
+  useEffect(() => {
+    if (banTimeLeft !== 0 || !matchData || banAutoFiredRef.current === matchData.banTurnStartedAt) return;
+    const phase = matchData.banPhase;
+    const j1 = matchData.j1; const j2 = matchData.j2;
+    const prevWinnerId = matchData.games?.[matchData.games.length - 1]?.result?.winnerId;
+    const isMyTurn =
+      (phase === 'j1_ban'    && j1 === uid) ||
+      (phase === 'j2_ban'    && j2 === uid) ||
+      (phase === 'j1_pick'   && j1 === uid) ||
+      (phase === 'winner_ban' && prevWinnerId === uid) ||
+      (phase === 'loser_pick' && prevWinnerId !== uid);
+    if (!isMyTurn) return;
+    banAutoFiredRef.current = matchData.banTurnStartedAt;
+    const isGame1 = (matchData.currentGame || 1) === 1;
+    const STAGES  = isGame1 ? BAN_STAGES_G1 : BAN_STAGES_G2;
+    const allBanned = Object.values(matchData.bans || {}).flat();
+    const available = STAGES.filter(s => !allBanned.includes(s));
+    if (phase === 'j1_pick' || phase === 'loser_pick') {
+      const random = available[Math.floor(Math.random() * available.length)];
+      if (random) pickStage(random);
+    } else {
+      const count = phase === 'j1_ban' ? 1 : phase === 'j2_ban' ? 2 : 3;
+      const j1b = (matchData.bans || {})[j1] || [];
+      const pool = phase === 'j2_ban' ? available.filter(s => !j1b.includes(s)) : available;
+      const randomBans = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+      if (randomBans.length === count) submitBans(randomBans);
+    }
+  }, [banTimeLeft]); // eslint-disable-line
+
+  // ── Timer de confirmación de resultado (1 min) ────────────
+  useEffect(() => {
+    if (matchStatus !== 'pending_confirm' || !matchData?.pendingResult?.reportedAt) { setConfirmTimeLeft(null); return; }
+    const update = () => setConfirmTimeLeft(Math.max(0, Math.ceil(CONFIRM_TIMEOUT_SECS - (Date.now() - new Date(matchData.pendingResult.reportedAt).getTime()) / 1000)));
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [matchStatus, matchData?.pendingResult?.reportedAt]); // eslint-disable-line
+
+  // ── Auto-confirmar cuando el servidor lo señala ───────────
+  useEffect(() => {
+    if (!bgMM?.autoConfirmSignal || autoConfirmFiredRef.current) return;
+    const pending = matchData?.pendingResult;
+    if (!pending || pending.reporterId !== uid) return;
+    autoConfirmFiredRef.current = true;
+    reportResult(pending.winnerId, pending.stocks, 'confirm');
+  }, [bgMM?.autoConfirmSignal]); // eslint-disable-line
+
+  // ── Timer AFK de chat (15 min) ────────────────────────────
+  useEffect(() => {
+    if (!['active','pending_confirm','disputed'].includes(matchStatus) || !matchData?.activeAt) { setChatAfkTimeLeft(null); return; }
+    const opp = uid === matchData.host?.userId ? matchData.guest : matchData.host;
+    const myPresent  = !!(matchData.chatPresence?.[uid]);
+    const oppPresent = !!(matchData.chatPresence?.[opp?.userId]);
+    if (myPresent && oppPresent) { setChatAfkTimeLeft(null); return; }
+    const update = () => setChatAfkTimeLeft(Math.max(0, Math.ceil(CHAT_AFK_SECS - (Date.now() - new Date(matchData.activeAt).getTime()) / 1000)));
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [matchStatus, matchData?.activeAt, matchData?.chatPresence, uid]); // eslint-disable-line
+
+  // ── Reclamar victoria AFK cuando el servidor lo autoriza ─
+  useEffect(() => {
+    if (bgMM?.chatAfkWinId !== uid || chatAfkFiredRef.current || !matchData?.matchId) return;
+    chatAfkFiredRef.current = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/matchmaking/result', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: uid, stocksWon: 1, action: 'afk_win' }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+          setBgMM(prev => prev ? { ...prev, status: 'finished', room: { ...prev.room, status: 'finished', result: data.result } } : prev);
+        }
+      } catch {}
+    })();
+  }, [bgMM?.chatAfkWinId]); // eslint-disable-line
+
+  // ── Reset refs cuando cambia el match ────────────────────
+  useEffect(() => {
+    autoConfirmFiredRef.current = false;
+    chatAfkFiredRef.current = false;
+    banAutoFiredRef.current = null;
+  }, [matchData?.matchId]);
+
   const sendChat = async () => {
     if (!chatInput.trim() || chatSending || !matchData?.matchId) return;
     setChatSending(true);
@@ -5747,6 +5848,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [reportError, setReportError]     = useState(null);
   const [reportStocks, setReportStocks]   = useState(1);
   const [matchRpDelta, setMatchRpDelta]   = useState(null);
+
+  // Timers AFK / ban / confirm
+  const [banTimeLeft, setBanTimeLeft]         = useState(null);
+  const [confirmTimeLeft, setConfirmTimeLeft] = useState(null);
+  const [chatAfkTimeLeft, setChatAfkTimeLeft] = useState(null);
+  const autoConfirmFiredRef = useRef(false);
+  const chatAfkFiredRef     = useRef(false);
+  const banAutoFiredRef     = useRef(null);
+
+  // Constantes de timers
+  const BAN_TURN_SECONDS     = 25;
+  const CONFIRM_TIMEOUT_SECS = 60;
+  const CHAT_AFK_SECS        = 900; // 15 min
 
   // Estado de búsqueda
   const [searchPlat, setSearchPlat]   = useState(null);
@@ -6092,14 +6206,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     'Final Destination', 'Hollow Bastion', 'Kalos',
   ];
 
-  const submitBans = async () => {
-    if (selectedBans.length < 1 || banLoading) return;
+  const submitBans = async (bansOverride) => {
+    const bans = bansOverride || selectedBans;
+    if (bans.length < 1 || banLoading) return;
     setBanLoading(true);
     try {
       const r = await fetch('/api/matchmaking/room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'ban', userId: uid, userName: uName, bannedStages: selectedBans }),
+        body: JSON.stringify({ action: 'ban', userId: uid, userName: uName, bannedStages: bans }),
       });
       const data = await r.json();
       if (!r.ok) { setFormError(data.error); setBanLoading(false); return; }
@@ -6281,11 +6396,44 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </p>
         </div>
 
+        {/* Scroll hint */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>↓</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 600, letterSpacing: '0.03em' }}>Chat y reporte de resultado abajo</span>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>↓</span>
+        </div>
+
+        {/* AFK Timer: aviso de presencia en el chat */}
+        {chatAfkTimeLeft !== null && (() => {
+          const opp = uid === matchData.host?.userId ? matchData.guest : matchData.host;
+          const myPresent  = !!(matchData.chatPresence?.[uid]);
+          const oppPresent = !!(matchData.chatPresence?.[opp?.userId]);
+          const mins = Math.floor(chatAfkTimeLeft / 60);
+          const secs = chatAfkTimeLeft % 60;
+          const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `${secs}s`;
+          return (
+            <div style={{ background: chatAfkTimeLeft <= 60 ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.07)', border: `1px solid ${chatAfkTimeLeft <= 60 ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.22)'}`, borderRadius: 14, padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 16 }}>⏱</span>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: chatAfkTimeLeft <= 60 ? '#EF4444' : '#FBBF24' }}>
+                  {chatAfkTimeLeft > 0 ? `${timeStr} para confirmar presencia` : '¡Tiempo agotado!'}
+                </p>
+              </div>
+              {!myPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>👇 Enviá un mensaje para avisar que estás aquí</p>}
+              {myPresent && !oppPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Tu rival aún no dio señales de estar conectado</p>}
+              {myPresent && oppPresent && <p style={{ margin: 0, fontSize: 11, color: '#22C55E' }}>✅ Ambos confirmaron presencia</p>}
+            </div>
+          );
+        })()}
+
         {/* Chat */}
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden' }}>
           <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E' }} />
             <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Chat</p>
+            {chatAfkTimeLeft !== null && !matchData?.chatPresence?.[uid] && (
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#FBBF24', fontWeight: 700, background: 'rgba(251,191,36,0.1)', padding: '2px 7px', borderRadius: 6 }}>Enviá un mensaje ↓</span>
+            )}
           </div>
           <div style={{ height: 130, overflowY: 'auto', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {chatMessages.length === 0 && (
@@ -6328,12 +6476,22 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
               <p style={{ margin: '0 0 6px', fontSize: 20 }}>⏳</p>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando que tu rival confirme el resultado…</p>
+              {confirmTimeLeft !== null && (
+                <p style={{ margin: '8px 0 0', fontSize: 11, color: confirmTimeLeft <= 10 ? '#22C55E' : 'rgba(255,255,255,0.3)' }}>
+                  {confirmTimeLeft > 0 ? `Se acepta automáticamente en ${confirmTimeLeft}s` : '✅ Auto-confirmando…'}
+                </p>
+              )}
             </div>
           ) : (
             <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
               <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: '#fff' }}>
                 Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : 'él ganó'}
               </p>
+              {confirmTimeLeft !== null && confirmTimeLeft <= 30 && (
+                <p style={{ margin: '-4px 0 8px', fontSize: 11, color: '#EF4444', fontWeight: 700 }}>
+                  ⚠️ Si no respondés en {confirmTimeLeft}s, se confirma automáticamente
+                </p>
+              )}
               {matchData.pendingResult.winnerId === uid && (
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>¿Con cuántos stocks quedaste?</p>
@@ -6496,6 +6654,17 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#FF8C00' }}>{subtitle}</p>
           {showStages && !isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Seleccioná {maxSelect} escenarios para banear</p>}
           {showStages && isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Elegí en qué escenario jugar</p>}
+          {/* Cuenta regresiva del turno */}
+          {banTimeLeft !== null && (
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `3px solid ${banTimeLeft <= 5 ? '#EF4444' : banTimeLeft <= 15 ? '#FBBF24' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.3s' }}>
+                <span style={{ fontSize: 12, fontWeight: 900, color: banTimeLeft <= 5 ? '#EF4444' : banTimeLeft <= 15 ? '#FBBF24' : 'rgba(255,255,255,0.5)' }}>{banTimeLeft}</span>
+              </div>
+              <span style={{ fontSize: 11, color: banTimeLeft <= 5 ? '#EF4444' : 'rgba(255,255,255,0.35)', fontWeight: canSelect ? 700 : 400 }}>
+                {canSelect ? (banTimeLeft <= 5 ? '¡Auto-ban en instantes!' : `${banTimeLeft}s para ${isPickMode ? 'elegir' : 'banear'}`) : `Rival tiene ${banTimeLeft}s`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Banned stages indicator */}

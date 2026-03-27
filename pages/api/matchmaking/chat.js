@@ -41,6 +41,20 @@ export default async function handler(req, res) {
     const messages = (await redis.get(chatKey(cleanMatchId))) || [];
     messages.push(msg);
     await redis.set(chatKey(cleanMatchId), messages.slice(-100));
+
+    // Registrar presencia en la sala (para detección de AFK)
+    try {
+      const userRoomCode = await redis.get(`mm:user:room:${msg.userId}`);
+      if (userRoomCode) {
+        const roomData = await redis.get(`mm:room:${userRoomCode}`);
+        if (roomData && !roomData.chatPresence?.[msg.userId]) {
+          roomData.chatPresence = roomData.chatPresence || {};
+          roomData.chatPresence[msg.userId] = true;
+          await redis.set(`mm:room:${userRoomCode}`, roomData);
+        }
+      }
+    } catch {}
+
     return res.status(200).json({ message: msg });
   }
 

@@ -169,6 +169,59 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, matchStatus: 'active', denied: true });
   }
 
+  // ── AFK win: oponente AFK en chat por 15 min ─────────────
+  if (resultAction === 'afk_win') {
+    if (match.status !== 'active') {
+      return res.status(400).json({ error: 'El match no está activo' });
+    }
+    const afkWinnerId  = cleanReporter;
+    const afkLoserId   = match.player1.userId === afkWinnerId ? match.player2.userId : match.player1.userId;
+    const afkWinnerName = match.player1.userId === afkWinnerId ? match.player1.userName : match.player2.userName;
+    const afkLoserName  = match.player1.userId === afkLoserId  ? match.player1.userName : match.player2.userName;
+
+    match.status = 'finished';
+    match.result = {
+      winnerId: afkWinnerId, winnerName: afkWinnerName,
+      stocksWon: 1, afkWin: true,
+      score: match.score || {}, games: match.games || [],
+      decidedAt: new Date().toISOString(),
+    };
+
+    // Sumar +5 RP al ganador (sin procesar MMR normal)
+    const wKey = rankedStatsKey(String(afkWinnerId), match.platform);
+    const wStats = (await redis.get(wKey)) || {
+      userId: afkWinnerId, userName: afkWinnerName, platform: match.platform,
+      wins: 0, losses: 0, rank: 'Plástico I', rankIndex: 0, rankPoints: 0,
+      mmr: MMR_DEFAULT, winStreak: 0, bestStreak: 0, placementDone: false,
+    };
+    wStats.wins = (wStats.wins || 0) + 1;
+    wStats.rankPoints = (wStats.rankPoints || 0) + 5;
+    await redis.set(wKey, wStats);
+    await redis.zadd(rankedBoardKey(match.platform), { score: leaderboardScore(wStats), member: String(afkWinnerId) });
+
+    // Historial de partidas
+    const afkEntry = {
+      matchId, platform: match.platform, winnerId: afkWinnerId, loserId: afkLoserId,
+      winnerName: afkWinnerName, loserName: afkLoserName,
+      winnerCharId: match.player1.userId === afkWinnerId ? match.player1.charId : match.player2.charId,
+      loserCharId:  match.player1.userId === afkLoserId  ? match.player1.charId : match.player2.charId,
+      winnerAltId:  match.player1.userId === afkWinnerId ? match.player1.charAlt : match.player2.charAlt,
+      loserAltId:   match.player1.userId === afkLoserId  ? match.player1.charAlt : match.player2.charAlt,
+      stocksWon: 1, rpDelta: 5, loserRpDelta: 0, afkWin: true,
+      playedAt: new Date().toISOString(),
+    };
+    await redis.lpush(matchHistoryKey(String(afkWinnerId)), afkEntry);
+    await redis.ltrim(matchHistoryKey(String(afkWinnerId)), 0, 49);
+    await redis.lpush(matchHistoryKey(String(afkLoserId)), afkEntry);
+    await redis.ltrim(matchHistoryKey(String(afkLoserId)), 0, 49);
+
+    await redis.set(mmMatchKey(matchId), match);
+    await cleanupUserRoom(String(afkWinnerId));
+    await cleanupUserRoom(String(afkLoserId));
+
+    return res.status(200).json({ success: true, matchStatus: 'finished', result: match.result, rpDelta: 5, afkWin: true });
+  }
+
   // ── First report → pending_confirm ─────────────────────
   if (match.status === 'pending_confirm') {
     return res.status(400).json({ error: 'Ya hay un resultado pendiente de confirmación' });
