@@ -328,6 +328,17 @@ export default async function handler(req, res) {
     try {
       const { tournaments, debug } = await fetchStartggTournaments(startggToken);
 
+      // Aplicar overrides locales de auto-completado (detectado por el panel de admin)
+      const AUTO_COMPLETE_PREFIX = 'startgg:auto_complete:';
+      for (const t of tournaments) {
+        if (t.state !== 3 && t.state !== 4) {
+          try {
+            const completed = await redis.get(AUTO_COMPLETE_PREFIX + t.slug);
+            if (completed) t.state = 3;
+          } catch {}
+        }
+      }
+
       // Solo cachear si hay resultados
       if (tournaments.length > 0) {
         await redis.set(CACHE_KEY, JSON.stringify(tournaments), { ex: CACHE_TTL });

@@ -179,6 +179,7 @@ export default function TestAdminPage() {
   const [featuredAdding, setFeaturedAdding]   = useState(false);
   const [featuredOpen, setFeaturedOpen]       = useState(false);
   const prevCompletedIdsRef = useRef(new Set());
+  const autoCompletedTournamentsRef = useRef(new Set());
 
   // --- Persistencia localStorage (con namespace de comunidad) ---
   useEffect(() => {
@@ -644,13 +645,33 @@ export default function TestAdminPage() {
     return () => clearInterval(iv);
   }, [checking, selectedSlug]);
 
+  function checkAutoComplete(sets, slug) {
+    if (!slug || autoCompletedTournamentsRef.current.has(slug)) return;
+    const nonBye = sets.filter(s => s.stateLabel !== 'BYE');
+    if (nonBye.length > 0 && nonBye.every(s => s.stateLabel === 'COMPLETED')) {
+      autoCompletedTournamentsRef.current.add(slug);
+      fetch('/api/tournaments/mark-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      }).catch(() => {});
+    }
+  }
+
   useEffect(() => {
     if (checking || !selectedPhaseGroupId || !selectedSlug) return;
     setBracketLoading(true);
     setBracketSets([]);
     fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
       .then(r => r.json())
-      .then(d => { if (d.sets) { setBracketSets(d.sets); setPhaseName(d.phaseName || ''); if (d.phaseGroupState >= 2) setPhaseStarted(true); } })
+      .then(d => {
+        if (d.sets) {
+          setBracketSets(d.sets);
+          setPhaseName(d.phaseName || '');
+          if (d.phaseGroupState >= 2) setPhaseStarted(true);
+          checkAutoComplete(d.sets, selectedSlug);
+        }
+      })
       .finally(() => setBracketLoading(false));
     // Polling automático del bracket cada 10 segundos
     const iv = setInterval(() => {
@@ -675,6 +696,8 @@ export default function TestAdminPage() {
               }
             });
             prevCompletedIdsRef.current = new Set(d.sets.filter(s => s.stateLabel === 'COMPLETED').map(s => s.id));
+            // Auto-finalizar torneo si todos los sets están completados
+            checkAutoComplete(d.sets, selectedSlug);
           }
         })
         .catch(() => {});
@@ -1028,6 +1051,8 @@ export default function TestAdminPage() {
 
   function onDragStart(set, e) {
     if (!tournamentStarted || lockedSets[set.id]) { e.preventDefault(); return; }
+    // Bloquear si ya está asignado a un setup
+    if (Object.values(assignedSets).some(s => s?.id === set.id)) { e.preventDefault(); return; }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -1039,6 +1064,8 @@ export default function TestAdminPage() {
   function onDrop(e, setupId) {
     e.preventDefault();
     if (!draggedSet || !tournamentStarted) return;
+    // Bloquear si el match ya está asignado a otro setup
+    if (Object.values(assignedSets).some(s => s?.id === draggedSet.id)) { setDraggedSet(null); setDragOverSetup(null); return; }
     const cleanSet = { ...draggedSet };
     setAssignedSets(prev => {
       const next = { ...prev };
@@ -1055,6 +1082,8 @@ export default function TestAdminPage() {
 
   function assignToSetupDirectly(set, setupId) {
     if (!tournamentStarted || lockedSets[set.id]) return;
+    // Bloquear si ya está asignado a un setup
+    if (Object.values(assignedSets).some(s => s?.id === set.id)) return;
     const cleanSet = { ...set };
     setAssignedSets(prev => {
       const next = { ...prev };
@@ -1426,10 +1455,10 @@ export default function TestAdminPage() {
               <div
                 key={set.id}
                 className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                draggable={!isDone && !isBye && !isLocked}
-                onDragStart={!isDone && !isBye && !isLocked ? e => onDragStart(set, e) : undefined}
+                draggable={!isDone && !isBye && !isLocked && !aSetup}
+                onDragStart={!isDone && !isBye && !isLocked && !aSetup ? e => onDragStart(set, e) : undefined}
                 onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : isLocked ? 'not-allowed' : 'grab', position: 'relative' }}
+                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : isLocked ? 'not-allowed' : aSetup ? 'not-allowed' : 'grab', position: 'relative' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
