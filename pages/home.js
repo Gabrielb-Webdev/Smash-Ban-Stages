@@ -1903,8 +1903,8 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
   const myCharObj = myCharId ? CHARACTERS.find(c => c.id === myCharId) : null;
   const oppCharObj = oppCharId ? CHARACTERS.find(c => c.id === oppCharId) : null;
-  const myCharSrc = myAlt ? `/images/characters/${myAlt}` : (myCharObj ? charImgPath(myCharObj.img) : null);
-  const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
+  const myCharSrc = myAlt || (myCharObj ? charImgPath(myCharObj.img) : null);
+  const oppCharSrc = oppAlt || (oppCharObj ? charImgPath(oppCharObj.img) : null);
   const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
   const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
   const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
@@ -2853,11 +2853,11 @@ function TabAmigos({ user }) {
                       const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                       const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                       const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
-                      const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                      const charSrc = myAlt || (charObj ? charImgPath(charObj.img) : null);
                       const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                       const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
                       const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
-                      const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
+                      const oppCharSrc = oppAlt || (oppCharObj ? charImgPath(oppCharObj.img) : null);
                       const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                       const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                       const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3716,11 +3716,11 @@ function TabPerfil({ user }) {
                         const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                         const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                         const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
-                        const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                        const charSrc = myAlt || (charObj ? charImgPath(charObj.img) : null);
                         const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                         const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
                         const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
-                        const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
+                        const oppCharSrc = oppAlt || (oppCharObj ? charImgPath(oppCharObj.img) : null);
                         const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                         const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                         const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3942,14 +3942,14 @@ function TabPerfil({ user }) {
                 const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                 const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                 const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
-                const charSrcRaw = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                const charSrcRaw = myAlt || (charObj ? charImgPath(charObj.img) : null);
                 // Fallback al mainChar del perfil si la partida no tiene charId
                 const mainCharObj = !charSrcRaw && mainChar ? CHARACTERS.find(ch => ch.id === mainChar) : null;
-                const charSrc = charSrcRaw || (mainCharAlt ? `/images/characters/${mainCharAlt}` : (mainCharObj ? charImgPath(mainCharObj.img) : null));
+                const charSrc = charSrcRaw || mainCharAlt || (mainCharObj ? charImgPath(mainCharObj.img) : null);
                 const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                 const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
                 const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
-                const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
+                const oppCharSrc = oppAlt || (oppCharObj ? charImgPath(oppCharObj.img) : null);
                 const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                 const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                 const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -4837,11 +4837,11 @@ function TabRankings({ user, setTab }) {
                       const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                       const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                       const myAlt = is2v2 ? null : (isWin ? m.winnerAltId : m.loserAltId);
-                      const charSrc = myAlt ? `/images/characters/${myAlt}` : (charObj ? charImgPath(charObj.img) : null);
+                      const charSrc = myAlt || (charObj ? charImgPath(charObj.img) : null);
                       const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                       const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
                       const oppAlt = is2v2 ? null : (isWin ? m.loserAltId : m.winnerAltId);
-                      const oppCharSrc = oppAlt ? `/images/characters/${oppAlt}` : (oppCharObj ? charImgPath(oppCharObj.img) : null);
+                      const oppCharSrc = oppAlt || (oppCharObj ? charImgPath(oppCharObj.img) : null);
                       const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                       const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                       const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -4949,7 +4949,20 @@ function TabTorneos({ user }) {
       // Deduplicar: featured primero, luego los de sync que no estén ya en featured
       const featuredSlugs = new Set(featured.map(t => t.slug));
       const merged = [...featured, ...synced.filter(t => !featuredSlugs.has(t.slug))];
-      setStartggTorneos(merged);
+      // Filtrar finalizados de hace más de 4 días y ordenar finalizados al final
+      const _now = new Date();
+      const _4d = 4 * 24 * 60 * 60 * 1000;
+      const filtered = merged.filter(t => {
+        const fin = t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED';
+        if (!fin) return true;
+        return (_now - new Date(t.endAt || t.startAt || 0)) < _4d;
+      });
+      filtered.sort((a, b) => {
+        const aF = a.state === 3 || a.state === 4 || a.state === 'COMPLETED' || a.state === 'CANCELLED';
+        const bF = b.state === 3 || b.state === 4 || b.state === 'COMPLETED' || b.state === 'CANCELLED';
+        return aF === bF ? 0 : aF ? 1 : -1;
+      });
+      setStartggTorneos(filtered);
     }).finally(() => setStartggLoading(false));
   }, []);
 
@@ -4992,8 +5005,12 @@ function TabTorneos({ user }) {
         </div>
       ) : startggTorneos.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {startggTorneos.map(t => (
-            <div key={t.id || t.slug} style={{ background: '#10101A', border: t._featured ? '1px solid rgba(255,140,0,0.35)' : '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden' }}>
+          {startggTorneos.map(t => {
+            const _isActive = t.state === 2 || t.state === 'ACTIVE';
+            const _isStarted = _isActive || (t.startAt && new Date(t.startAt) <= new Date());
+            const _isFinished = t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED';
+            return (
+            <div key={t.id || t.slug} style={{ background: '#10101A', border: t._featured ? '1px solid rgba(255,140,0,0.35)' : '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden', opacity: _isFinished ? 0.65 : 1 }}>
               {t.image && (
                 <div style={{ height: 100, background: `url(${t.image}) center/cover no-repeat`, borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
               )}
@@ -5010,14 +5027,10 @@ function TabTorneos({ user }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   {(() => {
-                    const isActive = t.state === 2 || t.state === 'ACTIVE';
-                    const startedByTime = t.startAt && new Date(t.startAt) <= new Date();
-                    const isStarted = isActive || startedByTime;
-                    const isFinished = t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED';
-                    if (isFinished) return (
+                    if (_isFinished) return (
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
                     );
-                    if (isStarted) return (
+                    if (_isStarted) return (
                       <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>
                         🚀 En curso{t.startAt ? <> · <ElapsedTimer startAt={t.startAt} /></> : ''}
                       </span>
@@ -5041,7 +5054,7 @@ function TabTorneos({ user }) {
                         <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento →</a>
                         {checked && enrolled ? (
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#818CF8', padding: '6px 14px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 10 }}>🎟️ Inscrito</span>
-                        ) : t.registrationOpen ? (
+                        ) : !_isStarted && !_isFinished && t.registrationOpen ? (
                           <a href={registerUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'linear-gradient(135deg,#E88E00,#E85000)', borderRadius: 10 }}>📝 Inscribirse</a>
                         ) : null}
                       </div>
@@ -5050,7 +5063,8 @@ function TabTorneos({ user }) {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
@@ -5244,6 +5258,11 @@ function TabTips() {
   const [submitting, setSubmitting]   = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
   const [tipCounts, setTipCounts]     = useState({});
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [sugCategory, setSugCategory] = useState('Mejora');
+  const [sugMessage, setSugMessage]   = useState('');
+  const [sugSending, setSugSending]   = useState(false);
+  const [sugResult, setSugResult]     = useState(null);
 
   // Obtener userId y nombre del usuario logueado
   const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
@@ -5498,6 +5517,68 @@ function TabTips() {
           ))}
         </div>
       )}
+
+      {/* Botón sugerencias */}
+      <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <button onClick={() => { setShowSuggestions(true); setSugResult(null); }} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.07)', color: '#A78BFA', fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          💬 Dejar una sugerencia
+        </button>
+      </div>
+
+      {/* Modal sugerencias */}
+      {showSuggestions && (
+        <div onClick={() => setShowSuggestions(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 32px' }}>
+            <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>💬 Sugerencias</p>
+              <button onClick={() => setShowSuggestions(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ padding: '20px 20px 0' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu nombre</p>
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
+                <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{currentUserName}</p>
+              </div>
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Categoría</p>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                {['Bug', 'Mejora', 'Nueva función', 'Otro'].map(cat => (
+                  <button key={cat} onClick={() => setSugCategory(cat)} style={{ padding: '6px 12px', borderRadius: 10, border: `1px solid ${sugCategory === cat ? '#A78BFA' : 'rgba(255,255,255,0.1)'}`, background: sugCategory === cat ? 'rgba(167,139,250,0.15)' : 'transparent', color: sugCategory === cat ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{cat}</button>
+                ))}
+              </div>
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Mensaje</p>
+              <textarea
+                placeholder="Contanos tu sugerencia..."
+                value={sugMessage}
+                onChange={e => setSugMessage(e.target.value)}
+                rows={4}
+                style={{ width: '100%', background: '#10101A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+              />
+              {sugResult?.error && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#EF4444' }}>{sugResult.error}</p>}
+              {sugResult?.ok && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#34D399' }}>¡Gracias por tu sugerencia! ✓</p>}
+              <button
+                onClick={async () => {
+                  if (!sugMessage.trim()) { setSugResult({ error: 'Escribí algo antes de enviar' }); return; }
+                  setSugSending(true); setSugResult(null);
+                  try {
+                    const r = await fetch('/api/suggestions', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: currentUserId, userName: currentUserName, category: sugCategory, message: sugMessage.trim() }),
+                    });
+                    const data = await r.json();
+                    if (!r.ok) { setSugResult({ error: data.error || 'Error al enviar' }); return; }
+                    setSugResult({ ok: true }); setSugMessage('');
+                    setTimeout(() => setShowSuggestions(false), 1500);
+                  } catch { setSugResult({ error: 'Error de conexión' }); }
+                  finally { setSugSending(false); }
+                }}
+                disabled={sugSending}
+                style={{ marginTop: 14, width: '100%', padding: '13px', borderRadius: 16, border: 'none', background: sugSending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#A78BFA,#7C3AED)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: sugSending ? 'not-allowed' : 'pointer' }}
+              >
+                {sugSending ? '⏳ Enviando…' : '📨 Enviar sugerencia'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -5729,6 +5810,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Timers AFK / ban / confirm
+  const [banTimeLeft, setBanTimeLeft]         = useState(null);
+  const [confirmTimeLeft, setConfirmTimeLeft] = useState(null);
+  const [chatAfkTimeLeft, setChatAfkTimeLeft] = useState(null);
+  const autoConfirmFiredRef = useRef(false);
+  const chatAfkFiredRef     = useRef(false);
+  const banAutoFiredRef     = useRef(null);
+
+  // Constantes de timers
+  const BAN_TURN_SECONDS     = 25;
+  const CONFIRM_TIMEOUT_SECS = 60;
+  const CHAT_AFK_SECS        = 900; // 15 min
+
   // ── Timer de ban/pick (cuenta regresiva 25s) ──────────────
   useEffect(() => {
     if (matchStatus !== 'banning' || !matchData?.banTurnStartedAt) { setBanTimeLeft(null); return; }
@@ -5849,19 +5943,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [reportStocks, setReportStocks]   = useState(1);
   const [matchRpDelta, setMatchRpDelta]   = useState(null);
 
-  // Timers AFK / ban / confirm
-  const [banTimeLeft, setBanTimeLeft]         = useState(null);
-  const [confirmTimeLeft, setConfirmTimeLeft] = useState(null);
-  const [chatAfkTimeLeft, setChatAfkTimeLeft] = useState(null);
-  const autoConfirmFiredRef = useRef(false);
-  const chatAfkFiredRef     = useRef(false);
-  const banAutoFiredRef     = useRef(null);
-
-  // Constantes de timers
-  const BAN_TURN_SECONDS     = 25;
-  const CONFIRM_TIMEOUT_SECS = 60;
-  const CHAT_AFK_SECS        = 900; // 15 min
-
   // Estado de búsqueda
   const [searchPlat, setSearchPlat]   = useState(null);
   const [searchChar, setSearchChar]   = useState(null);
@@ -5885,6 +5966,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   // Ban state (Bo3)
   const [selectedBans, setSelectedBans] = useState([]);
   const [banLoading, setBanLoading]     = useState(false);
+
+  // Modal Cómo jugar
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   // Contador online
   useEffect(() => {
@@ -6540,13 +6624,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   // ═══ RENDER: BANNING (Bo3 stage bans) ══════════════════════════════════
   if (matchStatus === 'banning' && matchData) {
-    const opponent = uid === matchData.host?.userId ? matchData.guest : matchData.host;
-    const myData = uid === matchData.host?.userId ? matchData.host : matchData.guest;
+    const is2v2 = matchData.mode === '2v2';
+    const opponent = is2v2 ? null : (uid === matchData.host?.userId ? matchData.guest : matchData.host);
+    const myData = is2v2 ? null : (uid === matchData.host?.userId ? matchData.host : matchData.guest);
+    const myTeam2v2 = is2v2 ? (matchData.team1?.player1?.userId === uid || matchData.team1?.player2?.userId === uid ? 'team1' : 'team2') : null;
+    const enemyTeam2v2 = is2v2 ? (myTeam2v2 === 'team1' ? matchData.team2 : matchData.team1) : null;
     const myChar = CHARACTERS.find(c => c.id === myData?.charId);
     const oppChar = CHARACTERS.find(c => c.id === opponent?.charId);
     const gameNum = matchData.currentGame || 1;
-    const myScore = matchData.score?.[uid] || 0;
-    const oppScore = matchData.score?.[opponent?.userId] || 0;
+    const myScore = is2v2 ? (matchData.score?.[myTeam2v2] || 0) : (matchData.score?.[uid] || 0);
+    const oppScore = is2v2 ? (matchData.score?.[myTeam2v2 === 'team1' ? 'team2' : 'team1'] || 0) : (matchData.score?.[opponent?.userId] || 0);
+    const opponentLabel = is2v2
+      ? `${enemyTeam2v2?.player1?.userName || '?'} & ${enemyTeam2v2?.player2?.userName || '?'}`
+      : (opponent?.userName || '—');
     const banPhase = matchData.banPhase;
     const prevGame = matchData.games?.length ? matchData.games[matchData.games.length - 1] : null;
     const prevWinnerId = prevGame?.result?.winnerId || null;
@@ -6564,6 +6654,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
     const iAmJ1 = matchData.j1 === uid;
     const iAmJ2 = matchData.j2 === uid;
+    const isCapitan = iAmJ1 || iAmJ2;
 
     let subtitle, showStages = false, canSelect = false, maxSelect = 0, isPickMode = false;
     if (banPhase === 'j1_ban') {
@@ -6571,14 +6662,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         subtitle = 'Baneá 1 escenario';
         showStages = true; canSelect = true; maxSelect = 1;
       } else {
-        subtitle = 'Tu rival está baneando…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
       }
     } else if (banPhase === 'j2_ban') {
       if (iAmJ2) {
         subtitle = 'Baneá 2 escenarios';
         showStages = true; canSelect = true; maxSelect = 2;
       } else {
-        subtitle = 'Tu rival está baneando…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
       }
     } else if (banPhase === 'j1_pick') {
       if (iAmJ1) {
@@ -6592,14 +6683,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         subtitle = 'Baneá 3 escenarios';
         showStages = true; canSelect = true; maxSelect = 3;
       } else {
-        subtitle = 'Tu rival está baneando…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
       }
     } else if (banPhase === 'loser_pick') {
       if (!iAmPrevWinner) {
         subtitle = 'Elegí un escenario';
         showStages = true; canSelect = true; maxSelect = 1; isPickMode = true;
       } else {
-        subtitle = 'Tu rival está eligiendo escenario…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está eligiendo escenario…' : 'Tu rival está eligiendo escenario…';
       }
     }
 
@@ -6623,7 +6714,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '🎮'}</div>
           <div style={{ flex: 1 }}>
             <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>⚔️ Game {gameNum} de 3</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>vs {opponent?.userName || '—'}</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>vs {opponentLabel}</p>
           </div>
           <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '6px 12px' }}>
             <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>
@@ -6809,7 +6900,39 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   // ═══ RENDER: PANTALLA PRINCIPAL — Buscar Ranked ════════════════════════
   return (
     <div style={{ padding: '24px 18px' }}>
-      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>{matchTypeMode === 'casual' ? 'Normal' : 'Ranked'}</h1>
+      {/* Modal Cómo jugar */}
+      {showHowToPlay && (
+        <div onClick={() => setShowHowToPlay(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ position: 'sticky', top: 0, background: '#0F0F1A', padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>📖 Cómo jugar</p>
+              <button onClick={() => setShowHowToPlay(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ padding: '20px 20px 0' }}>
+              {[
+                { icon: '⚔️', title: 'Formato Bo3', desc: 'Las partidas ranked son al mejor de 3 juegos (Bo3). Ganás el set cuando ganás 2 juegos.' },
+                { icon: '🚫', title: 'Fase de baneo — Game 1', desc: 'Se sortea quién es J1 y J2.\n• J1 banea 1 escenario.\n• J2 banea 2 escenarios.\n• J1 elige el escenario donde se juega.' },
+                { icon: '🔄', title: 'Fase de baneo — Games 2 y 3', desc: 'El ganador del game anterior banea 3 escenarios. El perdedor elige dónde jugar el siguiente game.' },
+                { icon: '👥', title: '2v2 — Capitanes', desc: 'En partidas 2v2, el creador de la sala es el capitán del equipo. Solo los capitanes pueden banear y elegir escenarios.' },
+                { icon: '📊', title: 'Reportar resultado', desc: 'Al terminar cada game, ambos jugadores reportan quién ganó y con cuántos stocks de ventaja. Si hay discrepancia, se abre una disputa.' },
+                { icon: '⏰', title: 'AFK / Tiempo límite', desc: 'Tenés 25 segundos por turno en la fase de baneo. Si no actuás, el sistema elige automáticamente. Si tu rival no aparece al chat en 15 minutos, podés reclamar victoria.' },
+                { icon: '📈', title: 'Ranking y RP', desc: 'Cada victoria suma RP y cada derrota resta 10 RP. Los primeros 5 juegos son de posicionamiento y definen tu rango inicial.' },
+                { icon: '🎯', title: 'Modos', desc: '• Ranked: afecta tu rango y RP.\n• Normal: partidas casuales sin efecto en el rango.' },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ marginBottom: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 16px' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: '#fff' }}>{icon} {title}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff' }}>{matchTypeMode === 'casual' ? 'Normal' : 'Ranked'}</h1>
+        <button onClick={() => setShowHowToPlay(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px', color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>❓ Cómo jugar</button>
+      </div>
       <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{matchTypeMode === 'casual' ? 'Partidas casuales sin efecto en el rango' : 'Elegí tu personaje y buscá rival'}</p>
 
       {/* Tipo: Ranked / Normal */}

@@ -332,18 +332,36 @@ export default async function handler(req, res) {
 
       if (allAccepted) {
         if (is2v2) {
-          // 2v2: Bo1 con stage aleatorio
-          room.status = 'active';
-          room.activeAt = new Date().toISOString();
-          room.stage  = RANKED_STAGES_G1[Math.floor(Math.random() * RANKED_STAGES_G1.length)];
+          // 2v2: Bo3 con banning — team.player1 de cada equipo es el capitán (j1/j2)
+          const j1 = room.team1.player1.userId;
+          const j2 = room.team2.player1.userId;
+          room.status   = 'banning';
+          room.format   = 'bo3';
+          room.games    = [];
+          room.currentGame = 1;
+          room.score    = { team1: 0, team2: 0 };
+          room.bans     = {};
+          room.banPhase = 'j1_ban';
+          room.j1       = j1;
+          room.j2       = j2;
+          room.stage    = null;
+          room.banTurnStartedAt = new Date().toISOString();
           const matchRecord = {
             id:       room.matchId,
             platform: room.platform,
             mode:     '2v2',
-            stage:    room.stage,
+            format:   'bo3',
+            stage:    null,
             team1:    room.team1,
             team2:    room.team2,
-            status:   'active',
+            status:   'banning',
+            games:    [],
+            currentGame: 1,
+            score:    { team1: 0, team2: 0 },
+            bans:     {},
+            banPhase: 'j1_ban',
+            j1,
+            j2,
             reports:  [],
             result:   null,
             createdAt: new Date().toISOString(),

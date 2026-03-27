@@ -150,13 +150,15 @@ export default function StreamOverlayAfk({ sessionId }) {
   const winnerIsPlayer1 = rpsWinner === 'player1';
 
   return (
-    <div className="min-h-screen bg-transparent relative">
+    <>
+      <style>{`html, body { background: transparent !important; }`}</style>
+      <div className="min-h-screen bg-transparent relative">
 
       {/* ── FOOTER - Fondo negro AFK ── */}
       <footer
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-16"
         style={{
-          height: '150px',
+          height: '200px',
           background: '#000000',
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         }}
@@ -166,7 +168,7 @@ export default function StreamOverlayAfk({ sessionId }) {
           <img
             src="/images/AFK.webp"
             alt="AFK Background"
-            style={{ width: '125px', height: 'auto', opacity: 0.75 }}
+            style={{ width: '165px', height: 'auto', opacity: 0.75 }}
           />
         </div>
 
@@ -182,12 +184,12 @@ export default function StreamOverlayAfk({ sessionId }) {
               style={{ zIndex: 10 }}
             >
               {session.player1.character === 'random' ? (
-                <span className="text-white font-black w-32 h-32 flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '6rem' }}>?</span>
+                <span className="text-white font-black w-44 h-44 flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '8rem' }}>?</span>
               ) : (
                 <img
                   src={getCharacterData(session.player1.character)?.image}
                   alt={getCharacterData(session.player1.character)?.name}
-                  className="w-32 h-32 rounded-full"
+                  className="w-44 h-44 rounded-full"
                   style={{ objectFit: 'cover' }}
                 />
               )}
@@ -195,7 +197,7 @@ export default function StreamOverlayAfk({ sessionId }) {
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className="h-32 w-1 bg-white ml-4"
+                className="h-44 w-1 bg-white ml-6"
               />
             </motion.div>
 
@@ -211,15 +213,15 @@ export default function StreamOverlayAfk({ sessionId }) {
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className="h-32 w-1 bg-white mr-4"
+                className="h-44 w-1 bg-white mr-6"
               />
               {session.player2.character === 'random' ? (
-                <span className="text-white font-black w-32 h-32 flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '6rem' }}>?</span>
+                <span className="text-white font-black w-44 h-44 flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '8rem' }}>?</span>
               ) : (
                 <img
                   src={getCharacterData(session.player2.character)?.image}
                   alt={getCharacterData(session.player2.character)?.name}
-                  className="w-32 h-32 rounded-full"
+                  className="w-44 h-44 rounded-full"
                   style={{ objectFit: 'cover' }}
                 />
               )}
@@ -233,15 +235,15 @@ export default function StreamOverlayAfk({ sessionId }) {
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{ zIndex: 20 }}
           >
-            <div className="overflow-hidden h-24 flex items-center justify-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="overflow-hidden h-32 flex items-center justify-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <AnimatePresence>
                 <motion.h2
                   key="stage-bans-text"
-                  initial={{ y: 96 }}
-                  animate={{ y: [96, 0, 0, -96] }}
+                  initial={{ y: 128 }}
+                  animate={{ y: [128, 0, 0, -128] }}
                   transition={{ duration: 3, times: [0, 0.3, 0.6, 1], ease: 'easeInOut', delay: 0.8 }}
                   className="whitespace-nowrap"
-                  style={{ fontFamily: 'Anton', fontSize: '5.5rem', fontWeight: '400', color: '#FFFFFF' }}
+                  style={{ fontFamily: 'Anton', fontSize: '7rem', fontWeight: '400', color: '#FFFFFF' }}
                 >
                   STAGE BANS
                 </motion.h2>
@@ -264,9 +266,9 @@ export default function StreamOverlayAfk({ sessionId }) {
               const showBanOverlay = isBanned && (bannedStage?.id === stage.id ? showBanOnCard : true);
               const showSelectOverlay = isSelected && (selectedStage?.id === stage.id ? showSelectOnCard : true);
               const isGame1 = session.currentGame === 1;
-              const imageClass = isGame1 ? 'w-48 h-28' : 'w-32 h-20';
+              const imageClass = isGame1 ? 'w-64 h-36' : 'w-44 h-28';
               const borderRadius = isGame1 ? 'rounded-xl' : 'rounded-lg';
-              const iconSize = isGame1 ? 'text-7xl' : 'text-5xl';
+              const iconSize = isGame1 ? 'text-9xl' : 'text-7xl';
 
               return (
                 <motion.div
@@ -282,7 +284,7 @@ export default function StreamOverlayAfk({ sessionId }) {
                     className={`${imageClass} object-cover ${borderRadius} shadow-2xl`}
                     style={{
                       objectFit: 'cover',
-                      borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
+                      borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '6px' : '5px') : (isGame1 ? '5px' : '4px'),
                       borderStyle: 'solid',
                       borderColor: isSelected && showSelectOverlay ? '#4ade80' : '#ffffff',
                       filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
@@ -329,7 +331,7 @@ export default function StreamOverlayAfk({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '150px' }}
+            style={{ height: '200px' }}
           >
             <div className="absolute inset-0">
               <img src={bannedStage.image} alt={bannedStage.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -340,14 +342,14 @@ export default function StreamOverlayAfk({ sessionId }) {
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 250, damping: 15, delay: 0.2 }}
-                className="text-red-500 text-8xl font-black drop-shadow-2xl mr-6"
+                className="text-red-500 text-9xl font-black drop-shadow-2xl mr-8"
                 style={{ textShadow: '0 0 40px rgba(239, 68, 68, 0.8)' }}
               >
                 ✖
               </motion.div>
               <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="text-center">
-                <p className="text-red-500 text-5xl font-black drop-shadow-xl mb-2" style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>BANEADO</p>
-                <p className="text-white text-3xl font-bold drop-shadow-lg">{bannedStage.name}</p>
+                <p className="text-red-500 text-7xl font-black drop-shadow-xl mb-2" style={{ fontFamily: 'Anton', textShadow: '3px 3px 0px rgba(0,0,0,0.8)' }}>BANEADO</p>
+                <p className="text-white text-5xl font-bold drop-shadow-lg">{bannedStage.name}</p>
               </motion.div>
             </div>
           </motion.div>
@@ -363,7 +365,7 @@ export default function StreamOverlayAfk({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '150px' }}
+            style={{ height: '200px' }}
           >
             <div className="absolute inset-0">
               <img src={selectedStage.image} alt={selectedStage.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -378,20 +380,21 @@ export default function StreamOverlayAfk({ sessionId }) {
                 initial={{ scale: 0, rotate: 180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 250, damping: 15, delay: 0.2 }}
-                className="text-green-500 text-8xl font-black drop-shadow-2xl mr-6"
+                className="text-green-500 text-9xl font-black drop-shadow-2xl mr-8"
                 style={{ textShadow: '0 0 40px rgba(34, 197, 94, 1), 0 0 80px rgba(34, 197, 94, 0.5)' }}
               >
                 ✓
               </motion.div>
               <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="text-center">
-                <p className="text-green-400 text-5xl font-black drop-shadow-xl mb-2 uppercase" style={{ fontFamily: 'Anton', textShadow: '4px 4px 0px rgba(0,0,0,1)', letterSpacing: '0.1em' }}>SELECCIONADO</p>
-                <p className="text-white text-3xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>{selectedStage.name}</p>
+                <p className="text-green-400 text-7xl font-black drop-shadow-xl mb-2 uppercase" style={{ fontFamily: 'Anton', textShadow: '4px 4px 0px rgba(0,0,0,1)', letterSpacing: '0.1em' }}>SELECCIONADO</p>
+                <p className="text-white text-5xl font-bold drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}>{selectedStage.name}</p>
               </motion.div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-    </div>
+      </div>
+    </>
   );
 }
