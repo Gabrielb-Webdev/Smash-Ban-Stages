@@ -5780,6 +5780,10 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     } catch {}
     setRankedParty(null);
   };
+
+  const cancelSearch2v2 = async () => {
+    try {
+      await fetch('/api/matchmaking/queue-doubles', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: uid, platform: bgMM?.plat }),
       });
