@@ -2608,8 +2608,16 @@ function TabAmigos({ user }) {
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor }}>
-                          {(isUnranked || inPlacement) ? 'UNRANKED' : rankName}
+                          {isUnranked ? 'UNRANKED' : inPlacement ? 'POSICIONAMIENTO' : rankName}
                         </p>
+                        {inPlacement && (
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <div style={{ width: '80%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ width: `${(total / PLACEMENT_TOTAL) * 100}%`, height: '100%', borderRadius: 2, background: '#FF8C00' }} />
+                            </div>
+                            <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
+                          </div>
+                        )}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -2637,15 +2645,23 @@ function TabAmigos({ user }) {
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#A78BFA' : rankColor }}>
-                          {(isUnranked || inPlacement) ? 'UNRANKED' : rankName}
+                          {isUnranked ? 'UNRANKED' : inPlacement ? 'POSICIONAMIENTO' : rankName}
                         </p>
+                        {inPlacement && (
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <div style={{ width: '80%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ width: `${(total / PLACEMENT_TOTAL) * 100}%`, height: '100%', borderRadius: 2, background: '#7C3AED' }} />
+                            </div>
+                            <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
+                          </div>
+                        )}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Historial */}
+                {/* Historial */
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
@@ -2658,18 +2674,69 @@ function TabAmigos({ user }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {profileData.history.slice(0, 20).map((m, i) => {
-                      const isWin = String(m.winnerId) === String(viewProfile.userId);
-                      const opponent = isWin ? m.loserName : m.winnerName;
+                      const isCasual = m.type === 'casual';
+                      const is2v2 = m.mode === '2v2';
+                      const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(viewProfile.userId);
+                      const opponent = is2v2
+                        ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
+                        : (isWin ? m.loserName : m.winnerName);
+                      const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                      const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                      const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                      const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
+                      const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
+                      const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                      const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                      const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                      const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                      const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                      const games = m.games || [];
+                      const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                      const uniqueStages = [...new Set(playedStages)];
                       return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
-                            {isWin ? 'W' : 'L'}
+                        <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                            {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                              <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                            )) : (
+                              <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
+                            )}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                            <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
+                              {charSrc ? (
+                                <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                              ) : (
+                                <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                              )}
+                              {isCasual ? (
+                                <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
+                              ) : is2v2 ? (
+                                <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
+                              ) : isMyPlacement ? (
+                                <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
+                              ) : tierIcon ? (
+                                <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
+                              ) : null}
+                            </div>
+                            <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                              </p>
+                              {!isCasual && !is2v2 && (
+                                isMyPlacement ? (
+                                  <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                                ) : rpDelta != null ? (
+                                  <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                                ) : null
+                              )}
+                            </div>
+                            <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                            </div>
                           </div>
-                          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
                         </div>
                       );
                     })}
@@ -2719,6 +2786,7 @@ function TabPerfil({ user }) {
   const [viewProfile, setViewProfile]   = useState(null);
   const [profileData, setProfileData]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileStartggStats, setProfileStartggStats] = useState(null);
   const [mainChar, setMainChar]         = useState(() => { try { return localStorage.getItem('afk_main_char') || null; } catch { return null; } });
   const [mainCharAlt, setMainCharAlt]   = useState(() => { try { return localStorage.getItem('afk_main_alt') || null; } catch { return null; } });
   const [showMainPicker, setShowMainPicker] = useState(false);
@@ -2788,9 +2856,20 @@ function TabPerfil({ user }) {
     setViewProfile({ userId: playerId, userName: playerName });
     setProfileData(null);
     setProfileLoading(true);
+    setProfileStartggStats(null);
     fetch('/api/players/profile?id=' + encodeURIComponent(playerId) + '&full=true')
       .then(r => r.ok ? r.json() : null)
-      .then(d => { setProfileData(d); setProfileLoading(false); })
+      .then(d => {
+        setProfileData(d);
+        setProfileLoading(false);
+        // Fetch Start.GG stats for this profile player
+        if (d?.profile?.slug) {
+          fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(d.profile.slug))
+            .then(r => r.ok ? r.json() : null)
+            .then(sg => { if (sg) setProfileStartggStats(sg); })
+            .catch(() => {});
+        }
+      })
       .catch(() => setProfileLoading(false));
   };
 
@@ -3099,12 +3178,23 @@ function TabPerfil({ user }) {
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'transform 0.15s', position: 'relative' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>{platLabel(plat)}</p>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: unranked ? 'rgba(255,255,255,0.05)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(255,255,255,0.1)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                  {(unranked || !tierIcon) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: (unranked || inPlace) ? 'rgba(255,255,255,0.05)' : rankColor + '18', border: '2px solid ' + ((unranked || inPlace) ? 'rgba(255,255,255,0.1)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                  {(unranked || inPlace || !tierIcon) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#FF8C00' : rankColor, textAlign: 'center' }}>
-                  {(unranked || inPlace) ? 'UNRANKED' : rankName}
+                  {unranked ? 'UNRANKED' : inPlace ? 'POSICIONAMIENTO' : rankName}
                 </p>
+                {inPlace && (
+                  <div style={{ width: '100%', marginTop: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Partidas</span>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</span>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                      <div style={{ width: Math.round((total / PLACEMENT_TOTAL) * 100) + '%', height: '100%', background: '#FF8C00', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                )}
                 {!unranked && !inPlace && !isSmasher && (
                   <div style={{ width: '100%', marginTop: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -3145,12 +3235,23 @@ function TabPerfil({ user }) {
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(124,58,237,0.04)' : inPlace ? 'rgba(124,58,237,0.06)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(124,58,237,0.12)' : inPlace ? 'rgba(124,58,237,0.25)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', position: 'relative' }}>
                 <p style={{ margin: '0 0 4px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>2v2 {platLabel(plat)}</p>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: unranked ? 'rgba(124,58,237,0.08)' : rankColor + '18', border: '2px solid ' + (unranked ? 'rgba(124,58,237,0.2)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                  {(unranked || !tierIcon) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon}
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: (unranked || inPlace) ? 'rgba(124,58,237,0.08)' : rankColor + '18', border: '2px solid ' + ((unranked || inPlace) ? 'rgba(124,58,237,0.2)' : rankColor + '50'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                  {(unranked || inPlace || !tierIcon) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 16 }}>?</span> : tierIcon}
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: unranked ? 'rgba(255,255,255,0.2)' : inPlace ? '#7C3AED' : rankColor, textAlign: 'center' }}>
-                  {(unranked || inPlace) ? 'UNRANKED' : rankName}
+                  {unranked ? 'UNRANKED' : inPlace ? 'POSICIONAMIENTO' : rankName}
                 </p>
+                {inPlace && (
+                  <div style={{ width: '100%', marginTop: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Partidas</span>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: '#7C3AED' }}>{total}/{PLACEMENT_TOTAL}</span>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 4, overflow: 'hidden' }}>
+                      <div style={{ width: Math.round((total / PLACEMENT_TOTAL) * 100) + '%', height: '100%', background: '#7C3AED', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                )}
                 {!unranked && !inPlace && !isSmasher && (
                   <div style={{ width: '100%', marginTop: 4 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -3350,8 +3451,16 @@ function TabPerfil({ user }) {
                             {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                           </div>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor }}>
-                            {(isUnranked || inPlacement) ? 'UNRANKED' : rankName}
+                            {isUnranked ? 'UNRANKED' : inPlacement ? 'POSICIONAMIENTO' : rankName}
                           </p>
+                          {inPlacement && (
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                              <div style={{ width: '80%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                                <div style={{ width: `${(total / PLACEMENT_TOTAL) * 100}%`, height: '100%', borderRadius: 2, background: '#FF8C00' }} />
+                              </div>
+                              <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
+                            </div>
+                          )}
                           <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                         </div>
                       );
@@ -3379,8 +3488,16 @@ function TabPerfil({ user }) {
                             {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                           </div>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#A78BFA' : rankColor }}>
-                            {(isUnranked || inPlacement) ? 'UNRANKED' : rankName}
+                            {isUnranked ? 'UNRANKED' : inPlacement ? 'POSICIONAMIENTO' : rankName}
                           </p>
+                          {inPlacement && (
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                              <div style={{ width: '80%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                                <div style={{ width: `${(total / PLACEMENT_TOTAL) * 100}%`, height: '100%', borderRadius: 2, background: '#7C3AED' }} />
+                              </div>
+                              <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
+                            </div>
+                          )}
                           <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                         </div>
                       );
@@ -3400,18 +3517,69 @@ function TabPerfil({ user }) {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {profileData.history.slice(0, 20).map((m, i) => {
-                        const isWin = String(m.winnerId) === String(viewProfile.userId);
-                        const opponent = isWin ? m.loserName : m.winnerName;
+                        const isCasual = m.type === 'casual';
+                        const is2v2 = m.mode === '2v2';
+                        const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(viewProfile.userId);
+                        const opponent = is2v2
+                          ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
+                          : (isWin ? m.loserName : m.winnerName);
+                        const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                        const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                        const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                        const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
+                        const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
+                        const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                        const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                        const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                        const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                        const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                        const games = m.games || [];
+                        const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                        const uniqueStages = [...new Set(playedStages)];
                         return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
-                              {isWin ? 'W' : 'L'}
+                          <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                              {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                                <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                              )) : (
+                                <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
+                              )}
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                              <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                              <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
+                                {charSrc ? (
+                                  <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                                ) : (
+                                  <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                                )}
+                                {isCasual ? (
+                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
+                                ) : is2v2 ? (
+                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
+                                ) : isMyPlacement ? (
+                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
+                                ) : tierIcon ? (
+                                  <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
+                                ) : null}
+                              </div>
+                              <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                                  {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                                </p>
+                                {!isCasual && !is2v2 && (
+                                  isMyPlacement ? (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                                  ) : rpDelta != null ? (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                                  ) : null
+                                )}
+                              </div>
+                              <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                              </div>
                             </div>
-                            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
                           </div>
                         );
                       })}
@@ -4382,8 +4550,16 @@ function TabRankings({ user, setTab }) {
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#FF8C00' : rankColor }}>
-                          {(isUnranked || inPlacement) ? 'UNRANKED' : rankName}
+                          {isUnranked ? 'UNRANKED' : inPlacement ? 'POSICIONAMIENTO' : rankName}
                         </p>
+                        {inPlacement && (
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <div style={{ width: '80%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ width: `${(total / PLACEMENT_TOTAL) * 100}%`, height: '100%', borderRadius: 2, background: '#FF8C00' }} />
+                            </div>
+                            <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
+                          </div>
+                        )}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -4411,8 +4587,16 @@ function TabRankings({ user, setTab }) {
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 900, textTransform: 'uppercase', color: isUnranked ? 'rgba(255,255,255,0.2)' : inPlacement ? '#A78BFA' : rankColor }}>
-                          {(isUnranked || inPlacement) ? 'UNRANKED' : rankName}
+                          {isUnranked ? 'UNRANKED' : inPlacement ? 'POSICIONAMIENTO' : rankName}
                         </p>
+                        {inPlacement && (
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <div style={{ width: '80%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ width: `${(total / PLACEMENT_TOTAL) * 100}%`, height: '100%', borderRadius: 2, background: '#7C3AED' }} />
+                            </div>
+                            <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
+                          </div>
+                        )}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -4432,18 +4616,69 @@ function TabRankings({ user, setTab }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {profileData.history.slice(0, 20).map((m, i) => {
-                      const isWin = String(m.winnerId) === String(viewProfile.userId);
-                      const opponent = isWin ? m.loserName : m.winnerName;
+                      const isCasual = m.type === 'casual';
+                      const is2v2 = m.mode === '2v2';
+                      const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(viewProfile.userId);
+                      const opponent = is2v2
+                        ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
+                        : (isWin ? m.loserName : m.winnerName);
+                      const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                      const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                      const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                      const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
+                      const renderFile = myCharId ? CHARACTER_RENDERS[myCharId] : null;
+                      const charSrc = renderFile ? charRenderPath(renderFile) : null;
+                      const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                      const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                      const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                      const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                      const games = m.games || [];
+                      const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                      const uniqueStages = [...new Set(playedStages)];
                       return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
-                            {isWin ? 'W' : 'L'}
+                        <div key={i} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444') }}>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                            {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                              <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                            )) : (
+                              <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
+                            )}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}</p>
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                            <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
+                              {charSrc ? (
+                                <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                              ) : (
+                                <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                              )}
+                              {isCasual ? (
+                                <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
+                              ) : is2v2 ? (
+                                <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
+                              ) : isMyPlacement ? (
+                                <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
+                              ) : tierIcon ? (
+                                <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
+                              ) : null}
+                            </div>
+                            <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}{myScore != null ? ` · ${myScore}–${oppScore ?? 0}` : ''}
+                              </p>
+                              {!isCasual && !is2v2 && (
+                                isMyPlacement ? (
+                                  <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                                ) : rpDelta != null ? (
+                                  <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                                ) : null
+                              )}
+                            </div>
+                            <div style={{ padding: '9px 12px', flexShrink: 0 }}>
+                              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                            </div>
                           </div>
-                          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'WIN' : 'LOSS'}</p>
                         </div>
                       );
                     })}
@@ -5618,16 +5853,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     finally { setLoading(false); }
   };
 
-  const STAGE_IMG = {
-    'Battlefield': '/images/stages/Battlefield.png',
-    'Small Battlefield': '/images/stages/Small Battlefield.png',
-    'Town and City': '/images/stages/Town and City.png',
-    'Smashville': '/images/stages/Smashville.png',
-    'Pokémon Stadium 2': '/images/stages/Pokemon Stadium 2.png',
-    'Final Destination': '/images/stages/Final Destination.png',
-    'Hollow Bastion': '/images/stages/Hollow Bastion.png',
-    'Kalos': '/images/stages/Kalos.png',
-  };
+  // STAGE_IMG is now at module scope
 
   const BAN_STAGES_G1 = [
     'Battlefield', 'Small Battlefield', 'Town and City',
