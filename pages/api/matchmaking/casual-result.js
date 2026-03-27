@@ -29,10 +29,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { matchId, reportingUserId, claimedWinnerId, stocksWon, action } = req.body || {};
+  const { matchId, reportingUserId, claimedWinnerId, claimedWinnerTeam, stocksWon, action } = req.body || {};
 
-  if (!matchId || !reportingUserId || !claimedWinnerId) {
-    return res.status(400).json({ error: 'matchId, reportingUserId y claimedWinnerId son requeridos' });
+  if (!matchId || !reportingUserId) {
+    return res.status(400).json({ error: 'matchId y reportingUserId son requeridos' });
+  }
+  if (!action && !claimedWinnerId && !claimedWinnerTeam) {
+    return res.status(400).json({ error: 'claimedWinnerId o claimedWinnerTeam requeridos' });
   }
 
   if (!/^mc-\d+-[a-z0-9]+$/.test(String(matchId))) {
@@ -45,17 +48,33 @@ export default async function handler(req, res) {
   if (!match) return res.status(404).json({ error: 'Match casual no encontrado' });
 
   const cleanReporter = sanitize(reportingUserId);
-  const cleanWinner   = sanitize(claimedWinnerId);
+  const is2v2 = match.mode === '2v2';
 
-  const isP1 = match.player1.userId === cleanReporter;
-  const isP2 = match.player2.userId === cleanReporter;
-  if (!isP1 && !isP2) {
-    return res.status(403).json({ error: 'No sos parte de este match' });
+  // Verificar que el reporter sea parte del match
+  let reporterTeam = null;
+  if (is2v2) {
+    if (match.team1?.some(p => p.userId === cleanReporter)) reporterTeam = 1;
+    else if (match.team2?.some(p => p.userId === cleanReporter)) reporterTeam = 2;
+    if (!reporterTeam && !['accept','decline'].includes(action)) {
+      return res.status(403).json({ error: 'No sos parte de este match' });
+    }
+  } else {
+    const isP1 = match.player1?.userId === cleanReporter;
+    const isP2 = match.player2?.userId === cleanReporter;
+    if (!isP1 && !isP2 && !['accept','decline'].includes(action)) {
+      return res.status(403).json({ error: 'No sos parte de este match' });
+    }
   }
 
-  const validWinners = [match.player1.userId, match.player2.userId];
-  if (!validWinners.includes(cleanWinner)) {
-    return res.status(400).json({ error: 'El ganador reportado no es jugador de este match' });
+  const cleanWinner = claimedWinnerId ? sanitize(claimedWinnerId) : null;
+  // Para 2v2: claimedWinnerTeam = 1 | 2
+  const winnerTeam = claimedWinnerTeam ? parseInt(claimedWinnerTeam) : null;
+
+  if (!is2v2 && cleanWinner) {
+    const validWinners = [match.player1?.userId, match.player2?.userId];
+    if (!validWinners.includes(cleanWinner)) {
+      return res.status(400).json({ error: 'El ganador reportado no es jugador de este match' });
+    }
   }
 
   // ── ACCEPT ──────────────────────────────────────────────────────
@@ -74,7 +93,8 @@ export default async function handler(req, res) {
       const room = await redis.get(roomKey(roomCode));
       if (room) {
         room.acceptedBy = match.acceptedBy;
-        if (match.acceptedBy.length >= 2) {
+        const requiredAccepts = is2v2 ? 4 : 2;
+        if (match.acceptedBy.length >= requiredAccepts) {
           match.status = 'active';
           room.status = 'active';
         }
@@ -82,15 +102,22 @@ export default async function handler(req, res) {
         updatedRoom = room;
       }
     }
-    if (match.acceptedBy.length >= 2) match.status = 'active';
+    const requiredAccepts = is2v2 ? 4 : 2;
+    if (match.acceptedBy.length >= requiredAccepts) match.status = 'active';
     await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
     return res.status(200).json({ success: true, matchStatus: match.status, room: updatedRoom || match });
   }
 
   // ── DECLINE (rechazar match antes de empezar) ────────────────────
   if (action === 'decline') {
-    await cleanupUserRoom(match.player1.userId);
-    await cleanupUserRoom(match.player2.userId);
+    if (is2v2) {
+      for (const p of [...(match.team1 || []), ...(match.team2 || [])]) {
+        await cleanupUserRoom(p.userId);
+      }
+    } else {
+      await cleanupUserRoom(match.player1?.userId);
+      await cleanupUserRoom(match.player2?.userId);
+    }
     await redis.del(casualMatchKey(matchId));
     return res.status(200).json({ success: true, matchStatus: 'cancelled' });
   }
@@ -101,24 +128,36 @@ export default async function handler(req, res) {
     if (!pending) return res.status(400).json({ error: 'No hay resultado pendiente' });
     if (cleanReporter === pending.reporterId) return res.status(400).json({ error: 'No podés confirmar tu propio reporte' });
 
-    const confirmerIsWinner = cleanReporter === pending.winnerId;
-    const finalStocks = confirmerIsWinner ? reportStocks : pending.stocks;
-
-    match.status = 'finished';
-    match.result = {
-      winnerId: pending.winnerId,
-      winnerName: match.player1.userId === pending.winnerId ? match.player1.userName : match.player2.userName,
-      loserId:  match.player1.userId === pending.winnerId ? match.player2.userId : match.player1.userId,
-      loserName: match.player1.userId === pending.winnerId ? match.player2.userName : match.player1.userName,
-      stocksWon: finalStocks,
-      decidedAt: new Date().toISOString(),
-    };
     match.pendingResult = null;
-    await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+    match.status = 'finished';
 
-    await saveHistory(match);
-    await cleanupUserRoom(match.player1.userId);
-    await cleanupUserRoom(match.player2.userId);
+    if (is2v2) {
+      const winTeam = pending.winnerTeam;
+      const finalStocks = pending.stocks || reportStocks;
+      match.result = {
+        winnerTeam: winTeam,
+        winTeamPlayers: winTeam === 1 ? match.team1 : match.team2,
+        loseTeamPlayers: winTeam === 1 ? match.team2 : match.team1,
+        stocksWon: finalStocks, decidedAt: new Date().toISOString(),
+      };
+      await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+      await saveHistory(match);
+      for (const p of [...(match.team1 || []), ...(match.team2 || [])]) await cleanupUserRoom(p.userId);
+    } else {
+      const confirmerIsWinner = cleanReporter === pending.winnerId;
+      const finalStocks = confirmerIsWinner ? reportStocks : pending.stocks;
+      match.result = {
+        winnerId: pending.winnerId,
+        winnerName: match.player1?.userId === pending.winnerId ? match.player1.userName : match.player2.userName,
+        loserId:  match.player1?.userId === pending.winnerId ? match.player2.userId : match.player1.userId,
+        loserName: match.player1?.userId === pending.winnerId ? match.player2.userName : match.player1.userName,
+        stocksWon: finalStocks, decidedAt: new Date().toISOString(),
+      };
+      await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+      await saveHistory(match);
+      await cleanupUserRoom(match.player1?.userId);
+      await cleanupUserRoom(match.player2?.userId);
+    }
 
     return res.status(200).json({ success: true, matchStatus: 'finished', result: match.result });
   }
@@ -138,43 +177,74 @@ export default async function handler(req, res) {
   }
 
   match.reports = match.reports || [];
-  const alreadyReported = match.reports.find(r => r.userId === cleanReporter);
-  if (alreadyReported) {
-    return res.status(400).json({ error: 'Ya reportaste el resultado' });
-  }
+  const alreadyReported = is2v2
+    ? match.reports.find(r => r.userId === cleanReporter)
+    : match.reports.find(r => r.userId === cleanReporter);
+  if (alreadyReported) return res.status(400).json({ error: 'Ya reportaste el resultado' });
 
-  match.reports.push({ userId: cleanReporter, claimedWinnerId: cleanWinner, stocksWon: reportStocks });
-
-  if (match.reports.length >= 2) {
-    const r1 = match.reports[0];
-    const r2 = match.reports[1];
-    if (r1.claimedWinnerId === r2.claimedWinnerId) {
-      // Acuerdo — finalizar
-      const finalStocks = r1.userId === r1.claimedWinnerId ? r1.stocksWon : r2.stocksWon;
-      match.status = 'finished';
-      match.result = {
-        winnerId: r1.claimedWinnerId,
-        winnerName: match.player1.userId === r1.claimedWinnerId ? match.player1.userName : match.player2.userName,
-        loserId:  match.player1.userId === r1.claimedWinnerId ? match.player2.userId : match.player1.userId,
-        loserName: match.player1.userId === r1.claimedWinnerId ? match.player2.userName : match.player1.userName,
-        stocksWon: finalStocks,
-        decidedAt: new Date().toISOString(),
-      };
-      await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
-      await saveHistory(match);
-      await cleanupUserRoom(match.player1.userId);
-      await cleanupUserRoom(match.player2.userId);
+  if (is2v2) {
+    // Para 2v2: reporter reporta qué equipo ganó (1 o 2)
+    match.reports.push({ userId: cleanReporter, claimedWinnerTeam: winnerTeam, stocksWon: reportStocks });
+    const requiredReports = 2; // Un reporter por equipo
+    if (match.reports.length >= requiredReports) {
+      const r1 = match.reports[0];
+      const r2 = match.reports[1];
+      if (r1.claimedWinnerTeam === r2.claimedWinnerTeam) {
+        const winTeam = r1.claimedWinnerTeam;
+        match.status = 'finished';
+        match.result = {
+          winnerTeam: winTeam,
+          winTeamPlayers: winTeam === 1 ? match.team1 : match.team2,
+          loseTeamPlayers: winTeam === 1 ? match.team2 : match.team1,
+          stocksWon: r1.stocksWon, decidedAt: new Date().toISOString(),
+        };
+        await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+        await saveHistory(match);
+        for (const p of [...match.team1, ...match.team2]) await cleanupUserRoom(p.userId);
+      } else {
+        match.status = 'pending_confirm';
+        match.pendingResult = { reporterId: cleanReporter, winnerTeam: winnerTeam, stocks: reportStocks };
+        await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+      }
     } else {
-      // Desacuerdo
+      match.status = 'pending_confirm';
+      match.pendingResult = { reporterId: cleanReporter, winnerTeam: winnerTeam, stocks: reportStocks };
+      await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+    }
+  } else {
+    // 1v1
+    match.reports.push({ userId: cleanReporter, claimedWinnerId: cleanWinner, stocksWon: reportStocks });
+
+    if (match.reports.length >= 2) {
+      const r1 = match.reports[0];
+      const r2 = match.reports[1];
+      if (r1.claimedWinnerId === r2.claimedWinnerId) {
+        // Acuerdo — finalizar
+        const finalStocks = r1.userId === r1.claimedWinnerId ? r1.stocksWon : r2.stocksWon;
+        match.status = 'finished';
+        match.result = {
+          winnerId: r1.claimedWinnerId,
+          winnerName: match.player1?.userId === r1.claimedWinnerId ? match.player1.userName : match.player2.userName,
+          loserId:  match.player1?.userId === r1.claimedWinnerId ? match.player2.userId : match.player1.userId,
+          loserName: match.player1?.userId === r1.claimedWinnerId ? match.player2.userName : match.player1.userName,
+          stocksWon: finalStocks, decidedAt: new Date().toISOString(),
+        };
+        await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+        await saveHistory(match);
+        await cleanupUserRoom(match.player1?.userId);
+        await cleanupUserRoom(match.player2?.userId);
+      } else {
+        // Desacuerdo
+        match.status = 'pending_confirm';
+        match.pendingResult = { reporterId: cleanReporter, winnerId: cleanWinner, stocks: reportStocks };
+        await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+      }
+    } else {
+      // Esperando al otro
       match.status = 'pending_confirm';
       match.pendingResult = { reporterId: cleanReporter, winnerId: cleanWinner, stocks: reportStocks };
       await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
     }
-  } else {
-    // Esperando al otro
-    match.status = 'pending_confirm';
-    match.pendingResult = { reporterId: cleanReporter, winnerId: cleanWinner, stocks: reportStocks };
-    await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
   }
 
   return res.status(200).json({
@@ -186,28 +256,30 @@ export default async function handler(req, res) {
 }
 
 async function saveHistory(match) {
-  const { player1, player2, result, platform, matchId } = match;
+  const { result, platform, matchId } = match;
   if (!result) return;
+  const playedAt = result.decidedAt || new Date().toISOString();
 
-  const winnerId   = result.winnerId;
-  const loserId    = result.loserId;
-  const winnerName = result.winnerName;
-  const loserName  = result.loserName;
+  if (match.mode === '2v2') {
+    const { winnerTeam, winTeamPlayers = [], loseTeamPlayers = [], stocksWon } = result;
+    const baseEntry = { matchId, platform, type: 'casual', mode: '2v2', winnerTeam, winTeamPlayers, loseTeamPlayers, stocksWon, rpDelta: 0, mmrDelta: 0, playedAt };
+    const allPlayers = [...winTeamPlayers, ...loseTeamPlayers];
+    for (const p of allPlayers) {
+      const histKey = matchHistoryKey(String(p.userId));
+      await redis.lpush(histKey, { ...baseEntry, viewerTeam: winTeamPlayers.some(x => x.userId === p.userId) ? winnerTeam : (winnerTeam === 1 ? 2 : 1) });
+      await redis.ltrim(histKey, 0, 49);
+    }
+    return;
+  }
 
+  const { player1, player2 } = match;
+  const { winnerId, loserId, winnerName, loserName, stocksWon } = result;
   const entry = {
-    matchId,
-    platform,
-    type: 'casual',
-    winnerId,
-    loserId,
-    winnerName,
-    loserName,
+    matchId, platform, type: 'casual',
+    winnerId, loserId, winnerName, loserName,
     winnerCharId: player1.userId === winnerId ? player1.charId : player2.charId,
     loserCharId:  player1.userId === loserId  ? player1.charId : player2.charId,
-    stocksWon: result.stocksWon,
-    rpDelta: 0,
-    mmrDelta: 0,
-    playedAt: result.decidedAt || new Date().toISOString(),
+    stocksWon, rpDelta: 0, mmrDelta: 0, playedAt,
   };
 
   const wHistKey = matchHistoryKey(String(winnerId));

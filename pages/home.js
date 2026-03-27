@@ -2705,6 +2705,7 @@ function timeAgo(iso) {
 function TabPerfil({ user }) {
   const [stats, setStats]     = useState(null);
   const [history, setHistory] = useState([]);
+  const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual'
   const [loading, setLoading] = useState(true);
   const [showRanks, setShowRanks]       = useState(false);
   const [partyState, setPartyState]     = useState(null);
@@ -5270,7 +5271,10 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [searchElapsed, setSearchElapsed] = useState(0);
   const [matchMode, setMatchMode]     = useState('1v1'); // '1v1' o '2v2'
   const [matchTypeMode, setMatchTypeMode] = useState('ranked'); // 'ranked' | 'casual'
-  const [partyInfo, setPartyInfo]     = useState(null); // Para 2v2
+  const [casualMode, setCasualMode]   = useState('1v1'); // '1v1' | '2v2' para casual
+  const [casualParty, setCasualParty] = useState(null);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [partyInfo, setPartyInfo]     = useState(null); // Para 2v2 ranked
   const [parsecRole, setParsecRole]   = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('afk_parsec_role') || null;
     return null;
@@ -5307,6 +5311,21 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [matchMode, uid]);
 
+  // Poll casual party para 2v2
+  useEffect(() => {
+    if (!uid || matchTypeMode !== 'casual' || casualMode !== '2v2') return;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/matchmaking/casual-party?userId=' + encodeURIComponent(uid));
+        const d = await r.json();
+        setCasualParty(d.status === 'none' ? null : d.party);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 4000);
+    return () => clearInterval(iv);
+  }, [uid, matchTypeMode, casualMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Timer de búsqueda
   useEffect(() => {
     if (matchStatus !== 'searching') { setSearchElapsed(0); return; }
@@ -5324,7 +5343,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const apiUrl = isCasual ? '/api/matchmaking/casual-result'
         : is2v2 ? '/api/matchmaking/result-doubles'
         : '/api/matchmaking/result';
-      const bodyPayload = (isCasual || !is2v2)
+      const bodyPayload = !is2v2
         ? { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: winnerId, stocksWon: stocks ?? 1, action }
         : { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerTeam: winnerId, stocksWon: stocks ?? 1, action };
       const r = await fetch(apiUrl, {
@@ -5366,6 +5385,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     setReportStocks(1); setMatchRpDelta(null);
     setSearchPlat(null); setSearchChar(null);
     setMatchTypeMode('ranked');
+    setCasualMode('1v1'); setCasualParty(null); setJoinCodeInput('');
   };
 
   const startSearch = async (platform) => {
@@ -5441,6 +5461,72 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       });
     } catch {}
     setBgMM(null);
+  };
+
+  const createCasualParty = async (platform) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, charId: searchChar, platform }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
+      setCasualParty(d.party);
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const joinCasualParty = async (code) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (!code || code.length < 4) { setFormError('Ingresá el código de sala (4 caracteres)'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, charId: searchChar, code: code.toUpperCase() }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
+      setCasualParty(d.party); setJoinCodeInput('');
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const leaveCasualParty = async () => {
+    try {
+      await fetch('/api/matchmaking/casual-party', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid }),
+      });
+    } catch {}
+    setCasualParty(null);
+  };
+
+  const startCasual2v2Search = async (platform) => {
+    if (!casualParty || casualParty.status !== 'ready') {
+      setFormError('El equipo no está completo todavía');
+      return;
+    }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: uid, platform, mode: '2v2',
+          team: [
+            { userId: casualParty.leader.userId, userName: casualParty.leader.userName, charId: casualParty.leader.charId },
+            { userId: casualParty.partner.userId, userName: casualParty.partner.userName, charId: casualParty.partner.charId },
+          ],
+        }),
+      });
+      const data = await r.json();
+      if (r.status === 409) { setFormError(data.error); return; }
+      if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
+      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', mode: '2v2', polling: true });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
   };
 
   const STAGE_IMG = {
@@ -6070,24 +6156,111 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
       {matchTypeMode === 'casual' ? (
         <>
-          {/* Botones de búsqueda casual por plataforma */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {PLATFORMS.map(px => (
-              <button
-                key={px.id}
-                onClick={() => { setSearchPlat(px.id); startCasualSearch(px.id); }}
-                disabled={loading}
-                style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
-              >
-                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar Normal en {px.label}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Sin efecto en el rango</p>
-                </div>
-                <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
-              </button>
+          {/* Mode selector casual: 1v1 / 2v2 */}
+          <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            {[{ id: '1v1', label: '⚔️ Solo (1v1)' }, { id: '2v2', label: '👥 Dobles (2v2)' }].map(m => (
+              <button key={m.id} onClick={() => setCasualMode(m.id)} style={{ flex: 1, padding: '10px 0', background: casualMode === m.id ? 'rgba(167,139,250,0.15)' : 'transparent', border: 'none', borderBottom: casualMode === m.id ? '2px solid #A78BFA' : '2px solid transparent', color: casualMode === m.id ? '#A78BFA' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{m.label}</button>
             ))}
           </div>
+
+          {casualMode === '1v1' ? (
+            /* Botones de búsqueda casual 1v1 */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {PLATFORMS.map(px => (
+                <button
+                  key={px.id}
+                  onClick={() => { setSearchPlat(px.id); startCasualSearch(px.id); }}
+                  disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
+                >
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar Normal en {px.label}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Sin efecto en el rango</p>
+                  </div>
+                  <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Casual 2v2: Party UI */
+            <div>
+              {!casualParty ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Formá un equipo antes de buscar rivales 2v2</p>
+                  {PLATFORMS.map(px => (
+                    <button key={'cp-' + px.id} onClick={() => createCasualParty(px.id)} disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#A78BFA' }}>Crear sala en {px.label}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para invitar a tu compañero</p>
+                      </div>
+                    </button>
+                  ))}
+                  <div style={{ marginTop: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px' }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unirse a sala existente</p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4))} placeholder="Ej: AB3Z" maxLength={4}
+                        style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: 6, padding: '8px 14px', outline: 'none', textAlign: 'center' }} />
+                      <button onClick={() => joinCasualParty(joinCodeInput)} disabled={loading || joinCodeInput.length < 4}
+                        style={{ padding: '8px 18px', background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, color: '#A78BFA', fontWeight: 800, fontSize: 13, cursor: joinCodeInput.length < 4 || loading ? 'not-allowed' : 'pointer', opacity: joinCodeInput.length < 4 ? 0.5 : 1, transition: 'all 0.15s' }}>Unirse</button>
+                    </div>
+                  </div>
+                </div>
+              ) : casualParty.status === 'waiting' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '8px 0' }}>
+                  {casualParty.leader?.userId === uid ? (
+                    <>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compartí este código con tu compañero</p>
+                      <div style={{ background: 'rgba(167,139,250,0.1)', border: '2px solid rgba(167,139,250,0.4)', borderRadius: 20, padding: '18px 32px', textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                        <p style={{ margin: 0, fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{casualParty.code}</p>
+                        <button onClick={() => { try { navigator.clipboard.writeText(casualParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 8, color: '#A78BFA', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{casualParty.platform === 'switch' ? '🎮 Switch' : '💻 Parsec'}</strong></p>
+                    </>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el líder comience la búsqueda...</p>
+                  )}
+                  <div style={{ width: 28, height: 28, border: '3px solid rgba(167,139,250,0.3)', borderTop: '3px solid #A78BFA', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <button onClick={leaveCasualParty} style={{ padding: '7px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#EF4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Cancelar sala</button>
+                </div>
+              ) : casualParty.status === 'ready' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: '14px 16px' }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ✅</p>
+                    {[casualParty.leader, casualParty.partner].map((p, i) => {
+                      if (!p) return null;
+                      const rf = p.charId ? CHARACTER_RENDERS[p.charId] : null;
+                      const cs = rf ? charRenderPath(rf) : null;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                          {cs ? <img src={cs} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚔️</div>}
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{p.userName}</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{p.userId === uid ? '(vos)' : 'compañero'}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {PLATFORMS.map(px => (
+                    <button key={px.id} onClick={() => { setSearchPlat(px.id); startCasual2v2Search(px.id); }} disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>Buscar 2v2 Normal en {px.label}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Sin efecto en el rango</p>
+                      </div>
+                      <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                    </button>
+                  ))}
+                  <button onClick={leaveCasualParty} style={{ padding: '7px 0', background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.6)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>Abandonar equipo</button>
+                </div>
+              ) : null}
+            </div>
+          )}
         </>
       ) : matchMode === '1v1' ? (
         <>

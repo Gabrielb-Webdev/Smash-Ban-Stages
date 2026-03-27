@@ -127,6 +127,14 @@ export default function TestAdminPage() {
     try { const c = _communitySync(); return typeof window !== 'undefined' && localStorage.getItem(lsk('phaseStarted', c)) === '1'; } catch { return false; }
   });
 
+  // Sync phaseStarted desde localStorage al montar (fix hidratación SSR)
+  useEffect(() => {
+    try {
+      const c = _communitySync();
+      if (localStorage.getItem(lsk('phaseStarted', c)) === '1') setPhaseStarted(true);
+    } catch {}
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Match call timers: { [setupId]: { secondsLeft, intervalId } }
   const [matchTimers, setMatchTimers] = useState({});
   const matchTimersRef = useRef({});
@@ -1810,7 +1818,7 @@ export default function TestAdminPage() {
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 400, overflowY: 'auto', overflowX: 'hidden', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
+          <div style={{ flex: 1, minHeight: 400, overflow: 'auto', borderRadius: 16, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px' }}>
             {bracketLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.3)', fontSize: 13, padding: '40px 0' }}>
                 <div style={{ width: 22, height: 22, border: '2px solid #FF8C00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
