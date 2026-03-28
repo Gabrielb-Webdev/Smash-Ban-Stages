@@ -69,7 +69,7 @@ export default function Login() {
               fontSize:36, marginBottom:20,
               boxShadow:'0 0 40px rgba(232,142,0,0.4), 0 12px 28px rgba(0,0,0,0.5)',
               animation:'float 4s ease-in-out infinite',
-            }}>🎮</div>
+            }}><img src="/images/logo.app.png" alt="Logo" style={{ width:50, height:50, objectFit:'contain', filter:'invert(1)' }} /></div>
             <h1 style={{ margin:'0 0 6px', fontSize:38, fontWeight:900, color:'#fff', letterSpacing:'-1px' }}>LA APP <span style={{ color:'#FF8C00' }}>sin H</span></h1>
             <p style={{ margin:0, fontSize:12, fontWeight:700, letterSpacing:'0.22em', color:'rgba(255,255,255,0.3)', textTransform:'uppercase' }}>Comunidad Competitiva</p>
           </div>
