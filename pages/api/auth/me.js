@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       adminCommunities,
       user: {
         id: user.id,
-        name: user.name || user.player?.gamerTag || slugNormalized,
+        name: user.player?.gamerTag || user.name || slugNormalized,
         slug: slugNormalized,
         avatar: user.images?.find(i => i.type === 'profile')?.url || null,
       },

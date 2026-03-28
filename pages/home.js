@@ -361,7 +361,7 @@ export default function HomePage() {
   // Polling match activo de torneo
   useEffect(() => {
     if (!user || typeof window === 'undefined') return;
-    const playerName = user.name || user.player?.gamerTag;
+    const playerName = user.player?.gamerTag || user.name;
     if (!playerName) return;
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const fetchMatch = async () => {
@@ -2004,7 +2004,7 @@ function TabAmigos({ user }) {
   const chatEndRef = useRef(null);
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
-  const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
+  const uName = user ? String(user?.player?.gamerTag || user?.name || 'Jugador') : '';
 
   // Fetch friends, requests, sent, party, history
   useEffect(() => {
@@ -2969,7 +2969,7 @@ function TabPerfil({ user }) {
   const [pickerStep, setPickerStep]     = useState('char');
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
-  const uName = user ? String(user?.name || user?.player?.gamerTag || 'Jugador') : '';
+  const uName = user ? String(user?.player?.gamerTag || user?.name || 'Jugador') : '';
 
   useEffect(() => {
     if (!user) return;
