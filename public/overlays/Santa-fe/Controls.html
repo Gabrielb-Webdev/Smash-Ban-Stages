@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scoreboard Control | Santa Fe Smash</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #010810;
+    --card: #040f1e;
+    --card2: #061525;
+    --border: #0d3050;
+    --accent: #26cae2;
+    --accent2: #0ea5e9;
+    --text: #d0e8f5;
+    --label: #6fa8c5;
+    --danger: #fd3232;
+    --success: #21b546;
+    --p1: #fd3232;
+    --p2: #2985f5;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: #020c18;
+    border-bottom: 2px solid var(--accent);
+    gap: 16px;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  #statusBar {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #0b2a1f;
+    color: #4cd07d;
+    border: 1px solid #1a5e35;
+    min-width: 180px;
+    text-align: center;
+    transition: all .3s;
+  }
+  #statusBar.error { background: #2a0b0b; color: #f47; border-color: #5e1a1a; }
+  #statusBar.warning { background: #2a1f0b; color: #fbb; border-color: #5e3a1a; }
+  #statusBar.loading { background: #0b1e2a; color: var(--accent); border-color: #1a4060; }
+
+  /* ── MAIN LAYOUT ── */
+  .main-wrap { padding: 16px 20px 100px; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 240px 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .p1-title { color: var(--p1); }
+  .p2-title { color: var(--p2); }
+  .center-title { color: var(--accent); text-align: center; }
+
+  /* ── FORM CONTROLS ── */
+  .field { margin-bottom: 10px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--label);
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: #020c18;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+
+  /* ── CHARACTER GRID ── */
+  .char-search {
+    width: 100%;
+    background: #020c18;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    margin-bottom: 8px;
+    outline: none;
+  }
+  .char-search:focus { border-color: var(--accent); }
+
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    max-height: 168px;
+    overflow-y: auto;
+    background: #020c18;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    margin-bottom: 10px;
+  }
+  .char-btn {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    padding: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, background .15s;
+  }
+  .char-btn:hover { background: #0d2540; border-color: #1a4060; }
+  .char-btn.selected { border-color: var(--accent); background: #082030; }
+  .char-btn img { width: 32px; height: 32px; object-fit: contain; }
+
+  /* ── SKIN ROW ── */
+  .skin-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .skin-btn {
+    background: #020c18;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    padding: 2px;
+    cursor: pointer;
+    display: flex;
+    transition: border-color .15s;
+  }
+  .skin-btn:hover { border-color: #1a4060; }
+  .skin-btn.selected { border-color: var(--accent); }
+  .skin-btn img { width: 28px; height: 28px; object-fit: contain; }
+
+  /* ── COLOR ROW ── */
+  .color-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .color-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: border-color .15s, transform .1s;
+  }
+  .color-btn:hover { transform: scale(1.15); }
+  .color-btn.selected { border-color: white; transform: scale(1.1); }
+
+  /* ── SCORE SECTION ── */
+  .score-section {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 10px;
+    background: #020c18;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .score-adj {
+    background: #0b2540;
+    color: var(--text);
+    border: none;
+    width: 40px;
+    height: 48px;
+    font-size: 22px;
+    cursor: pointer;
+    transition: background .15s;
+    flex-shrink: 0;
+  }
+  .score-adj:hover { background: #143050; }
+  .score-adj:active { background: #0e2a45; }
+  .score-ticks {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 8px;
+    height: 48px;
+  }
+  .tick {
+    width: 0; height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 20px solid #1a3050;
+    transition: border-bottom-color .2s;
+    cursor: pointer;
+  }
+  .tick.filled { border-bottom-color: var(--accent); }
+  .tick.inactive { opacity: 0.2; pointer-events: none; }
+
+  /* ── W/L BUTTONS ── */
+  .wl-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .wl-btn {
+    flex: 1;
+    padding: 7px 0;
+    border: 2px solid transparent;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity .15s, border-color .15s;
+  }
+  .wl-btn:not(.selected) { opacity: 0.4; }
+  .wl-btn.selected { opacity: 1; border-color: white; }
+  .wl-w { background: #1a4a25; color: #4cd07d; }
+  .wl-l { background: #4a1a1a; color: #f47; }
+  .wl-n { background: #1a2535; color: #7ab; }
+
+  /* ── CENTER CARD ── */
+  .center-card { display: flex; flex-direction: column; gap: 10px; }
+  .swap-btn {
+    width: 100%;
+    padding: 10px;
+    background: #0b2540;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background .15s;
+    text-transform: uppercase;
+  }
+  .swap-btn:hover { background: #143050; }
+
+  .bestof-row { display: flex; gap: 6px; }
+  .bestof-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: 2px solid var(--border);
+    border-radius: 7px;
+    background: #020c18;
+    color: var(--label);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .bestof-btn.selected {
+    background: #082030;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .scores-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .nscore-badge {
+    background: #020c18;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 26px;
+    font-weight: 900;
+    min-width: 44px;
+    text-align: center;
+  }
+  .nscore-sep { color: var(--label); font-size: 18px; font-weight: 300; }
+
+  .reset-score-btn {
+    width: 100%;
+    padding: 7px;
+    background: #1a0b0b;
+    color: #f47;
+    border: 1px solid #3a1515;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background .15s;
+  }
+  .reset-score-btn:hover { background: #2a0f0f; }
+
+  /* ── UPDATE BUTTON ── */
+  .update-wrap {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 20px;
+    background: linear-gradient(to top, #010810 60%, transparent);
+    z-index: 100;
+  }
+  .update-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #010810;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+    box-shadow: 0 4px 24px rgba(38, 202, 226, 0.3);
+  }
+  .update-btn:hover { background: #1db8d2; }
+  .update-btn:active { transform: scale(0.99); }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--label);
+    margin-bottom: 6px;
+    margin-top: 12px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#9889; Santa Fe Smash &mdash; Control</h1>
+  <div id="statusBar" class="loading">Cargando...</div>
+</header>
+
+<div class="main-wrap">
+
+  <!-- TOP GRID: P1 | CENTER | P2 -->
+  <div class="main-grid">
+
+    <!-- ── PLAYER 1 ── -->
+    <div class="card">
+      <div class="card-title p1-title">&#9632; Jugador 1</div>
+
+      <div class="field"><label>Nombre</label><input id="p1Name" type="text" placeholder="Player 1"></div>
+      <div class="field"><label>Tag de equipo</label><input id="p1Team" type="text" placeholder="TEAM"></div>
+      <div class="field"><label>Pronombres</label><input id="p1Pron" type="text" placeholder="he/him"></div>
+
+      <div class="section-label">Personaje</div>
+      <input class="char-search" id="p1CharSearch" placeholder="&#128269; Buscar personaje..." oninput="filterChars('p1')">
+      <div class="char-grid" id="p1CharGrid"></div>
+
+      <div class="section-label">Skin</div>
+      <div class="skin-row" id="p1SkinRow"></div>
+
+      <div class="section-label">Color</div>
+      <div class="color-row" id="p1ColorRow"></div>
+
+      <div class="section-label">Partidas ganadas (score)</div>
+      <div class="score-section">
+        <button class="score-adj" onclick="adjustScore('p1',-1)">&#8722;</button>
+        <div class="score-ticks" id="p1Ticks"></div>
+        <button class="score-adj" onclick="adjustScore('p1',1)">&#43;</button>
+      </div>
+
+      <div class="section-label">W/L (Grand Finals)</div>
+      <div class="wl-row" id="p1WLRow">
+        <button class="wl-btn wl-w" onclick="setWL('p1','W')">W</button>
+        <button class="wl-btn wl-l" onclick="setWL('p1','L')">L</button>
+        <button class="wl-btn wl-n selected" onclick="setWL('p1','Nada')">—</button>
+      </div>
+
+      <div class="section-label">Sets ganados (total torneo)</div>
+      <div class="field"><input id="p1NScore" type="text" placeholder="0" style="text-align:center;font-size:18px;font-weight:bold;"></div>
+    </div>
+
+    <!-- ── CENTER ── -->
+    <div class="card center-card">
+      <div class="card-title center-title">Partida</div>
+
+      <div class="scores-display">
+        <span class="nscore-badge" id="p1ScoreCenter" style="color:var(--p1)">0</span>
+        <span class="nscore-sep">–</span>
+        <span class="nscore-badge" id="p2ScoreCenter" style="color:var(--p2)">0</span>
+      </div>
+
+      <button class="swap-btn" onclick="swapPlayers()">&#8646; Swap jugadores</button>
+
+      <button class="reset-score-btn" onclick="resetScores()">&#128473; Resetear scores</button>
+
+      <div class="section-label">Best of</div>
+      <div class="bestof-row">
+        <button class="bestof-btn selected" id="bo3btn" onclick="setBestOf('Bo3')">Bo3</button>
+        <button class="bestof-btn" id="bo5btn" onclick="setBestOf('Bo5')">Bo5</button>
+      </div>
+
+      <div class="field"><label>Ronda</label><input id="round" type="text" placeholder="Winners Round 1"></div>
+      <div class="field"><label>Formato</label><input id="format" type="text" placeholder=""></div>
+    </div>
+
+    <!-- ── PLAYER 2 ── -->
+    <div class="card">
+      <div class="card-title p2-title">&#9632; Jugador 2</div>
+
+      <div class="field"><label>Nombre</label><input id="p2Name" type="text" placeholder="Player 2"></div>
+      <div class="field"><label>Tag de equipo</label><input id="p2Team" type="text" placeholder="TEAM"></div>
+      <div class="field"><label>Pronombres</label><input id="p2Pron" type="text" placeholder="she/her"></div>
+
+      <div class="section-label">Personaje</div>
+      <input class="char-search" id="p2CharSearch" placeholder="&#128269; Buscar personaje..." oninput="filterChars('p2')">
+      <div class="char-grid" id="p2CharGrid"></div>
+
+      <div class="section-label">Skin</div>
+      <div class="skin-row" id="p2SkinRow"></div>
+
+      <div class="section-label">Color</div>
+      <div class="color-row" id="p2ColorRow"></div>
+
+      <div class="section-label">Partidas ganadas (score)</div>
+      <div class="score-section">
+        <button class="score-adj" onclick="adjustScore('p2',-1)">&#8722;</button>
+        <div class="score-ticks" id="p2Ticks"></div>
+        <button class="score-adj" onclick="adjustScore('p2',1)">&#43;</button>
+      </div>
+
+      <div class="section-label">W/L (Grand Finals)</div>
+      <div class="wl-row" id="p2WLRow">
+        <button class="wl-btn wl-w" onclick="setWL('p2','W')">W</button>
+        <button class="wl-btn wl-l" onclick="setWL('p2','L')">L</button>
+        <button class="wl-btn wl-n selected" onclick="setWL('p2','Nada')">—</button>
+      </div>
+
+      <div class="section-label">Sets ganados (total torneo)</div>
+      <div class="field"><input id="p2NScore" type="text" placeholder="0" style="text-align:center;font-size:18px;font-weight:bold;"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID: CASTERS | TORNEO -->
+  <div class="bottom-grid">
+
+    <!-- ── CASTERS ── -->
+    <div class="card">
+      <div class="card-title" style="color:#a78bfa;">&#127908; Comentaristas</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <div class="section-label">Comentarista 1</div>
+          <div class="field"><label>Nombre</label><input id="caster1Name" type="text" placeholder="Nombre"></div>
+          <div class="field"><label>Twitter / X</label><input id="caster1Twitter" type="text" placeholder="@usuario"></div>
+          <div class="field"><label>Twitch</label><input id="caster1Twitch" type="text" placeholder="usuario"></div>
+        </div>
+        <div>
+          <div class="section-label">Comentarista 2</div>
+          <div class="field"><label>Nombre</label><input id="caster2Name" type="text" placeholder="Nombre"></div>
+          <div class="field"><label>Twitter / X</label><input id="caster2Twitter" type="text" placeholder="@usuario"></div>
+          <div class="field"><label>Twitch</label><input id="caster2Twitch" type="text" placeholder="usuario"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TORNEO ── -->
+    <div class="card">
+      <div class="card-title" style="color:#fbbf24;">&#127942; Torneo</div>
+      <div class="field" style="margin-bottom:16px;"><label>Nombre del torneo</label><input id="tournamentName" type="text" placeholder="Neon Nights 7"></div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--label);">
+        <input type="checkbox" id="allowIntro" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
+        <span>Mostrar intro al cargar overlay</span>
+      </label>
+
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+        <div class="section-label">JSON manual (sin servidor)</div>
+        <button onclick="downloadJSON()" style="width:100%;padding:8px;background:#0b1e2a;color:var(--accent);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">
+          &#11015; Descargar ScoreboardInfo.json
+        </button>
+        <p style="font-size:11px;color:#456;margin-top:8px;line-height:1.5;">
+          Si no tenés servidor corriendo, descargá el JSON y reemplazá<br>
+          <code style="color:#5a8;font-size:10px;">Resources/Texts/ScoreboardInfo.json</code>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FIXED UPDATE BUTTON ── -->
+<div class="update-wrap">
+  <button class="update-btn" onclick="updateScoreboard()">&#9889; Actualizar Scoreboard</button>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────
+const CHARACTERS = [
+  'Banjo & Kazooie','Bayonetta','Bowser','Bowser Jr','Byleth',
+  'Captain Falcon','Chrom','Cloud','Corrin','Daisy','Dark Pit','Dark Samus',
+  'Diddy Kong','Donkey Kong','Dr Mario','Duck Hunt','Falco','Fox','Ganondorf',
+  'Greninja','Hero','Ice Climbers','Ike','Incineroar','Inkling','Isabelle',
+  'Jigglypuff','Joker','Kazuya','Ken','King Dedede','King K Rool','Kirby',
+  'Link','Little Mac','Lucario','Lucas','Lucina','Luigi','Mario','Marth',
+  'Mega Man','Meta Knight','Mewtwo','Mii Brawler','Mii Gunner','Mii Swordfighter',
+  'Min Min','Mr Game & Watch','Ness','Olimar','Pac Man','Palutena','Peach',
+  'Pichu','Pikachu','Piranha Plant','Pit','Pokemon Trainer','Pyra & Mythra',
+  'Random','Richter','Ridley','Rob','Robin','Rosalina & Luma','Roy','Ryu',
+  'Samus','Sephiroth','Sheik','Shulk','Simon','Snake','Sonic','Sora',
+  'Steve','Terry','Toon Link','Villager','Wario','Wii Fit Trainer','Wolf',
+  'Yoshi','Young Link','Zelda','Zero Suit Samus'
+];
+
+const COLORS = [
+  { name:'Red',    hex:'#fd3232' },
+  { name:'Blue',   hex:'#2985f5' },
+  { name:'Yellow', hex:'#febc0d' },
+  { name:'Green',  hex:'#21b546' },
+  { name:'Orange', hex:'#f88632' },
+  { name:'Cyan',   hex:'#26cae2' },
+  { name:'Pink',   hex:'#fe9bb5' },
+  { name:'Purple', hex:'#9570fe' },
+  { name:'CPU',    hex:'#ACACAC' },
+  { name:'Amiibo', hex:'#87FFCD' },
+];
+
+// ─── STATE ──────────────────────────────────────────────────────
+const state = {
+  p1Score: 0, p1Character: 'Mario', p1Skin: '1', p1Color: 'Red',   p1WL: 'Nada',
+  p2Score: 0, p2Character: 'Mario', p2Skin: '1', p2Color: 'Blue',  p2WL: 'Nada',
+  bestOf: 'Bo3',
+};
+
+// ─── BUILD UI ───────────────────────────────────────────────────
+function buildAll() {
+  for (const p of ['p1','p2']) {
+    buildCharGrid(p);
+    buildColorRow(p);
+    buildTicks(p);
+  }
+}
+
+function buildCharGrid(p) {
+  const grid = document.getElementById(p + 'CharGrid');
+  CHARACTERS.forEach(char => {
+    const btn = document.createElement('button');
+    btn.className = 'char-btn';
+    btn.dataset.char = char;
+    btn.title = char;
+    const img = document.createElement('img');
+    img.src = encodeCharPath(char, 1);
+    img.alt = char;
+    img.onerror = function() { this.src = 'Characters/Stock Icons/Random.png'; };
+    btn.appendChild(img);
+    btn.addEventListener('click', () => selectChar(p, char));
+    grid.appendChild(btn);
+  });
+}
+
+function encodeCharPath(char, skin) {
+  return 'Characters/Stock%20Icons/' + encodeURIComponent(char) + '/' + skin + '.png';
+}
+
+function buildColorRow(p) {
+  const row = document.getElementById(p + 'ColorRow');
+  COLORS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn';
+    btn.style.background = c.hex;
+    btn.title = c.name;
+    btn.addEventListener('click', () => selectColor(p, c.name));
+    row.appendChild(btn);
+  });
+}
+
+function buildTicks(p) {
+  const container = document.getElementById(p + 'Ticks');
+  container.innerHTML = '';
+  const max = state.bestOf === 'Bo5' ? 3 : 2;
+  for (let i = 0; i < max; i++) {
+    const t = document.createElement('div');
+    t.className = 'tick';
+    const score = state[p + 'Score'];
+    if (i < score) t.classList.add('filled');
+    t.title = 'Clic para cambiar score';
+    const idx = i;
+    t.addEventListener('click', () => {
+      state[p + 'Score'] = idx < state[p + 'Score'] ? idx : idx + 1;
+      state[p + 'Score'] = Math.min(state[p + 'Score'], max);
+      updateScoreUI(p);
+    });
+    container.appendChild(t);
+  }
+}
+
+// ─── INTERACTIONS ────────────────────────────────────────────────
+function selectChar(p, char) {
+  state[p + 'Character'] = char;
+  const grid = document.getElementById(p + 'CharGrid');
+  grid.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected'));
+  const target = grid.querySelector(`[data-char="${CSS.escape(char)}"]`);
+  if (target) { target.classList.add('selected'); target.scrollIntoView({ block: 'nearest' }); }
+  buildSkinPicker(p, char, state[p + 'Skin']);
+}
+
+function buildSkinPicker(p, char, selectedSkin) {
+  const row = document.getElementById(p + 'SkinRow');
+  row.innerHTML = '';
+  for (let i = 1; i <= 8; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'skin-btn' + (String(i) === String(selectedSkin) ? ' selected' : '');
+    btn.title = 'Skin ' + i;
+    const img = document.createElement('img');
+    img.src = encodeCharPath(char, i);
+    img.alt = 'S' + i;
+    img.onerror = function() { btn.style.display = 'none'; };
+    btn.appendChild(img);
+    btn.addEventListener('click', () => {
+      row.querySelectorAll('.skin-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      state[p + 'Skin'] = String(i);
+    });
+    row.appendChild(btn);
+  }
+}
+
+function selectColor(p, colorName) {
+  state[p + 'Color'] = colorName;
+  const row = document.getElementById(p + 'ColorRow');
+  row.querySelectorAll('.color-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', COLORS[i].name === colorName);
+  });
+}
+
+function adjustScore(p, delta) {
+  const max = state.bestOf === 'Bo5' ? 3 : 2;
+  state[p + 'Score'] = Math.max(0, Math.min(max, state[p + 'Score'] + delta));
+  updateScoreUI(p);
+}
+
+function updateScoreUI(p) {
+  buildTicks(p);
+  document.getElementById(p + 'ScoreCenter').textContent = state[p + 'Score'];
+}
+
+function setWL(p, val) {
+  state[p + 'WL'] = val;
+  const row = document.getElementById(p + 'WLRow');
+  row.querySelectorAll('.wl-btn').forEach(btn => btn.classList.remove('selected'));
+  const map = { 'W': 0, 'L': 1, 'Nada': 2 };
+  row.querySelectorAll('.wl-btn')[map[val]].classList.add('selected');
+}
+
+function setBestOf(val) {
+  state.bestOf = val;
+  document.getElementById('bo3btn').classList.toggle('selected', val === 'Bo3');
+  document.getElementById('bo5btn').classList.toggle('selected', val === 'Bo5');
+  // Clamp scores to new max
+  const max = val === 'Bo5' ? 3 : 2;
+  state.p1Score = Math.min(state.p1Score, max);
+  state.p2Score = Math.min(state.p2Score, max);
+  buildTicks('p1');
+  buildTicks('p2');
+}
+
+function resetScores() {
+  state.p1Score = 0;
+  state.p2Score = 0;
+  updateScoreUI('p1');
+  updateScoreUI('p2');
+}
+
+function filterChars(p) {
+  const query = document.getElementById(p + 'CharSearch').value.toLowerCase();
+  document.getElementById(p + 'CharGrid').querySelectorAll('.char-btn').forEach(btn => {
+    const match = btn.dataset.char.toLowerCase().includes(query);
+    btn.style.display = match ? '' : 'none';
+  });
+}
+
+// ─── SWAP ────────────────────────────────────────────────────────
+function swapPlayers() {
+  const fields = ['Name', 'Team', 'Pron', 'NScore'];
+  for (const f of fields) {
+    const a = document.getElementById('p1' + f);
+    const b = document.getElementById('p2' + f);
+    const tmp = a.value;
+    a.value = b.value;
+    b.value = tmp;
+  }
+
+  const tmpScore    = state.p1Score;     state.p1Score     = state.p2Score;     state.p2Score     = tmpScore;
+  const tmpChar     = state.p1Character; state.p1Character = state.p2Character; state.p2Character = tmpChar;
+  const tmpSkin     = state.p1Skin;      state.p1Skin      = state.p2Skin;      state.p2Skin      = tmpSkin;
+  const tmpColor    = state.p1Color;     state.p1Color     = state.p2Color;     state.p2Color     = tmpColor;
+  const tmpWL       = state.p1WL;        state.p1WL        = state.p2WL;        state.p2WL        = tmpWL;
+
+  for (const p of ['p1','p2']) {
+    selectChar(p, state[p + 'Character']);
+    selectColor(p, state[p + 'Color']);
+    setWL(p, state[p + 'WL']);
+    updateScoreUI(p);
+    buildSkinPicker(p, state[p + 'Character'], state[p + 'Skin']);
+  }
+  showStatus('Jugadores intercambiados');
+}
+
+// ─── BUILD DATA OBJECT ───────────────────────────────────────────
+function buildData() {
+  return {
+    p1Name:        document.getElementById('p1Name').value.trim(),
+    p1Team:        document.getElementById('p1Team').value.trim(),
+    p1Pron:        document.getElementById('p1Pron').value.trim(),
+    p1Score:       state.p1Score,
+    p1NScore:      document.getElementById('p1NScore').value.trim(),
+    p1Character:   state.p1Character,
+    p1Skin:        state.p1Skin,
+    p1Color:       state.p1Color,
+    p1WL:          state.p1WL,
+    p2Name:        document.getElementById('p2Name').value.trim(),
+    p2Team:        document.getElementById('p2Team').value.trim(),
+    p2Pron:        document.getElementById('p2Pron').value.trim(),
+    p2Score:       state.p2Score,
+    p2NScore:      document.getElementById('p2NScore').value.trim(),
+    p2Character:   state.p2Character,
+    p2Skin:        state.p2Skin,
+    p2Color:       state.p2Color,
+    p2WL:          state.p2WL,
+    bestOf:        state.bestOf,
+    round:         document.getElementById('round').value.trim(),
+    format:        document.getElementById('format').value.trim(),
+    caster1Name:   document.getElementById('caster1Name').value.trim(),
+    caster1Twitter:document.getElementById('caster1Twitter').value.trim(),
+    caster1Twitch: document.getElementById('caster1Twitch').value.trim(),
+    caster2Name:   document.getElementById('caster2Name').value.trim(),
+    caster2Twitter:document.getElementById('caster2Twitter').value.trim(),
+    caster2Twitch: document.getElementById('caster2Twitch').value.trim(),
+    tournamentName:document.getElementById('tournamentName').value.trim(),
+    allowIntro:    document.getElementById('allowIntro').checked,
+  };
+}
+
+// ─── POPULATE FORM ───────────────────────────────────────────────
+function populateForm(data) {
+  const setText = (id, val) => { if (document.getElementById(id)) document.getElementById(id).value = val || ''; };
+  setText('p1Name',         data.p1Name);
+  setText('p1Team',         data.p1Team);
+  setText('p1Pron',         data.p1Pron);
+  setText('p1NScore',       data.p1NScore || '0');
+  setText('p2Name',         data.p2Name);
+  setText('p2Team',         data.p2Team);
+  setText('p2Pron',         data.p2Pron);
+  setText('p2NScore',       data.p2NScore || '0');
+  setText('round',          data.round);
+  setText('format',         data.format);
+  setText('caster1Name',    data.caster1Name);
+  setText('caster1Twitter', data.caster1Twitter);
+  setText('caster1Twitch',  data.caster1Twitch);
+  setText('caster2Name',    data.caster2Name);
+  setText('caster2Twitter', data.caster2Twitter);
+  setText('caster2Twitch',  data.caster2Twitch);
+  setText('tournamentName', data.tournamentName);
+  document.getElementById('allowIntro').checked = !!data.allowIntro;
+
+  state.p1Score     = typeof data.p1Score === 'number' ? data.p1Score : 0;
+  state.p2Score     = typeof data.p2Score === 'number' ? data.p2Score : 0;
+  state.p1Character = data.p1Character || 'Mario';
+  state.p2Character = data.p2Character || 'Mario';
+  state.p1Skin      = data.p1Skin      || '1';
+  state.p2Skin      = data.p2Skin      || '1';
+  state.p1Color     = data.p1Color     || 'Red';
+  state.p2Color     = data.p2Color     || 'Blue';
+  state.p1WL        = data.p1WL        || 'Nada';
+  state.p2WL        = data.p2WL        || 'Nada';
+  state.bestOf      = data.bestOf      || 'Bo3';
+
+  for (const p of ['p1','p2']) {
+    selectChar(p, state[p + 'Character']);
+    buildSkinPicker(p, state[p + 'Character'], state[p + 'Skin']);
+    selectColor(p, state[p + 'Color']);
+    setWL(p, state[p + 'WL']);
+    updateScoreUI(p);
+  }
+  setBestOf(state.bestOf);
+}
+
+// ─── UPDATE ──────────────────────────────────────────────────────
+async function updateScoreboard() {
+  const data = buildData();
+  showStatus('Actualizando...', 'loading');
+
+  // Try server API first
+  try {
+    const resp = await fetch('/api/scoreboard-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (resp.ok) {
+      showStatus('&#10003; Actualizado correctamente');
+      return;
+    }
+  } catch (_) { /* not running via server */ }
+
+  // Fallback: download JSON
+  showStatus('Sin servidor — descargando JSON', 'warning');
+  downloadJSON(data);
+}
+
+function downloadJSON(data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'ScoreboardInfo.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+// ─── STATUS ──────────────────────────────────────────────────────
+let statusTimer = null;
+function showStatus(msg, type) {
+  const el = document.getElementById('statusBar');
+  el.innerHTML = msg;
+  el.className = type || '';
+  clearTimeout(statusTimer);
+  if (type !== 'loading') {
+    statusTimer = setTimeout(() => {
+      el.textContent = 'Listo';
+      el.className = '';
+    }, 3500);
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  buildAll();
+
+  // Try to load current scoreboard data
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'Resources/Texts/ScoreboardInfo.json');
+  xhr.onload = () => {
+    try {
+      const data = JSON.parse(xhr.responseText);
+      populateForm(data);
+      showStatus('Datos cargados');
+    } catch {
+      populateForm({});
+      showStatus('JSON inválido', 'error');
+    }
+  };
+  xhr.onerror = () => {
+    populateForm({});
+    showStatus('Listo (sin datos previos)');
+  };
+  xhr.send();
+});
+</script>
+</body>
+</html>
