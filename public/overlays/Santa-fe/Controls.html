@@ -986,7 +986,7 @@ async function pollStreamSession() {
     if (!data.ok) return;
 
     // Detectar si hay cambios relevantes
-    const key = JSON.stringify([data.player1, data.player2, data.char1, data.char2, data.score1, data.score2, data.format]);
+    const key = JSON.stringify([data.player1, data.player2, data.char1, data.char2, data.skin1, data.skin2, data.score1, data.score2, data.format]);
     if (key === _lastStreamData) return;
     _lastStreamData = key;
 
@@ -994,10 +994,16 @@ async function pollStreamSession() {
     if (data.player1) document.getElementById('p1Name').value = data.player1;
     if (data.player2) document.getElementById('p2Name').value = data.player2;
 
-    const char1 = slugToChar(data.char1);
-    const char2 = slugToChar(data.char2);
-    if (char1) { state.p1Character = char1; selectChar('p1', char1); }
-    if (char2) { state.p2Character = char2; selectChar('p2', char2); }
+    // Resolver personajes (defaultear a Random si no hay selección)
+    const char1 = slugToChar(data.char1) || 'Random';
+    const char2 = slugToChar(data.char2) || 'Random';
+
+    // Actualizar skins ANTES de selectChar para que buildSkinPicker use el skin correcto
+    if (typeof data.skin1 === 'number') state.p1Skin = String(data.skin1);
+    if (typeof data.skin2 === 'number') state.p2Skin = String(data.skin2);
+
+    state.p1Character = char1; selectChar('p1', char1);
+    state.p2Character = char2; selectChar('p2', char2);
 
     if (typeof data.score1 === 'number') { state.p1Score = data.score1; updateScoreUI('p1'); }
     if (typeof data.score2 === 'number') { state.p2Score = data.score2; updateScoreUI('p2'); }
@@ -1049,7 +1055,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showStatus('JSON inválido', 'error');
       }
     };
-    xhr.onerror = () => { populateForm({}); };
+    xhr.onerror = () => { populateForm({}); showStatus('Listo'); };
     xhr.send();
   }
 
@@ -1060,6 +1066,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if (el) el.addEventListener('input', () => autoSend());
   });
   document.getElementById('allowIntro').addEventListener('change', () => autoSend());
+
+  // Safety: si ningún path actualizó el status, limpiar "Cargando..." luego de 3s
+  setTimeout(() => {
+    const el = document.getElementById('statusBar');
+    if (el && el.classList.contains('loading')) { el.textContent = 'Listo'; el.className = ''; }
+  }, 3000);
 
   // Poll stream session every 2s (automático desde Vercel o URL manual)
   pollStreamSession();
