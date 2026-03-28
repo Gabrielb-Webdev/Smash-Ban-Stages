@@ -1910,10 +1910,9 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
   const rpDelta = isCasual || is2v2 ? null : isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10));
   const games = (m.games || []).filter(g => g?.result);
-  const CharIcon = ({ src, label }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+  const CharIcon = ({ src }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
       {src ? <img src={src} alt="" style={{ width: 52, height: 52, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 52, height: 52, borderRadius: 12, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>⚔️</div>}
-      <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 70 }}>{label}</p>
     </div>
   );
   return (
@@ -1925,14 +1924,14 @@ function MatchDetail({ match: m, viewingId, onClose }) {
       <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', padding: '16px' }}>
         {/* Resultado */}
         <div style={{ background: isWin ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 20, padding: '20px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CharIcon src={myCharSrc} label="Vos" />
+          <CharIcon src={myCharSrc} />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             {myScore != null && <p style={{ margin: 0, fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: 2 }}>{myScore}–{oppScore ?? 0}</p>}
             <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
             {rpDelta != null && <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</p>}
             {isMyPlacement && <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#FBBF24' }}>Posicionamiento</p>}
           </div>
-          <CharIcon src={oppCharSrc} label={opponent} />
+          <CharIcon src={oppCharSrc} />
         </div>
         <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}{isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : ' · Ranked'}</p>
         {/* Juegos */}
