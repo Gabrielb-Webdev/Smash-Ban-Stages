@@ -64,7 +64,7 @@
   #statusBar.loading { background: #0b1e2a; color: var(--accent); border-color: #1a4060; }
 
   /* ── MAIN LAYOUT ── */
-  .main-wrap { padding: 16px 20px 100px; }
+  .main-wrap { padding: 16px 20px 24px; }
 
   .main-grid {
     display: grid;
@@ -342,32 +342,6 @@
   }
   .reset-score-btn:hover { background: #2a0f0f; }
 
-  /* ── UPDATE BUTTON ── */
-  .update-wrap {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    padding: 14px 20px;
-    background: linear-gradient(to top, #010810 60%, transparent);
-    z-index: 100;
-  }
-  .update-btn {
-    width: 100%;
-    padding: 16px;
-    background: var(--accent);
-    color: #010810;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background .2s, transform .1s;
-    box-shadow: 0 4px 24px rgba(38, 202, 226, 0.3);
-  }
-  .update-btn:hover { background: #1db8d2; }
-  .update-btn:active { transform: scale(0.99); }
-
   /* ── SECTION LABEL ── */
   .section-label {
     font-size: 10px;
@@ -549,11 +523,6 @@
       </div>
     </div>
   </div>
-</div>
-
-<!-- ── FIXED UPDATE BUTTON ── -->
-<div class="update-wrap">
-  <button class="update-btn" onclick="updateScoreboard()">&#9889; Actualizar Scoreboard</button>
 </div>
 
 <script>
@@ -904,6 +873,13 @@ function populateForm(data) {
     updateScoreUI(p);
   }
   setBestOf(state.bestOf);
+}
+
+// ─── AUTO-SEND (debounce 400ms) ────────────────────────────────
+let _autoSendTimer = null;
+function autoSend() {
+  clearTimeout(_autoSendTimer);
+  _autoSendTimer = setTimeout(() => updateScoreboard(), 400);
 }
 
 // ─── UPDATE ──────────────────────────────────────────────────────
