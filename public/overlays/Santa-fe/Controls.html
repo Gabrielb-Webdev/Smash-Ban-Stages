@@ -602,7 +602,7 @@ function buildCharGrid(p) {
     const img = document.createElement('img');
     img.src = encodeCharPath(char, 1);
     img.alt = char;
-    img.onerror = function() { this.src = 'Characters/Stock Icons/Random.png'; };
+    img.onerror = function() { this.src = 'Resources/Characters/Stock%20Icons/Random.png'; };
     btn.appendChild(img);
     btn.addEventListener('click', () => selectChar(p, char));
     grid.appendChild(btn);
@@ -610,7 +610,7 @@ function buildCharGrid(p) {
 }
 
 function encodeCharPath(char, skin) {
-  return 'Characters/Stock%20Icons/' + encodeURIComponent(char) + '/' + skin + '.png';
+  return 'Resources/Characters/Stock%20Icons/' + encodeURIComponent(char) + '/' + skin + '.png';
 }
 
 function buildColorRow(p) {
@@ -841,22 +841,28 @@ async function updateScoreboard() {
   const data = buildData();
   showStatus('Actualizando...', 'loading');
 
-  // Try server API first
+  // Siempre guardar en localStorage para que el overlay lo lea en tiempo real
   try {
-    const resp = await fetch('/api/scoreboard-update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (resp.ok) {
-      showStatus('&#10003; Actualizado correctamente');
-      return;
-    }
-  } catch (_) { /* not running via server */ }
+    localStorage.setItem('santa-fe-scoreboard', JSON.stringify(data));
+  } catch(_) {}
 
-  // Fallback: download JSON
-  showStatus('Sin servidor — descargando JSON', 'warning');
-  downloadJSON(data);
+  // Intentar también via servidor Next.js si está corriendo
+  const serverOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  for (const origin of serverOrigins) {
+    try {
+      const resp = await fetch(origin + '/api/scoreboard-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (resp.ok) {
+        showStatus('&#10003; Actualizado');
+        return;
+      }
+    } catch (_) { /* servidor no disponible */ }
+  }
+
+  showStatus('&#10003; Actualizado');
 }
 
 function downloadJSON(data) {
@@ -889,7 +895,17 @@ function showStatus(msg, type) {
 window.addEventListener('DOMContentLoaded', () => {
   buildAll();
 
-  // Try to load current scoreboard data
+  // Primero intentar cargar desde localStorage (sesión de navegador activa)
+  try {
+    const local = localStorage.getItem('santa-fe-scoreboard');
+    if (local) {
+      populateForm(JSON.parse(local));
+      showStatus('Datos cargados');
+      return;
+    }
+  } catch(_) {}
+
+  // Fallback: cargar desde JSON en disco
   const xhr = new XMLHttpRequest();
   xhr.open('GET', 'Resources/Texts/ScoreboardInfo.json');
   xhr.onload = () => {

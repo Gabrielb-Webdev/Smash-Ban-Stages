@@ -862,6 +862,16 @@ function getHexColor(color) {
 //searches for the main json file
 function getInfo() {
 	return new Promise(function (resolve) {
+		// Check localStorage first (browser live preview via Live Server)
+		try {
+			const local = localStorage.getItem('santa-fe-scoreboard');
+			if (local) {
+				resolve(JSON.parse(local));
+				return;
+			}
+		} catch(_) {}
+
+		// Fallback: read JSON file (OBS or server-based workflow)
 		const oReq = new XMLHttpRequest();
 		oReq.addEventListener("load", reqListener);
 		oReq.open("GET", 'Resources/Texts/ScoreboardInfo.json');
