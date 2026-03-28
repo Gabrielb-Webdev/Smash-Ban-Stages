@@ -1904,8 +1904,10 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   const oppCharObj = oppCharId ? CHARACTERS.find(c => c.id === oppCharId) : null;
   const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
   const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
-  const myCharSrc = myCharObj ? (myCharObj.alts?.length ? '/images/characters/' + myCharObj.alts[Math.max(0,(mySkin||1)-1)] : charImgPath(myCharObj.img)) : null;
-  const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[Math.max(0,(oppSkin||1)-1)] : charImgPath(oppCharObj.img)) : null;
+  const _altIdx = (obj, skin) => Math.min(Math.max(0,(skin||1)-1), (obj.alts?.length||1)-1);
+  const myCharSrc = myCharObj ? (myCharObj.alts?.length ? '/images/characters/' + myCharObj.alts[_altIdx(myCharObj, mySkin)] : charImgPath(myCharObj.img)) : null;
+  const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[_altIdx(oppCharObj, oppSkin)] : charImgPath(oppCharObj.img)) : null;
+  const myName = is2v2 ? 'Tu equipo' : (isWin ? m.winnerName : m.loserName);
   const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
   const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
   const isMyPlacement = !isCasual && !is2v2 && !isTournament && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
@@ -1913,12 +1915,13 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   const myRankName = !isCasual && !is2v2 ? (isWin ? m.winnerRankAfter : m.loserRankAfter) : null;
   const myRankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
   const games = (m.games || []).filter(g => g?.result);
-  const CharSlot = ({ src, label }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
+  const CharSlot = ({ src, playerName, charName }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
+      {playerName && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textAlign: 'center', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerName}</span>}
       <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {src ? <img src={src} alt="" style={{ width: 58, height: 58, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <span style={{ fontSize: 28 }}>{is2v2 ? '👥' : '⚔️'}</span>}
       </div>
-      {label && <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textAlign: 'center', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>}
+      {charName && <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charName}</span>}
     </div>
   );
   const commLogo = isTournament && HIST_COMM_LOGOS[m.community] ? HIST_COMM_LOGOS[m.community] : null;
@@ -1940,15 +1943,15 @@ function MatchDetail({ match: m, viewingId, onClose }) {
           <div style={{ position: 'relative', background: isWin ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'}`, borderRadius: 20, padding: '18px 16px 14px', marginBottom: 12 }}>
             {commLogo && <img src={commLogo} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 60, height: 60, objectFit: 'contain', opacity: 0.12, pointerEvents: 'none' }} />}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-              <CharSlot src={myCharSrc} label={myCharObj?.name} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flexShrink: 0, paddingTop: 8 }}>
+              <CharSlot src={myCharSrc} playerName={myName} charName={myCharObj?.name} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flexShrink: 0, paddingTop: 20 }}>
                 {myScore != null && <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: 2, lineHeight: 1 }}>{myScore}–{oppScore ?? 0}</p>}
                 <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
                 {rpDelta != null && <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444', padding: '1px 6px', borderRadius: 8, background: rpDelta >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>}
                 {isMyPlacement && <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24', padding: '1px 6px', borderRadius: 8, background: 'rgba(251,191,36,0.12)' }}>Posicionamiento</span>}
                 {myRankObj && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: myRankObj.color, padding: '2px 7px', borderRadius: 10, background: myRankObj.bg, border: `1px solid ${myRankObj.border}` }}>{TIER_ICONS[myRankObj.tier]} {myRankObj.name}</span>}
               </div>
-              <CharSlot src={oppCharSrc} label={opponent} />
+              <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} />
             </div>
           </div>
           <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}{isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : isTournament ? (' · ' + (m.communityLabel || m.community || 'Torneo')) : ' · Ranked'}{m.round ? ` · ${m.round}` : ''}</p>
@@ -2017,6 +2020,7 @@ function groupHistByDate(matches) {
   return groups;
 }
 function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histExpanded, setHistExpanded, viewedUserId, setViewMatchDetail }) {
+  const [showAllModal, setShowAllModal] = useState(false);
   if (!hist || hist.length === 0) return (
     <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
       <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
@@ -2025,8 +2029,9 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
   );
   const tabs = buildHistFilterTabs(hist);
   const filtered = applyHistFilter(hist, histFilter);
-  const toShow = histExpanded ? filtered : filtered.slice(0, 5);
+  const toShow = filtered.slice(0, 5);
   const groups = groupHistByDate(toShow);
+  const allGroups = groupHistByDate(filtered);
   return (
     <div>
       {tabs.length > 2 && (
@@ -2063,11 +2068,12 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                     const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                     const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                     const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
-                    const charSrc = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[Math.max(0,(mySkin||1)-1)] : charImgPath(charObj.img)) : null;
+                    const _ai = (o, s) => Math.min(Math.max(0,(s||1)-1),(o.alts?.length||1)-1);
+                    const charSrc = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[_ai(charObj, mySkin)] : charImgPath(charObj.img)) : null;
                     const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                     const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
                     const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
-                    const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[Math.max(0,(oppSkin||1)-1)] : charImgPath(oppCharObj.img)) : null;
+                    const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[_ai(oppCharObj, oppSkin)] : charImgPath(oppCharObj.img)) : null;
                     const isMyPlacement = !isCasual && !is2v2 && !isTournament && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                     const rpDelta = isCasual || is2v2 || isTournament ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                     const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -2138,11 +2144,125 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
               </div>
             );
           })}
-          {!histExpanded && filtered.length > 5 && (
-            <button onClick={() => setHistExpanded(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
+          {filtered.length > 5 && (
+            <button onClick={() => setShowAllModal(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
               Ver todo ({filtered.length}) →
             </button>
           )}
+        </div>
+      )}
+      {/* Bottom sheet: Historial completo */}
+      {showAllModal && (
+        <div onClick={() => setShowAllModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(5px)', zIndex: 10001, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '90vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '22px 22px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .22s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0, cursor: 'pointer' }} onClick={() => setShowAllModal(false)}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.2)' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Historial completo ({filtered.length})</p>
+              <button onClick={() => setShowAllModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '10px 16px 24px' }}>
+              {allGroups.map(({ dateStr, matches: gm }, gi) => {
+                const gW = gm.filter(mm => (mm.mode === '2v2' || mm.type === 'tournament') ? !!mm.isWin : String(mm.winnerId) === String(viewedUserId)).length;
+                return (
+                  <div key={gi}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 2px 5px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', flex: 1 }}>{dateStr}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#22C55E' }}>{gW}W</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>//</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#EF4444' }}>{gm.length - gW}L</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
+                      {gm.map((m, i) => {
+                        const isCasual = m.type === 'casual';
+                        const isTournament = m.type === 'tournament';
+                        const is2v2 = m.mode === '2v2';
+                        const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === String(viewedUserId);
+                        const opponent = is2v2 ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`) : (isWin ? m.loserName : m.winnerName);
+                        const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                        const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                        const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                        const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                        const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
+                        const _ai = (o, s) => Math.min(Math.max(0,(s||1)-1),(o.alts?.length||1)-1);
+                        const charSrc = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[_ai(charObj, mySkin)] : charImgPath(charObj.img)) : null;
+                        const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                        const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                        const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
+                        const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[_ai(oppCharObj, oppSkin)] : charImgPath(oppCharObj.img)) : null;
+                        const isMyPlacement = !isCasual && !is2v2 && !isTournament && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                        const rpDelta = isCasual || is2v2 || isTournament ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                        const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                        const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                        const games = m.games || [];
+                        const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                        const uniqueStages = [...new Set(playedStages)];
+                        return (
+                          <div key={i} onClick={() => { setShowAllModal(false); setTimeout(() => setViewMatchDetail({ match: m, viewingId: String(viewedUserId) }), 180); }} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                              {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                                <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                              )) : (
+                                <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
+                              )}
+                            </div>
+                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                            {isTournament && HIST_COMM_LOGOS[m.community] && (
+                              <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
+                            )}
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                              <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                                {charSrc ? (
+                                  <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                                ) : (
+                                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                  {isCasual ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
+                                  ) : isTournament ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{HIST_COMM_SHORT[m.community] || 'TRN'}</span>
+                                  ) : is2v2 ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
+                                  ) : rankObj ? (
+                                    <div style={{ padding: '2px 4px', borderRadius: 5, background: rankObj.bg, border: `1px solid ${rankObj.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                                      <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
+                                      <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                                  {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                                </p>
+                                {isTournament ? (
+                                  m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
+                                ) : !isCasual && !is2v2 && (
+                                  isMyPlacement ? (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                                  ) : rpDelta != null ? (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                                  ) : null
+                                )}
+                              </div>
+                              <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                                {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
+                                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -3062,6 +3182,7 @@ function TabPerfil({ user }) {
   const [history, setHistory] = useState([]);
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual' | community-id
   const [histExpanded, setHistExpanded] = useState(false);
+  const [showHistAllModal, setShowHistAllModal] = useState(false);
   const [profileHistFilter, setProfileHistFilter] = useState('all');
   const [profileHistExpanded, setProfileHistExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -3995,8 +4116,9 @@ function TabPerfil({ user }) {
               <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jugá partidas para ver tu historial</p>
             </div>
           );
-          const toShow = histExpanded ? filtered : filtered.slice(0, 5);
+          const toShow = filtered.slice(0, 5);
           const groups = groupHistByDate(toShow);
+          const allGroupsSelf = groupHistByDate(filtered);
           return (
             <div>
               {groups.map(({ dateStr, matches: gm }, gi) => {
@@ -4030,14 +4152,15 @@ function TabPerfil({ user }) {
                 const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                 const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                 const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
-                const charSrcRaw = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[Math.max(0,(mySkin||1)-1)] : charImgPath(charObj.img)) : null;
+                const _ai2 = (o, s) => Math.min(Math.max(0,(s||1)-1),(o.alts?.length||1)-1);
+                const charSrcRaw = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[_ai2(charObj, mySkin)] : charImgPath(charObj.img)) : null;
                 // Fallback al mainChar del perfil si la partida no tiene charId
                 const mainCharObj = !charSrcRaw && mainChar ? CHARACTERS.find(ch => ch.id === mainChar) : null;
                 const charSrc = charSrcRaw || (mainCharObj ? charImgPath(mainCharObj.img) : null);
                 const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                 const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
                 const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
-                const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[Math.max(0,(oppSkin||1)-1)] : charImgPath(oppCharObj.img)) : null;
+                const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[_ai2(oppCharObj, oppSkin)] : charImgPath(oppCharObj.img)) : null;
                 const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                 const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                 const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -4116,8 +4239,8 @@ function TabPerfil({ user }) {
                   </div>
                 );
               })}
-              {!histExpanded && filtered.length > 5 && (
-                <button onClick={() => setHistExpanded(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
+              {filtered.length > 5 && (
+                <button onClick={() => setShowHistAllModal(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
                   Ver todo ({filtered.length}) →
                 </button>
               )}
@@ -4127,6 +4250,133 @@ function TabPerfil({ user }) {
       </div>
     </div>
 
+    {/* Bottom sheet: Historial completo (perfil personal) */}
+    {showHistAllModal && (() => {
+      const filtered = history.filter(m => {
+        if (historyFilter === 'all') return true;
+        if (historyFilter === 'casual') return m.type === 'casual';
+        if (historyFilter === 'ranked') return !m.type || m.type === 'ranked';
+        return m.type === 'tournament' && m.community === historyFilter;
+      });
+      const allGrp = groupHistByDate(filtered);
+      const selfId = String(user.id || user.slug);
+      return (
+        <div onClick={() => setShowHistAllModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(5px)', zIndex: 10001, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '90vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '22px 22px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .22s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0, cursor: 'pointer' }} onClick={() => setShowHistAllModal(false)}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.2)' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Historial completo ({filtered.length})</p>
+              <button onClick={() => setShowHistAllModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '10px 16px 24px' }}>
+              {allGrp.map(({ dateStr, matches: gm }, gi) => {
+                const gW = gm.filter(mm => (mm.mode === '2v2' || mm.type === 'tournament') ? !!mm.isWin : String(mm.winnerId) === selfId).length;
+                return (
+                  <div key={gi}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 2px 5px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', flex: 1 }}>{dateStr}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#22C55E' }}>{gW}W</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>//</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#EF4444' }}>{gm.length - gW}L</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
+                      {gm.map((m, i) => {
+                        const isCasual = m.type === 'casual';
+                        const isTournament = m.type === 'tournament';
+                        const is2v2 = m.mode === '2v2';
+                        const COMMUNITY_SHORT = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
+                        const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === selfId;
+                        const opponent = is2v2 ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`) : (isWin ? m.loserName : m.winnerName);
+                        const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                        const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                        const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                        const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                        const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
+                        const _ai = (o, s) => Math.min(Math.max(0,(s||1)-1),(o.alts?.length||1)-1);
+                        const charSrcRaw = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[_ai(charObj, mySkin)] : charImgPath(charObj.img)) : null;
+                        const mainCharObj2 = !charSrcRaw && mainChar ? CHARACTERS.find(ch => ch.id === mainChar) : null;
+                        const charSrc = charSrcRaw || (mainCharObj2 ? charImgPath(mainCharObj2.img) : null);
+                        const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                        const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                        const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
+                        const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[_ai(oppCharObj, oppSkin)] : charImgPath(oppCharObj.img)) : null;
+                        const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                        const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                        const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                        const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                        const games = m.games || [];
+                        const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                        const uniqueStages = [...new Set(playedStages)];
+                        return (
+                          <div key={i} onClick={() => { setShowHistAllModal(false); setTimeout(() => setViewMatchDetail({ match: m, viewingId: selfId }), 180); }} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                              {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                                <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                              )) : (
+                                <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
+                              )}
+                            </div>
+                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                            {isTournament && HIST_COMM_LOGOS[m.community] && (
+                              <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
+                            )}
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                              <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                                {charSrc ? (
+                                  <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                                ) : (
+                                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                  {isCasual ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
+                                  ) : isTournament ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{COMMUNITY_SHORT[m.community] || 'TRN'}</span>
+                                  ) : is2v2 ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
+                                  ) : rankObj ? (
+                                    <div style={{ padding: '2px 4px', borderRadius: 5, background: rankObj.bg, border: `1px solid ${rankObj.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                                      <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
+                                      <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                                  {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                                </p>
+                                {isTournament ? (
+                                  m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
+                                ) : !isCasual && !is2v2 && (
+                                  isMyPlacement ? (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                                  ) : rpDelta != null ? (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                                  ) : null
+                                )}
+                              </div>
+                              <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                                {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
+                                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
 
     {/* Main character picker modal */}
     {showMainPicker && (
