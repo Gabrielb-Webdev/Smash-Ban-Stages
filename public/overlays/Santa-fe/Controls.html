@@ -898,7 +898,8 @@ async function updateScoreboard() {
     }
   } catch (_) {}
 
-  // También intentar via servidor local (escribe JSON en disco para OBS local)
+  // También intentar via servidor local (solo si NO estamos en Vercel)
+  if (window.location.origin.includes('vercel.app')) { showStatus('&#10003; Actualizado'); return; }
   const serverOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
   for (const origin of serverOrigins) {
     try {
