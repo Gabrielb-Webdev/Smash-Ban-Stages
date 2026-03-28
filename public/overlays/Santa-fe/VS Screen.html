@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <title>Ultimate VS Screen</title>
 
+    <!-- Escala el overlay para que siempre llene el viewport manteniendo la distribución 1920x1080 -->
+    <script>
+    (function() {
+      function scaleOverlay() {
+        var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        var el = document.documentElement;
+        el.style.transform = 'scale(' + s + ')';
+        el.style.transformOrigin = 'top left';
+        el.style.width = '1920px';
+        el.style.height = '1080px';
+        el.style.overflow = 'hidden';
+      }
+      scaleOverlay();
+      window.addEventListener('resize', scaleOverlay);
+    })();
+    </script>
+
     <script src="Resources/Scripts/VS Screen.js"></script>
     <script src="Resources/Scripts/gsap.min.js"></script>
 
