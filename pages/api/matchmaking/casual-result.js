@@ -170,7 +170,24 @@ export default async function handler(req, res) {
     await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
     return res.status(200).json({ success: true, matchStatus: 'active', denied: true });
   }
-
+  // ── FORFEIT casual: el jugador se rinde ──────────────────────────────────
+  if (action === 'forfeit') {
+    if (!['active', 'banning', 'pending_confirm'].includes(match.status)) {
+      return res.status(400).json({ error: 'El match no puede ser abandonado en este estado' });
+    }
+    const forfeiterId = cleanReporter;
+    const winnerId   = match.player1?.userId === forfeiterId ? match.player2?.userId : match.player1?.userId;
+    const winnerName = match.player1?.userId === winnerId ? match.player1.userName : match.player2?.userName;
+    const loserId    = forfeiterId;
+    const loserName  = match.player1?.userId === forfeiterId ? match.player1.userName : match.player2?.userName;
+    match.status = 'finished';
+    match.result = { winnerId, winnerName, loserId, loserName, stocksWon: 1, forfeit: true, decidedAt: new Date().toISOString() };
+    await redis.set(casualMatchKey(matchId), match, { ex: 3600 });
+    await saveHistory(match);
+    await cleanupUserRoom(match.player1?.userId);
+    await cleanupUserRoom(match.player2?.userId);
+    return res.status(200).json({ success: true, matchStatus: 'finished', result: match.result, forfeit: true });
+  }
   // ── PRIMER reporte ───────────────────────────────────────────────
   if (match.status !== 'active' && match.status !== 'pending_confirm') {
     return res.status(400).json({ error: 'No se puede reportar en este estado' });

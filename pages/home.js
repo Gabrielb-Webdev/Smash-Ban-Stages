@@ -5946,6 +5946,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [reportError, setReportError]     = useState(null);
   const [reportStocks, setReportStocks]   = useState(1);
   const [matchRpDelta, setMatchRpDelta]   = useState(null);
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
+  const [forfeitLoading, setForfeitLoading]         = useState(false);
 
   // Estado de búsqueda
   const [searchPlat, setSearchPlat]   = useState(null);
@@ -6084,11 +6086,35 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     finally { setReportLoading(false); }
   };
 
+  const forfeit = async () => {
+    if (!matchData?.matchId) return;
+    setForfeitLoading(true);
+    try {
+      const isCasual = matchData.type === 'casual';
+      const apiUrl = isCasual ? '/api/matchmaking/casual-result' : '/api/matchmaking/result';
+      const r = await fetch(apiUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: uid, action: 'forfeit' }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setReportError(data.error || 'Error al rendirse'); setShowForfeitConfirm(false); return; }
+      if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+      setBgMM(prev => prev ? {
+        ...prev,
+        room: { ...prev.room, status: 'finished', result: data.result },
+        status: 'finished',
+      } : prev);
+      setShowForfeitConfirm(false);
+    } catch { setReportError('Error de conexión'); }
+    finally { setForfeitLoading(false); }
+  };
+
   const resetAll = () => {
     setBgMM(null);
     setChatMessages([]); setChatInput('');
     setReported(false); setReportError(null);
     setReportStocks(1); setMatchRpDelta(null);
+    setShowForfeitConfirm(false); setForfeitLoading(false);
     setSearchPlat(null); setSearchChar(null);
     setMatchTypeMode('ranked');
     setCasualMode('1v1'); setCasualParty(null); setJoinCodeInput('');
@@ -6622,6 +6648,22 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             </div>
           </div>
         ) : null}
+
+        {/* Rendirse */}
+        {!is2v2 && matchStatus !== 'disputed' && (
+          showForfeitConfirm ? (
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>🏳️ ¿Confirmás que querés rendirte?</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganará automáticamente y perderás puntos.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowForfeitConfirm(false)} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '⏳ Procesando…' : '🏳️ Sí, rendirme'}</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🏳️ Rendirse</button>
+          )
+        )}
       </div>
     );
   }
@@ -6820,6 +6862,22 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         )}
 
         {formError && <p style={{ margin: 0, fontSize: 12, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+        {/* Rendirse en fase de baneo */}
+        {!is2v2 && (
+          showForfeitConfirm ? (
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>🏳️ ¿Confirmás que querés rendirte?</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganará el set y perderás puntos.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowForfeitConfirm(false)} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '⏳ Procesando…' : '🏳️ Sí, rendirme'}</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🏳️ Rendirse</button>
+          )
+        )}
 
         {/* Previous games summary */}
         {matchData.games?.filter(g => g.result).length > 0 && (

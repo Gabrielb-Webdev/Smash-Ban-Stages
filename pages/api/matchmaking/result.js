@@ -222,6 +222,31 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, matchStatus: 'finished', result: match.result, rpDelta: 5, afkWin: true });
   }
 
+  // ── FORFEIT: el jugador se rinde voluntariamente ──────────
+  if (resultAction === 'forfeit') {
+    if (!['active', 'banning', 'pending_confirm'].includes(match.status)) {
+      return res.status(400).json({ error: 'El match no puede ser abandonado en este estado' });
+    }
+    const forfeiterId = cleanReporter;
+    const winnerId  = match.player1.userId === forfeiterId ? match.player2.userId : match.player1.userId;
+    const winnerName = match.player1.userId === winnerId ? match.player1.userName : match.player2.userName;
+    match.status = 'finished';
+    match.result = {
+      winnerId, winnerName,
+      stocksWon: 1, forfeit: true,
+      score: match.score || {}, games: match.games || [],
+      decidedAt: new Date().toISOString(),
+    };
+    await redis.set(mmMatchKey(matchId), match);
+    const statsResult = await applyFinishedStats(match, matchId);
+    return res.status(200).json({
+      success: true, matchStatus: 'finished',
+      result: match.result,
+      rpDelta: statsResult.rpDelta,
+      forfeit: true,
+    });
+  }
+
   // ── First report → pending_confirm ─────────────────────
   if (match.status === 'pending_confirm') {
     return res.status(400).json({ error: 'Ya hay un resultado pendiente de confirmación' });
@@ -352,6 +377,7 @@ async function applyFinishedStats(match, matchId) {
     winnerAltId:  match.player1.userId === winnerId ? match.player1.charAlt : match.player2.charAlt,
     loserAltId:   match.player1.userId === loserId  ? match.player1.charAlt : match.player2.charAlt,
     stocksWon: finalStocks,
+    forfeit: !!match.result?.forfeit,
     rpDelta:      result.winner.rrDelta,
     loserRpDelta: result.loser.rrDelta,
     mmrDelta:  result.winner.mmrDelta,
