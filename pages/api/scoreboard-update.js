@@ -1,7 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import redis from '../../lib/redis';
 
 const JSON_PATH = path.join(process.cwd(), 'public', 'overlays', 'Santa-fe', 'Resources', 'Texts', 'ScoreboardInfo.json');
+const REDIS_KEY = 'santafe:scoreboard:state';
+const REDIS_TTL = 7 * 24 * 60 * 60; // 7 días
 
 const ALLOWED_COLORS = ['Red', 'Blue', 'Yellow', 'Green', 'Orange', 'Cyan', 'Pink', 'Purple', 'CPU', 'Amiibo'];
 const ALLOWED_WL = ['W', 'L', 'Nada'];
@@ -19,13 +22,23 @@ function validate(body) {
   return true;
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === 'GET') {
+    // 1) Intentar desde Redis (fuente de verdad para Vercel)
+    try {
+      const stored = await redis.get(REDIS_KEY);
+      if (stored) {
+        const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
+        res.status(200).json(parsed);
+        return;
+      }
+    } catch {}
+    // 2) Fallback: leer desde archivo local (solo funciona en local/Render)
     try {
       const data = fs.readFileSync(JSON_PATH, 'utf-8');
       res.status(200).json(JSON.parse(data));
     } catch {
-      res.status(500).json({ error: 'No se pudo leer el archivo' });
+      res.status(200).json({});
     }
     return;
   }
@@ -53,12 +66,17 @@ export default function handler(req, res) {
       if (key in body) safe[key] = body[key];
     }
 
+    // Guardar en Redis (persiste en Vercel y cualquier entorno)
+    try {
+      await redis.set(REDIS_KEY, JSON.stringify(safe), { ex: REDIS_TTL });
+    } catch {}
+
+    // También intentar escribir al archivo local (solo funciona en desarrollo/local)
     try {
       fs.writeFileSync(JSON_PATH, JSON.stringify(safe, null, 2), 'utf-8');
-      res.status(200).json({ ok: true });
-    } catch {
-      res.status(500).json({ error: 'No se pudo escribir el archivo' });
-    }
+    } catch {}
+
+    res.status(200).json({ ok: true });
     return;
   }
 

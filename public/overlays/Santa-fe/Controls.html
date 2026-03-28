@@ -884,7 +884,21 @@ async function updateScoreboard() {
     localStorage.setItem('santa-fe-scoreboard', JSON.stringify(data));
   } catch(_) {}
 
-  // Intentar también via servidor Next.js si está corriendo
+  // Intentar via API de Vercel (guarda en Redis, accesible desde OBS con URL online)
+  try {
+    const vercelApi = (window.location.origin.includes('vercel.app') || window.location.origin.includes('localhost'))
+      ? window.location.origin + '/api/scoreboard-update'
+      : null;
+    if (vercelApi) {
+      await fetch(vercelApi, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    }
+  } catch (_) {}
+
+  // También intentar via servidor local (escribe JSON en disco para OBS local)
   const serverOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
   for (const origin of serverOrigins) {
     try {
