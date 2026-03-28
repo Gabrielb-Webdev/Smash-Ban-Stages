@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout, verifySession } from '../src/utils/auth';
@@ -13,19 +13,19 @@ const STAGE_IMG = {
   'Final Destination': '/images/stages/Final%20Destination.png',
   'Small Battlefield': '/images/stages/Small%20Battlefield.png',
   'Smashville':        '/images/stages/Smashville.png',
-  'Pokémon Stadium 2': '/images/stages/Pokemon%20Stadium%202.png',
+  'Pok�mon Stadium 2': '/images/stages/Pokemon%20Stadium%202.png',
   'Town and City':     '/images/stages/Town%20and%20City.png',
   'Hollow Bastion':    '/images/stages/Hollow%20Bastion.png',
   'Kalos':             '/images/stages/Kalos.png',
 };
 
-/* â”€â”€â”€ PLATAFORMAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── PLATAFORMAS ─────────────────────────────── */
 const PLATFORMS = [
-  { id: 'parsec',  label: 'Parsec',        icon: '🖥️', from: '#7C3AED', to: '#3730A3' },
-  { id: 'switch',  label: 'Switch Online', icon: '🎮', from: '#DC2626', to: '#9F1239' },
+  { id: 'parsec',  label: 'Parsec',        icon: '???', from: '#7C3AED', to: '#3730A3' },
+  { id: 'switch',  label: 'Switch Online', icon: '??', from: '#DC2626', to: '#9F1239' },
 ];
 
-/* â”€â”€â”€ SVG HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── SVG HELPERS ─────────────────────────────── */
 function Svg({ children, size = 24, sw = 1.7 }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -49,12 +49,12 @@ const ICO = {
   users:     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />,
 };
 
-/* â”€â”€â”€ ROOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── ROOT ─────────────────────────────────────── */
 const COUNTRY_TO_CODE = {
-  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','México':'MX',
-  'Chile':'CL','Peru':'PE','Perú':'PE','Colombia':'CO','Venezuela':'VE',
+  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','M�xico':'MX',
+  'Chile':'CL','Peru':'PE','Per�':'PE','Colombia':'CO','Venezuela':'VE',
   'Uruguay':'UY','Paraguay':'PY','Bolivia':'BO','Ecuador':'EC','Costa Rica':'CR',
-  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','España':'ES',
+  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','Espa�a':'ES',
   'Japan':'JP','South Korea':'KR','France':'FR','Germany':'DE','Italy':'IT',
   'United Kingdom':'GB','UK':'GB','Australia':'AU','Portugal':'PT',
   'New Zealand':'NZ','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
@@ -74,7 +74,7 @@ function getNotifRoute(notif) {
   if (type === 'friend_accepted') return { tab: 'amigos', friendTab: 'list' };
   if (type === 'party_invite')   return { tab: 'amigos', friendTab: 'list' };
   if (type === 'broadcast' || type === 'tournament_started' || type === 'new_tournament') return { tab: 'torneos' };
-  // call_to_play or unknown → match tab, or external url if provided
+  // call_to_play or unknown ? match tab, or external url if provided
   const url = notif?.url || '';
   if (url && url.startsWith('/') && !url.startsWith('/home')) return { external: url };
   if (url && url.includes('open=torneos')) return { tab: 'torneos' };
@@ -84,33 +84,33 @@ function getNotifRoute(notif) {
 const TOUR_STEPS = [
   {
     tab: 'perfil',
-    emoji: '👤',
+    emoji: '??',
     title: 'Tu perfil',
-    desc: 'Acá ves tu rango ranked 1v1 y 2v2, tu personaje principal, historial de partidas y tus estadísticas generales. También podés cambiar tu main desde acá.',
+    desc: 'Ac� ves tu rango ranked 1v1 y 2v2, tu personaje principal, historial de partidas y tus estad�sticas generales. Tambi�n pod�s cambiar tu main desde ac�.',
   },
   {
     tab: 'match',
-    emoji: '⚔️',
-    title: 'Ranked – Buscar partida',
-    desc: 'El botón central te manda a la cola de matchmaking. Te emparejamos con jugadores de rango similar; al terminar, tu rango, RR y MMR se actualizan según el resultado y los stocks con que ganaste.',
+    emoji: '??',
+    title: 'Ranked � Buscar partida',
+    desc: 'El bot�n central te manda a la cola de matchmaking. Te emparejamos con jugadores de rango similar; al terminar, tu rango, RR y MMR se actualizan seg�n el resultado y los stocks con que ganaste.',
   },
   {
     tab: 'rankings',
-    emoji: '🏆',
+    emoji: '??',
     title: 'Rankings',
-    desc: 'El leaderboard de todos los jugadores, ordenado por rango. Los rankeados van primero (el de mayor tier y puntos arriba); los que aún están en sus 10 partidas de clasificatoria aparecen al fondo, ordenados por victorias.',
+    desc: 'El leaderboard de todos los jugadores, ordenado por rango. Los rankeados van primero (el de mayor tier y puntos arriba); los que a�n est�n en sus 10 partidas de clasificatoria aparecen al fondo, ordenados por victorias.',
   },
   {
     tab: 'torneos',
-    emoji: '📅',
+    emoji: '??',
     title: 'Torneos',
-    desc: 'Los torneos activos de la comunidad. Podés inscribirte, seguir el bracket en tiempo real y ver tus partidas pendientes sin salir de la app.',
+    desc: 'Los torneos activos de la comunidad. Pod�s inscribirte, seguir el bracket en tiempo real y ver tus partidas pendientes sin salir de la app.',
   },
   {
     tab: 'tips',
-    emoji: '💡',
+    emoji: '??',
     title: 'Tips',
-    desc: 'Consejos y guías de la comunidad para mejorar tu juego. 🎮 Daéle una mirada cuando quieras subir de rango más rápido.',
+    desc: 'Consejos y gu�as de la comunidad para mejorar tu juego. ?? Da�le una mirada cuando quieras subir de rango m�s r�pido.',
   },
 ];
 
@@ -131,7 +131,7 @@ export default function HomePage() {
   const [pushBannerState, setPushBannerState] = useState(null); // null | 'loading' | 'ok' | 'error' | 'denied'
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [showIconUpdateBanner, setShowIconUpdateBanner] = useState(false); // iOS standalone: actualizar ícono
+  const [showIconUpdateBanner, setShowIconUpdateBanner] = useState(false); // iOS standalone: actualizar �cono
   const [activeTournamentMatch, setActiveTournamentMatch] = useState(null);
 
   // Chat flotante
@@ -158,7 +158,7 @@ export default function HomePage() {
     const stored = getStoredUser();
     if (!stored) { router.replace('/login'); return; }
 
-    // Detectar sesión desactualizada: el nombre es un slug hexadecimal (ej: "ead8fa65")
+    // Detectar sesi�n desactualizada: el nombre es un slug hexadecimal (ej: "ead8fa65")
     // o coincide con el slug. En ese caso forzamos re-login para obtener datos frescos.
     const u = stored.user;
     const nameIsStale = !u?.name
@@ -171,7 +171,7 @@ export default function HomePage() {
       return;
     }
 
-    // Limpiar localStorage per-user si cambió el usuario (otra cuenta en el mismo dispositivo)
+    // Limpiar localStorage per-user si cambi� el usuario (otra cuenta en el mismo dispositivo)
     try {
       const lastUid = localStorage.getItem('afk_last_uid');
       const currentUid = String(u.id || u.slug || '');
@@ -184,7 +184,7 @@ export default function HomePage() {
     setUser(u);
     setIsAdmin(!!stored.isAdmin);
     setAdminCommunities(stored.adminCommunities || []);
-    // Refrescar adminCommunities desde el servidor (para community admins añadidos después del login)
+    // Refrescar adminCommunities desde el servidor (para community admins a�adidos despu�s del login)
     verifySession().then(data => {
       if (!data) return;
       setIsAdmin(!!data.isAdmin);
@@ -272,8 +272,8 @@ export default function HomePage() {
     return () => clearInterval(iv);
   }, [user?.id]);
 
-  // Polling de notificaciones — eliminado, ahora vienen en el heartbeat
-  // y en tiempo real vía WebSocket (new-notification)
+  // Polling de notificaciones � eliminado, ahora vienen en el heartbeat
+  // y en tiempo real v�a WebSocket (new-notification)
 
   // Registrar Service Worker y suscribirse a Web Push
   const registerPush = async (uid, userName) => {
@@ -292,11 +292,11 @@ export default function HomePage() {
       const arr = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
 
-      // Si ya hay una suscripción con otra key, desuscribir primero
+      // Si ya hay una suscripci�n con otra key, desuscribir primero
       const existingSub = await reg.pushManager.getSubscription();
       if (existingSub) {
         await existingSub.unsubscribe();
-        console.log('[PUSH] Suscripción anterior eliminada');
+        console.log('[PUSH] Suscripci�n anterior eliminada');
       }
 
       const sub = await reg.pushManager.subscribe({
@@ -329,13 +329,13 @@ export default function HomePage() {
     }
 
     // iOS en standalone: Notification.requestPermission() DEBE ser llamado desde un gesto del usuario
-    // Por eso mostramos un botón en lugar de llamarlo automáticamente
+    // Por eso mostramos un bot�n en lugar de llamarlo autom�ticamente
     if (isIOS && isStandalone) {
-      // Solo mostrar el botón si aún no tiene permiso
+      // Solo mostrar el bot�n si a�n no tiene permiso
       if (Notification.permission !== 'granted') {
         setShowIOSPushBtn(true);
       } else {
-        // Ya tiene permiso: re-registrar la suscripción silenciosamente
+        // Ya tiene permiso: re-registrar la suscripci�n silenciosamente
         const uid = String(user?.id || user?.slug || '');
         if (uid) registerPush(uid, user.name);
       }
@@ -353,7 +353,7 @@ export default function HomePage() {
       setShowPushBanner(true);
       setPushBannerState('denied');
     } else {
-      // 'default' (no preguntado aún): mostrar banner para solicitar con gesto explícito
+      // 'default' (no preguntado a�n): mostrar banner para solicitar con gesto expl�cito
       setShowPushBanner(true);
     }
   }, [user]);
@@ -497,8 +497,8 @@ export default function HomePage() {
     return () => { active = false; clearInterval(iv); };
   }, [bgMM?.polling, bgMM?.gameType, bgMM?.status, bgMM?.plat, user]);
 
-  // Detectar sala activa al cargar la app Y polling mientras está idle (cada 8s)
-  // Así detecta matches creados remotamente sin necesidad de F5
+  // Detectar sala activa al cargar la app Y polling mientras est� idle (cada 8s)
+  // As� detecta matches creados remotamente sin necesidad de F5
   useEffect(() => {
     if (!user || bgMM) return;
     const uid = String(user?.id || user?.slug || '');
@@ -552,7 +552,7 @@ export default function HomePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, !!bgMM]);
 
-  // Countdown local para la pantalla de aceptación
+  // Countdown local para la pantalla de aceptaci�n
   useEffect(() => {
     if (bgMM?.status !== 'pending_accept') return;
     setAcceptCountdown(bgMM?.timeLeft ?? 15);
@@ -560,7 +560,7 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, [bgMM?.status]);
 
-  // Deep link desde notificación push: /home?open=tab
+  // Deep link desde notificaci�n push: /home?open=tab
   useEffect(() => {
     if (!user || !router.isReady) return;
     const open = router.query.open;
@@ -693,7 +693,7 @@ export default function HomePage() {
 
       <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', background: '#0B0B12', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
 
-        {/* â”€â”€ TOP BAR â”€â”€ */}
+        {/* ── TOP BAR ── */}
         <header id="app-top-header" style={{
           position: 'sticky', top: 0, zIndex: 50,
           padding: '10px 16px',
@@ -704,7 +704,7 @@ export default function HomePage() {
           display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
           boxShadow: '0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)',
         }}>
-          {/* Left — Avatar / menú de perfil (oculto en mobile vía #app-profile-header) */}
+          {/* Left � Avatar / men� de perfil (oculto en mobile v�a #app-profile-header) */}
           <div id="app-profile-header" style={{ display: 'flex', alignItems: 'center' }}>
             <button
               onClick={() => setShowMenu(v => !v)}
@@ -719,7 +719,7 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Center — Logo */}
+          {/* Center � Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <img src="/images/logo.app.png" alt="Logo" style={{ width: 45, height: 34 }} />
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
@@ -729,7 +729,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right — Campana */}
+          {/* Right � Campana */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <button
               id="app-bell-btn"
@@ -748,27 +748,27 @@ export default function HomePage() {
         {/* Android Chrome: banner de instalar app */}
         {showInstallBanner && (
           <div style={{ background: 'linear-gradient(135deg,rgba(255,140,0,0.13),rgba(232,93,0,0.08))', border: '1px solid rgba(255,140,0,0.35)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📲</div>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>??</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00', letterSpacing: '-0.2px' }}>Instalá La app sin H</p>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>Acceso rápido desde tu pantalla de inicio, sin navegador.</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00', letterSpacing: '-0.2px' }}>Instal� La app sin H</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>Acceso r�pido desde tu pantalla de inicio, sin navegador.</p>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               <button
                 onClick={triggerInstall}
                 style={{ background: 'linear-gradient(135deg,#FF8C00,#E85D00)', border: 'none', color: '#fff', borderRadius: 9, padding: '7px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
               >Instalar</button>
-              <button onClick={dismissInstall} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px' }}>✕</button>
+              <button onClick={dismissInstall} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px' }}>?</button>
             </div>
           </div>
         )}
-        {/* iOS Standalone: botón para activar notificaciones (debe ser gesto del usuario) */}
+        {/* iOS Standalone: bot�n para activar notificaciones (debe ser gesto del usuario) */}
         {showIOSPushBtn && (
           <div style={{ background: 'rgba(124,58,237,0.10)', border: '1px solid rgba(124,58,237,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🔔</div>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>??</div>
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#A78BFA' }}>Activar notificaciones</p>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Recibí alertas cuando te llamen a jugar</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Recib� alertas cuando te llamen a jugar</p>
             </div>
             <button
               onClick={async () => {
@@ -786,24 +786,24 @@ export default function HomePage() {
                 opacity: iosPushState === 'loading' ? 0.6 : 1,
               }}
             >
-              {iosPushState === 'loading' ? '...' : iosPushState === 'error' ? '❌ Error' : 'Activar'}
+              {iosPushState === 'loading' ? '...' : iosPushState === 'error' ? '? Error' : 'Activar'}
             </button>
-            <button onClick={() => setShowIOSPushBtn(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+            <button onClick={() => setShowIOSPushBtn(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>?</button>
           </div>
         )}
 
         {/* Android/Desktop: activar notificaciones push */}
         {showPushBanner && (
           <div style={{ background: pushBannerState === 'denied' ? 'rgba(239,68,68,0.08)' : 'rgba(124,58,237,0.10)', border: `1px solid ${pushBannerState === 'denied' ? 'rgba(239,68,68,0.25)' : 'rgba(124,58,237,0.28)'}`, margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: pushBannerState === 'denied' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#7C3AED,#5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🔔</div>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: pushBannerState === 'denied' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#7C3AED,#5B21B6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>??</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: pushBannerState === 'denied' ? '#F87171' : '#A78BFA' }}>
                 {pushBannerState === 'denied' ? 'Notificaciones bloqueadas' : 'Activar notificaciones'}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {pushBannerState === 'denied'
-                  ? 'Habilitalo en los ajustes del sitio (🔒 en la barra de URL)'
-                  : 'Recibí alertas cuando te llamen a jugar'}
+                  ? 'Habilitalo en los ajustes del sitio (?? en la barra de URL)'
+                  : 'Recib� alertas cuando te llamen a jugar'}
               </p>
             </div>
             {pushBannerState !== 'denied' && (
@@ -826,10 +826,10 @@ export default function HomePage() {
                   opacity: pushBannerState === 'loading' ? 0.6 : 1,
                 }}
               >
-                {pushBannerState === 'loading' ? '...' : pushBannerState === 'error' ? '❌ Reintentar' : 'Activar'}
+                {pushBannerState === 'loading' ? '...' : pushBannerState === 'error' ? '? Reintentar' : 'Activar'}
               </button>
             )}
-            <button onClick={() => setShowPushBanner(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+            <button onClick={() => setShowPushBanner(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>?</button>
           </div>
         )}
 
@@ -847,18 +847,18 @@ export default function HomePage() {
             }}
             style={{ background: activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.10)', border: `1px solid ${activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`, margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
             <div style={{ width: 42, height: 42, borderRadius: 12, background: activeTournamentMatch.phase === 'CHECKIN' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#22C55E,#16A34A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-              {activeTournamentMatch.phase === 'CHECKIN' ? '🔔' : '⚔️'}
+              {activeTournamentMatch.phase === 'CHECKIN' ? '??' : '??'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: activeTournamentMatch.phase === 'CHECKIN' ? '#F87171' : '#4ADE80' }}>
-                {activeTournamentMatch.phase === 'CHECKIN' ? '¡Hacé check-in en tu match!' : '¡Tenés un match activo!'}
+                {activeTournamentMatch.phase === 'CHECKIN' ? '�Hac� check-in en tu match!' : '�Ten�s un match activo!'}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeTournamentMatch.player1} vs {activeTournamentMatch.player2}
               </p>
               {activeTournamentMatch.sessionId && (() => {
                 const sid = activeTournamentMatch.sessionId;
-                const label = sid.includes('stream') ? '📡 Stream' : (() => { const m = sid.match(/-(\d+)-/); return m ? `🎮 Setup ${m[1]}` : null; })();
+                const label = sid.includes('stream') ? '?? Stream' : (() => { const m = sid.match(/-(\d+)-/); return m ? `?? Setup ${m[1]}` : null; })();
                 return label ? <p style={{ margin: '3px 0 0', fontSize: 11, color: activeTournamentMatch.phase === 'CHECKIN' ? '#FCA5A5' : '#86EFAC', fontWeight: 800, letterSpacing: '0.02em' }}>{label}</p> : null;
               })()}
               {activeTournamentMatch.phase === 'CHECKIN' && (
@@ -867,7 +867,7 @@ export default function HomePage() {
                 </p>
               )}
             </div>
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>❯</span>
+            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>?</span>
           </div>
         )}
 
@@ -875,18 +875,18 @@ export default function HomePage() {
         {showIOSTip && (
           <div style={{ background: 'rgba(232,142,0,0.10)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📲</div>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>??</div>
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00' }}>Instalá La app sin H en iPhone</p>
-                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Seguí estos 3 pasos rápidos</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00' }}>Instal� La app sin H en iPhone</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Segu� estos 3 pasos r�pidos</p>
               </div>
-              <button onClick={() => setShowIOSTip(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>✕</button>
+              <button onClick={() => setShowIOSTip(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>?</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
-                { icon: '⎋', label: 'Tocá el botón', desc: 'Compartir (cuadrado con flecha)' },
-                { icon: '＋', label: 'Elegí', desc: '"Agregar a pantalla de inicio"' },
-                { icon: '✓', label: 'Confirmá', desc: 'Tocá "Agregar" arriba a la derecha' },
+                { icon: '?', label: 'Toc� el bot�n', desc: 'Compartir (cuadrado con flecha)' },
+                { icon: '+', label: 'Eleg�', desc: '"Agregar a pantalla de inicio"' },
+                { icon: '?', label: 'Confirm�', desc: 'Toc� "Agregar" arriba a la derecha' },
               ].map((s, i) => (
                 <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 11, padding: '8px 7px', textAlign: 'center' }}>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,140,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, margin: '0 auto 5px' }}>{s.icon}</div>
@@ -898,14 +898,14 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* iOS Standalone: actualizar ícono de la app */}
+        {/* iOS Standalone: actualizar �cono de la app */}
         {showIconUpdateBanner && (
           <div style={{ background: 'rgba(232,142,0,0.10)', border: '1px solid rgba(232,142,0,0.28)', margin: '10px 12px 0', borderRadius: 16, padding: '12px 14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <img src="/images/logo.app.png" alt="Nuevo ícono" style={{ width: 40, height: 40, borderRadius: 11, background: '#000', flexShrink: 0 }} />
+              <img src="/images/logo.app.png" alt="Nuevo �cono" style={{ width: 40, height: 40, borderRadius: 11, background: '#000', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00' }}>¡Nuevo ícono disponible!</p>
-                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>Para actualizar el ícono en tu pantalla de inicio, borrá la app y volvé a agregarla desde Safari.</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#FF8C00' }}>�Nuevo �cono disponible!</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>Para actualizar el �cono en tu pantalla de inicio, borr� la app y volv� a agregarla desde Safari.</p>
               </div>
               <button
                 onClick={() => {
@@ -918,13 +918,13 @@ export default function HomePage() {
                   }).catch(() => {});
                 }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.28)', fontSize: 20, cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}
-              >✕</button>
+              >?</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
-                { icon: '🗑️', label: 'Borrá la app', desc: 'Mantené presionado el ícono y eliminá' },
-                { icon: '🌐', label: 'Abrí Safari', desc: 'Entrá a la app desde el navegador' },
-                { icon: '＋', label: 'Agregá de nuevo', desc: 'Compartir → "Agregar a pantalla de inicio"' },
+                { icon: '???', label: 'Borr� la app', desc: 'Manten� presionado el �cono y elimin�' },
+                { icon: '??', label: 'Abr� Safari', desc: 'Entr� a la app desde el navegador' },
+                { icon: '+', label: 'Agreg� de nuevo', desc: 'Compartir ? "Agregar a pantalla de inicio"' },
               ].map((s, i) => (
                 <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 11, padding: '8px 7px', textAlign: 'center' }}>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,140,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, margin: '0 auto 5px' }}>{s.icon}</div>
@@ -936,7 +936,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* â”€â”€ PROFILE MENU OVERLAY â”€â”€ */}
+        {/* ── PROFILE MENU OVERLAY ── */}
         {showMenu && (
           <>
             <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }} />
@@ -966,7 +966,7 @@ export default function HomePage() {
                   {user.slug && <p style={{ margin: '3px 0 6px', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>@{user.slug}</p>}
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 99, padding: '2px 9px' }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E' }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E' }}>En línea</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E' }}>En l�nea</span>
                   </div>
                 </div>
               </div>
@@ -983,7 +983,7 @@ export default function HomePage() {
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,142,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🎛️</div>
+                      <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(232,142,0,0.14)', border: '1px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>???</div>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#FF8C00' }}>{item.label}</p>
                         <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(232,142,0,0.45)' }}>{item.sub}</p>
@@ -1001,7 +1001,7 @@ export default function HomePage() {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>👥</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>??</div>
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Amigos</p>
                     <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(99,102,241,0.45)' }}>Ver y agregar amigos</p>
@@ -1017,9 +1017,9 @@ export default function HomePage() {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.09)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🚪</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>??</div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#EF4444' }}>Cerrar sesión</p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#EF4444' }}>Cerrar sesi�n</p>
                     <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(239,68,68,0.45)' }}>Salir de la cuenta</p>
                   </div>
                 </button>
@@ -1028,7 +1028,7 @@ export default function HomePage() {
           </>
         )}
 
-        {/* â”€â”€ NOTIFICATION DRAWER â”€â”€ */}
+        {/* ── NOTIFICATION DRAWER ── */}
         {showNotifs && (
           <>
             <div onClick={() => setShowNotifs(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
@@ -1047,7 +1047,7 @@ export default function HomePage() {
               flexDirection: 'column',
               overflow: 'hidden',
             }}>
-              {/* ── Sticky header: handle + título (no hace scroll) ── */}
+              {/* -- Sticky header: handle + t�tulo (no hace scroll) -- */}
               <div style={{ flexShrink: 0, padding: '20px 18px 0', background: '#0F0F18' }}>
                 {/* Handle */}
                 <div onClick={() => setShowNotifs(false)} onTouchStart={e => { e.currentTarget.dataset.ty = e.touches[0].clientY; }} onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.ty||0) > 30) setShowNotifs(false); }} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 -18px 12px', padding: '4px 0 12px', cursor: 'pointer', userSelect: 'none' }}>
@@ -1057,18 +1057,18 @@ export default function HomePage() {
                   <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Notificaciones</h2>
                   {unreadCount > 0 && (
                     <button onClick={dismissAllNotifs} style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8' }}>Marcar todas como leídas</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#818CF8' }}>Marcar todas como le�das</span>
                     </button>
                   )}
                 </div>
               </div>
-              {/* ── Área scrolleable ── */}
+              {/* -- �rea scrolleable -- */}
               <div style={{ overflowY: 'auto', flex: 1, padding: '4px 18px 48px' }}>
               {notifs.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <div style={{ fontSize: 40 }}>🔔</div>
+                  <div style={{ fontSize: 40 }}>??</div>
                   <p style={{ margin: '12px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin notificaciones</p>
-                  <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Te avisamos acá cuando sea tu turno</p>
+                  <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Te avisamos ac� cuando sea tu turno</p>
                 </div>
               ) : (
                 notifs.map(n => (
@@ -1099,8 +1099,8 @@ export default function HomePage() {
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
                   {bgMM.status === 'searching'       ? 'Buscando partida...'     :
-                   bgMM.status === 'waiting'          ? 'Esperando confirmación'  :
-                   bgMM.status === 'active'           ? '¡Partida en juego!'      :
+                   bgMM.status === 'waiting'          ? 'Esperando confirmaci�n'  :
+                   bgMM.status === 'active'           ? '�Partida en juego!'      :
                    bgMM.status === 'pending_confirm' ? 'Confirm\u00e1 el resultado' :
                                                       'Resultado en disputa'}
                 </span>
@@ -1116,7 +1116,7 @@ export default function HomePage() {
           {tab === 'perfil'   && <TabPerfil user={user} />}
         </main>
 
-        {/* â”€â”€ BOTTOM NAV â”€â”€ */}
+        {/* ── BOTTOM NAV ── */}
 
         {/* CHAT FLOTANTE */}
         {chatInbox.length > 0 && tab !== 'amigos' && (
@@ -1134,7 +1134,7 @@ export default function HomePage() {
                 transform: chatBubbleOpen ? 'scale(0.9)' : 'scale(1)',
               }}
             >
-              <span style={{ fontSize: 22 }}>💬</span>
+              <span style={{ fontSize: 22 }}>??</span>
               {chatInbox.some(c => c.lastMessage && c.lastMessage.from !== uid && c.lastMessage.sentAt && new Date(c.lastMessage.sentAt).getTime() > chatLastOpened) && (
                 <span style={{
                   position: 'absolute', top: -2, right: -2,
@@ -1155,8 +1155,8 @@ export default function HomePage() {
                   boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
                 }}>
                   <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 900, fontSize: 15, color: '#fff' }}>💬 Chats</span>
-                    <button onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }} style={{ background: 'none', border: 'none', color: '#6366F1', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos →</button>
+                    <span style={{ fontWeight: 900, fontSize: 15, color: '#fff' }}>?? Chats</span>
+                    <button onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }} style={{ background: 'none', border: 'none', color: '#6366F1', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos ?</button>
                   </div>
                   <div style={{ maxHeight: 320, overflowY: 'auto' }}>
                     {chatInbox.map(c => {
@@ -1221,7 +1221,7 @@ export default function HomePage() {
               <button
                 onClick={() => { setMiniChat(null); setMiniChatMsgs([]); setMiniChatInput(''); }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 4, flexShrink: 0 }}
-              >✕</button>
+              >?</button>
             </div>
             {/* Mensajes */}
             <div ref={miniChatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1241,7 +1241,7 @@ export default function HomePage() {
                 );
               })}
               {miniChatMsgs.length === 0 && (
-                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 12, marginTop: 20 }}>No hay mensajes aún</p>
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 12, marginTop: 20 }}>No hay mensajes a�n</p>
               )}
             </div>
             {/* Input */}
@@ -1250,7 +1250,7 @@ export default function HomePage() {
                 value={miniChatInput}
                 onChange={e => setMiniChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMiniMsg()}
-                placeholder="Escribí un mensaje..."
+                placeholder="Escrib� un mensaje..."
                 style={{
                   flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: 12, padding: '9px 13px', color: '#fff', fontSize: 13,
@@ -1264,14 +1264,14 @@ export default function HomePage() {
                   borderRadius: 12, width: 42, height: 42, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0,
                 }}
-              >➤</button>
+              >?</button>
             </div>
           </div>
         )}
 
         <BottomNav tab={tab} setTab={setTab} bgMMStatus={bgMM?.status} />
 
-        {/* ══ POPUP match encontrado ══ */}
+        {/* -- POPUP match encontrado -- */}
         {bgMM && bgMM.status === 'pending_accept' && bgMM.room && (() => {
           const is2v2    = bgMM.room.mode === '2v2';
           const myRole   = uid === bgMM.room.host?.userId ? 'host' : 'guest';
@@ -1298,9 +1298,9 @@ export default function HomePage() {
                 animation: 'fadeUp 0.22s ease',
               }}>
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <div style={{ fontSize: 46, marginBottom: 10 }}>⚡</div>
-                  <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{is2v2 ? '2v2 · ' : ''}{pData?.label ?? bgMM.plat}</p>
+                  <div style={{ fontSize: 46, marginBottom: 10 }}>?</div>
+                  <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>�Partida encontrada!</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{is2v2 ? '2v2 � ' : ''}{pData?.label ?? bgMM.plat}</p>
                 </div>
                 <div style={{
                   background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
@@ -1314,7 +1314,7 @@ export default function HomePage() {
                       ))}
                     </div>
                   ) : (
-                    <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
+                    <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '�'}</p>
                   )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
@@ -1353,7 +1353,7 @@ export default function HomePage() {
                         color: iDidAccept ? '#22C55E' : '#fff', fontWeight: 900, fontSize: 15,
                         cursor: iDidAccept ? 'default' : 'pointer',
                         boxShadow: iDidAccept ? 'none' : '0 6px 20px rgba(34,197,94,0.35)',
-                      }}>{iDidAccept ? '✅ Aceptado — Esperando rival…' : '✅ Aceptar'}</button>
+                      }}>{iDidAccept ? '? Aceptado � Esperando rival�' : '? Aceptar'}</button>
                     </div>
                   );
                 })()}
@@ -1363,7 +1363,7 @@ export default function HomePage() {
         })()}
       </div>
 
-      {/* ══ TOUR DE BIENVENIDA ══ */}
+      {/* -- TOUR DE BIENVENIDA -- */}
       {showTour && (() => {
         const step = TOUR_STEPS[tourStep];
         const isLast = tourStep >= TOUR_STEPS.length - 1;
@@ -1371,7 +1371,7 @@ export default function HomePage() {
         const nextTour = () => isLast ? finishTour() : setTourStep(s => s + 1);
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }}>
-            {/* Backdrop semitransparente — no bloquea interacción con la app */}
+            {/* Backdrop semitransparente � no bloquea interacci�n con la app */}
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.60)', backdropFilter: 'blur(2px)' }} onClick={finishTour} />
             {/* Tarjeta del tour */}
             <div style={{
@@ -1412,7 +1412,7 @@ export default function HomePage() {
                   padding: '10px 26px', borderRadius: 12, cursor: 'pointer',
                   boxShadow: '0 4px 14px rgba(255,140,0,0.35)',
                 }}>
-                  {isLast ? '¡Entendido! 🎮' : 'Siguiente →'}
+                  {isLast ? '�Entendido! ??' : 'Siguiente ?'}
                 </button>
               </div>
             </div>
@@ -1423,7 +1423,7 @@ export default function HomePage() {
   );
 }
 
-/* â”€â”€â”€ BOTTOM NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── BOTTOM NAV ────────────────────────────────── */
 function BottomNav({ tab, setTab, bgMMStatus }) {
   const leftItems = [
     { id: 'rankings', label: 'Rankings', icon: ICO.trophy   },
@@ -1469,7 +1469,7 @@ function BottomNav({ tab, setTab, bgMMStatus }) {
         );
       })}
 
-      {/* MATCH — botón central elevado */}
+      {/* MATCH � bot�n central elevado */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', height: '100%' }}>
         <button
           onClick={() => setTab('match')}
@@ -1526,7 +1526,7 @@ function BottomNav({ tab, setTab, bgMMStatus }) {
   );
 }
 
-/* â”€â”€â”€ SECTION HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── SECTION HEADER ────────────────────────────── */
 function SectionTitle({ children, action, onAction }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1539,7 +1539,7 @@ function SectionTitle({ children, action, onAction }) {
   );
 }
 
-/* â”€â”€â”€ STAT CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── STAT CARD ─────────────────────────────────── */
 function StatCard({ icon, label, value, sub, accent }) {
   return (
     <div style={{
@@ -1559,7 +1559,7 @@ function StatCard({ icon, label, value, sub, accent }) {
   );
 }
 
-/* â”€â”€â”€ TAG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── TAG ────────────────────────────────────────── */
 function Tag({ children, color = '#FF8C00' }) {
   return (
     <span style={{
@@ -1572,12 +1572,12 @@ function Tag({ children, color = '#FF8C00' }) {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════
    COMPONENTES DE RANKED
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════════════════ */
 function RankBadge({ rankName }) {
   const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-  const icon    = TIER_ICONS[rankObj.tier] || '🎮';
+  const icon    = TIER_ICONS[rankObj.tier] || '??';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1660,7 +1660,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
         {inPlacement && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: tc ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)' }}>
-              {wins}W · {losses}L
+              {wins}W � {losses}L
             </p>
             {total > 0 && (
               <div style={{ background: winPct >= 60 ? 'rgba(52,211,153,0.15)' : winPct >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winPct >= 60 ? 'rgba(52,211,153,0.3)' : winPct >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '2px 7px' }}>
@@ -1676,7 +1676,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
         <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: charSrc ? 4 : 14 }}>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 800 }}>
             <span style={{ color: '#22C55E' }}>{wins}W</span>
-            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>·</span>
+            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>�</span>
             <span style={{ color: '#EF4444' }}>{losses}L</span>
           </p>
         </div>
@@ -1702,9 +1702,9 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TAB — INICIO
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   TAB � INICIO
+═══════════════════════════════════════════════════ */
 function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
   const [torneos,     setTorneos]     = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -1719,16 +1719,16 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
   const featuredTorneo = torneos[0] || null;
 
   const QUICK = [
-    { icon: '⚡', label: 'Match',    action: () => setTab('match')    },
-    { icon: '🏆', label: 'Torneos',  action: () => setTab('torneos')  },
-    { icon: '📊', label: 'Rankings', action: () => setTab('rankings') },
-    { icon: '💡', label: 'Tips',     action: () => setTab('tips')     },
+    { icon: '?', label: 'Match',    action: () => setTab('match')    },
+    { icon: '??', label: 'Torneos',  action: () => setTab('torneos')  },
+    { icon: '??', label: 'Rankings', action: () => setTab('rankings') },
+    { icon: '??', label: 'Tips',     action: () => setTab('tips')     },
   ];
 
   return (
     <div style={{ paddingBottom: 28 }}>
 
-      {/* â”€â”€ Greeting row â”€â”€ */}
+      {/* ── Greeting row ── */}
       <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <div style={{ position: 'relative' }}>
@@ -1744,11 +1744,11 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
           </div>
         </div>
         <button onClick={() => router.push('/profile')} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 99, padding: '7px 16px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>
-          Ver perfil →
+          Ver perfil ?
         </button>
       </div>
 
-      {/* â”€â”€ Featured Banner â”€â”€ */}
+      {/* ── Featured Banner ── */}
       <div style={{ padding: '0 16px', marginBottom: 18 }}>
         <div style={{
           position: 'relative', overflow: 'hidden', borderRadius: 28,
@@ -1774,7 +1774,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.5)', borderRadius: 99, padding: '4px 13px', marginBottom: 13 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#A78BFA', boxShadow: '0 0 6px #A78BFA' }} />
                 <span style={{ fontSize: 10, fontWeight: 800, color: '#C4B5FD', letterSpacing: '0.08em' }}>
-                  {featuredTorneo ? 'PRÓXIMO TORNEO' : 'TEMPORADA ACTIVA'}
+                  {featuredTorneo ? 'PR�XIMO TORNEO' : 'TEMPORADA ACTIVA'}
                 </span>
               </div>
               <p style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.1, textShadow: '0 0 24px rgba(167,139,250,0.55)' }}>
@@ -1783,7 +1783,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
               <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
                 {featuredTorneo
                   ? (featuredTorneo.startAt ? new Date(featuredTorneo.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Fecha por confirmar')
-                  : 'Ranked · Buenos Aires · Smash Ultimate'}
+                  : 'Ranked � Buenos Aires � Smash Ultimate'}
               </p>
               <button onClick={() => setTab(featuredTorneo ? 'torneos' : 'match')} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -1791,14 +1791,14 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
                 borderRadius: 99, padding: '9px 20px', color: '#C4B5FD',
                 fontWeight: 800, fontSize: 12, cursor: 'pointer',
               }}>
-                {featuredTorneo ? 'Ver torneo' : 'Jugar ahora'} <span>→</span>
+                {featuredTorneo ? 'Ver torneo' : 'Jugar ahora'} <span>?</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* â”€â”€ Quick access pills â”€â”€ */}
+      {/* ── Quick access pills ── */}
       <div style={{ padding: '0 16px', marginBottom: 22, display: 'flex', gap: 8 }}>
         {QUICK.map(q => (
           <button key={q.label} onClick={q.action} style={{
@@ -1818,7 +1818,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 
       <div style={{ padding: '0 16px' }}>
 
-        {/* â”€â”€ Quick Match CTA â”€â”€ */}
+        {/* ── Quick Match CTA ── */}
         <button onClick={() => setTab('match')} className="btn-gamer" style={{
           width: '100%', marginBottom: isAdmin ? 12 : 22, padding: '20px 22px',
           background: 'linear-gradient(135deg,#c92020 0%,#7a0808 100%)',
@@ -1829,15 +1829,15 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
         }}>
           <div style={{ position: 'absolute', right: -28, top: -28, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
           <div>
-            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>⚡ Buscar Partida</p>
-            <p style={{ margin: '5px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Jugá ranked ahora mismo</p>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>? Buscar Partida</p>
+            <p style={{ margin: '5px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Jug� ranked ahora mismo</p>
           </div>
           <div style={{ width: 46, height: 46, borderRadius: 99, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Svg size={20} sw={2.5}>{ICO.chevron}</Svg>
           </div>
         </button>
 
-        {/* â”€â”€ Admin button â”€â”€ */}
+        {/* ── Admin button ── */}
         {isAdmin && (
           <button onClick={() => router.push('/')} style={{
             width: '100%', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 14,
@@ -1845,24 +1845,24 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
             border: '1px solid rgba(232,142,0,0.2)', borderRadius: 24, padding: '15px 18px',
             cursor: 'pointer', textAlign: 'left',
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: 15, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 14px rgba(232,142,0,0.4)', flexShrink: 0 }}>🎛️</div>
+            <div style={{ width: 44, height: 44, borderRadius: 15, background: 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 14px rgba(232,142,0,0.4)', flexShrink: 0 }}>???</div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontWeight: 800, color: '#FF8C00', fontSize: 14 }}>Panel de Administración</p>
+              <p style={{ margin: 0, fontWeight: 800, color: '#FF8C00', fontSize: 14 }}>Panel de Administraci�n</p>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Gestionar torneos y setups</p>
             </div>
             <Svg size={16} sw={2}>{ICO.chevron}</Svg>
           </button>
         )}
 
-        {/* â”€â”€ Comunidades â”€â”€ */}
+        {/* ── Comunidades ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#38BDF8,#7C3AED)', flexShrink: 0 }} />
           <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Comunidades</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            { name: 'Smash AFK', region: 'Buenos Aires', tag: 'LOCAL', tagColor: '#38BDF8', desc: 'Torneos semanales, ranking local y espacio de práctica competitiva.', icon: '🗺️', from: 'rgba(12,74,110,0.55)', to: 'rgba(2,12,40,0.92)', glow: 'rgba(56,189,248,0.14)' },
-            { name: 'Smash INC', region: 'Nacional · Argentina', tag: 'NACIONAL', tagColor: '#FB923C', desc: 'Circuito nacional con ranking y torneos interregionales.', icon: '🏅', from: 'rgba(67,20,7,0.55)', to: 'rgba(28,10,0,0.92)', glow: 'rgba(251,146,60,0.12)' },
+            { name: 'Smash AFK', region: 'Buenos Aires', tag: 'LOCAL', tagColor: '#38BDF8', desc: 'Torneos semanales, ranking local y espacio de pr�ctica competitiva.', icon: '???', from: 'rgba(12,74,110,0.55)', to: 'rgba(2,12,40,0.92)', glow: 'rgba(56,189,248,0.14)' },
+            { name: 'Smash INC', region: 'Nacional � Argentina', tag: 'NACIONAL', tagColor: '#FB923C', desc: 'Circuito nacional con ranking y torneos interregionales.', icon: '??', from: 'rgba(67,20,7,0.55)', to: 'rgba(28,10,0,0.92)', glow: 'rgba(251,146,60,0.12)' },
           ].map(c => (
             <div key={c.name} style={{
               background: `linear-gradient(135deg,${c.from},${c.to})`,
@@ -1918,7 +1918,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
       {playerName && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textAlign: 'center', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerName}</span>}
       <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {src ? <img src={src} alt="" style={{ width: 58, height: 58, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <span style={{ fontSize: 28 }}>{is2v2 ? '👥' : '⚔️'}</span>}
+        {src ? <img src={src} alt="" style={{ width: 58, height: 58, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <span style={{ fontSize: 28 }}>{is2v2 ? '??' : '??'}</span>}
       </div>
       {charName && <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charName}</span>}
     </div>
@@ -1934,7 +1934,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Resumen de partida</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>?</button>
         </div>
         {/* Scrollable content */}
         <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '14px 16px 24px' }}>
@@ -1944,7 +1944,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
               <CharSlot src={myCharSrc} playerName={myName} charName={myCharObj?.name} />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flexShrink: 0, paddingTop: 20 }}>
-                {myScore != null && <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: 2, lineHeight: 1 }}>{myScore}–{oppScore ?? 0}</p>}
+                {myScore != null && <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: 2, lineHeight: 1 }}>{myScore}�{oppScore ?? 0}</p>}
                 <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
                 {rpDelta != null && <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444', padding: '1px 6px', borderRadius: 8, background: rpDelta >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>}
                 {isMyPlacement && <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24', padding: '1px 6px', borderRadius: 8, background: 'rgba(251,191,36,0.12)' }}>Posicionamiento</span>}
@@ -1953,7 +1953,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
               <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} />
             </div>
           </div>
-          <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}{isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : isTournament ? (' · ' + (m.communityLabel || m.community || 'Torneo')) : ' · Ranked'}{m.round ? ` · ${m.round}` : ''}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} � {timeAgo(m.playedAt)}{isCasual ? ' � Normal' : is2v2 ? ' � 2v2' : isTournament ? (' � ' + (m.communityLabel || m.community || 'Torneo')) : ' � Ranked'}{m.round ? ` � ${m.round}` : ''}</p>
           {/* Juegos */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
@@ -1974,9 +1974,9 @@ function MatchDetail({ match: m, viewingId, onClose }) {
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Juego {g.result.gameNum || gi + 1}</p>
                         <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff' }}>{gStage || 'Escenario desconocido'}</p>
-                        {gStocks != null && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{gWon ? `Ganaste · ${gStocks} stock${gStocks !== 1 ? 's' : ''}` : `Perdiste · ${gStocks} stock${gStocks !== 1 ? 's' : ''}`}</p>}
+                        {gStocks != null && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{gWon ? `Ganaste � ${gStocks} stock${gStocks !== 1 ? 's' : ''}` : `Perdiste � ${gStocks} stock${gStocks !== 1 ? 's' : ''}`}</p>}
                       </div>
-                      <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: gWon ? '#22C55E' : '#EF4444', flexShrink: 0 }}>{gWon ? '✓' : '✗'}</p>
+                      <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: gWon ? '#22C55E' : '#EF4444', flexShrink: 0 }}>{gWon ? '?' : '?'}</p>
                     </div>
                   </div>
                 );
@@ -1984,7 +1984,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
             </div>
           ) : (
             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '24px 16px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>{isCasual ? 'Las partidas normales son BO1 — sin detalle por juego' : 'Sin detalle de juegos disponible para esta partida'}</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>{isCasual ? 'Las partidas normales son BO1 � sin detalle por juego' : 'Sin detalle de juegos disponible para esta partida'}</p>
             </div>
           )}
         </div>
@@ -1993,8 +1993,8 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   );
 }
 
-// ── Helpers de historial (compartidos entre tabs) ─────────────────────────────
-const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
+// -- Helpers de historial (compartidos entre tabs) -----------------------------
+const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'C�rdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
 const HIST_COMM_SHORT  = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
 const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '/images/SCC.webp', 'mendoza': '/images/Team_Anexo/team_anexo_logo_nwe.png', 'afk-multi': '/images/AFK.webp', 'afk': '/images/AFK.webp', 'warui': '/images/warui/logo.png', 'inc': '/images/inc.png' };
 function buildHistFilterTabs(hist) {
@@ -2022,8 +2022,8 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
   const [showAllModal, setShowAllModal] = useState(false);
   if (!hist || hist.length === 0) return (
     <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-      <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
-      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+      <p style={{ fontSize: 32, margin: '0 0 8px' }}>??</p>
+      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas a�n</p>
     </div>
   );
   const tabs = buildHistFilterTabs(hist);
@@ -2093,11 +2093,11 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                           <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
                         )}
                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
-                          <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                          <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
                             {charSrc ? (
-                              <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                              <img src={charSrc} alt="" style={{ width: 50, height: 50, objectFit: 'contain' }} onError={e => { e.target.src = '/images/characters/placeholder.png'; }} />
                             ) : (
-                              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                              <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 24 : 20 }}>{is2v2 ? '??' : '??'}</div>
                             )}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                               {isCasual ? (
@@ -2118,10 +2118,10 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                               )}
                             </div>
                           </div>
-                          <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                          <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                             <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                              {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                              {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} � {timeAgo(m.playedAt)}
                             </p>
                             {isTournament ? (
                               m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
@@ -2136,7 +2136,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                           <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                             {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                             <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                            {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                            {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}�{oppScore ?? 0}</p>}
                           </div>
                         </div>
                       </div>
@@ -2148,7 +2148,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
           })}
           {filtered.length > 5 && (
             <button onClick={() => setShowAllModal(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
-              Ver todo ({filtered.length}) →
+              Ver todo ({filtered.length}) ?
             </button>
           )}
         </div>
@@ -2162,7 +2162,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Historial completo ({filtered.length})</p>
-              <button onClick={() => setShowAllModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>✕</button>
+              <button onClick={() => setShowAllModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>?</button>
             </div>
             <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '10px 16px 24px' }}>
               {allGroups.map(({ dateStr, matches: gm }, gi) => {
@@ -2214,11 +2214,11 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                               <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
                             )}
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
-                              <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                              <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
                                 {charSrc ? (
-                                  <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                                  <img src={charSrc} alt="" style={{ width: 50, height: 50, objectFit: 'contain' }} onError={e => { e.target.src = '/images/characters/placeholder.png'; }} />
                                 ) : (
-                                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                                  <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 24 : 20 }}>{is2v2 ? '??' : '??'}</div>
                                 )}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                                   {isCasual ? (
@@ -2239,10 +2239,10 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                   )}
                                 </div>
                               </div>
-                              <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                              <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                                 <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                  {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                                  {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} � {timeAgo(m.playedAt)}
                                 </p>
                                 {isTournament ? (
                                   m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
@@ -2257,7 +2257,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                               <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                                 {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                                 <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}�{oppScore ?? 0}</p>}
                               </div>
                             </div>
                           </div>
@@ -2332,21 +2332,21 @@ function TabAmigos({ user }) {
   // Registrar presencia WS y callbacks de tiempo real una vez que tengamos amigos + userId
   useEffect(() => {
     if (!uid) return;
-    // Callback: cuando un amigo cambia de estado → actualizar campo 'online' (que usa la UI)
+    // Callback: cuando un amigo cambia de estado ? actualizar campo 'online' (que usa la UI)
     setPresenceCallback(({ userId, status }) => {
       setFriends(prev => prev.map(f =>
         String(f.userId) === String(userId) ? { ...f, online: status } : f
       ));
     });
-    // Callback: notificación en tiempo real
+    // Callback: notificaci�n en tiempo real
     setNotificationCallback((notif) => {
       setNotifs(prev => {
         const exists = prev.some(n => n.id === notif.id);
         return exists ? prev : [notif, ...prev].slice(0, 20);
       });
     });
-    // Callback: socket reconectó → re-sincronizar estados de amigos desde la API
-    // (cubre eventos perdidos durante la desconexión)
+    // Callback: socket reconect� ? re-sincronizar estados de amigos desde la API
+    // (cubre eventos perdidos durante la desconexi�n)
     setReconnectCallback(() => {
       fetch('/api/friends?userId=' + encodeURIComponent(uid))
         .then(r => r.ok ? r.json() : null)
@@ -2362,7 +2362,7 @@ function TabAmigos({ user }) {
     registerPresence(uid, friendIds);
   }, [uid, friends.length]);
 
-  // Polling de estados de amigos cada 30s — fallback para cambios que no emiten evento WS
+  // Polling de estados de amigos cada 30s � fallback para cambios que no emiten evento WS
   // (away/dnd via heartbeat, in_match, searching via cola)
   useEffect(() => {
     if (!uid || friends.length === 0) return;
@@ -2373,7 +2373,7 @@ function TabAmigos({ user }) {
         .catch(() => {});
     }, 30000);
     return () => clearInterval(iv);
-  // Solo reiniciar si uid cambia o si la lista pasa de vacía a con amigos
+  // Solo reiniciar si uid cambia o si la lista pasa de vac�a a con amigos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, friends.length > 0]);
 
@@ -2500,23 +2500,23 @@ function TabAmigos({ user }) {
         </div>
       </div>
       <button onClick={() => { setChatOpen({ userId: f.userId, userName: f.userName }); setChatMessages([]); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.12)', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span>💬</span><span style={{ fontSize: 10 }}>Chat</span>
+        <span>??</span><span style={{ fontSize: 10 }}>Chat</span>
       </button>
-      <button onClick={() => removeFriend(f.userId)} style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.06)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>✕</button>
+      <button onClick={() => removeFriend(f.userId)} style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.06)', color: 'rgba(239,68,68,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>?</button>
     </div>
     );
   };
 
   const renderGroup = (label, icon, color, items, groupKey) => {
     if (items.length === 0) return null;
-    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando…' }, online: { color: '#22C55E', label: 'En línea' }, away: { color: '#F59E0B', label: 'Ausente' }, dnd: { color: '#EF4444', label: 'No molestar' }, offline: { color: null, label: 'Desconectado' } };
+    const statusMap = { in_match: { color: '#34D399', label: 'En partida' }, searching: { color: '#FBBF24', label: 'Buscando�' }, online: { color: '#22C55E', label: 'En l�nea' }, away: { color: '#F59E0B', label: 'Ausente' }, dnd: { color: '#EF4444', label: 'No molestar' }, offline: { color: null, label: 'Desconectado' } };
     const s = statusMap[groupKey] || statusMap.offline;
     return (
       <div>
         <button onClick={() => setFriendCollapsed(p => ({ ...p, [groupKey]: !p[groupKey] }))} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: color ? `${color}0D` : 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: color || '#555', boxShadow: color ? `0 0 6px ${color}` : 'none', flexShrink: 0 }} />
           <span style={{ fontSize: 12, fontWeight: 800, color: color || 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, textAlign: 'left' }}>{label} ({items.length})</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed[groupKey] ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▼</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', transform: friendCollapsed[groupKey] ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>?</span>
         </button>
         {!friendCollapsed[groupKey] && items.map(f => renderFriendRow(f, s.color, s.label))}
       </div>
@@ -2529,14 +2529,14 @@ function TabAmigos({ user }) {
       <div style={{ padding: '20px 18px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 22 }}>👥</span>
+            <span style={{ fontSize: 22 }}>??</span>
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>Amigos</p>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
               {friends.length} amigo{friends.length !== 1 ? 's' : ''}
               {friends.filter(f => f.online && f.online !== 'offline').length > 0 && (
-                <span style={{ color: '#22C55E', fontWeight: 700 }}> · {friends.filter(f => f.online && f.online !== 'offline').length} en línea</span>
+                <span style={{ color: '#22C55E', fontWeight: 700 }}> � {friends.filter(f => f.online && f.online !== 'offline').length} en l�nea</span>
               )}
             </p>
           </div>
@@ -2545,22 +2545,22 @@ function TabAmigos({ user }) {
             <button onClick={() => setShowStatusMenu(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : '#555', boxShadow: `0 0 4px ${myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : 'transparent'}` }} />
               <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
-                {myStatus === 'online' ? 'En línea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
+                {myStatus === 'online' ? 'En l�nea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
               </span>
-              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>▼</span>
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>?</span>
             </button>
             {showStatusMenu && (
               <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', zIndex: 50, minWidth: 150, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
                 {[
-                  { key: 'online', color: '#22C55E', label: 'En línea', icon: '🟢' },
-                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '🌙' },
-                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '⛔' },
-                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '👻' },
+                  { key: 'online', color: '#22C55E', label: 'En l�nea', icon: '??' },
+                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '??' },
+                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '?' },
+                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '??' },
                 ].map(opt => (
                   <button key={opt.key} onClick={() => changeStatus(opt.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: myStatus === opt.key ? 'rgba(255,255,255,0.06)' : 'transparent', cursor: 'pointer' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, boxShadow: opt.color !== '#555' ? `0 0 4px ${opt.color}` : 'none' }} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: myStatus === opt.key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{opt.label}</span>
-                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>✓</span>}
+                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>?</span>}
                   </button>
                 ))}
               </div>
@@ -2572,11 +2572,11 @@ function TabAmigos({ user }) {
       {/* Party estado */}
       {partyState && partyState.status !== 'none' && (
         <div style={{ margin: '0 18px 12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 20 }}>👥</span>
+          <span style={{ fontSize: 20 }}>??</span>
           <div style={{ flex: 1 }}>
             <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#A78BFA' }}>Party Dobles</p>
             <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-              {partyState.status === 'pending' ? 'Esperando que acepten la invitación…' : partyState.status === 'ready' ? '¡Listo! Andá a Ranked para buscar partida 2v2' : partyState.status === 'searching' ? 'Buscando rivales 2v2…' : partyState.status}
+              {partyState.status === 'pending' ? 'Esperando que acepten la invitaci�n�' : partyState.status === 'ready' ? '�Listo! And� a Ranked para buscar partida 2v2' : partyState.status === 'searching' ? 'Buscando rivales 2v2�' : partyState.status}
             </p>
           </div>
           <button onClick={leaveParty} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>Salir</button>
@@ -2587,18 +2587,18 @@ function TabAmigos({ user }) {
         {/* Tab switcher */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           <button onClick={() => { setFriendTab('list'); setFriendSearch(''); }}  style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'list' ? '2px solid #6366F1' : '2px solid transparent', transition: 'all 0.15s' }}>
-            <span style={{ fontSize: 14 }}>👥</span>
+            <span style={{ fontSize: 14 }}>??</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'list' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Lista</span>
           </button>
           <button onClick={() => { setFriendTab('requests'); setFriendSearch(''); }} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'requests' ? '2px solid #FF8C00' : '2px solid transparent', transition: 'all 0.15s', position: 'relative' }}>
-            <span style={{ fontSize: 14 }}>📩</span>
+            <span style={{ fontSize: 14 }}>??</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'requests' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Solicitudes</span>
             {friendRequests.length > 0 && (
               <span style={{ position: 'absolute', top: 4, right: '10%', minWidth: 18, height: 18, borderRadius: 9, background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', boxShadow: '0 0 8px rgba(239,68,68,0.4)' }}>{friendRequests.length}</span>
             )}
           </button>
           <button onClick={() => { setFriendTab('add'); setFriendSearch(''); }} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: friendTab === 'add' ? '2px solid #22C55E' : '2px solid transparent', transition: 'all 0.15s' }}>
-            <span style={{ fontSize: 14 }}>➕</span>
+            <span style={{ fontSize: 14 }}>?</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: friendTab === 'add' ? '#fff' : 'rgba(255,255,255,0.35)' }}>Agregar</span>
           </button>
         </div>
@@ -2607,15 +2607,15 @@ function TabAmigos({ user }) {
           <div>
             <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 12px' }}>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>🔍</span>
-                <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Buscar amigo…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>??</span>
+                <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Buscar amigo�" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
               </div>
             </div>
             {friends.length === 0 ? (
               <div style={{ padding: '40px 16px', textAlign: 'center' }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#6366F1,#818CF8)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>👥</div>
-                <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Sin amigos aún</p>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tocá <b style={{ color: '#22C55E' }}>➕ Agregar</b> para buscar jugadores</p>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#6366F1,#818CF8)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>??</div>
+                <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Sin amigos a�n</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Toc� <b style={{ color: '#22C55E' }}>? Agregar</b> para buscar jugadores</p>
               </div>
             ) : (
               <div>
@@ -2628,12 +2628,12 @@ function TabAmigos({ user }) {
                     </div>
                   );
                   return (<>
-                    {renderGroup('En partida', '⚔️', '#34D399', filtered.filter(f => f.online === 'in_match'), 'in_match')}
-                    {renderGroup('Buscando', '🔍', '#FBBF24', filtered.filter(f => f.online === 'searching'), 'searching')}
-                    {renderGroup('En línea', '🟢', '#22C55E', filtered.filter(f => f.online === 'online'), 'online')}
-                    {renderGroup('Ausente', '🌙', '#F59E0B', filtered.filter(f => f.online === 'away'), 'away')}
-                    {renderGroup('No molestar', '⛔', '#EF4444', filtered.filter(f => f.online === 'dnd'), 'dnd')}
-                    {renderGroup('Desconectado', '💤', null, filtered.filter(f => !f.online || f.online === 'offline'), 'offline')}
+                    {renderGroup('En partida', '??', '#34D399', filtered.filter(f => f.online === 'in_match'), 'in_match')}
+                    {renderGroup('Buscando', '??', '#FBBF24', filtered.filter(f => f.online === 'searching'), 'searching')}
+                    {renderGroup('En l�nea', '??', '#22C55E', filtered.filter(f => f.online === 'online'), 'online')}
+                    {renderGroup('Ausente', '??', '#F59E0B', filtered.filter(f => f.online === 'away'), 'away')}
+                    {renderGroup('No molestar', '?', '#EF4444', filtered.filter(f => f.online === 'dnd'), 'dnd')}
+                    {renderGroup('Desconectado', '??', null, filtered.filter(f => !f.online || f.online === 'offline'), 'offline')}
                   </>);
                 })()}
               </div>
@@ -2643,9 +2643,9 @@ function TabAmigos({ user }) {
           <div>
             {friendRequests.length === 0 ? (
               <div style={{ padding: '40px 16px', textAlign: 'center' }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#FF8C00,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>📩</div>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#FF8C00,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 24 }}>??</div>
                 <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Sin solicitudes</p>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Las solicitudes de amistad aparecen acá</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Las solicitudes de amistad aparecen ac�</p>
               </div>
             ) : (
               <div>
@@ -2658,8 +2658,8 @@ function TabAmigos({ user }) {
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rq.fromName}</p>
                       <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Quiere ser tu amigo</p>
                     </div>
-                    <button onClick={() => acceptRequest(rq.fromId, rq.fromName)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>✓</button>
-                    <button onClick={() => rejectRequest(rq.fromId)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => acceptRequest(rq.fromId, rq.fromName)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>?</button>
+                    <button onClick={() => rejectRequest(rq.fromId)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>?</button>
                   </div>
                 ))}
               </div>
@@ -2670,16 +2670,16 @@ function TabAmigos({ user }) {
             <div style={{ padding: '12px' }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, padding: '10px 12px' }}>
-                  <span style={{ fontSize: 13, color: '#22C55E' }}>🔍</span>
-                  <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Nombre de jugador…" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
+                  <span style={{ fontSize: 13, color: '#22C55E' }}>??</span>
+                  <input value={friendSearch} onChange={e => setFriendSearch(e.target.value)} placeholder="Nombre de jugador�" maxLength={50} style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none' }} />
                 </div>
                 {friendSearch.length >= 2 && (
-                  <button onClick={() => { setFriendSearch(''); setFriendResults([]); }} style={{ padding: '0 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>✕</button>
+                  <button onClick={() => { setFriendSearch(''); setFriendResults([]); }} style={{ padding: '0 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>?</button>
                 )}
               </div>
             </div>
             {friendSearching ? (
-              <div style={{ padding: '20px 16px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Buscando…</p></div>
+              <div style={{ padding: '20px 16px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Buscando�</p></div>
             ) : friendResults.length > 0 ? (
               <div>
                 {friendResults.map(p => {
@@ -2694,7 +2694,7 @@ function TabAmigos({ user }) {
                       ) : alreadySent ? (
                         <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
                       ) : (
-                        <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === p.userId ? '…' : '📩 Solicitud'}</button>
+                        <button onClick={() => addFriend(p.userId, p.userName)} disabled={friendAdding === p.userId} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === p.userId ? '�' : '?? Solicitud'}</button>
                       )}
                     </div>
                   );
@@ -2704,14 +2704,14 @@ function TabAmigos({ user }) {
               <div style={{ padding: '24px 16px', textAlign: 'center' }}><p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No se encontraron jugadores</p></div>
             ) : (
               <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-                <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Escribí un nombre para buscar</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.15)' }}>Mínimo 2 caracteres</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Escrib� un nombre para buscar</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.15)' }}>M�nimo 2 caracteres</p>
               </div>
             )}
             {sentRequests.length > 0 && (
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
                 <div style={{ padding: '10px 14px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 12 }}>📤</span>
+                  <span style={{ fontSize: 12 }}>??</span>
                   <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Solicitudes enviadas</p>
                 </div>
                 {sentRequests.map(sr => (
@@ -2740,7 +2740,7 @@ function TabAmigos({ user }) {
               return (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
                   <div style={{ padding: '10px 14px 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12 }}>🕹️</span>
+                    <span style={{ fontSize: 12 }}>???</span>
                     <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Jugados recientemente</p>
                   </div>
                   {recentPlayers.map(rp => (
@@ -2750,7 +2750,7 @@ function TabAmigos({ user }) {
                       {sentIds.has(rp.id) ? (
                         <span style={{ fontSize: 10, color: '#F59E0B', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>
                       ) : (
-                        <button onClick={() => addFriend(rp.id, rp.name)} disabled={friendAdding === rp.id} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === rp.id ? '…' : '📩 Solicitud'}</button>
+                        <button onClick={() => addFriend(rp.id, rp.name)} disabled={friendAdding === rp.id} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === rp.id ? '�' : '?? Solicitud'}</button>
                       )}
                     </div>
                   ))}
@@ -2761,11 +2761,11 @@ function TabAmigos({ user }) {
         )}
       </div>
 
-      {/* ═══ CHAT ENTRE AMIGOS ═══ */}
+      {/* --- CHAT ENTRE AMIGOS --- */}
       {chatOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 9998, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
-            <button onClick={() => setChatOpen(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4, flexShrink: 0 }}>←</button>
+            <button onClick={() => setChatOpen(null)} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 18, cursor: 'pointer', padding: 4, flexShrink: 0 }}>?</button>
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff' }}>{(chatOpen.userName || '?').charAt(0).toUpperCase()}</div>
               {(() => { const cf = friends.find(f => f.userId === chatOpen.userId); if (!cf) return null; const c = cf.online === 'in_match' ? '#34D399' : cf.online === 'searching' ? '#FBBF24' : 'rgba(255,255,255,0.15)'; return <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: c, border: '2px solid #0D0D15' }} />; })()}
@@ -2777,20 +2777,20 @@ function TabAmigos({ user }) {
             {!partyState && (
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {['switch', 'parsec'].map(plat => (
-                  <button key={plat} onClick={() => inviteToDoubles(chatOpen.userId, chatOpen.userName, plat)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.1)', color: '#A78BFA', fontWeight: 700, fontSize: 8, cursor: 'pointer', textTransform: 'uppercase', lineHeight: 1.2 }}>🎮 2v2<br/>{plat === 'switch' ? 'SW' : 'PC'}</button>
+                  <button key={plat} onClick={() => inviteToDoubles(chatOpen.userId, chatOpen.userName, plat)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.1)', color: '#A78BFA', fontWeight: 700, fontSize: 8, cursor: 'pointer', textTransform: 'uppercase', lineHeight: 1.2 }}>?? 2v2<br/>{plat === 'switch' ? 'SW' : 'PC'}</button>
                 ))}
               </div>
             )}
           </div>
           {partyState && (
             <div style={{ padding: '8px 18px', background: 'rgba(124,58,237,0.08)', borderBottom: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 14 }}>👥</span>
-              <p style={{ margin: 0, flex: 1, fontSize: 12, color: '#A78BFA', fontWeight: 700 }}>Party {partyState.status === 'pending' ? '(esperando respuesta)' : partyState.status === 'ready' ? '✓ Listo' : partyState.status === 'searching' ? '🔍 Buscando…' : partyState.status}</p>
+              <span style={{ fontSize: 14 }}>??</span>
+              <p style={{ margin: 0, flex: 1, fontSize: 12, color: '#A78BFA', fontWeight: 700 }}>Party {partyState.status === 'pending' ? '(esperando respuesta)' : partyState.status === 'ready' ? '? Listo' : partyState.status === 'searching' ? '?? Buscando�' : partyState.status}</p>
               <button onClick={leaveParty} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}>Salir</button>
             </div>
           )}
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {chatMessages.length === 0 && (<p style={{ margin: 'auto', fontSize: 13, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>No hay mensajes aún. ¡Escribí algo!</p>)}
+            {chatMessages.length === 0 && (<p style={{ margin: 'auto', fontSize: 13, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '40px 0' }}>No hay mensajes a�n. �Escrib� algo!</p>)}
             {chatMessages.map(m => { const isMe = m.from === uid; return (
               <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
                 {!isMe && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{m.fromName}</span>}
@@ -2803,15 +2803,15 @@ function TabAmigos({ user }) {
             <div ref={chatEndRef} />
           </div>
           <div style={{ display: 'flex', gap: 8, padding: '12px 18px', borderTop: '1px solid rgba(255,255,255,0.08)', background: '#0D0D15' }}>
-            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChatMessage()} placeholder="Escribí un mensaje…" maxLength={500} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none' }} />
-            <button onClick={sendChatMessage} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 12, padding: '0 16px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 20 }}>→</button>
+            <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChatMessage()} placeholder="Escrib� un mensaje�" maxLength={500} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none' }} />
+            <button onClick={sendChatMessage} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 12, padding: '0 16px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 20 }}>?</button>
           </div>
         </div>
       )}
 
       {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
 
-      {/* ═══ MODAL PERFIL JUGADOR ═══ */}
+      {/* --- MODAL PERFIL JUGADOR --- */}
       {viewProfile && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -2819,14 +2819,14 @@ function TabAmigos({ user }) {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
             </button>
             <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>{viewProfile.userName}</p>
-            {(() => { const fe = friends.find(f => f.userId === viewProfile.userId); if (fe) { const st = fe.online === 'in_match' ? 'En partida' : fe.online === 'searching' ? 'Buscando…' : ''; const sc = fe.online === 'in_match' ? '#34D399' : fe.online === 'searching' ? '#FBBF24' : null; if (sc) return <span style={{ fontSize: 10, fontWeight: 700, color: sc }}>● {st}</span>; } return null; })()}
+            {(() => { const fe = friends.find(f => f.userId === viewProfile.userId); if (fe) { const st = fe.online === 'in_match' ? 'En partida' : fe.online === 'searching' ? 'Buscando�' : ''; const sc = fe.online === 'in_match' ? '#34D399' : fe.online === 'searching' ? '#FBBF24' : null; if (sc) return <span style={{ fontSize: 10, fontWeight: 700, color: sc }}>? {st}</span>; } return null; })()}
             {!friends.find(f => f.userId === viewProfile.userId) && viewProfile.userId !== uid && (
-              <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === viewProfile.userId ? '…' : '📩 Agregar'}</button>
+              <button onClick={() => addFriend(viewProfile.userId, viewProfile.userName)} disabled={friendAdding === viewProfile.userId} style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{friendAdding === viewProfile.userId ? '�' : '?? Agregar'}</button>
             )}
           </div>
           {profileLoading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil�</p>
             </div>
           ) : profileData ? (
             <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
@@ -2861,7 +2861,7 @@ function TabAmigos({ user }) {
               })()}
 
               <div style={{ padding: '0 18px 40px' }}>
-                {/* Estadísticas */}
+                {/* Estad�sticas */}
                 {(() => {
                   const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
                   const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
@@ -2872,7 +2872,7 @@ function TabAmigos({ user }) {
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 12px' }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#22C55E,#16A34A)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estad�sticas</p>
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                         {[
@@ -2897,9 +2897,9 @@ function TabAmigos({ user }) {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>🏆 Resumen</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Resumen</p>
                       </div>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {profileStartggStats.totalSets} sets</p>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG � {profileStartggStats.totalSets} sets</p>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
                       {profileStartggStats.charUsage.slice(0, 3).map((ch, i) => {
@@ -2947,7 +2947,7 @@ function TabAmigos({ user }) {
                       return ch ? <CharacterDetail ch={ch} onClose={() => { setSelectedCharAmigos(null); setCharFromModalAmigos(false); }} onBack={charFromModalAmigos ? () => { setSelectedCharAmigos(null); setShowCharsModalAmigos(true); } : undefined} /> : null;
                     })()}
 
-                    {/* Botón Ver todos */}
+                    {/* Bot�n Ver todos */}
                     {profileStartggStats.charUsage.length > 3 && (
                       <button onClick={() => setShowCharsModalAmigos(true)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                         Ver todos ({profileStartggStats.charUsage.length})
@@ -2963,7 +2963,7 @@ function TabAmigos({ user }) {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
-                            <button onClick={() => setShowCharsModalAmigos(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                            <button onClick={() => setShowCharsModalAmigos(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
                           </div>
                           <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                             {profileStartggStats.charUsage.map((ch, i) => {
@@ -2985,9 +2985,9 @@ function TabAmigos({ user }) {
                                     <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                                       <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
                                     </div>
-                                    <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g � {cWR}% WR</p>
                                   </div>
-                                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>›</span>
+                                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>�</span>
                                 </div>
                               );
                             })}
@@ -3070,21 +3070,21 @@ function TabAmigos({ user }) {
                 {/* Ranked 1v1 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                   {['switch', 'parsec'].map(plat => {
                     const s = profileData.stats?.[plat] || {};
                     const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                    const rankName = s.rank || 'Plástico I';
+                    const rankName = s.rank || 'Pl�stico I';
                     const isUnranked = total === 0; const inPlacement = !s?.placementDone && !isUnranked;
                     const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : '?';
                     const rankColor = rankObj?.color || '#9CA3AF';
                     const pColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                     return (
                       <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '?? Switch' : '??? Parsec'}</p>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
@@ -3099,7 +3099,7 @@ function TabAmigos({ user }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
-                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W � {losses}L</p>
                       </div>
                     );
                   })}
@@ -3108,20 +3108,20 @@ function TabAmigos({ user }) {
                 {/* Ranked 2v2 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#A78BFA,#7C3AED)', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked 2v2</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                   {['switch', 'parsec'].map(plat => {
                     const s = profileData.doublesStats?.[plat] || {};
                     const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                    const rankName = s.rank || 'Plástico I';
+                    const rankName = s.rank || 'Pl�stico I';
                     const isUnranked = total === 0; const inPlacement = !s?.placementDone && !isUnranked;
                     const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : '?';
                     const rankColor = rankObj?.color || '#9CA3AF';
                     return (
                       <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '?? Switch' : '??? Parsec'}</p>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
@@ -3136,7 +3136,7 @@ function TabAmigos({ user }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
-                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W � {losses}L</p>
                       </div>
                     );
                   })}
@@ -3145,7 +3145,7 @@ function TabAmigos({ user }) {
                 {/* Historial */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Historial</p>
                 </div>
                 <ProfileHistorySection
                   history={profileData.history || []}
@@ -3170,7 +3170,7 @@ function TabAmigos({ user }) {
 }
 
 /* --- TAB PERFIL ------------------------------------------------ */
-function platLabel(p) { return p === 'switch' ? '🎮 Switch' : '🖥️ Parsec'; }
+function platLabel(p) { return p === 'switch' ? '?? Switch' : '??? Parsec'; }
 function platColor(p) { return p === 'switch' ? '#EF4444' : '#8B5CF6'; }
 function timeAgo(iso) {
   if (!iso) return '';
@@ -3258,7 +3258,7 @@ function TabPerfil({ user }) {
           else { setMainChar(null); try { localStorage.removeItem('afk_main_char'); } catch {} }
           if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
           else { setMainCharAlt(null); try { localStorage.removeItem('afk_main_alt'); } catch {} }
-          // Banner de actualización de ícono: solo iOS standalone que aún no lo cerró
+          // Banner de actualizaci�n de �cono: solo iOS standalone que a�n no lo cerr�
           if (!p?.dismissedIconBanner && typeof window !== 'undefined') {
             const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
             const isStandalone = window.navigator.standalone === true
@@ -3317,7 +3317,7 @@ function TabPerfil({ user }) {
   const totalW = (stats?.switch?.wins || 0)   + (stats?.parsec?.wins || 0);
   const totalL = (stats?.switch?.losses || 0) + (stats?.parsec?.losses || 0);
 
-  // Calcular personaje más usado del historial
+  // Calcular personaje m�s usado del historial
   const mostUsedChar = (() => {
     if (!history.length) return null;
     const counts = {};
@@ -3370,14 +3370,14 @@ function TabPerfil({ user }) {
   return (
     <>
     <div style={{ paddingBottom: 32 }}>
-      {/* ── Hero Banner ── */}
+      {/* -- Hero Banner -- */}
       <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-        {/* Character picker button — top right */}
+        {/* Character picker button � top right */}
         <button onClick={() => setShowMainPicker(true)} style={{ position: 'absolute', top: 10, right: 12, zIndex: 10, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.35)', borderRadius: 12, width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
           {mainChar ? (
             <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
           ) : (
-            <span style={{ fontSize: 20 }}>🎮</span>
+            <span style={{ fontSize: 20 }}>??</span>
           )}
         </button>
         {heroSrc ? (
@@ -3405,23 +3405,23 @@ function TabPerfil({ user }) {
       <div style={{ padding: '20px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estad�sticas</p>
         </div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
           {[
             { label: 'Victorias', value: totalW,          color: '#22C55E' },
             { label: 'Derrotas',  value: totalL,          color: '#EF4444' },
             { label: 'Partidas',  value: totalW + totalL, color: '#FF8C00' },
-            { label: 'W/R', value: (totalW + totalL) > 0 ? Math.round(totalW * 100 / (totalW + totalL)) + '%' : '—', color: '#F59E0B' },
+            { label: 'W/R', value: (totalW + totalL) > 0 ? Math.round(totalW * 100 / (totalW + totalL)) + '%' : '�', color: '#F59E0B' },
           ].map(st => (
             <div key={st.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{loading ? '—' : st.value}</p>
+              <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: st.color }}>{loading ? '�' : st.value}</p>
               <p style={{ margin: '3px 0 0', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{st.label}</p>
             </div>
           ))}
         </div>
 
-        {/* ── SUMMARY (Start.GG character usage) ── */}
+        {/* -- SUMMARY (Start.GG character usage) -- */}
         {startggStats && startggStats.charUsage && startggStats.charUsage.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
@@ -3429,7 +3429,7 @@ function TabPerfil({ user }) {
                 <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
                 <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
               </div>
-              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
+              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG � {startggStats.totalSets} sets</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
               {startggStats.charUsage.slice(0, 3).map((ch, i) => {
@@ -3490,7 +3490,7 @@ function TabPerfil({ user }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
-                    <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                    <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
                   </div>
                   <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                     {startggStats.charUsage.map((ch, i) => {
@@ -3512,9 +3512,9 @@ function TabPerfil({ user }) {
                             <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                               <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
                             </div>
-                            <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g � {cWR}% WR</p>
                           </div>
-                          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>›</span>
+                          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>�</span>
                         </div>
                       );
                     })}
@@ -3599,7 +3599,7 @@ function TabPerfil({ user }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked</p>
         </div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
           {(['switch', 'parsec']).map(plat => {
@@ -3612,7 +3612,7 @@ function TabPerfil({ user }) {
             const isSmasher = rankName === 'SMASHer';
             const rankObj   = RANKS.find(r => r.name === rankName) || (typeof st?.rankIndex === 'number' ? RANKS[st.rankIndex] : null) || null;
             const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-            const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : null;
+            const tierIcon  = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : null;
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(255,255,255,0.04)' : inPlace ? 'rgba(255,140,0,0.04)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(255,255,255,0.07)' : inPlace ? 'rgba(255,140,0,0.2)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', transition: 'transform 0.15s', position: 'relative' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>{platLabel(plat)}</p>
@@ -3646,17 +3646,17 @@ function TabPerfil({ user }) {
                 )}
                 {isSmasher && <p style={{ margin: '2px 0 0', fontSize: 10, fontWeight: 800, color: '#FF8C00' }}>{pts} RP</p>}
                 <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                  <span style={{ color: '#22C55E', fontWeight: 700 }}>{st?.wins || 0}W</span>{' · '}<span style={{ color: '#EF4444', fontWeight: 700 }}>{st?.losses || 0}L</span>
+                  <span style={{ color: '#22C55E', fontWeight: 700 }}>{st?.wins || 0}W</span>{' � '}<span style={{ color: '#EF4444', fontWeight: 700 }}>{st?.losses || 0}L</span>
                 </p>
               </div>
             );
           })}
         </div>
 
-        {/* ═══ RANKED 2v2 ═══ */}
+        {/* --- RANKED 2v2 --- */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#7C3AED,#4F46E5)', flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked 2v2</p>
         </div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
           {(['switch', 'parsec']).map(plat => {
@@ -3669,7 +3669,7 @@ function TabPerfil({ user }) {
             const isSmasher = rankName === 'SMASHer';
             const rankObj = RANKS.find(r => r.name === rankName) || (typeof st?.rankIndex === 'number' ? RANKS[st.rankIndex] : null) || null;
             const rankColor = rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-            const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : null;
+            const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : null;
             return (
               <div key={plat} onClick={() => setShowRanks(true)} style={{ flex: 1, background: unranked ? 'rgba(124,58,237,0.04)' : inPlace ? 'rgba(124,58,237,0.06)' : 'linear-gradient(160deg,' + rankColor + '15 0%,transparent 60%)', border: '1px solid ' + (unranked ? 'rgba(124,58,237,0.12)' : inPlace ? 'rgba(124,58,237,0.25)' : rankColor + '30'), borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', position: 'relative' }}>
                 <p style={{ margin: '0 0 4px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: platColor(plat), alignSelf: 'flex-start' }}>2v2 {platLabel(plat)}</p>
@@ -3703,7 +3703,7 @@ function TabPerfil({ user }) {
                 )}
                 {isSmasher && <p style={{ margin: '2px 0 0', fontSize: 9, fontWeight: 800, color: '#7C3AED' }}>{pts} RP</p>}
                 <p style={{ margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
-                  <span style={{ color: '#22C55E', fontWeight: 700 }}>{st?.wins || 0}W</span>{' · '}<span style={{ color: '#EF4444', fontWeight: 700 }}>{st?.losses || 0}L</span>
+                  <span style={{ color: '#22C55E', fontWeight: 700 }}>{st?.wins || 0}W</span>{' � '}<span style={{ color: '#EF4444', fontWeight: 700 }}>{st?.losses || 0}L</span>
                 </p>
               </div>
             );
@@ -3713,11 +3713,11 @@ function TabPerfil({ user }) {
         {/* Party estado */}
         {partyState && partyState.status !== 'none' && (
           <div style={{ marginBottom: 16, background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 20 }}>👥</span>
+            <span style={{ fontSize: 20 }}>??</span>
             <div style={{ flex: 1 }}>
               <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 800, color: '#A78BFA' }}>Party Dobles</p>
               <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-                {partyState.status === 'pending' ? 'Esperando que acepten la invitación…' : partyState.status === 'ready' ? '¡Listo! Andá a Ranked para buscar partida 2v2' : partyState.status === 'searching' ? 'Buscando rivales 2v2…' : partyState.status}
+                {partyState.status === 'pending' ? 'Esperando que acepten la invitaci�n�' : partyState.status === 'ready' ? '�Listo! And� a Ranked para buscar partida 2v2' : partyState.status === 'searching' ? 'Buscando rivales 2v2�' : partyState.status}
               </p>
             </div>
             <button onClick={() => { fetch('/api/party', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) }).catch(() => {}); setPartyState(null); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>Salir</button>
@@ -3726,7 +3726,7 @@ function TabPerfil({ user }) {
 
         {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
 
-        {/* ═══ MODAL PERFIL JUGADOR ═══ */}
+        {/* --- MODAL PERFIL JUGADOR --- */}
         {viewProfile && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             {/* Sticky top bar */}
@@ -3739,7 +3739,7 @@ function TabPerfil({ user }) {
 
             {profileLoading ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil�</p>
               </div>
             ) : profileData ? (
               <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
@@ -3774,7 +3774,7 @@ function TabPerfil({ user }) {
                 })()}
 
                 <div style={{ padding: '0 18px 40px' }}>
-                  {/* Estadísticas */}
+                  {/* Estad�sticas */}
                   {(() => {
                     const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
                     const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
@@ -3785,7 +3785,7 @@ function TabPerfil({ user }) {
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 12px' }}>
                           <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#22C55E,#16A34A)', flexShrink: 0 }} />
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estad�sticas</p>
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                           {[
@@ -3812,7 +3812,7 @@ function TabPerfil({ user }) {
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
                         <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
                       </div>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {profileStartggStats.totalSets} sets</p>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG � {profileStartggStats.totalSets} sets</p>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
                       {profileStartggStats.charUsage.slice(0, 3).map((ch, i) => {
@@ -3872,21 +3872,21 @@ function TabPerfil({ user }) {
                   {/* Ranked 1v1 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                     <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked</p>
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                     {['switch', 'parsec'].map(plat => {
                       const s = profileData.stats?.[plat] || {};
                       const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                      const rankName = s.rank || 'Plástico I'; const rp = s.rankedPoints || 0;
+                      const rankName = s.rank || 'Pl�stico I'; const rp = s.rankedPoints || 0;
                       const isUnranked = total === 0; const inPlacement = !s?.placementDone && !isUnranked;
                       const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                      const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                      const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : '?';
                       const rankColor = rankObj?.color || '#9CA3AF';
                       const pColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                       return (
                         <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '?? Switch' : '??? Parsec'}</p>
                           <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                             {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                           </div>
@@ -3901,7 +3901,7 @@ function TabPerfil({ user }) {
                               <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
                             </div>
                           )}
-                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W � {losses}L</p>
                         </div>
                       );
                     })}
@@ -3910,20 +3910,20 @@ function TabPerfil({ user }) {
                   {/* Ranked 2v2 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                     <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#A78BFA,#7C3AED)', flexShrink: 0 }} />
-                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked 2v2</p>
                   </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                     {['switch', 'parsec'].map(plat => {
                       const s = profileData.doublesStats?.[plat] || {};
                       const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                      const rankName = s.rank || 'Plástico I'; const rp = s.rankedPoints || 0;
+                      const rankName = s.rank || 'Pl�stico I'; const rp = s.rankedPoints || 0;
                       const isUnranked = total === 0; const inPlacement = !s?.placementDone && !isUnranked;
                       const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                      const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                      const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : '?';
                       const rankColor = rankObj?.color || '#9CA3AF';
                       return (
                         <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '?? Switch' : '??? Parsec'}</p>
                           <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                             {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                           </div>
@@ -3938,7 +3938,7 @@ function TabPerfil({ user }) {
                               <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
                             </div>
                           )}
-                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W � {losses}L</p>
                         </div>
                       );
                     })}
@@ -3947,7 +3947,7 @@ function TabPerfil({ user }) {
                   {/* Historial */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
                     <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Historial</p>
                   </div>
                   <ProfileHistorySection
                     history={profileData.history || []}
@@ -3968,7 +3968,7 @@ function TabPerfil({ user }) {
           </div>
         )}
 
-        {/* ═══ MODAL RANGOS ═══ */}
+        {/* --- MODAL RANGOS --- */}
         {showRanks && (
           <div onClick={() => setShowRanks(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
             <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderTop: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' }}>
@@ -3979,17 +3979,17 @@ function TabPerfil({ user }) {
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>🏅</span>
+                  <span style={{ fontSize: 18 }}>??</span>
                   <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Todos los rangos</p>
                 </div>
-                <button onClick={() => setShowRanks(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                <button onClick={() => setShowRanks(false)} style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>?</button>
               </div>
 
               {/* Scrollable content */}
               <div style={{ overflowY: 'auto', flex: 1, padding: '12px 14px 24px' }}>
                 {(() => {
                   const tiers = [
-                    { name: 'Plástico', subs: 4 },
+                    { name: 'Pl�stico', subs: 4 },
                     { name: 'Madera',   subs: 4 },
                     { name: 'Hierro',   subs: 4 },
                     { name: 'Bronce',   subs: 4 },
@@ -4003,21 +4003,21 @@ function TabPerfil({ user }) {
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {/* SMASHer — fila destacada arriba */}
+                      {/* SMASHer � fila destacada arriba */}
                       {smasher && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: smasher.bg, border: '1px solid ' + smasher.border, borderRadius: 14, marginBottom: 4 }}>
                           <span style={{ fontSize: 28, lineHeight: 1 }}>{TIER_ICONS['SMASHer']}</span>
                           <div style={{ flex: 1 }}>
                             <p style={{ margin: '0 0 1px', fontSize: 16, fontWeight: 900, color: smasher.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>SMASHer</p>
-                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>El rango más alto. Dinámico: se requiere estar entre los mejores MMR activos.</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>El rango m�s alto. Din�mico: se requiere estar entre los mejores MMR activos.</p>
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 800, color: smasher.color, background: smasher.bg, border: '1px solid ' + smasher.border, borderRadius: 8, padding: '3px 8px', whiteSpace: 'nowrap' }}>MMR visible</span>
                         </div>
                       )}
 
-                      {/* Tiers normales: Diamante → Plástico (de mayor a menor) */}
+                      {/* Tiers normales: Diamante ? Pl�stico (de mayor a menor) */}
                       {[...tiers].reverse().map(({ name, subs }) => {
-                        const icon = TIER_ICONS[name] || '🎮';
+                        const icon = TIER_ICONS[name] || '??';
                         const baseRank = RANKS.find(r => r.tier === name);
                         if (!baseRank) return null;
                         return (
@@ -4047,23 +4047,23 @@ function TabPerfil({ user }) {
 
                       {/* Unranked */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12 }}>
-                        <span style={{ fontSize: 20 }}>❓</span>
+                        <span style={{ fontSize: 20 }}>?</span>
                         <div>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Unranked</p>
                           <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Sin partidas clasificatorias</p>
                         </div>
                       </div>
 
-                      {/* Explicación */}
+                      {/* Explicaci�n */}
                       <div style={{ marginTop: 6, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>¿Cómo funciona?</p>
+                        <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>�C�mo funciona?</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                           {[
-                            ['🎯', 'Jugá 5 partidas de clasificación para obtener tu rango inicial basado en MMR.'],
-                            ['📈', 'Cada victoria suma RR (Rank Rating, 0–100). Al llegar a 100 ascendés de subdivisión.'],
-                            ['⚡', 'Los upsets (ganar a alguien más fuerte) dan RR bonus. Perder contra más débiles penaliza más.'],
-                            ['🛡️', 'Al ascender tenés 2 partidas de escudo que te protegen del descenso.'],
-                            ['👑', 'SMASHer es dinámico: necesitás mantenerte entre los mejores MMR de la comunidad activa.'],
+                            ['??', 'Jug� 5 partidas de clasificaci�n para obtener tu rango inicial basado en MMR.'],
+                            ['??', 'Cada victoria suma RR (Rank Rating, 0�100). Al llegar a 100 ascend�s de subdivisi�n.'],
+                            ['?', 'Los upsets (ganar a alguien m�s fuerte) dan RR bonus. Perder contra m�s d�biles penaliza m�s.'],
+                            ['???', 'Al ascender ten�s 2 partidas de escudo que te protegen del descenso.'],
+                            ['??', 'SMASHer es din�mico: necesit�s mantenerte entre los mejores MMR de la comunidad activa.'],
                           ].map(([emoji, text]) => (
                             <div key={emoji} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                               <span style={{ fontSize: 13, flexShrink: 0 }}>{emoji}</span>
@@ -4083,13 +4083,13 @@ function TabPerfil({ user }) {
         <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#0B0B12', paddingTop: 12, paddingBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 10px' }}>
             <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial de partidas</p>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Historial de partidas</p>
           </div>
-          {/* Filtros dinámicos */}
+          {/* Filtros din�micos */}
           {(() => {
             const hasCasual = history.some(m => m.type === 'casual');
             const communityIds = [...new Set(history.filter(m => m.type === 'tournament' && m.community).map(m => m.community))];
-            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
+            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'C�rdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
             const filterTabs = [
               ['all', 'Todos'],
               ['ranked', 'Ranked'],
@@ -4117,9 +4117,9 @@ function TabPerfil({ user }) {
           });
           if (filtered.length === 0) return (
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
-              <p style={{ fontSize: 28, margin: '0 0 8px' }}>🏆</p>
-              <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jugá partidas para ver tu historial</p>
+              <p style={{ fontSize: 28, margin: '0 0 8px' }}>??</p>
+              <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas a�n</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jug� partidas para ver tu historial</p>
             </div>
           );
           const toShow = filtered.slice(0, 5);
@@ -4170,7 +4170,7 @@ function TabPerfil({ user }) {
                 const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                 const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
                 const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
-                // Escenarios únicos para el fondo
+                // Escenarios �nicos para el fondo
                 const games = m.games || [];
                 const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
                 const uniqueStages = [...new Set(playedStages)];
@@ -4193,11 +4193,11 @@ function TabPerfil({ user }) {
                     {/* Contenido */}
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
                       {/* Izquierda: personaje + badge */}
-                      <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                      <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
                         {charSrc ? (
-                          <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                          <img src={charSrc} alt="" style={{ width: 50, height: 50, objectFit: 'contain' }} onError={e => { e.target.src = '/images/characters/placeholder.png'; }} />
                         ) : (
-                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                          <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 24 : 20 }}>{is2v2 ? '??' : '??'}</div>
                         )}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                           {isCasual ? (
@@ -4219,10 +4219,10 @@ function TabPerfil({ user }) {
                         </div>
                       </div>
                       {/* Centro: info */}
-                      <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, }}> 
+                      <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}> 
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                          {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                          {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} � {timeAgo(m.playedAt)}
                         </p>
                         {isTournament ? (
                           m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
@@ -4238,7 +4238,7 @@ function TabPerfil({ user }) {
                       <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                         {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                         <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                        {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                        {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}�{oppScore ?? 0}</p>}
                       </div>
                     </div>
                   </div>
@@ -4250,7 +4250,7 @@ function TabPerfil({ user }) {
               })}
               {filtered.length > 5 && (
                 <button onClick={() => setShowHistAllModal(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
-                  Ver todo ({filtered.length}) →
+                  Ver todo ({filtered.length}) ?
                 </button>
               )}
             </div>
@@ -4277,7 +4277,7 @@ function TabPerfil({ user }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Historial completo ({filtered.length})</p>
-              <button onClick={() => setShowHistAllModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>✕</button>
+              <button onClick={() => setShowHistAllModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>?</button>
             </div>
             <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '10px 16px 24px' }}>
               {allGrp.map(({ dateStr, matches: gm }, gi) => {
@@ -4332,11 +4332,11 @@ function TabPerfil({ user }) {
                               <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
                             )}
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
-                              <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                              <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
                                 {charSrc ? (
-                                  <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                                  <img src={charSrc} alt="" style={{ width: 50, height: 50, objectFit: 'contain' }} onError={e => { e.target.src = '/images/characters/placeholder.png'; }} />
                                 ) : (
-                                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                                  <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 24 : 20 }}>{is2v2 ? '??' : '??'}</div>
                                 )}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                                   {isCasual ? (
@@ -4357,10 +4357,10 @@ function TabPerfil({ user }) {
                                   )}
                                 </div>
                               </div>
-                              <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                              <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                                 <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                  {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                                  {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} � {timeAgo(m.playedAt)}
                                 </p>
                                 {isTournament ? (
                                   m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
@@ -4375,7 +4375,7 @@ function TabPerfil({ user }) {
                               <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                                 {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
                                 <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}�{oppScore ?? 0}</p>}
                               </div>
                             </div>
                           </div>
@@ -4400,12 +4400,12 @@ function TabPerfil({ user }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {pickerStep === 'alt' && <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>←</button>}
+              {pickerStep === 'alt' && <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>?</button>}
               <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>{pickerStep === 'char' ? 'Elegir main' : 'Elegir skin'}</p>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {mainChar && pickerStep === 'char' && <button onClick={clearMainChar} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#EF4444' }}>Quitar</button>}
-              <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
             </div>
           </div>
           {pickerStep === 'char' ? (
@@ -4450,7 +4450,7 @@ function TabPerfil({ user }) {
 }
 
 
-/* â”€â”€â”€ NOTIF CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── NOTIF CARD ─────────────────────────────────── */
 function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
   const isRead = !!notif.readAt;
   const t = new Date(notif.sentAt);
@@ -4462,7 +4462,7 @@ function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
   const isBroadcast = notif.type === 'broadcast' || notif.type === 'tournament_started' || notif.type === 'new_tournament';
   const hasActions = (isFriendReq || isPartyInvite) && !isRead;
 
-  const icon = isFriendReq ? '📩' : isPartyInvite ? '👥' : isBroadcast ? '🏆' : '🎮';
+  const icon = isFriendReq ? '??' : isPartyInvite ? '??' : isBroadcast ? '??' : '??';
   const accentColor = isFriendReq ? 'rgba(99,102,241,' : isPartyInvite ? 'rgba(124,58,237,' : isBroadcast ? 'rgba(255,140,0,' : 'rgba(232,142,0,';
 
   const handleClick = () => {
@@ -4515,16 +4515,16 @@ function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
               padding: '5px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,0.3)',
               background: 'rgba(52,211,153,0.1)', color: '#34D399', fontSize: 12,
               fontWeight: 700, cursor: acting ? 'not-allowed' : 'pointer',
-            }}>✓ Aceptar</button>
+            }}>? Aceptar</button>
             <button onClick={() => handleAction('reject')} disabled={acting} style={{
               padding: '5px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)',
               background: 'rgba(239,68,68,0.06)', color: '#EF4444', fontSize: 12,
               fontWeight: 700, cursor: acting ? 'not-allowed' : 'pointer',
-            }}>✕ Rechazar</button>
+            }}>? Rechazar</button>
           </div>
         ) : (
           <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
-            {timeStr} · {notif.sentBy}
+            {timeStr} � {notif.sentBy}
           </p>
         )}
       </div>
@@ -4535,9 +4535,9 @@ function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TAB — RANKINGS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   TAB � RANKINGS
+═══════════════════════════════════════════════════ */
 function TabRankings({ user, setTab }) {
   const [mode,        setMode]       = useState('ba');
   const [rankPlat,    setRankPlat]   = useState('switch');
@@ -4671,13 +4671,13 @@ function TabRankings({ user, setTab }) {
         <>
           {mode === 'ranked2v2' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <span style={{ fontSize: 18 }}>👥</span>
+              <span style={{ fontSize: 18 }}>??</span>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#A78BFA' }}>Ranked Dobles (2v2)</p>
             </div>
           )}
           {/* Sub-selector de plataforma */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
+            {[{ id: 'switch', label: '?? Switch Online' }, { id: 'parsec', label: '??? Parsec' }].map(p => (
               <button key={p.id} onClick={() => setRankPlat(p.id)} style={{
                 flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
                 cursor: 'pointer', transition: 'all 0.15s',
@@ -4705,9 +4705,9 @@ function TabRankings({ user, setTab }) {
             </div>
           ) : rankBoard.length === 0 ? (
             <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
-              <span style={{ fontSize: 44 }}>{mode === 'ranked2v2' ? '👥' : '⚔️'}</span>
-              <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas {mode === 'ranked2v2' ? '2v2' : 'ranked'} aún</p>
-              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{mode === 'ranked2v2' ? 'Jugá partidas 2v2 para aparecer en este ranking' : 'Jugá partidas en la sección Match para aparecer en este ranking'}</p>
+              <span style={{ fontSize: 44 }}>{mode === 'ranked2v2' ? '??' : '??'}</span>
+              <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas {mode === 'ranked2v2' ? '2v2' : 'ranked'} a�n</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>{mode === 'ranked2v2' ? 'Jug� partidas 2v2 para aparecer en este ranking' : 'Jug� partidas en la secci�n Match para aparecer en este ranking'}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4720,7 +4720,7 @@ function TabRankings({ user, setTab }) {
             </div>
           )}
 
-          {/* ═══ JUGADORES EN LÍNEA ═══ */}
+          {/* --- JUGADORES EN L�NEA --- */}
           <div style={{ marginTop: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E' }} />
@@ -4737,7 +4737,7 @@ function TabRankings({ user, setTab }) {
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E', flexShrink: 0 }} />
                     <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.userName}</p>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
-                      {p.platform === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}
+                      {p.platform === 'switch' ? '?? Switch' : '??? Parsec'}
                     </span>
                   </div>
                 ))}
@@ -4748,23 +4748,23 @@ function TabRankings({ user, setTab }) {
       ) : mode !== 'char' ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{mode === 'ba' ? '📍 Buenos Aires' : 'INC'}</p>
-            <Tag color="#EAB308">Próximamente</Tag>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{mode === 'ba' ? '?? Buenos Aires' : 'INC'}</p>
+            <Tag color="#EAB308">Pr�ximamente</Tag>
           </div>
 
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>??</div>
             <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'AFK' : 'Smash INC'}</p>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán automáticamente después de cada torneo registrado en Start.GG</p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizar�n autom�ticamente despu�s de cada torneo registrado en Start.GG</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {['🥇 1er lugar', '🥈 2do lugar', '🥉 3er lugar', '4° lugar', '5° lugar'].map((label, i) => (
+              {['?? 1er lugar', '?? 2do lugar', '?? 3er lugar', '4� lugar', '5� lugar'].map((label, i) => (
                 <div key={i} style={{ background: i === 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, padding: '8px 14px' }}>
                   <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: i === 0 ? '#EAB308' : 'rgba(255,255,255,0.3)' }}>{label}</p>
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 20, display: 'inline-flex', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 10, padding: '7px 16px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Pr�ximamente</span>
             </div>
           </div>
         </>
@@ -4772,7 +4772,7 @@ function TabRankings({ user, setTab }) {
         <>
           {/* Selector de plataforma */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
+            {[{ id: 'switch', label: '?? Switch Online' }, { id: 'parsec', label: '??? Parsec' }].map(p => (
               <button key={p.id} onClick={() => { setCharPlat(p.id); setCharSel(null); }} style={{
                 flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
                 cursor: 'pointer', transition: 'all 0.15s',
@@ -4785,9 +4785,9 @@ function TabRankings({ user, setTab }) {
 
           {!charSel ? (
             <>
-              {/* Búsqueda + grid */}
+              {/* B�squeda + grid */}
               <input
-                placeholder="🔍 Buscar personaje…"
+                placeholder="?? Buscar personaje�"
                 value={charSearch}
                 onChange={e => setCharSearch(e.target.value)}
                 style={{
@@ -4818,13 +4818,13 @@ function TabRankings({ user, setTab }) {
                 <button onClick={() => setCharSel(null)} style={{
                   background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 10, padding: '7px 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 13,
-                }}>← Volver</button>
+                }}>? Volver</button>
                 {(() => { const c = CHARACTERS.find(x => x.id === charSel); return c ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                     <img src={charImgPath(c.img)} alt={c.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }} />
                     <div>
                       <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#fff' }}>{c.name}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{charPlat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec'}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{charPlat === 'switch' ? '?? Switch Online' : '??? Parsec'}</p>
                     </div>
                   </div>
                 ) : null; })()}
@@ -4846,9 +4846,9 @@ function TabRankings({ user, setTab }) {
                 </div>
               ) : charBoard.length === 0 ? (
                 <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
-                  <span style={{ fontSize: 44 }}>🎮</span>
-                  <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas todavía</p>
-                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Nadie jugó ranked con este personaje en esta plataforma aún</p>
+                  <span style={{ fontSize: 44 }}>??</span>
+                  <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin partidas todav�a</p>
+                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Nadie jug� ranked con este personaje en esta plataforma a�n</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4864,7 +4864,7 @@ function TabRankings({ user, setTab }) {
 
       {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
 
-      {/* ═══ MODAL PERFIL JUGADOR (Rankings) ═══ */}
+      {/* --- MODAL PERFIL JUGADOR (Rankings) --- */}
       {viewProfile && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           {/* Sticky top bar */}
@@ -4877,7 +4877,7 @@ function TabRankings({ user, setTab }) {
 
           {profileLoading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil…</p>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>Cargando perfil�</p>
             </div>
           ) : profileData ? (
             <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
@@ -4912,7 +4912,7 @@ function TabRankings({ user, setTab }) {
               })()}
 
               <div style={{ padding: '0 18px 40px' }}>
-                {/* Estadísticas */}
+                {/* Estad�sticas */}
                 {(() => {
                   const sw1 = profileData.stats?.switch || {}; const pc1 = profileData.stats?.parsec || {};
                   const sw2 = profileData.doublesStats?.switch || {}; const pc2 = profileData.doublesStats?.parsec || {};
@@ -4923,7 +4923,7 @@ function TabRankings({ user, setTab }) {
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 12px' }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#22C55E,#16A34A)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estadísticas</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Estad�sticas</p>
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                         {[
@@ -4948,9 +4948,9 @@ function TabRankings({ user, setTab }) {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>🏆 Resumen</p>
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Resumen</p>
                       </div>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {profileStartggStats.totalSets} sets</p>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG � {profileStartggStats.totalSets} sets</p>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
                       {profileStartggStats.charUsage.slice(0, 3).map((ch, i) => {
@@ -5011,7 +5011,7 @@ function TabRankings({ user, setTab }) {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
-                            <button onClick={() => setShowCharsModalRank(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                            <button onClick={() => setShowCharsModalRank(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
                           </div>
                           <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                             {profileStartggStats.charUsage.map((ch, i) => {
@@ -5033,9 +5033,9 @@ function TabRankings({ user, setTab }) {
                                     <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                                       <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
                                     </div>
-                                    <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g � {cWR}% WR</p>
                                   </div>
-                                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>›</span>
+                                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>�</span>
                                 </div>
                               );
                             })}
@@ -5114,21 +5114,21 @@ function TabRankings({ user, setTab }) {
                 {/* Ranked 1v1 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Ranked</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                   {['switch', 'parsec'].map(plat => {
                     const s = profileData.stats?.[plat] || {};
                     const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                    const rankName = s.rank || 'Plástico 1'; const rp = s.rankedPoints || 0;
+                    const rankName = s.rank || 'Pl�stico 1'; const rp = s.rankedPoints || 0;
                     const isUnranked = total === 0; const inPlacement = !s?.placementDone && !isUnranked;
                     const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : '?';
                     const rankColor = rankObj?.color || '#9CA3AF';
                     const pColor = plat === 'switch' ? '#EF4444' : '#8B5CF6';
                     return (
                       <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(255,140,0,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(255,140,0,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{plat === 'switch' ? '?? Switch' : '??? Parsec'}</p>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
@@ -5143,7 +5143,7 @@ function TabRankings({ user, setTab }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
-                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W � {losses}L</p>
                       </div>
                     );
                   })}
@@ -5152,20 +5152,20 @@ function TabRankings({ user, setTab }) {
                 {/* Ranked 2v2 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#A78BFA,#7C3AED)', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>👥 Ranked 2v2</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Ranked 2v2</p>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                   {['switch', 'parsec'].map(plat => {
                     const s = profileData.doublesStats?.[plat] || {};
                     const wins = s.wins || 0; const losses = s.losses || 0; const total = wins + losses;
-                    const rankName = s.rank || 'Plástico 1'; const rp = s.rankedPoints || 0;
+                    const rankName = s.rank || 'Pl�stico 1'; const rp = s.rankedPoints || 0;
                     const isUnranked = total === 0; const inPlacement = !s?.placementDone && !isUnranked;
                     const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
-                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '🎮') : '?';
+                    const tierIcon = rankObj ? (TIER_ICONS[rankObj.tier] || '??') : '?';
                     const rankColor = rankObj?.color || '#9CA3AF';
                     return (
                       <div key={plat} style={{ flex: 1, background: isUnranked ? 'rgba(255,255,255,0.03)' : inPlacement ? 'rgba(124,58,237,0.04)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${isUnranked ? 'rgba(255,255,255,0.07)' : inPlacement ? 'rgba(124,58,237,0.2)' : rankColor + '35'}`, borderRadius: 20, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: plat === 'switch' ? '#EF4444' : '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>2V2 {plat === 'switch' ? '?? Switch' : '??? Parsec'}</p>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: (isUnranked || inPlacement) ? 'rgba(255,255,255,0.05)' : `${rankColor}18`, border: `2px solid ${(isUnranked || inPlacement) ? 'rgba(255,255,255,0.1)' : rankColor + '55'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
                           {(isUnranked || inPlacement) ? <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 20 }}>?</span> : tierIcon}
                         </div>
@@ -5180,7 +5180,7 @@ function TabRankings({ user, setTab }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
-                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W � {losses}L</p>
                       </div>
                     );
                   })}
@@ -5189,7 +5189,7 @@ function TabRankings({ user, setTab }) {
                 {/* Historial */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>?? Historial</p>
                 </div>
                 <ProfileHistorySection
                   history={profileData.history || []}
@@ -5213,9 +5213,9 @@ function TabRankings({ user, setTab }) {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TAB — TORNEOS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   TAB � TORNEOS
+═══════════════════════════════════════════════════ */
 // Componente contador de tiempo transcurrido (para torneos iniciados)
 function ElapsedTimer({ startAt }) {
   const [elapsed, setElapsed] = useState(() => Math.max(0, Math.floor((Date.now() - new Date(startAt).getTime()) / 1000)));
@@ -5321,31 +5321,31 @@ function TabTorneos({ user }) {
               )}
               <div style={{ padding: '14px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
+                  <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>??</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                       <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                      {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>📌 DEST.</span>}
+                      {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>?? DEST.</span>}
                     </div>
-                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>?? {formatStartggDate(t.startAt)}</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   {(() => {
                     if (_isFinished) return (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>?? Finalizado</span>
                     );
                     if (_isStarted) return (
                       <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00', padding: '3px 8px', background: 'rgba(232,142,0,0.12)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 8 }}>
-                        🚀 En curso{t.startAt ? <> · <ElapsedTimer startAt={t.startAt} /></> : ''}
+                        ?? En curso{t.startAt ? <> � <ElapsedTimer startAt={t.startAt} /></> : ''}
                       </span>
                     );
                     if (t.registrationOpen) return (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>? Inscripciones abiertas</span>
                     );
                     return null;
                   })()}
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>👥 {t.attendees} inscriptos</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>?? {t.attendees} inscriptos</span>
                 </div>
                 {(t.events || []).map(e => {
                   const eventUrl = e.slug ? `https://www.start.gg/${e.slug}` : t.url;
@@ -5356,11 +5356,11 @@ function TabTorneos({ user }) {
                     <div key={e.id} style={{ marginTop: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '10px 12px' }}>
                       <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{e.name}</p>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento →</a>
+                        <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento ?</a>
                         {checked && enrolled ? (
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#818CF8', padding: '6px 14px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 10 }}>🎟️ Inscrito</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#818CF8', padding: '6px 14px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 10 }}>??? Inscrito</span>
                         ) : !_isStarted && !_isFinished && t.registrationOpen ? (
-                          <a href={registerUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'linear-gradient(135deg,#E88E00,#E85000)', borderRadius: 10 }}>📝 Inscribirse</a>
+                          <a href={registerUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'linear-gradient(135deg,#E88E00,#E85000)', borderRadius: 10 }}>?? Inscribirse</a>
                         ) : null}
                       </div>
                     </div>
@@ -5373,18 +5373,18 @@ function TabTorneos({ user }) {
         </div>
       ) : (
         <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '44px 24px', textAlign: 'center' }}>
-          <span style={{ fontSize: 44 }}>📋</span>
+          <span style={{ fontSize: 44 }}>??</span>
           <p style={{ margin: '14px 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Sin torneos activos</p>
-          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer acá automáticamente</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los torneos de Start.GG van a aparecer ac� autom�ticamente</p>
         </div>
       )}
     </div>
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TAB — TIPS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   TAB � TIPS
+═══════════════════════════════════════════════════ */
 const CHARS = [
   'Banjo Kazooie','Bayonetta','Bowser','Bowser Jr.','Byleth','Captain Falcon',
   'Chrom','Cloud','Corrin','Daisy','Dark Pit','Dark Samus','Diddy Kong','Donkey Kong',
@@ -5400,7 +5400,7 @@ const CHARS = [
   'Wii Fit Trainer','Wolf','Yoshi','Young Link','Zelda','Zero Suit Samus',
 ];
 
-/* â”€â”€â”€ TIP CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── TIP CARD ───────────────────────────────────── */
 function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
   const [editing, setEditing]             = useState(false);
   const [editText, setEditText]           = useState('');
@@ -5430,7 +5430,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
     const allowed = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm'];
     if (!allowed.includes(file.type)) { setEditError('Tipo no permitido'); return; }
     const limitMB = file.type.startsWith('video') ? 40 : 5;
-    if (file.size > limitMB * 1024 * 1024) { setEditError(`Máximo ${limitMB} MB`); return; }
+    if (file.size > limitMB * 1024 * 1024) { setEditError(`M�ximo ${limitMB} MB`); return; }
     const reader = new FileReader();
     reader.onload = ev => { setEditNewMedia(ev.target.result); setEditNewMediaName(file.name); setEditRemoveMedia(false); setEditError(null); };
     reader.readAsDataURL(file);
@@ -5454,12 +5454,12 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
         mediaIsVideo: editRemoveMedia ? false : (data.tip?.mediaIsVideo ?? tip.mediaIsVideo),
       };
       onEdit(updated); setEditing(false);
-    } catch { setEditError('Error de conexión'); }
+    } catch { setEditError('Error de conexi�n'); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('¿Eliminar este tip?')) return;
+    if (!window.confirm('�Eliminar este tip?')) return;
     try {
       const r = await fetch(`/api/tips/${encodeURIComponent(tip.char)}`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
@@ -5469,14 +5469,14 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
     } catch {}
   };
 
-  // Vista en modo edición
+  // Vista en modo edici�n
   if (editing) {
     const previewMedia = editRemoveMedia ? null : (editNewMedia || tip.mediaData);
     const previewIsVideo = editRemoveMedia ? false : (editNewMedia ? editNewMedia.startsWith('data:video') : tip.mediaIsVideo);
     return (
       <div style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 18, overflow: 'hidden', marginBottom: 10 }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(232,142,0,0.07)' }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#FF8C00' }}>✏️ Editando tip</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#FF8C00' }}>?? Editando tip</span>
         </div>
         {previewMedia && (
           previewIsVideo
@@ -5488,12 +5488,12 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
             style={{ width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '7px 10px', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
-              📷 {editNewMediaName || 'Cambiar foto/video'}
+              ?? {editNewMediaName || 'Cambiar foto/video'}
               <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" onChange={handleEditFile} style={{ display: 'none' }} />
             </label>
             {(editNewMedia || tip.mediaData) && !editRemoveMedia && (
               <button onClick={() => { setEditRemoveMedia(true); setEditNewMedia(null); }}
-                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '7px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>âœ• Quitar media</button>
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '7px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>✕ Quitar media</button>
             )}
           </div>
           <input type="url" value={editVideoUrl} onChange={e => setEditVideoUrl(e.target.value)} placeholder="Link de YouTube / Vimeo..."
@@ -5525,7 +5525,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
       {tip.videoUrl && (
         <a href={tip.videoUrl} target="_blank" rel="noopener noreferrer"
           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(255,0,0,0.08)', borderBottom: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none' }}>
-          <span style={{ fontSize: 20 }}>â–¶ï¸</span>
+          <span style={{ fontSize: 20 }}>▶️</span>
           <span style={{ fontSize: 12, color: '#FF8C00', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Ver video</span>
         </a>
       )}
@@ -5538,9 +5538,9 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
           {isOwner && (
             <>
               <button onClick={openEdit} title="Editar"
-                style={{ background: 'none', border: 'none', color: 'rgba(255,200,0,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>✏️</button>
+                style={{ background: 'none', border: 'none', color: 'rgba(255,200,0,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>??</button>
               <button onClick={handleDelete} title="Eliminar"
-                style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>🗑️</button>
+                style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.65)', fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1 }}>???</button>
             </>
           )}
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{new Date(tip.createdAt).toLocaleDateString('es-AR')}</span>
@@ -5573,7 +5573,7 @@ function TabTips() {
   const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('afk_user') || '{}') : {};
   const _rawUid = stored?.user?.id || stored?.user?.slug;
   const currentUserId = _rawUid != null ? String(_rawUid) : null;
-  const currentUserName = stored?.user?.name || 'Anónimo';
+  const currentUserName = stored?.user?.name || 'An�nimo';
 
   // Cargar contadores cuando se muestra la lista
   useEffect(() => {
@@ -5600,11 +5600,11 @@ function TabTips() {
     if (!file) return;
     const allowed = ['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm'];
     if (!allowed.includes(file.type)) {
-      setSubmitResult({ error: 'Tipo no permitido. Usá JPG, PNG, GIF, WebP, MP4 o WebM' }); return;
+      setSubmitResult({ error: 'Tipo no permitido. Us� JPG, PNG, GIF, WebP, MP4 o WebM' }); return;
     }
     const limitMB = file.type.startsWith('video') ? 40 : 5;
     if (file.size > limitMB * 1024 * 1024) {
-      setSubmitResult({ error: `Máximo ${limitMB} MB para este tipo de archivo` }); return;
+      setSubmitResult({ error: `M�ximo ${limitMB} MB para este tipo de archivo` }); return;
     }
     const reader = new FileReader();
     reader.onload = ev => { setTipMediaData(ev.target.result); setTipMediaName(file.name); setSubmitResult(null); };
@@ -5613,7 +5613,7 @@ function TabTips() {
 
   const submitTip = async () => {
     if (!tipText.trim() && !tipMediaData && !tipVideoUrl.trim()) {
-      setSubmitResult({ error: 'Ingresá texto, foto o un link de video' }); return;
+      setSubmitResult({ error: 'Ingres� texto, foto o un link de video' }); return;
     }
     setSubmitting(true); setSubmitResult(null);
     try {
@@ -5631,7 +5631,7 @@ function TabTips() {
       setShowForm(false);
       setSubmitResult({ ok: true });
       setTimeout(() => setSubmitResult(null), 3000);
-    } catch { setSubmitResult({ error: 'Error de conexión' }); }
+    } catch { setSubmitResult({ error: 'Error de conexi�n' }); }
     finally { setSubmitting(false); }
   };
 
@@ -5668,7 +5668,7 @@ function TabTips() {
           </div>
         </div>
 
-        {/* Botón subir tip */}
+        {/* Bot�n subir tip */}
         <button onClick={() => { setShowForm(v => !v); setSubmitResult(null); }} style={{
           width: '100%', marginBottom: 14, padding: '12px 16px', borderRadius: 14,
           background: showForm ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,rgba(232,142,0,0.15),rgba(232,142,0,0.06))',
@@ -5676,18 +5676,18 @@ function TabTips() {
           color: '#FF8C00', fontWeight: 800, fontSize: 14, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          {showForm ? 'âœ• Cancelar' : '+ Subir tip'}
+          {showForm ? '✕ Cancelar' : '+ Subir tip'}
         </button>
 
         {/* Formulario */}
         {showForm && (
           <div style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: 16, marginBottom: 14 }}>
-            <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 14, color: '#fff' }}>Nuevo tip — {selected}</p>
+            <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 14, color: '#fff' }}>Nuevo tip � {selected}</p>
 
             <textarea
               value={tipText}
               onChange={e => setTipText(e.target.value)}
-              placeholder="Contá tu tip, combo o estrategia..."
+              placeholder="Cont� tu tip, combo o estrategia..."
               maxLength={2000}
               rows={4}
               style={{ width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
@@ -5695,11 +5695,11 @@ function TabTips() {
 
             <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                📷 {tipMediaName || 'Foto / Video'}
+                ?? {tipMediaName || 'Foto / Video'}
                 <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" onChange={handleFile} style={{ display: 'none' }} />
               </label>
               {tipMediaData && (
-                <button onClick={() => { setTipMediaData(null); setTipMediaName(''); }} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '8px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>âœ• Quitar</button>
+                <button onClick={() => { setTipMediaData(null); setTipMediaName(''); }} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '8px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>✕ Quitar</button>
               )}
             </div>
 
@@ -5717,7 +5717,7 @@ function TabTips() {
               type="url"
               value={tipVideoUrl}
               onChange={e => setTipVideoUrl(e.target.value)}
-              placeholder="O pegá un link de YouTube / Vimeo..."
+              placeholder="O peg� un link de YouTube / Vimeo..."
               style={{ marginTop: 10, width: '100%', background: '#161620', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 12px', fontSize: 13, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
             />
 
@@ -5734,7 +5734,7 @@ function TabTips() {
 
         {submitResult?.ok && (
           <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 14, padding: '10px 14px', marginBottom: 14, textAlign: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399' }}>âœ… Tip publicado</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399' }}>✅ Tip publicado</span>
           </div>
         )}
 
@@ -5744,9 +5744,9 @@ function TabTips() {
           </div>
         ) : tips.length === 0 ? (
           <div style={{ background: '#10101A', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 20, padding: '40px 24px', textAlign: 'center' }}>
-            <span style={{ fontSize: 40 }}>💡</span>
-            <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todavía</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Sé el primero en colaborar con la comunidad</p>
+            <span style={{ fontSize: 40 }}>??</span>
+            <p style={{ margin: '14px 0 4px', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Sin tips todav�a</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>S� el primero en colaborar con la comunidad</p>
           </div>
         ) : (
           [...tips].reverse().map(t => <TipCard key={t.id} tip={t} currentUserId={currentUserId} currentUserName={currentUserName} onDelete={handleDeleteTip} onEdit={handleEditTip} />)
@@ -5761,10 +5761,10 @@ function TabTips() {
 
   return (
     <div style={{ padding: '0 18px 24px' }}>
-      {/* Sticky header: título + buscador */}
+      {/* Sticky header: t�tulo + buscador */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0B0B12', padding: '24px 0 12px' }}>
         <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Tips</h1>
-        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Elegí un personaje · {CHARS.length} disponibles</p>
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Eleg� un personaje � {CHARS.length} disponibles</p>
 
         {/* Search */}
         <div style={{ position: 'relative' }}>
@@ -5785,14 +5785,14 @@ function TabTips() {
           }}
         />
         {query && (
-          <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+          <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>�</button>
         )}
         </div>
       </div>{/* /sticky header */}
 
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <span style={{ fontSize: 32 }}>🔍</span>
+          <span style={{ fontSize: 32 }}>??</span>
           <p style={{ margin: '10px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Sin resultados para "{query}"</p>
         </div>
       ) : (
@@ -5823,10 +5823,10 @@ function TabTips() {
         </div>
       )}
 
-      {/* Botón sugerencias */}
+      {/* Bot�n sugerencias */}
       <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <button onClick={() => { setShowSuggestions(true); setSugResult(null); }} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.07)', color: '#A78BFA', fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          💬 Dejar una sugerencia
+          ?? Dejar una sugerencia
         </button>
       </div>
 
@@ -5835,17 +5835,17 @@ function TabTips() {
         <div onClick={() => setShowSuggestions(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 32px' }}>
             <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>💬 Sugerencias</p>
-              <button onClick={() => setShowSuggestions(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>?? Sugerencias</p>
+              <button onClick={() => setShowSuggestions(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>?</button>
             </div>
             <div style={{ padding: '20px 20px 0' }}>
               <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu nombre</p>
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
                 <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{currentUserName}</p>
               </div>
-              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Categoría</p>
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Categor�a</p>
               <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-                {['Bug', 'Mejora', 'Nueva función', 'Otro'].map(cat => (
+                {['Bug', 'Mejora', 'Nueva funci�n', 'Otro'].map(cat => (
                   <button key={cat} onClick={() => setSugCategory(cat)} style={{ padding: '6px 12px', borderRadius: 10, border: `1px solid ${sugCategory === cat ? '#A78BFA' : 'rgba(255,255,255,0.1)'}`, background: sugCategory === cat ? 'rgba(167,139,250,0.15)' : 'transparent', color: sugCategory === cat ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{cat}</button>
                 ))}
               </div>
@@ -5858,10 +5858,10 @@ function TabTips() {
                 style={{ width: '100%', background: '#10101A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: '#fff', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
               />
               {sugResult?.error && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#EF4444' }}>{sugResult.error}</p>}
-              {sugResult?.ok && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#34D399' }}>¡Gracias por tu sugerencia! ✓</p>}
+              {sugResult?.ok && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#34D399' }}>�Gracias por tu sugerencia! ?</p>}
               <button
                 onClick={async () => {
-                  if (!sugMessage.trim()) { setSugResult({ error: 'Escribí algo antes de enviar' }); return; }
+                  if (!sugMessage.trim()) { setSugResult({ error: 'Escrib� algo antes de enviar' }); return; }
                   setSugSending(true); setSugResult(null);
                   try {
                     const r = await fetch('/api/suggestions', {
@@ -5872,13 +5872,13 @@ function TabTips() {
                     if (!r.ok) { setSugResult({ error: data.error || 'Error al enviar' }); return; }
                     setSugResult({ ok: true }); setSugMessage('');
                     setTimeout(() => setShowSuggestions(false), 1500);
-                  } catch { setSugResult({ error: 'Error de conexión' }); }
+                  } catch { setSugResult({ error: 'Error de conexi�n' }); }
                   finally { setSugSending(false); }
                 }}
                 disabled={sugSending}
                 style={{ marginTop: 14, width: '100%', padding: '13px', borderRadius: 16, border: 'none', background: sugSending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#A78BFA,#7C3AED)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: sugSending ? 'not-allowed' : 'pointer' }}
               >
-                {sugSending ? '⏳ Enviando…' : '📨 Enviar sugerencia'}
+                {sugSending ? '? Enviando�' : '?? Enviar sugerencia'}
               </button>
             </div>
           </div>
@@ -5888,20 +5888,20 @@ function TabTips() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TAB — MATCH
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   TAB � MATCH
+═══════════════════════════════════════════════════ */
 const STAGE_EMOJI = {
-  'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '🗡️',
-  'Pokémon Stadium 2': '⚡', 'Town & City': '🏙️', 'Smashville': '🏡',
-  'Hollow Bastion': '🏰', 'Kalos Pokémon League': '🔷',
+  'Battlefield': '??', 'Final Destination': '??', 'Small Battlefield': '???',
+  'Pok�mon Stadium 2': '?', 'Town & City': '???', 'Smashville': '??',
+  'Hollow Bastion': '??', 'Kalos Pok�mon League': '??',
 };
 
 function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; }
 
-/* ─── CharPicker ─────────────────────────────────────────────────────────── */
+/* --- CharPicker ----------------------------------------------------------- */
 function CharPicker({ selected, onSelect, platform, userId }) {
-  // ─ Estado persistido: personajes usados recientemente ─
+  // - Estado persistido: personajes usados recientemente -
   const [recentIds, setRecentIds] = useState([]);
 
   // Cargar recientes desde Redis al montar (o migrar desde localStorage)
@@ -5915,7 +5915,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
           // Sincronizar localStorage con lo que tiene Redis
           try { localStorage.setItem('afk_recent_chars', JSON.stringify(ids)); } catch {}
         } else if (typeof window !== 'undefined') {
-          // Redis vacío → migrar localStorage a Redis
+          // Redis vac�o ? migrar localStorage a Redis
           try {
             const local = JSON.parse(localStorage.getItem('afk_recent_chars') || '[]');
             if (local.length) {
@@ -5937,7 +5937,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
       });
   }, [userId]);
 
-  // ─ Estado interno del picker ─
+  // - Estado interno del picker -
   const [expanded, setExpanded]         = useState(!selected);
   const [search, setSearch]             = useState('');
   const [stats, setStats]               = useState(null);
@@ -5975,21 +5975,21 @@ function CharPicker({ selected, onSelect, platform, userId }) {
 
   const char = CHARACTERS.find(c => c.id === selected);
 
-  // ── Vista colapsada (personaje ya elegido) ──────────────────────────────
+  // -- Vista colapsada (personaje ya elegido) ------------------------------
   if (char && !expanded) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.28)', borderRadius: 14 }}>
         <img src={charImgPath(char.img)} alt={char.name} style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontWeight: 900, fontSize: 15, color: '#fff' }}>{char.name}</p>
-          {loadingStats && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cargando stats…</p>}
+          {loadingStats && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cargando stats�</p>}
           {!loadingStats && stats?.myStats && (
             <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
-              {stats.myStats.wins}V · {stats.myStats.losses}D · #{stats.myRank ?? '—'} ranking
+              {stats.myStats.wins}V � {stats.myStats.losses}D � #{stats.myRank ?? '�'} ranking
             </p>
           )}
           {!loadingStats && !stats?.myStats && platform && (
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Sin partidas aún con este personaje</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Sin partidas a�n con este personaje</p>
           )}
         </div>
         <button
@@ -6002,7 +6002,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
     );
   }
 
-  // ── Vista expandida (picker) ────────────────────────────────────────────
+  // -- Vista expandida (picker) --------------------------------------------
   const recents = recentIds.map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean);
   const filtered = CHARACTERS.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -6011,7 +6011,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
       {/* Personajes recientes */}
       {recents.length > 0 && !search && (
         <div style={{ marginBottom: 10 }}>
-          <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos jugados</p>
+          <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>�ltimos jugados</p>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {recents.map(c => (
               <button
@@ -6032,11 +6032,11 @@ function CharPicker({ selected, onSelect, platform, userId }) {
         </div>
       )}
 
-      {/* Búsqueda */}
+      {/* B�squeda */}
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
-        placeholder="Buscar personaje…"
+        placeholder="Buscar personaje�"
         style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
       />
 
@@ -6059,7 +6059,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
         ))}
       </div>
 
-      {/* Botón cancelar cambio (si ya hay uno seleccionado) */}
+      {/* Bot�n cancelar cambio (si ya hay uno seleccionado) */}
       {char && (
         <button
           onClick={() => setExpanded(false)}
@@ -6128,7 +6128,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const CONFIRM_TIMEOUT_SECS = 60;
   const CHAT_AFK_SECS        = 900; // 15 min
 
-  // ── Timer de ban/pick (cuenta regresiva 25s) ──────────────
+  // -- Timer de ban/pick (cuenta regresiva 25s) --------------
   useEffect(() => {
     if (matchStatus !== 'banning' || !matchData?.banTurnStartedAt) { setBanTimeLeft(null); return; }
     const update = () => {
@@ -6140,7 +6140,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [matchStatus, matchData?.banTurnStartedAt]); // eslint-disable-line
 
-  // ── Auto-ban/pick cuando el timer llega a 0 (lado cliente) ─
+  // -- Auto-ban/pick cuando el timer llega a 0 (lado cliente) -
   useEffect(() => {
     if (banTimeLeft !== 0 || !matchData || banAutoFiredRef.current === matchData.banTurnStartedAt) return;
     const phase = matchData.banPhase;
@@ -6170,7 +6170,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     }
   }, [banTimeLeft]); // eslint-disable-line
 
-  // ── Timer de confirmación de resultado (1 min) ────────────
+  // -- Timer de confirmaci�n de resultado (1 min) ------------
   useEffect(() => {
     if (matchStatus !== 'pending_confirm' || !matchData?.pendingResult?.reportedAt) { setConfirmTimeLeft(null); return; }
     const update = () => setConfirmTimeLeft(Math.max(0, Math.ceil(CONFIRM_TIMEOUT_SECS - (Date.now() - new Date(matchData.pendingResult.reportedAt).getTime()) / 1000)));
@@ -6179,7 +6179,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [matchStatus, matchData?.pendingResult?.reportedAt]); // eslint-disable-line
 
-  // ── Auto-confirmar cuando el servidor lo señala ───────────
+  // -- Auto-confirmar cuando el servidor lo se�ala -----------
   useEffect(() => {
     if (!bgMM?.autoConfirmSignal || autoConfirmFiredRef.current) return;
     const pending = matchData?.pendingResult;
@@ -6188,7 +6188,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     reportResult(pending.winnerId, pending.stocks, 'confirm');
   }, [bgMM?.autoConfirmSignal]); // eslint-disable-line
 
-  // ── Timer AFK de chat (15 min) ────────────────────────────
+  // -- Timer AFK de chat (15 min) ----------------------------
   useEffect(() => {
     if (!['active','pending_confirm','disputed'].includes(matchStatus) || !matchData?.activeAt) { setChatAfkTimeLeft(null); return; }
     const opp = uid === matchData.host?.userId ? matchData.guest : matchData.host;
@@ -6201,7 +6201,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [matchStatus, matchData?.activeAt, matchData?.chatPresence, uid]); // eslint-disable-line
 
-  // ── Reclamar victoria AFK cuando el servidor lo autoriza ─
+  // -- Reclamar victoria AFK cuando el servidor lo autoriza -
   useEffect(() => {
     if (bgMM?.chatAfkWinId !== uid || chatAfkFiredRef.current || !matchData?.matchId) return;
     chatAfkFiredRef.current = true;
@@ -6220,7 +6220,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     })();
   }, [bgMM?.chatAfkWinId]); // eslint-disable-line
 
-  // ── Reset refs cuando cambia el match ────────────────────
+  // -- Reset refs cuando cambia el match --------------------
   useEffect(() => {
     autoConfirmFiredRef.current = false;
     chatAfkFiredRef.current = false;
@@ -6250,7 +6250,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const [forfeitLoading, setForfeitLoading]         = useState(false);
 
-  // Estado de búsqueda
+  // Estado de b�squeda
   const [searchPlat, setSearchPlat]   = useState(null);
   const [searchChar, setSearchChar]   = useState(null);
   const [searchSkin, setSearchSkin]   = useState(1);
@@ -6269,13 +6269,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   const [parsecRole, setParsecRole]   = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('afk_parsec_role') || null;
     return null;
-  }); // 'host' | 'nohost' | null — modo de conexión para matchmaking Parsec
+  }); // 'host' | 'nohost' | null � modo de conexi�n para matchmaking Parsec
 
   // Ban state (Bo3)
   const [selectedBans, setSelectedBans] = useState([]);
   const [banLoading, setBanLoading]     = useState(false);
 
-  // Modal Cómo jugar
+  // Modal C�mo jugar
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   // Contador online
@@ -6335,7 +6335,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return () => clearInterval(iv);
   }, [uid, matchTypeMode, matchMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Timer de búsqueda (basado en searchStartedAt para sobrevivir F5)
+  // Timer de b�squeda (basado en searchStartedAt para sobrevivir F5)
   useEffect(() => {
     if (matchStatus !== 'searching') { setSearchElapsed(0); return; }
     const startedAt = bgMM?.searchStartedAt || Date.now();
@@ -6384,7 +6384,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                 data.matchStatus === 'pending_confirm' ? 'pending_confirm' :
                 data.matchStatus === 'active' ? 'active' : prev.status,
       } : prev);
-    } catch { setReportError('Error de conexión'); }
+    } catch { setReportError('Error de conexi�n'); }
     finally { setReportLoading(false); }
   };
 
@@ -6407,7 +6407,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         status: 'finished',
       } : prev);
       setShowForfeitConfirm(false);
-    } catch { setReportError('Error de conexión'); }
+    } catch { setReportError('Error de conexi�n'); }
     finally { setForfeitLoading(false); }
   };
 
@@ -6424,7 +6424,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   };
 
   const startSearch = async (platform) => {
-    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (!searchChar) { setFormError('Eleg� tu personaje primero'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/queue', {
@@ -6439,12 +6439,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
       setBgMM({ status: 'searching', plat: platform, polling: true, searchStartedAt: Date.now() });
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
   const startCasualSearch = async (platform) => {
-    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (!searchChar) { setFormError('Eleg� tu personaje primero'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/casual-queue', {
@@ -6455,7 +6455,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       if (r.status === 409) { setFormError(data.error); return; }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
       setBgMM({ status: 'searching', plat: platform, gameType: 'casual', polling: true, searchStartedAt: Date.now() });
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
@@ -6472,7 +6472,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   const startSearch2v2 = async (platform) => {
     if (!rankedParty || rankedParty.status !== 'ready') {
-      setFormError('El equipo no está completo todavía');
+      setFormError('El equipo no est� completo todav�a');
       return;
     }
     setLoading(true); setFormError(null);
@@ -6484,7 +6484,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const data = await r.json();
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
       setBgMM({ status: 'searching', plat: platform, mode: '2v2', polling: true, searchStartedAt: Date.now() });
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
@@ -6498,12 +6498,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
       setRankedParty(d.party);
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
   const joinRankedParty = async (code) => {
-    if (!code || code.length < 4) { setFormError('Ingresá el código de sala (4 caracteres)'); return; }
+    if (!code || code.length < 4) { setFormError('Ingres� el c�digo de sala (4 caracteres)'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/ranked-party', {
@@ -6513,7 +6513,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
       setRankedParty(d.party); setRankedJoinCodeInput('');
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
@@ -6538,7 +6538,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   };
 
   const createCasualParty = async (platform) => {
-    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (!searchChar) { setFormError('Eleg� tu personaje primero'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/casual-party', {
@@ -6548,13 +6548,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
       setCasualParty(d.party);
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
   const joinCasualParty = async (code) => {
-    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
-    if (!code || code.length < 4) { setFormError('Ingresá el código de sala (4 caracteres)'); return; }
+    if (!searchChar) { setFormError('Eleg� tu personaje primero'); return; }
+    if (!code || code.length < 4) { setFormError('Ingres� el c�digo de sala (4 caracteres)'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/casual-party', {
@@ -6564,7 +6564,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
       setCasualParty(d.party); setJoinCodeInput('');
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
@@ -6580,7 +6580,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   const startCasual2v2Search = async (platform) => {
     if (!casualParty || casualParty.status !== 'ready') {
-      setFormError('El equipo no está completo todavía');
+      setFormError('El equipo no est� completo todav�a');
       return;
     }
     setLoading(true); setFormError(null);
@@ -6599,7 +6599,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       if (r.status === 409) { setFormError(data.error); return; }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
       setBgMM({ status: 'searching', plat: platform, gameType: 'casual', mode: '2v2', polling: true });
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setLoading(false); }
   };
 
@@ -6607,12 +6607,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
   const BAN_STAGES_G1 = [
     'Battlefield', 'Small Battlefield', 'Town and City',
-    'Smashville', 'Pokémon Stadium 2',
+    'Smashville', 'Pok�mon Stadium 2',
   ];
 
   const BAN_STAGES_G2 = [
     'Battlefield', 'Small Battlefield', 'Town and City',
-    'Smashville', 'Pokémon Stadium 2',
+    'Smashville', 'Pok�mon Stadium 2',
     'Final Destination', 'Hollow Bastion', 'Kalos',
   ];
 
@@ -6631,7 +6631,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       setSelectedBans([]);
       setFormError(null);
       setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room } : prev);
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setBanLoading(false); }
   };
 
@@ -6649,11 +6649,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       setSelectedBans([]);
       setFormError(null);
       setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room } : prev);
-    } catch { setFormError('Error de conexión'); }
+    } catch { setFormError('Error de conexi�n'); }
     finally { setBanLoading(false); }
   };
 
-  // ═══ RENDER: RESULTADO FINAL ═══════════════════════════════════════════
+  // --- RENDER: RESULTADO FINAL -------------------------------------------
   if (matchStatus === 'finished' && matchData?.result) {
     const is2v2Finished = matchData.mode === '2v2';
     const myTeamFinished = is2v2Finished ? (matchData.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
@@ -6669,13 +6669,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <Svg size={18} sw={2}>{ICO.back}</Svg> Nueva partida
         </button>
         <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: '1px solid ' + (iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'), borderRadius: 24, marginBottom: 16 }}>
-          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
-          {isCasualFinished && <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚔️ Partida Normal</p>}
-          <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? (is2v2Finished ? '¡Ganaron!' : '¡Ganaste!') : (is2v2Finished ? 'Perdieron' : 'Perdiste')}</p>
-          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado 💪' : 'La próxima será'}</p>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '??' : '??'}</div>
+          {isCasualFinished && <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>?? Partida Normal</p>}
+          <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? (is2v2Finished ? '�Ganaron!' : '�Ganaste!') : (is2v2Finished ? 'Perdieron' : 'Perdiste')}</p>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado ??' : 'La pr�xima ser�'}</p>
           {stocks && (
             <div style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={charImgPath(winnerCharData.img)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={charImgPath(winnerCharData.img)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>??</span>)}
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>{stocks} stock{stocks > 1 ? 's' : ''} de ventaja</span>
             </div>
           )}
@@ -6693,13 +6693,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           {matchData.format === 'bo3' && matchData.result?.games?.length > 0 && (
             <div style={{ marginTop: 16, textAlign: 'left', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '10px 14px' }}>
               <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                Score: {matchData.result.score?.[uid] || 0} — {matchData.result.score?.[Object.keys(matchData.result.score || {}).find(k => k !== uid)] || 0}
+                Score: {matchData.result.score?.[uid] || 0} � {matchData.result.score?.[Object.keys(matchData.result.score || {}).find(k => k !== uid)] || 0}
               </p>
               {matchData.result.games.map(g => {
                 const gWon = g.result?.winnerId === uid;
                 return (
                   <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0' }}>
-                    <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
+                    <span style={{ fontSize: 12 }}>{gWon ? '??' : '??'}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: gWon ? '#22C55E' : '#EF4444' }}>Game {g.gameNum}: {g.stage || g.result?.stage}</span>
                   </div>
                 );
@@ -6714,14 +6714,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  // ═══ RENDER: MATCH ACTIVO (active / pending_confirm / disputed) ══════════
+  // --- RENDER: MATCH ACTIVO (active / pending_confirm / disputed) ----------
   if (matchData && ['active','pending_confirm','disputed'].includes(matchStatus)) {
     const is2v2 = matchData.mode === '2v2';
     const opponent = is2v2 ? null : (uid === matchData.host?.userId ? matchData.guest : matchData.host);
     const myTeam = is2v2 ? (matchData.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
     const enemyTeam = is2v2 ? (myTeam === 'team1' ? matchData.team2 : matchData.team1) : null;
-    const stage    = matchData.stage || '—';
-    const STAGE_EMOJI = { 'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '⚔️', 'Pokémon Stadium 2': '⚡', 'Town and City': '🏙️', 'Smashville': '🏘️', 'Hollow Bastion': '🏯', 'Kalos': '❄️' };
+    const stage    = matchData.stage || '�';
+    const STAGE_EMOJI = { 'Battlefield': '??', 'Final Destination': '??', 'Small Battlefield': '??', 'Pok�mon Stadium 2': '?', 'Town and City': '???', 'Smashville': '???', 'Hollow Bastion': '??', 'Kalos': '??' };
     const isBo3 = matchData.format === 'bo3';
     const gameNum = matchData.currentGame || 1;
     const myScore = isBo3 ? (matchData.score?.[uid] || 0) : 0;
@@ -6732,9 +6732,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     return (
       <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '🎮'}</div>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '??'}</div>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>{is2v2 ? '¡Rivales encontrados!' : '¡Rival encontrado!'}</p>
+            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>{is2v2 ? '�Rivales encontrados!' : '�Rival encontrado!'}</p>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p?.label}</p>
           </div>
           {isBo3 && (
@@ -6742,7 +6742,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Game {gameNum}/3</p>
               <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 900, color: '#fff' }}>
                 <span style={{ color: '#22C55E' }}>{myScore}</span>
-                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>—</span>
+                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>�</span>
                 <span style={{ color: '#EF4444' }}>{oppScore}</span>
               </p>
             </div>
@@ -6756,14 +6756,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(52,211,153,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
               <div>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Vos</p>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#34D399' }}>{myChar?.name || myData?.charId || '—'}</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#34D399' }}>{myChar?.name || myData?.charId || '�'}</p>
               </div>
             </div>
             <span style={{ fontSize: 18, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end', textAlign: 'right' }}>
               <div>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Rival</p>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '�'}</p>
               </div>
               {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
             </div>
@@ -6785,7 +6785,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         {!is2v2 && (
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
             <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
-            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '�'}</p>
           </div>
         )}
 
@@ -6796,21 +6796,21 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ position: 'relative', background: STAGE_IMG[stage] ? 'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 65%, transparent 100%)' : 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', padding: '14px 16px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,165,0,0.8)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario</p>
             <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#FF8C00' }}>{stage}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stock 3 · 7 min · Sin objetos</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stock 3 � 7 min � Sin objetos</p>
           </div>
         </div>
 
         <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.12)', borderRadius: 14, padding: '10px 14px' }}>
           <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-            {bgMM?.plat === 'switch' ? '🎮 Coordiná con tu rival quién crea la Arena en Nintendo Switch Online.' : '🖥️ Coordiná con tu rival quién hostea la sesión en Parsec.'}
+            {bgMM?.plat === 'switch' ? '?? Coordin� con tu rival qui�n crea la Arena en Nintendo Switch Online.' : '??? Coordin� con tu rival qui�n hostea la sesi�n en Parsec.'}
           </p>
         </div>
 
         {/* Scroll hint */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>↓</span>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>?</span>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 600, letterSpacing: '0.03em' }}>Chat y reporte de resultado abajo</span>
-          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>↓</span>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>?</span>
         </div>
 
         {/* AFK Timer: aviso de presencia en el chat */}
@@ -6824,14 +6824,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           return (
             <div style={{ background: chatAfkTimeLeft <= 60 ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.07)', border: `1px solid ${chatAfkTimeLeft <= 60 ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.22)'}`, borderRadius: 14, padding: '10px 14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 16 }}>⏱</span>
+                <span style={{ fontSize: 16 }}>?</span>
                 <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: chatAfkTimeLeft <= 60 ? '#EF4444' : '#FBBF24' }}>
-                  {chatAfkTimeLeft > 0 ? `${timeStr} para confirmar presencia` : '¡Tiempo agotado!'}
+                  {chatAfkTimeLeft > 0 ? `${timeStr} para confirmar presencia` : '�Tiempo agotado!'}
                 </p>
               </div>
-              {!myPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>👇 Enviá un mensaje para avisar que estás aquí</p>}
-              {myPresent && !oppPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Tu rival aún no dio señales de estar conectado</p>}
-              {myPresent && oppPresent && <p style={{ margin: 0, fontSize: 11, color: '#22C55E' }}>✅ Ambos confirmaron presencia</p>}
+              {!myPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>?? Envi� un mensaje para avisar que est�s aqu�</p>}
+              {myPresent && !oppPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Tu rival a�n no dio se�ales de estar conectado</p>}
+              {myPresent && oppPresent && <p style={{ margin: 0, fontSize: 11, color: '#22C55E' }}>? Ambos confirmaron presencia</p>}
             </div>
           );
         })()}
@@ -6842,12 +6842,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E' }} />
             <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Chat</p>
             {chatAfkTimeLeft !== null && !matchData?.chatPresence?.[uid] && (
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#FBBF24', fontWeight: 700, background: 'rgba(251,191,36,0.1)', padding: '2px 7px', borderRadius: 6 }}>Enviá un mensaje ↓</span>
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#FBBF24', fontWeight: 700, background: 'rgba(251,191,36,0.1)', padding: '2px 7px', borderRadius: 6 }}>Envi� un mensaje ?</span>
             )}
           </div>
           <div style={{ height: 130, overflowY: 'auto', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {chatMessages.length === 0 && (
-              <p style={{ margin: 'auto', fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Sin mensajes aún…</p>
+              <p style={{ margin: 'auto', fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Sin mensajes a�n�</p>
             )}
             {chatMessages.map(m => {
               const isMe = m.userId === uid;
@@ -6867,48 +6867,48 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendChat()}
-              placeholder="Escribí un mensaje…"
+              placeholder="Escrib� un mensaje�"
               maxLength={200}
               style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }}
             />
-            <button onClick={sendChat} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 10, padding: '0 14px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 18 }}>→</button>
+            <button onClick={sendChat} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 10, padding: '0 14px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 18 }}>?</button>
           </div>
         </div>
 
         {/* Reporte resultado */}
         {matchStatus === 'disputed' ? (
           <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>⚠️ Resultado en disputa</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Reportaron resultados distintos. Contactá a un admin.</p>
+            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>?? Resultado en disputa</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Reportaron resultados distintos. Contact� a un admin.</p>
           </div>
         ) : matchStatus === 'pending_confirm' && matchData.pendingResult ? (
           matchData.pendingResult.reporterId === uid ? (
             <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
-              <p style={{ margin: '0 0 6px', fontSize: 20 }}>⏳</p>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando que tu rival confirme el resultado…</p>
+              <p style={{ margin: '0 0 6px', fontSize: 20 }}>?</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando que tu rival confirme el resultado�</p>
               {confirmTimeLeft !== null && (
                 <p style={{ margin: '8px 0 0', fontSize: 11, color: confirmTimeLeft <= 10 ? '#22C55E' : 'rgba(255,255,255,0.3)' }}>
-                  {confirmTimeLeft > 0 ? `Se acepta automáticamente en ${confirmTimeLeft}s` : '✅ Auto-confirmando…'}
+                  {confirmTimeLeft > 0 ? `Se acepta autom�ticamente en ${confirmTimeLeft}s` : '? Auto-confirmando�'}
                 </p>
               )}
             </div>
           ) : (
             <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
               <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: '#fff' }}>
-                Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : 'él ganó'}
+                Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : '�l gan�'}
               </p>
               {confirmTimeLeft !== null && confirmTimeLeft <= 30 && (
                 <p style={{ margin: '-4px 0 8px', fontSize: 11, color: '#EF4444', fontWeight: 700 }}>
-                  ⚠️ Si no respondés en {confirmTimeLeft}s, se confirma automáticamente
+                  ?? Si no respond�s en {confirmTimeLeft}s, se confirma autom�ticamente
                 </p>
               )}
               {matchData.pendingResult.winnerId === uid && (
                 <div style={{ marginBottom: 12 }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>¿Con cuántos stocks quedaste?</p>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>�Con cu�ntos stocks quedaste?</p>
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                     {[1,2,3].map(n => (
                       <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, maxWidth: 100, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                        {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+                        {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>??</span>)}
                       </button>
                     ))}
                   </div>
@@ -6916,31 +6916,31 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               )}
               {matchData.pendingResult.winnerId !== uid && (
                 <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-                  Según tu rival: {matchData.pendingResult.stocks} stock{matchData.pendingResult.stocks > 1 ? 's' : ''}
+                  Seg�n tu rival: {matchData.pendingResult.stocks} stock{matchData.pendingResult.stocks > 1 ? 's' : ''}
                 </p>
               )}
               {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>✅ Confirmar</button>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>❌ Negar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>? Confirmar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>? Negar</button>
               </div>
             </div>
           )
         ) : matchStatus !== 'pending_confirm' ? (
           <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
-            <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
+            <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 800, color: '#fff' }}>�Qui�n gan�?</p>
             <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stocks que te quedaban</p>
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {[1,2,3].map(n => (
                 <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+                  {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>??</span>)}
                 </button>
               ))}
             </div>
             {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button onClick={() => reportResult(is2v2 ? myTeam : uid, reportStocks)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>🏆 {is2v2 ? 'Ganamos' : 'Yo gané'}</button>
-              <button onClick={() => reportResult(is2v2 ? (myTeam === 'team1' ? 'team2' : 'team1') : (uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId), 1)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>💀 {is2v2 ? 'Perdimos' : 'Perdí'}</button>
+              <button onClick={() => reportResult(is2v2 ? myTeam : uid, reportStocks)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>?? {is2v2 ? 'Ganamos' : 'Yo gan�'}</button>
+              <button onClick={() => reportResult(is2v2 ? (myTeam === 'team1' ? 'team2' : 'team1') : (uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId), 1)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>?? {is2v2 ? 'Perdimos' : 'Perd�'}</button>
             </div>
           </div>
         ) : null}
@@ -6949,22 +6949,22 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         {!is2v2 && matchStatus !== 'disputed' && (
           showForfeitConfirm ? (
             <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
-              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>🏳️ ¿Confirmás que querés rendirte?</p>
-              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganará automáticamente y perderás puntos.</p>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>??? �Confirm�s que quer�s rendirte?</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganar� autom�ticamente y perder�s puntos.</p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowForfeitConfirm(false)} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '⏳ Procesando…' : '🏳️ Sí, rendirme'}</button>
+                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '? Procesando�' : '??? S�, rendirme'}</button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🏳️ Rendirse</button>
+            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>??? Rendirse</button>
           )
         )}
       </div>
     );
   }
 
-  // ═══ RENDER: BANNING (Bo3 stage bans) ══════════════════════════════════
+  // --- RENDER: BANNING (Bo3 stage bans) ----------------------------------
   if (matchStatus === 'banning' && matchData) {
     const is2v2 = matchData.mode === '2v2';
     const opponent = is2v2 ? null : (uid === matchData.host?.userId ? matchData.guest : matchData.host);
@@ -6978,7 +6978,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     const oppScore = is2v2 ? (matchData.score?.[myTeam2v2 === 'team1' ? 'team2' : 'team1'] || 0) : (matchData.score?.[opponent?.userId] || 0);
     const opponentLabel = is2v2
       ? `${enemyTeam2v2?.player1?.userName || '?'} & ${enemyTeam2v2?.player2?.userName || '?'}`
-      : (opponent?.userName || '—');
+      : (opponent?.userName || '�');
     const banPhase = matchData.banPhase;
     const prevGame = matchData.games?.length ? matchData.games[matchData.games.length - 1] : null;
     const prevWinnerId = prevGame?.result?.winnerId || null;
@@ -7001,38 +7001,38 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     let subtitle, showStages = false, canSelect = false, maxSelect = 0, isPickMode = false;
     if (banPhase === 'j1_ban') {
       if (iAmJ1) {
-        subtitle = 'Baneá 1 escenario';
+        subtitle = 'Bane� 1 escenario';
         showStages = true; canSelect = true; maxSelect = 1;
       } else {
-        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capit�n est� baneando�' : 'Tu rival est� baneando�';
       }
     } else if (banPhase === 'j2_ban') {
       if (iAmJ2) {
-        subtitle = 'Baneá 2 escenarios';
+        subtitle = 'Bane� 2 escenarios';
         showStages = true; canSelect = true; maxSelect = 2;
       } else {
-        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capit�n est� baneando�' : 'Tu rival est� baneando�';
       }
     } else if (banPhase === 'j1_pick') {
       if (iAmJ1) {
-        subtitle = 'Elegí un escenario';
+        subtitle = 'Eleg� un escenario';
         showStages = true; canSelect = true; maxSelect = 1; isPickMode = true;
       } else {
-        subtitle = 'Tu rival está eligiendo escenario…';
+        subtitle = 'Tu rival est� eligiendo escenario�';
       }
     } else if (banPhase === 'winner_ban') {
       if (iAmPrevWinner) {
-        subtitle = 'Baneá 3 escenarios';
+        subtitle = 'Bane� 3 escenarios';
         showStages = true; canSelect = true; maxSelect = 3;
       } else {
-        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capit�n est� baneando�' : 'Tu rival est� baneando�';
       }
     } else if (banPhase === 'loser_pick') {
       if (!iAmPrevWinner) {
-        subtitle = 'Elegí un escenario';
+        subtitle = 'Eleg� un escenario';
         showStages = true; canSelect = true; maxSelect = 1; isPickMode = true;
       } else {
-        subtitle = is2v2 && !isCapitan ? 'Tu capitán está eligiendo escenario…' : 'Tu rival está eligiendo escenario…';
+        subtitle = is2v2 && !isCapitan ? 'Tu capit�n est� eligiendo escenario�' : 'Tu rival est� eligiendo escenario�';
       }
     }
 
@@ -7053,15 +7053,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '🎮'}</div>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '??'}</div>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>⚔️ Game {gameNum} de 3</p>
+            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>?? Game {gameNum} de 3</p>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>vs {opponentLabel}</p>
           </div>
           <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '6px 12px' }}>
             <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>
               <span style={{ color: '#22C55E' }}>{myScore}</span>
-              <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>—</span>
+              <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>�</span>
               <span style={{ color: '#EF4444' }}>{oppScore}</span>
             </p>
           </div>
@@ -7072,11 +7072,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '10px 14px' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
               {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(34,197,94,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#34D399' }}>{myChar?.name || '—'}</p>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#34D399' }}>{myChar?.name || '�'}</p>
             </div>
             <span style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '�'}</p>
               {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
             </div>
           </div>
@@ -7085,8 +7085,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         {/* Subtitle / Phase */}
         <div style={{ textAlign: 'center', padding: '10px 16px', background: 'rgba(232,142,0,0.08)', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 14 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#FF8C00' }}>{subtitle}</p>
-          {showStages && !isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Seleccioná {maxSelect} escenarios para banear</p>}
-          {showStages && isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Elegí en qué escenario jugar</p>}
+          {showStages && !isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Seleccion� {maxSelect} escenarios para banear</p>}
+          {showStages && isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Eleg� en qu� escenario jugar</p>}
           {/* Cuenta regresiva del turno */}
           {banTimeLeft !== null && (
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -7094,7 +7094,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                 <span style={{ fontSize: 12, fontWeight: 900, color: banTimeLeft <= 5 ? '#EF4444' : banTimeLeft <= 15 ? '#FBBF24' : 'rgba(255,255,255,0.5)' }}>{banTimeLeft}</span>
               </div>
               <span style={{ fontSize: 11, color: banTimeLeft <= 5 ? '#EF4444' : 'rgba(255,255,255,0.35)', fontWeight: canSelect ? 700 : 400 }}>
-                {canSelect ? (banTimeLeft <= 5 ? '¡Auto-ban en instantes!' : `${banTimeLeft}s para ${isPickMode ? 'elegir' : 'banear'}`) : `Rival tiene ${banTimeLeft}s`}
+                {canSelect ? (banTimeLeft <= 5 ? '�Auto-ban en instantes!' : `${banTimeLeft}s para ${isPickMode ? 'elegir' : 'banear'}`) : `Rival tiene ${banTimeLeft}s`}
               </span>
             </div>
           )}
@@ -7105,7 +7105,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
             {allCurrentBans.map(s => (
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 8px' }}>
-                <span style={{ fontSize: 10 }}>🚫</span>
+                <span style={{ fontSize: 10 }}>??</span>
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(239,68,68,0.7)' }}>{s}</span>
               </div>
             ))}
@@ -7124,12 +7124,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                     <img src={STAGE_IMG[stage] || ''} alt={stage} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
                     {isSel && !isPickMode && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(239,68,68,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 32 }}>🚫</span>
+                        <span style={{ fontSize: 32 }}>??</span>
                       </div>
                     )}
                     {isSel && isPickMode && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 32 }}>✅</span>
+                        <span style={{ fontSize: 32 }}>?</span>
                       </div>
                     )}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px 8px 6px' }}>
@@ -7142,11 +7142,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             {/* Confirm button */}
             {isPickMode ? (
               <button onClick={() => selectedBans.length === 1 && pickStage(selectedBans[0])} disabled={selectedBans.length !== 1 || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === 1 ? 'linear-gradient(135deg,#22C55E,#16A34A)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === 1 ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === 1 ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-                {banLoading ? '⏳ Confirmando…' : `⚔️ Jugar en ${selectedBans[0] || '...'}`}
+                {banLoading ? '? Confirmando�' : `?? Jugar en ${selectedBans[0] || '...'}`}
               </button>
             ) : (
               <button onClick={() => submitBans()} disabled={selectedBans.length !== maxSelect || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === maxSelect ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === maxSelect ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === maxSelect ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-                {banLoading ? '⏳ Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/${maxSelect})`}
+                {banLoading ? '? Enviando�' : `?? Confirmar baneos (${selectedBans.length}/${maxSelect})`}
               </button>
             )}
           </>
@@ -7163,15 +7163,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         {!is2v2 && (
           showForfeitConfirm ? (
             <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
-              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>🏳️ ¿Confirmás que querés rendirte?</p>
-              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganará el set y perderás puntos.</p>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>??? �Confirm�s que quer�s rendirte?</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganar� el set y perder�s puntos.</p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowForfeitConfirm(false)} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '⏳ Procesando…' : '🏳️ Sí, rendirme'}</button>
+                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '? Procesando�' : '??? S�, rendirme'}</button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🏳️ Rendirse</button>
+            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>??? Rendirse</button>
           )
         )}
 
@@ -7183,9 +7183,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               const won = g.result.winnerId === uid;
               return (
                 <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-                  <span style={{ fontSize: 14 }}>{won ? '🏆' : '💀'}</span>
+                  <span style={{ fontSize: 14 }}>{won ? '??' : '??'}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: won ? '#22C55E' : '#EF4444' }}>Game {g.gameNum}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>— {g.stage}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>� {g.stage}</span>
                 </div>
               );
             })}
@@ -7195,7 +7195,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  // ═══ RENDER: BUSCANDO RANKED ═══════════════════════════════════════════
+  // --- RENDER: BUSCANDO RANKED -------------------------------------------
   if (matchStatus === 'searching') {
     const sp = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
     return (
@@ -7204,24 +7204,24 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (sp?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
-            <div style={{ position: 'absolute', inset: '16px', background: sp ? 'linear-gradient(135deg,' + sp.from + ',' + sp.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{sp?.icon || '⚡'}</div>
+            <div style={{ position: 'absolute', inset: '16px', background: sp ? 'linear-gradient(135deg,' + sp.from + ',' + sp.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{sp?.icon || '?'}</div>
           </div>
-          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>{bgMM?.mode === '2v2' ? 'Buscando rivales 2v2…' : 'Buscando rival…'}</p>
+          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>{bgMM?.mode === '2v2' ? 'Buscando rivales 2v2�' : 'Buscando rival�'}</p>
           <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || ''}{bgMM?.gameType === 'casual' ? ' (Normal)' : ''}</p>
-          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Pod�s navegar la app sin cancelar</p>
           <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'rgba(255,255,255,0.5)', fontVariantNumeric: 'tabular-nums' }}>
             {Math.floor(searchElapsed / 60)}:{String(searchElapsed % 60).padStart(2, '0')}
           </p>
         </div>
 
         <button onClick={bgMM?.mode === '2v2' ? cancelSearch2v2 : cancelSearch} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-          Cancelar búsqueda
+          Cancelar b�squeda
         </button>
       </div>
     );
   }
 
-  // ═══ RENDER: SALA WAITING (reconexión a sala anterior) ══════════════════
+  // --- RENDER: SALA WAITING (reconexi�n a sala anterior) ------------------
   if (matchStatus === 'waiting' && matchData) {
     const myCode = bgMM?.code || '????';
     return (
@@ -7237,11 +7237,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (p?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
-            <div style={{ position: 'absolute', inset: '16px', background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '⚡'}</div>
+            <div style={{ position: 'absolute', inset: '16px', background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '?'}</div>
           </div>
-          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Esperando rival…</p>
-          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
-          <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Código de sala</p>
+          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Esperando rival�</p>
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Pod�s navegar la app sin cancelar</p>
+          <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>C�digo de sala</p>
           <p style={{ margin: 0, fontSize: 36, fontWeight: 900, color: '#FF8C00', letterSpacing: 6 }}>{myCode}</p>
         </div>
 
@@ -7255,27 +7255,27 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     );
   }
 
-  // ═══ RENDER: PANTALLA PRINCIPAL — Buscar Ranked ════════════════════════
+  // --- RENDER: PANTALLA PRINCIPAL � Buscar Ranked ------------------------
   return (
     <div style={{ padding: '24px 18px' }}>
-      {/* Modal Cómo jugar */}
+      {/* Modal C�mo jugar */}
       {showHowToPlay && (
         <div onClick={() => setShowHowToPlay(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ position: 'sticky', top: 0, background: '#0F0F1A', padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>📖 Cómo jugar</p>
-              <button onClick={() => setShowHowToPlay(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>?? C�mo jugar</p>
+              <button onClick={() => setShowHowToPlay(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>?</button>
             </div>
             <div style={{ padding: '20px 20px 0' }}>
               {[
-                { icon: '⚔️', title: 'Formato Bo3', desc: 'Las partidas ranked son al mejor de 3 juegos (Bo3). Ganás el set cuando ganás 2 juegos.' },
-                { icon: '🚫', title: 'Fase de baneo — Game 1', desc: 'Se sortea quién es J1 y J2.\n• J1 banea 1 escenario.\n• J2 banea 2 escenarios.\n• J1 elige el escenario donde se juega.' },
-                { icon: '🔄', title: 'Fase de baneo — Games 2 y 3', desc: 'El ganador del game anterior banea 3 escenarios. El perdedor elige dónde jugar el siguiente game.' },
-                { icon: '👥', title: '2v2 — Capitanes', desc: 'En partidas 2v2, el creador de la sala es el capitán del equipo. Solo los capitanes pueden banear y elegir escenarios.' },
-                { icon: '📊', title: 'Reportar resultado', desc: 'Al terminar cada game, ambos jugadores reportan quién ganó y con cuántos stocks de ventaja. Si hay discrepancia, se abre una disputa.' },
-                { icon: '⏰', title: 'AFK / Tiempo límite', desc: 'Tenés 25 segundos por turno en la fase de baneo. Si no actuás, el sistema elige automáticamente. Si tu rival no aparece al chat en 15 minutos, podés reclamar victoria.' },
-                { icon: '📈', title: 'Ranking y RP', desc: 'Cada victoria suma RP y cada derrota resta 10 RP. Los primeros 5 juegos son de posicionamiento y definen tu rango inicial.' },
-                { icon: '🎯', title: 'Modos', desc: '• Ranked: afecta tu rango y RP.\n• Normal: partidas casuales sin efecto en el rango.' },
+                { icon: '??', title: 'Formato Bo3', desc: 'Las partidas ranked son al mejor de 3 juegos (Bo3). Gan�s el set cuando gan�s 2 juegos.' },
+                { icon: '??', title: 'Fase de baneo � Game 1', desc: 'Se sortea qui�n es J1 y J2.\n� J1 banea 1 escenario.\n� J2 banea 2 escenarios.\n� J1 elige el escenario donde se juega.' },
+                { icon: '??', title: 'Fase de baneo � Games 2 y 3', desc: 'El ganador del game anterior banea 3 escenarios. El perdedor elige d�nde jugar el siguiente game.' },
+                { icon: '??', title: '2v2 � Capitanes', desc: 'En partidas 2v2, el creador de la sala es el capit�n del equipo. Solo los capitanes pueden banear y elegir escenarios.' },
+                { icon: '??', title: 'Reportar resultado', desc: 'Al terminar cada game, ambos jugadores reportan qui�n gan� y con cu�ntos stocks de ventaja. Si hay discrepancia, se abre una disputa.' },
+                { icon: '?', title: 'AFK / Tiempo l�mite', desc: 'Ten�s 25 segundos por turno en la fase de baneo. Si no actu�s, el sistema elige autom�ticamente. Si tu rival no aparece al chat en 15 minutos, pod�s reclamar victoria.' },
+                { icon: '??', title: 'Ranking y RP', desc: 'Cada victoria suma RP y cada derrota resta 10 RP. Los primeros 5 juegos son de posicionamiento y definen tu rango inicial.' },
+                { icon: '??', title: 'Modos', desc: '� Ranked: afecta tu rango y RP.\n� Normal: partidas casuales sin efecto en el rango.' },
               ].map(({ icon, title, desc }) => (
                 <div key={title} style={{ marginBottom: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 16px' }}>
                   <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: '#fff' }}>{icon} {title}</p>
@@ -7289,13 +7289,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff' }}>{matchTypeMode === 'casual' ? 'Normal' : 'Ranked'}</h1>
-        <button onClick={() => setShowHowToPlay(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px', color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>❓ Cómo jugar</button>
+        <button onClick={() => setShowHowToPlay(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px', color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>? C�mo jugar</button>
       </div>
-      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{matchTypeMode === 'casual' ? 'Partidas casuales sin efecto en el rango' : 'Elegí tu personaje y buscá rival'}</p>
+      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{matchTypeMode === 'casual' ? 'Partidas casuales sin efecto en el rango' : 'Eleg� tu personaje y busc� rival'}</p>
 
       {/* Tipo: Ranked / Normal */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-        {[{ id: 'ranked', label: '⚔️ Ranked', accent: '#FF8C00' }, { id: 'casual', label: '🎮 Normal', accent: '#A78BFA' }].map(t => (
+        {[{ id: 'ranked', label: '?? Ranked', accent: '#FF8C00' }, { id: 'casual', label: '?? Normal', accent: '#A78BFA' }].map(t => (
           <button key={t.id} onClick={() => setMatchTypeMode(t.id)} style={{ flex: 1, padding: '10px 0', background: matchTypeMode === t.id ? (t.id === 'casual' ? 'rgba(167,139,250,0.15)' : 'rgba(255,140,0,0.15)') : 'transparent', border: 'none', borderBottom: matchTypeMode === t.id ? `2px solid ${t.accent}` : '2px solid transparent', color: matchTypeMode === t.id ? t.accent : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{t.label}</button>
         ))}
       </div>
@@ -7303,7 +7303,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       {/* Mode selector: 1v1 / 2v2 - solo para ranked */}
       {matchTypeMode !== 'casual' && (
         <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-          {[{ id: '1v1', label: '⚔️ Solo (1v1)' }, { id: '2v2', label: '👥 Dobles (2v2)' }].map(m => (
+          {[{ id: '1v1', label: '?? Solo (1v1)' }, { id: '2v2', label: '?? Dobles (2v2)' }].map(m => (
             <button key={m.id} onClick={() => setMatchMode(m.id)} style={{ flex: 1, padding: '10px 0', background: matchMode === m.id ? 'rgba(255,140,0,0.15)' : 'transparent', border: 'none', borderBottom: matchMode === m.id ? '2px solid #FF8C00' : '2px solid transparent', color: matchMode === m.id ? '#FF8C00' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{m.label}</button>
           ))}
         </div>
@@ -7315,10 +7315,10 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : bgMM.status === 'waiting' ? '#FF8C00' : '#FBBF24', flexShrink: 0, boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00'), animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
           <div style={{ flex: 1 }}>
             <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 14, color: '#fff' }}>
-              {bgMM.status === 'waiting'        ? 'Sala activa — esperando rival' :
-               bgMM.status === 'pending_accept' ? '¡Match encontrado!' :
-               bgMM.status === 'active'         ? '¡Partida en juego!' :
-               bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' :
+              {bgMM.status === 'waiting'        ? 'Sala activa � esperando rival' :
+               bgMM.status === 'pending_accept' ? '�Match encontrado!' :
+               bgMM.status === 'active'         ? '�Partida en juego!' :
+               bgMM.status === 'pending_confirm' ? 'Confirm� el resultado' :
                                                    'Resultado en disputa'}
             </p>
           </div>
@@ -7356,8 +7356,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E' }} />
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
             {onlineCount.total} jugador{onlineCount.total !== 1 ? 'es' : ''} buscando
-            {onlineCount.switch > 0 ? ` · ${onlineCount.switch} Switch` : ''}
-            {onlineCount.parsec > 0 ? ` · ${onlineCount.parsec} Parsec` : ''}
+            {onlineCount.switch > 0 ? ` � ${onlineCount.switch} Switch` : ''}
+            {onlineCount.parsec > 0 ? ` � ${onlineCount.parsec} Parsec` : ''}
           </span>
         </div>
       )}
@@ -7368,13 +7368,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         <>
           {/* Mode selector casual: 1v1 / 2v2 */}
           <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-            {[{ id: '1v1', label: '⚔️ Solo (1v1)' }, { id: '2v2', label: '👥 Dobles (2v2)' }].map(m => (
+            {[{ id: '1v1', label: '?? Solo (1v1)' }, { id: '2v2', label: '?? Dobles (2v2)' }].map(m => (
               <button key={m.id} onClick={() => setCasualMode(m.id)} style={{ flex: 1, padding: '10px 0', background: casualMode === m.id ? 'rgba(167,139,250,0.15)' : 'transparent', border: 'none', borderBottom: casualMode === m.id ? '2px solid #A78BFA' : '2px solid transparent', color: casualMode === m.id ? '#A78BFA' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{m.label}</button>
             ))}
           </div>
 
           {casualMode === '1v1' ? (
-            /* Botones de búsqueda casual 1v1 */
+            /* Botones de b�squeda casual 1v1 */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {PLATFORMS.map(px => (
                 <button
@@ -7397,14 +7397,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <div>
               {!casualParty ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Formá un equipo antes de buscar rivales 2v2</p>
+                  <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Form� un equipo antes de buscar rivales 2v2</p>
                   {PLATFORMS.map(px => (
                     <button key={'cp-' + px.id} onClick={() => createCasualParty(px.id)} disabled={loading}
                       style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
                       <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#A78BFA' }}>Crear sala en {px.label}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para invitar a tu compañero</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Gener�s un c�digo para invitar a tu compa�ero</p>
                       </div>
                     </button>
                   ))}
@@ -7422,16 +7422,16 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '8px 0' }}>
                   {casualParty.leader?.userId === uid ? (
                     <>
-                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compartí este código con tu compañero</p>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compart� este c�digo con tu compa�ero</p>
                       <div style={{ background: 'rgba(167,139,250,0.1)', border: '2px solid rgba(167,139,250,0.4)', borderRadius: 20, padding: '18px 32px', textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                        <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>C�digo de sala</p>
                         <p style={{ margin: 0, fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{casualParty.code}</p>
-                        <button onClick={() => { try { navigator.clipboard.writeText(casualParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 8, color: '#A78BFA', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                        <button onClick={() => { try { navigator.clipboard.writeText(casualParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 8, color: '#A78BFA', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>?? Copiar c�digo</button>
                       </div>
-                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{casualParty.platform === 'switch' ? '🎮 Switch' : '💻 Parsec'}</strong></p>
+                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{casualParty.platform === 'switch' ? '?? Switch' : '?? Parsec'}</strong></p>
                     </>
                   ) : (
-                    <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el líder comience la búsqueda...</p>
+                    <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el l�der comience la b�squeda...</p>
                   )}
                   <div style={{ width: 28, height: 28, border: '3px solid rgba(167,139,250,0.3)', borderTop: '3px solid #A78BFA', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                   <button onClick={leaveCasualParty} style={{ padding: '7px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#EF4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Cancelar sala</button>
@@ -7439,17 +7439,17 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
               ) : casualParty.status === 'ready' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: '14px 16px' }}>
-                    <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ✅</p>
+                    <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ?</p>
                     {[casualParty.leader, casualParty.partner].map((p, i) => {
                       if (!p) return null;
                       const rf = p.charId ? CHARACTER_RENDERS[p.charId] : null;
                       const cs = rf ? charRenderPath(rf) : null;
                       return (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                          {cs ? <img src={cs} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚔️</div>}
+                          {cs ? <img src={cs} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>??</div>}
                           <div>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{p.userName}</p>
-                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{p.userId === uid ? '(vos)' : 'compañero'}</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{p.userId === uid ? '(vos)' : 'compa�ero'}</p>
                           </div>
                         </div>
                       );
@@ -7474,7 +7474,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         </>
       ) : matchMode === '1v1' ? (
         <>
-          {/* Botones de búsqueda por plataforma */}
+          {/* Botones de b�squeda por plataforma */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {PLATFORMS.map(px => (
               <button
@@ -7499,7 +7499,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             ))}
           </div>
 
-          {/* Modo de conexión Parsec */}
+          {/* Modo de conexi�n Parsec */}
           <div style={{ marginTop: 10, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: '10px 14px' }}>
             <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Modo Parsec</p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -7511,7 +7511,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                   fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
                 }}
                 style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-              >{parsecRole === 'host' ? '✓ ' : ''}Host</button>
+              >{parsecRole === 'host' ? '? ' : ''}Host</button>
               <button
                 onClick={() => {
                   const nr = parsecRole === 'nohost' ? null : 'nohost';
@@ -7520,9 +7520,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                   fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
                 }}
                 style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-              >{parsecRole === 'nohost' ? '✓ ' : ''}No Host</button>
+              >{parsecRole === 'nohost' ? '? ' : ''}No Host</button>
             </div>
-            <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indicá si podés hostear Parsec. Evita que te emparejen con otro No Host.</p>
+            <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indic� si pod�s hostear Parsec. Evita que te emparejen con otro No Host.</p>
           </div>
         </>
       ) : (
@@ -7530,14 +7530,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           {/* 2v2 Ranked - Room code party system */}
           {!rankedParty ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Formá un equipo antes de buscar rivales Ranked 2v2</p>
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Form� un equipo antes de buscar rivales Ranked 2v2</p>
               {PLATFORMS.map(px => (
                 <button key={'rp-' + px.id} onClick={() => createRankedParty(px.id)} disabled={loading}
                   style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,140,0,0.06)', border: '1px solid rgba(255,140,0,0.22)', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
                   <div style={{ flex: 1, textAlign: 'left' }}>
                     <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#FF8C00' }}>Crear sala en {px.label}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para invitar a tu compañero</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Gener�s un c�digo para invitar a tu compa�ero</p>
                   </div>
                 </button>
               ))}
@@ -7555,16 +7555,16 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '8px 0' }}>
               {rankedParty.leader?.userId === uid ? (
                 <>
-                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compartí este código con tu compañero</p>
+                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compart� este c�digo con tu compa�ero</p>
                   <div style={{ background: 'rgba(255,140,0,0.08)', border: '2px solid rgba(255,140,0,0.4)', borderRadius: 20, padding: '18px 32px', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                    <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>C�digo de sala</p>
                     <p style={{ margin: 0, fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{rankedParty.code}</p>
-                    <button onClick={() => { try { navigator.clipboard.writeText(rankedParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(255,140,0,0.18)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 8, color: '#FF8C00', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                    <button onClick={() => { try { navigator.clipboard.writeText(rankedParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(255,140,0,0.18)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 8, color: '#FF8C00', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>?? Copiar c�digo</button>
                   </div>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{rankedParty.platform === 'switch' ? '🎮 Switch' : '💻 Parsec'}</strong></p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{rankedParty.platform === 'switch' ? '?? Switch' : '?? Parsec'}</strong></p>
                 </>
               ) : (
-                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el líder comience la búsqueda...</p>
+                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el l�der comience la b�squeda...</p>
               )}
               <div style={{ width: 28, height: 28, border: '3px solid rgba(255,140,0,0.3)', borderTop: '3px solid #FF8C00', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               <button onClick={leaveRankedParty} style={{ padding: '7px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#EF4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Cancelar sala</button>
@@ -7572,13 +7572,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           ) : rankedParty.status === 'ready' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ background: 'rgba(255,140,0,0.05)', border: '1px solid rgba(255,140,0,0.18)', borderRadius: 16, padding: '14px 16px' }}>
-                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ✅</p>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ?</p>
                 {[rankedParty.leader, rankedParty.invited].map((p, idx) => p ? (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👤</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>??</div>
                     <div>
                       <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{p.userName}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.userId === uid ? '(vos)' : 'compañero'}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.userId === uid ? '(vos)' : 'compa�ero'}</p>
                     </div>
                   </div>
                 ) : null)}
@@ -7600,11 +7600,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
         </>
       )}
 
-      {/* Cómo funciona */}
+      {/* C�mo funciona */}
       <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
+        <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>�C�mo funciona?</p>
         {matchTypeMode === 'casual' ? (
-          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola Normal'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['⚔️','A jugar','Partida casual, sin efecto en el rango']].map(([icon,t,d])=>(
+          [['??','Eleg� personaje','Seleccion� con qui�n quer�s jugar'],['??','Busc� rival','Eleg� Switch o Parsec y entr� a la cola Normal'],['?','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['??','A jugar','Partida casual, sin efecto en el rango']].map(([icon,t,d])=>(
             <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
               <div>
@@ -7614,7 +7614,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             </div>
           ))
         ) : matchMode === '1v1' ? (
-          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['💬','Coordiná en el chat','Decidan quién crea la sala/hostea'],['⚔️','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
+          [['??','Eleg� personaje','Seleccion� con qui�n quer�s jugar'],['??','Busc� rival','Eleg� Switch o Parsec y entr� a la cola'],['?','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['??','Coordin� en el chat','Decidan qui�n crea la sala/hostea'],['??','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
             <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
               <div>
@@ -7624,7 +7624,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             </div>
           ))
         ) : (
-          [['👥','Invitá a un amigo','Desde tu perfil, tocá 💬 y usá el botón 2v2'],['✅','Tu amigo acepta','Cuando acepte, el party estará listo'],['🔍','Buscar rivales','Entrá a la cola como equipo de 2'],['⚔️','Los 4 aceptan','Ambos equipos confirman la partida'],['🏆','Reportá el resultado','El equipo ganador reporta y sube de rango']].map(([icon,t,d])=>(
+          [['??','Invit� a un amigo','Desde tu perfil, toc� ?? y us� el bot�n 2v2'],['?','Tu amigo acepta','Cuando acepte, el party estar� listo'],['??','Buscar rivales','Entr� a la cola como equipo de 2'],['??','Los 4 aceptan','Ambos equipos confirman la partida'],['??','Report� el resultado','El equipo ganador reporta y sube de rango']].map(([icon,t,d])=>(
             <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
               <div>

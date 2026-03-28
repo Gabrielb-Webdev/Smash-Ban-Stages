@@ -5,7 +5,7 @@
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament, getStockIconPath, getSkinCount } from '../utils/constants';
 
 // Tema Mendoza - hardcodeado
 const THEME = {
@@ -124,6 +124,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
   const [cooldown, setCooldown] = useState(0);
   const [isActionBlocked, setIsActionBlocked] = useState(false);
   const [turnModal, setTurnModal] = useState(null);
+  const [skinModal, setSkinModal] = useState(null);
   const [clickedItemId, setClickedItemId] = useState(null);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const isFirstRender = useRef(true);
@@ -327,7 +328,11 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
     if (session.currentTurn) {
       setClickedItemId(characterId);
       const character = CHARACTERS.find(c => c.id === characterId);
-      setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
+      if (getSkinCount(characterId) > 1) {
+        setSkinModal({ characterId, characterName: character.name, player: session.currentTurn });
+      } else {
+        setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: getStockIconPath(characterId, 1), player: session.currentTurn, skin: 1 });
+      }
     }
   };
 
@@ -336,6 +341,13 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
     if (session.currentTurn) {
       setPendingAction({ type: 'character', characterId: 'random', characterName: '?', characterImage: null, player: session.currentTurn, isRandom: true });
     }
+  };
+
+  const handleConfirmSkin = (skin) => {
+    if (!skinModal) return;
+    const { characterId, characterName, player } = skinModal;
+    setSkinModal(null);
+    setPendingAction({ type: 'character', characterId, characterName, characterImage: getStockIconPath(characterId, skin), player, skin });
   };
 
   const handleSetGameWinner = (winner) => {
@@ -348,14 +360,14 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
       case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
-      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player); break;
+      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin); break;
       case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer); break;
     }
     setPendingAction(null);
     setClickedItemId(null);
   };
 
-  const cancelAction = () => { setPendingAction(null); setClickedItemId(null); };
+  const cancelAction = () => { setSkinModal(null); setPendingAction(null); setClickedItemId(null); };
 
   const getAllStages = () => getStagesForTournament(sessionId, session.currentGame);
 
@@ -822,7 +834,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
             <div className="flex items-center gap-6 sm:gap-14">
               <div className="text-center" style={{ animation: 'vsSlideLeft 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto">
-                  <img src={getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
                 <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
                 <p className="text-white/50 text-xs">{getCharacterData(session.player1.character)?.name}</p>
@@ -832,7 +844,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
               </div>
               <div className="text-center" style={{ animation: 'vsSlideRight 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
-                  <img src={getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
                 <div>
                   <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
@@ -867,7 +879,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                 const cd = getCharacterData(oppChar);
                 return (
                   <div className="mb-2 flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-2 py-1.5">
-                    <img src={cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                    <img src={getStockIconPath(oppChar, 1) || cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                     <div>
                       <p className="text-yellow-300 text-[10px] sm:text-xs font-bold uppercase tracking-wide">Tu rival ya eligió:</p>
                       <p className="text-white text-xs sm:text-sm font-black leading-tight">{cd?.name}</p>
@@ -893,7 +905,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                           }`}
                           style={clickedItemId === charId ? {} : { borderColor: `${THEME.colors.accent}99` }}
                         >
-                          <img src={char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                          <img src={getStockIconPath(charId, 1) || char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                         </button>
                       );
                     })}
@@ -929,7 +941,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                   title={character.name}
                 >
                   <img
-                    src={character.image}
+                    src={getStockIconPath(character.id, 1) || character.image}
                     alt={character.name}
                     className="w-full h-full object-contain"
                     onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
@@ -1120,6 +1132,35 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                 <button onClick={() => handleRepeatCharacter('player2', false)} className="py-5 bg-gray-700 hover:bg-gray-800 text-white font-bold text-xl rounded-xl transition-all active:scale-95 border-2 border-white/30" style={{ fontFamily: 'Anton' }}>❌ NO</button>
                 <button onClick={() => handleRepeatCharacter('player2', true)} className="py-5 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-xl rounded-xl transition-all active:scale-95 border-2 border-white" style={{ fontFamily: 'Anton' }}>✓ SÍ</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Selector de skin */}
+        {skinModal && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full" style={{ background: `linear-gradient(135deg, ${THEME.colors.primary}, ${THEME.colors.secondary})` }}>
+              <div className="text-center mb-3">
+                <div className="flex items-center justify-center gap-3 mb-1">
+                  <div className="w-10 h-10 bg-white/10 rounded-full border-2 border-smash-yellow p-0.5 flex items-center justify-center">
+                    <img src={getStockIconPath(skinModal.characterId, 1)} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">🎨 Elegir skin</h3>
+                </div>
+                <p className="text-white/60 text-sm">{skinModal.characterName}</p>
+              </div>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {Array.from({ length: getSkinCount(skinModal.characterId) }, (_, i) => i + 1).map(skin => (
+                  <button key={skin} onClick={() => handleConfirmSkin(skin)}
+                    className="aspect-square bg-white/10 rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation overflow-hidden p-1 hover:border-smash-yellow/60 transition-colors">
+                    <img src={getStockIconPath(skinModal.characterId, skin)} alt={`Skin ${skin}`} className="w-full h-full object-contain"
+                      onError={(e) => { e.target.style.opacity = '0.25'; }} />
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => { setSkinModal(null); setClickedItemId(null); }} className="w-full py-2 bg-gray-700 text-white font-bold text-sm rounded-lg active:scale-95 touch-manipulation">
+                ❌ Cancelar
+              </button>
             </div>
           </div>
         )}

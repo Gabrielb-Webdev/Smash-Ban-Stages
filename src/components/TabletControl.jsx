@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament, getStockIconPath, getSkinCount } from '../utils/constants';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
 // Cache invalidation for Mendoza background - v1.1 - 2024-12-12T19:20:00
@@ -73,6 +73,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   const [isActionBlocked, setIsActionBlocked] = useState(false);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const [turnModal, setTurnModal] = useState(null);
+  const [skinModal, setSkinModal] = useState(null); // { characterId, characterName, player }
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -411,13 +412,17 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
     if (effectivePlayer && session.currentTurn !== effectivePlayer) return;
     const character = CHARACTERS.find(c => c.id === characterId);
     if (!character) return;
-    setPendingAction({ 
-      type: 'character', 
-      characterId, 
-      characterName: character.name, 
-      characterImage: character.image,
-      player: targetPlayer,
-    });
+    if (getSkinCount(characterId) <= 1) {
+      setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: getStockIconPath(characterId, 1), player: targetPlayer, skin: 1 });
+    } else {
+      setSkinModal({ characterId, characterName: character.name, player: targetPlayer });
+    }
+  };
+
+  const handleConfirmSkin = (skin) => {
+    const { characterId, characterName, player } = skinModal;
+    setSkinModal(null);
+    setPendingAction({ type: 'character', characterId, characterName, characterImage: getStockIconPath(characterId, skin), player, skin });
   };
 
   const handleRandomCharacter = () => {
@@ -440,7 +445,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         selectStage(sessionId, pendingAction.stageId, pendingAction.player);
         break;
       case 'character':
-        selectCharacter(sessionId, pendingAction.characterId, pendingAction.player);
+        selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin);
         setConfirmedChar({
           characterId: pendingAction.characterId,
           characterName: pendingAction.characterName,
@@ -469,6 +474,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
 
   const cancelAction = () => {
     setPendingAction(null);
+    setSkinModal(null);
   };
 
   const getAvailableStages = () => {
@@ -2006,7 +2012,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             <div className="flex items-center gap-6 sm:gap-14">
               <div className="text-center" style={{ animation: 'vsSlideLeft 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto">
-                  <img src={getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
                 <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
                 <p className="text-white/50 text-xs">{getCharacterData(session.player1.character)?.name}</p>
@@ -2016,7 +2022,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               </div>
               <div className="text-center" style={{ animation: 'vsSlideRight 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
-                  <img src={getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
                 <div>
                   <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
@@ -2066,7 +2072,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 const cd = getCharacterData(oppChar);
                 return (
                   <div className="mb-2 flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-2 py-1.5">
-                    <img src={cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                    <img src={getStockIconPath(oppChar, 1) || cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                     <div>
                       <p className="text-yellow-300 text-[10px] sm:text-xs font-bold uppercase tracking-wide">Tu rival ya eligió:</p>
                       <p className="text-white text-xs sm:text-sm font-black leading-tight">{cd?.name}</p>
@@ -2089,7 +2095,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                           title={char.name}
                           className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-yellow/60 active:scale-95 touch-manipulation overflow-hidden"
                         >
-                          <img src={char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                          <img src={getStockIconPath(char.id, 1) || char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                         </button>
                       );
                     })}
@@ -2123,7 +2129,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 >
                   <div className="w-full h-full flex items-center justify-center">
                     <img 
-                      src={character.image} 
+                      src={getStockIconPath(character.id, 1) || character.image} 
                       alt={character.name}
                       className="w-full h-full object-contain"
                       onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
@@ -2488,6 +2494,35 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                   ✓ SÍ
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Selector de skin */}
+        {skinModal && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-black to-smash-purple rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full">
+              <div className="text-center mb-3">
+                <div className="flex items-center justify-center gap-3 mb-1">
+                  <div className="w-10 h-10 bg-white/10 rounded-full border-2 border-smash-yellow p-0.5 flex items-center justify-center">
+                    <img src={getStockIconPath(skinModal.characterId, 1)} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">🎨 Elegir skin</h3>
+                </div>
+                <p className="text-white/60 text-sm">{skinModal.characterName}</p>
+              </div>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {Array.from({ length: getSkinCount(skinModal.characterId) }, (_, i) => i + 1).map(skin => (
+                  <button key={skin} onClick={() => handleConfirmSkin(skin)}
+                    className="aspect-square bg-white/10 rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation overflow-hidden p-1 hover:border-smash-yellow/60 transition-colors">
+                    <img src={getStockIconPath(skinModal.characterId, skin)} alt={`Skin ${skin}`} className="w-full h-full object-contain"
+                      onError={(e) => { e.target.style.opacity = '0.25'; }} />
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => { setSkinModal(null); }} className="w-full py-2 bg-gray-700 text-white font-bold text-sm rounded-lg active:scale-95 touch-manipulation">
+                ❌ Cancelar
+              </button>
             </div>
           </div>
         )}

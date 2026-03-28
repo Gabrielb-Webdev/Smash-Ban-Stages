@@ -4,7 +4,7 @@
 // ============================================================
 import { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { getStageData, getCharacterData, getStagesForTournament, getStockIconPath } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StreamOverlayAfk({ sessionId }) {
@@ -201,7 +201,7 @@ export default function StreamOverlayAfk({ sessionId }) {
                 <span className="text-white font-black flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '5vw', width: '7.7vw', height: '7.7vw' }}>?</span>
               ) : (
                 <img
-                  src={getCharacterData(session.player1.character)?.image}
+                  src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                   alt={getCharacterData(session.player1.character)?.name}
                   className="rounded-full"
                   style={{ objectFit: 'cover', width: '7.7vw', height: '7.7vw' }}
@@ -235,7 +235,7 @@ export default function StreamOverlayAfk({ sessionId }) {
                 <span className="text-white font-black flex items-center justify-center" style={{ fontFamily: 'Anton', fontSize: '5vw', width: '7.7vw', height: '7.7vw' }}>?</span>
               ) : (
                 <img
-                  src={getCharacterData(session.player2.character)?.image}
+                  src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                   alt={getCharacterData(session.player2.character)?.name}
                   className="rounded-full"
                   style={{ objectFit: 'cover', width: '7.7vw', height: '7.7vw' }}

@@ -4,11 +4,10 @@
 // ============================================================
 import { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { getStageData, getCharacterData, getStagesForTournament, getStockIconPath } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const stockIconUrl = (charName, skin) =>
-  `/overlays/Santa-fe/Resources/Characters/Stock%20Icons/${encodeURIComponent(charName)}/${skin}.png`;
+
 
 export default function StreamOverlaySantaFe({ sessionId }) {
   const { session, connected } = useWebSocket(sessionId);
@@ -167,11 +166,11 @@ export default function StreamOverlaySantaFe({ sessionId }) {
               style={{ zIndex: 10 }}
             >
               <img
-                src={stockIconUrl(getCharacterData(session.player1.character)?.name, session.player1.skin || 1)}
+                src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
-                onError={(e) => { e.target.src = getCharacterData(session.player1.character)?.image || '/images/characters/placeholder.png'; }}
+                onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
               />
               <motion.div
                 initial={{ scaleY: 0 }}
@@ -196,11 +195,11 @@ export default function StreamOverlaySantaFe({ sessionId }) {
                 className="h-32 w-1 bg-white mr-4"
               />
               <img
-                src={stockIconUrl(getCharacterData(session.player2.character)?.name, session.player2.skin || 1)}
+                src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
-                onError={(e) => { e.target.src = getCharacterData(session.player2.character)?.image || '/images/characters/placeholder.png'; }}
+                onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
               />
             </motion.div>
           </>

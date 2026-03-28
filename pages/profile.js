@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath } from '../lib/characters';
+import { CHARACTERS, charImgPath, stockIconPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
 
 function timeAgo(iso) {
@@ -49,6 +49,27 @@ function provinceCode(state, country) {
   const cc = country?.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
   if (cc === 'AR') return AR_PROVINCES[state] || state;
   return state;
+}
+
+function withAlpha(hexColor, alpha) {
+  if (typeof hexColor !== 'string' || !hexColor.startsWith('#')) return `rgba(255,255,255,${alpha})`;
+  const hex = hexColor.replace('#', '');
+  const fullHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex;
+  if (fullHex.length !== 6) return `rgba(255,255,255,${alpha})`;
+  const r = parseInt(fullHex.slice(0, 2), 16);
+  const g = parseInt(fullHex.slice(2, 4), 16);
+  const b = parseInt(fullHex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getRankBadgeData(rankName) {
+  const rankObj = RANKS.find(r => r.name === rankName);
+  if (!rankObj) return null;
+  return {
+    icon: TIER_ICONS[rankObj.tier] || '🎮',
+    division: rankObj.subdivision || '',
+    color: rankObj.color || '#9CA3AF',
+  };
 }
 
 export default function ProfilePage() {
@@ -732,16 +753,59 @@ export default function ProfilePage() {
                     const isWin    = String(m.winnerId) === String(user.id || user.slug);
                     const opponent = isWin ? m.loserName : m.winnerName;
                     const pLabel   = m.platform === 'switch' ? '🎮 Switch' : '🖥️ Parsec';
+                    const myCharId = isWin ? m.winnerCharId : m.loserCharId;
+                    const myCharObj = CHARACTERS.find(c => c.id === myCharId) || null;
+                    const myIconSrc = stockIconPath(myCharObj, 1) || (myCharObj ? charImgPath(myCharObj.img) : null);
+                    const myRankAfter = isWin ? m.winnerRankAfter : m.loserRankAfter;
+                    const badge = getRankBadgeData(myRankAfter);
+                    const rrDelta = Number(isWin ? m.rpDelta : m.loserRpDelta);
+                    const rrText = Number.isFinite(rrDelta) && rrDelta !== 0
+                      ? `${rrDelta > 0 ? '+' : ''}${rrDelta} RR`
+                      : null;
+                    const myScore = Number(isWin ? m.winnerScore : m.loserScore);
+                    const rivalScore = Number(isWin ? m.loserScore : m.winnerScore);
+                    const hasScore = Number.isFinite(myScore) && Number.isFinite(rivalScore);
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, padding: '10px 14px' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444' }}>
-                          {isWin ? 'W' : 'L'}
+                      <div key={i} style={{ position: 'relative', display: 'flex', alignItems: 'center', minHeight: 72, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, overflow: 'hidden' }}>
+                        <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
+                          {myIconSrc ? (
+                            <img
+                              src={myIconSrc}
+                              alt=""
+                              style={{ width: 50, height: 50, objectFit: 'contain' }}
+                              onError={e => { e.target.src = '/images/characters/placeholder.png'; }}
+                            />
+                          ) : (
+                            <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: 900 }}>?</div>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                            {badge ? (
+                              <div style={{ padding: '2px 4px', borderRadius: 5, background: withAlpha(badge.color, 0.15), border: `1px solid ${withAlpha(badge.color, 0.4)}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                                <span style={{ fontSize: 12, lineHeight: 1.1 }}>{badge.icon}</span>
+                                <span style={{ fontSize: 6.5, fontWeight: 900, color: badge.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{badge.division || 'RANK'}</span>
+                              </div>
+                            ) : (
+                              <div style={{ padding: '2px 6px', borderRadius: 5, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}>
+                                <span style={{ fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>N/A</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ flex: '1 1 0%', padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pLabel} Â· {timeAgo(m.playedAt)}</p>
+                          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{pLabel} · {timeAgo(m.playedAt)}</p>
+                          {rrText && (
+                            <span style={{ fontSize: 10, fontWeight: 800, color: rrDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rrText}</span>
+                          )}
                         </div>
-                        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                        <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444', letterSpacing: '0.02em' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                          {hasScore && (
+                            <span style={{ fontSize: 20, fontWeight: 900, lineHeight: 1, color: 'rgba(255,255,255,0.85)' }}>
+                              {myScore}-{rivalScore}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

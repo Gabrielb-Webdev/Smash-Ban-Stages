@@ -4,7 +4,7 @@
 // ============================================================
 import { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { getStageData, getCharacterData, getStagesForTournament, getStockIconPath } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Tema Mendoza - hardcodeado, sin necesidad de detectar por sessionId
@@ -208,7 +208,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
               style={{ zIndex: 10 }}
             >
               <img
-                src={getCharacterData(session.player1.character)?.image}
+                src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
@@ -238,7 +238,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
                 style={{ backgroundColor: THEME.colors.accent }}
               />
               <img
-                src={getCharacterData(session.player2.character)?.image}
+                src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}

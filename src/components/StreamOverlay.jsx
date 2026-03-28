@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { getStageData, getCharacterData, getStagesForTournament, getStockIconPath } from '../utils/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTournamentTheme, shouldUseOriginalStyles } from '../utils/themes';
 
@@ -337,7 +337,7 @@ export default function StreamOverlay({ sessionId }) {
               style={{ zIndex: 10 }}
             >
               <img 
-                src={getCharacterData(session.player1.character)?.image} 
+                src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
@@ -378,7 +378,7 @@ export default function StreamOverlay({ sessionId }) {
                 style={useOriginalStyles ? {} : { backgroundColor: theme.colors.accent }}
               ></motion.div>
               <img 
-                src={getCharacterData(session.player2.character)?.image} 
+                src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
@@ -721,7 +721,7 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ duration: 0.6, delay: 0.2, type: 'spring', stiffness: 150 }}
               >
                 <img 
-                  src={getCharacterData(session.player1.character)?.image} 
+                  src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                   alt={getCharacterData(session.player1.character)?.name}
                   className="w-24 h-24 rounded-full border-4 border-white shadow-2xl"
                   style={{ objectFit: 'cover' }}
@@ -779,7 +779,7 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ duration: 0.6, delay: 1.3, type: 'spring', stiffness: 150 }}
               >
                 <img 
-                  src={getCharacterData(session.player2.character)?.image} 
+                  src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                   alt={getCharacterData(session.player2.character)?.name}
                   className="w-24 h-24 rounded-full border-4 border-white shadow-2xl"
                   style={{ objectFit: 'cover' }}
@@ -1017,7 +1017,7 @@ export default function StreamOverlay({ sessionId }) {
                     transition={{ type: 'spring', stiffness: 200 }}
                   >
                     <img 
-                      src={getCharacterData(session.player1.character)?.image} 
+                      src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                       alt={getCharacterData(session.player1.character)?.name}
                       className="w-24 h-24 mx-auto mb-2 rounded-full border-4 border-smash-yellow shadow-lg"
                       onError={(e) => {
@@ -1052,7 +1052,7 @@ export default function StreamOverlay({ sessionId }) {
                     transition={{ type: 'spring', stiffness: 200 }}
                   >
                     <img 
-                      src={getCharacterData(session.player2.character)?.image} 
+                      src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                       alt={getCharacterData(session.player2.character)?.name}
                       className="w-24 h-24 mx-auto mb-2 rounded-full border-4 border-smash-yellow shadow-lg"
                       onError={(e) => {

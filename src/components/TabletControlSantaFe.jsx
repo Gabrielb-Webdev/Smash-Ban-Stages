@@ -6,7 +6,7 @@
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament, getStockIconPath, getSkinCount } from '../utils/constants';
 
 // ── Componente de botón de stage reutilizable ──────────────
 function StageButton({ stageId, stageName, stageImage, isBanned, onClick, colSpan = '', isClicked }) {
@@ -96,10 +96,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 const SANTAFE_BG = 'linear-gradient(160deg, #010810 0%, #031830 50%, #04284a 100%)';
 
 // ── Skins por personaje (por slug) ────────────────────────────────────
-const SANTAFE_SKIN_COUNT = { 'kazuya': 9, 'mii-brawler': 1, 'mii-gunner': 1, 'mii-swordfighter': 1 };
-const getSantaFeSkinCount = (charId) => SANTAFE_SKIN_COUNT[charId] ?? 8;
-const stockIconUrl = (charName, skin) =>
-  `/overlays/Santa-fe/Resources/Characters/Stock%20Icons/${encodeURIComponent(charName)}/${skin}.png`;
+
 
 // ───────────────────────────────────────────────────────────────
 export default function TabletControlSantaFe({ sessionId, playerName, playerIndex }) {
@@ -317,17 +314,17 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
       const character = CHARACTERS.find(c => c.id === characterId);
       const skinCount = getSantaFeSkinCount(characterId);
       if (skinCount <= 1) {
-        setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn, skin: 1 });
+        setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: getStockIconPath(characterId, 1), player: session.currentTurn, skin: 1 });
       } else {
-        setSkinModal({ characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
+        setSkinModal({ characterId, characterName: character.name, characterImage: getStockIconPath(characterId, 1), player: session.currentTurn });
       }
     }
   };
 
   const handleConfirmSkin = (skin) => {
-    const { characterId, characterName, characterImage, player } = skinModal;
+    const { characterId, characterName, player } = skinModal;
     setSkinModal(null);
-    setPendingAction({ type: 'character', characterId, characterName, characterImage, player, skin });
+    setPendingAction({ type: 'character', characterId, characterName, characterImage: getStockIconPath(characterId, skin), player, skin });
   };
 
   const handleRandomCharacter = () => {
@@ -821,7 +818,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
             <div className="flex items-center gap-6 sm:gap-14">
               <div className="text-center" style={{ animation: 'vsSlideLeft 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto">
-                  <img src={stockIconUrl(getCharacterData(session.player1.character)?.name, session.player1.skin || 1)} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = getCharacterData(session.player1.character)?.image || '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
                 <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
                 <p className="text-white/50 text-xs">{getCharacterData(session.player1.character)?.name}</p>
@@ -831,7 +828,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
               </div>
               <div className="text-center" style={{ animation: 'vsSlideRight 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
-                  <img src={stockIconUrl(getCharacterData(session.player2.character)?.name, session.player2.skin || 1)} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = getCharacterData(session.player2.character)?.image || '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                 </div>
                 <div>
                   <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
@@ -891,7 +888,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                             clickedItemId === charId ? 'border-green-400 shadow-green-500/30' : 'border-smash-red/60'
                           }`}
                         >
-                          <img src={char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                          <img src={getStockIconPath(charId, 1) || char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                         </button>
                       );
                     })}
@@ -926,7 +923,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                   title={character.name}
                 >
                   <img
-                    src={character.image}
+                    src={getStockIconPath(character.id, 1) || character.image}
                     alt={character.name}
                     className="w-full h-full object-contain"
                     onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
@@ -1125,21 +1122,21 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
               <div className="text-center mb-3">
                 <div className="flex items-center justify-center gap-3 mb-1">
                   <div className="w-10 h-10 bg-white/10 rounded-full border-2 border-smash-red p-0.5 flex items-center justify-center">
-                    <img src={skinModal.characterImage} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                    <img src={getStockIconPath(skinModal.characterId, 1)} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                   </div>
                   <h3 className="text-lg font-bold text-white">🎨 Elegir skin</h3>
                 </div>
                 <p className="text-white/60 text-sm">{skinModal.characterName}</p>
               </div>
-              <div className={`grid gap-2 mb-4 ${getSantaFeSkinCount(skinModal.characterId) <= 4 ? 'grid-cols-2' : getSantaFeSkinCount(skinModal.characterId) <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-                {Array.from({ length: getSantaFeSkinCount(skinModal.characterId) }, (_, i) => i + 1).map(skin => (
+              <div className={`grid gap-2 mb-4 ${getSkinCount(skinModal.characterId) <= 4 ? 'grid-cols-2' : getSkinCount(skinModal.characterId) <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                {Array.from({ length: getSkinCount(skinModal.characterId) }, (_, i) => i + 1).map(skin => (
                   <button
                     key={skin}
                     onClick={() => handleConfirmSkin(skin)}
                     className="aspect-square bg-white/10 rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation overflow-hidden p-1 hover:border-smash-red/60 transition-colors"
                   >
                     <img
-                      src={stockIconUrl(skinModal.characterName, skin)}
+                      src={getStockIconPath(skinModal.characterId, skin)}
                       alt={`Skin ${skin}`}
                       className="w-full h-full object-contain"
                       onError={(e) => { e.target.style.opacity = '0.25'; }}
@@ -1165,7 +1162,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                 <div className="mb-4 flex justify-center">
                   {pendingAction.type === 'character' && pendingAction.skin && pendingAction.characterName ? (
                     <div className="w-16 h-16 bg-white/10 rounded-xl border-4 border-smash-red p-1 flex items-center justify-center">
-                      <img src={stockIconUrl(pendingAction.characterName, pendingAction.skin)} alt={pendingAction.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = pendingAction.characterImage || '/images/characters/placeholder.png'; }} />
+                      <img src={getStockIconPath(pendingAction.characterId, pendingAction.skin) || pendingAction.characterImage} alt={pendingAction.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
                     </div>
                   ) : pendingAction.type === 'character' && pendingAction.characterImage ? (
                     <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-red p-1 flex items-center justify-center">

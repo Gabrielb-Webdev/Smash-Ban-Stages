@@ -217,6 +217,27 @@ export const getCharacterData = (characterId) => {
   return CHARACTERS.find(char => char.id === characterId);
 };
 
+// ── Mapa de overrides y conteo de skins ────────────────────────────────
+const _STOCK_OVERRIDES = { 'rob': 'Rob', 'pyra-mythra': 'Pyra & Mythra' };
+const _SKIN_COUNT = { 'kazuya': 9, 'mii-brawler': 1, 'mii-gunner': 1, 'mii-swordfighter': 1 };
+
+/** Retorna la ruta a /images/Stock Icons V2/{folder}/{skin}.png */
+export function getStockIconPath(charId, skin = 1) {
+  const char = CHARACTERS.find(c => c.id === charId);
+  if (!char) return null;
+  const folder = _STOCK_OVERRIDES[charId]
+    || char.name.replace(/\./g, '').replace(/\//g, ' & ')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const maxSkins = _SKIN_COUNT[charId] ?? 8;
+  const idx = Math.max(1, Math.min(parseInt(skin) || 1, maxSkins));
+  return `/images/Stock%20Icons%20V2/${encodeURIComponent(folder)}/${idx}.png`;
+}
+
+/** Retorna la cantidad de skins disponibles para un personaje */
+export function getSkinCount(charId) {
+  return _SKIN_COUNT[charId] ?? 8;
+}
+
 // Función para obtener los stages según el torneo y game
 export const getStagesForTournament = (sessionId, currentGame) => {
   let tournamentId = 'cordoba'; // Por defecto

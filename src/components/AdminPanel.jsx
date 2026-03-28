@@ -25,6 +25,10 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [notifSetup, setNotifSetup] = useState('Setup 1');
   const [notifSending, setNotifSending] = useState(false);
   const [notifSent, setNotifSent] = useState(null); // null | 'ok' | 'error'
+  const [publishedTournaments, setPublishedTournaments] = useState([]);
+  const [publishedLoading, setPublishedLoading] = useState(false);
+  const [publishedError, setPublishedError] = useState('');
+  const [deletingSlug, setDeletingSlug] = useState('');
 
   // Configuración de torneos con temas
   const tournaments = {
@@ -257,6 +261,25 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     };
   }, [selectedTournament]); // Agregar selectedTournament como dependencia
 
+  const fetchPublishedTournaments = async () => {
+    setPublishedLoading(true);
+    setPublishedError('');
+    try {
+      const r = await fetch('/api/tournaments/featured');
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'No se pudo cargar la lista');
+      setPublishedTournaments(Array.isArray(d.featured) ? d.featured : []);
+    } catch (e) {
+      setPublishedError(e.message || 'Error cargando torneos publicados');
+    } finally {
+      setPublishedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPublishedTournaments();
+  }, []);
+
   // Unirse a la sesión de la comunidad al conectar
   useEffect(() => {
     if (adminSocket && adminSocket.connected && selectedTournament) {
@@ -436,6 +459,38 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     alert('Link copiado al portapapeles');
   };
 
+  const formatDateTime = (iso) => {
+    if (!iso) return 'Sin fecha';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return 'Sin fecha';
+    return d.toLocaleString('es-AR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const handleDeletePublishedTournament = async (slug, name) => {
+    if (!slug) return;
+    if (!window.confirm(`¿Eliminar "${name || slug}" de torneos publicados?`)) return;
+    setDeletingSlug(slug);
+    try {
+      const r = await fetch(`/api/tournaments/featured?slug=${encodeURIComponent(slug)}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer afk-admin-2025' },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'No se pudo eliminar');
+      setPublishedTournaments(prev => prev.filter(t => t.slug !== slug));
+    } catch (e) {
+      alert(e.message || 'Error eliminando torneo');
+    } finally {
+      setDeletingSlug('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-8">
       <div className="max-w-6xl mx-auto">
@@ -483,6 +538,68 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
                 Sincronizado con panel externo
               </span>
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-white">🏆 Torneos Publicados</h2>
+              <p className="text-white/50 text-sm">Listado de torneos visibles en la app para poder eliminarlos rápido.</p>
+            </div>
+            <button
+              onClick={fetchPublishedTournaments}
+              disabled={publishedLoading}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all ${publishedLoading ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-smash-blue text-white hover:bg-smash-blue/80'}`}
+            >
+              {publishedLoading ? '⏳ Actualizando...' : '🔄 Actualizar'}
+            </button>
+          </div>
+
+          {publishedError && (
+            <div className="mb-3 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-red-300 text-sm">
+              ⚠️ {publishedError}
+            </div>
+          )}
+
+          {!publishedLoading && publishedTournaments.length === 0 ? (
+            <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-white/50 text-sm">
+              No hay torneos publicados.
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {publishedTournaments.map((t) => (
+                <div key={t.slug} className="rounded-xl border border-white/15 bg-black/20 p-3 flex items-center gap-3">
+                  <img
+                    src={t.image || '/images/characters/placeholder.png'}
+                    alt={t.name || t.slug}
+                    className="w-14 h-14 rounded-lg object-cover border border-white/10 flex-shrink-0"
+                    onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm truncate">{t.name || t.slug}</p>
+                    <p className="text-white/45 text-xs truncate">{formatDateTime(t.startAt)} · {t.attendees || 0} inscriptos</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${t.registrationOpen ? 'text-emerald-300 border-emerald-400/40 bg-emerald-500/10' : 'text-white/60 border-white/15 bg-white/5'}`}>
+                        {t.registrationOpen ? 'Inscripciones abiertas' : (t.stateLabel || 'Estado desconocido')}
+                      </span>
+                      {t.url && (
+                        <a href={t.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold text-blue-300 hover:text-blue-200 underline">
+                          Ver
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeletePublishedTournament(t.slug, t.name)}
+                    disabled={deletingSlug === t.slug}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${deletingSlug === t.slug ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                  >
+                    {deletingSlug === t.slug ? 'Eliminando...' : 'Eliminar'}
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
