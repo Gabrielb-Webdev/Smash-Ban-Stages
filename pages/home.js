@@ -2111,7 +2111,11 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                   <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
                                   <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                                 </div>
-                              ) : null}
+                              ) : isMyPlacement ? (
+                                <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
+                              ) : (
+                                <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                              )}
                             </div>
                           </div>
                           <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
@@ -2228,7 +2232,11 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                       <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
                                       <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                                     </div>
-                                  ) : null}
+                                  ) : isMyPlacement ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
+                                  ) : (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                                  )}
                                 </div>
                               </div>
                               <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
@@ -4203,7 +4211,11 @@ function TabPerfil({ user }) {
                               <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
                               <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                             </div>
-                          ) : null}
+                          ) : isMyPlacement ? (
+                            <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
+                          ) : (
+                            <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                          )}
                         </div>
                       </div>
                       {/* Centro: info */}
@@ -4338,7 +4350,11 @@ function TabPerfil({ user }) {
                                       <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
                                       <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                                     </div>
-                                  ) : null}
+                                  ) : isMyPlacement ? (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
+                                  ) : (
+                                    <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                                  )}
                                 </div>
                               </div>
                               <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
@@ -7326,7 +7342,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                   style={{ width: 36, height: 36, borderRadius: 8, padding: 2, cursor: 'pointer',
                     border: searchSkin === idx + 1 ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.1)',
                     background: searchSkin === idx + 1 ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)' }}>
-                  <img src={'/images/characters/' + alt} alt={'Skin ' + (idx+1)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                  <img src={stockIconPath(sc, idx + 1)} alt={'Skin ' + (idx+1)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
                 </button>
               ))}
             </div>
