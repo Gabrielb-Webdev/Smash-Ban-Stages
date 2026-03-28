@@ -25,6 +25,7 @@ const EXTRA_SLUGS = (process.env.STARTGG_EXTRA_SLUGS || '')
 const TOURNAMENT_SERIES = [
   { base: 'true-combo-weeklies', startN: 62, community: 'afk-multi' },
   { base: 'to-the-top', startN: 22, community: 'afk-multi' },
+  { base: 'neon-nights', startN: 7, community: 'santafe' },
 ];
 const SERIES_LAST_N_PREFIX = 'startgg:series:lastN:';
 
