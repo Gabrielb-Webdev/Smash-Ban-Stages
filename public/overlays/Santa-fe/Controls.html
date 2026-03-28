@@ -998,7 +998,9 @@ async function pollStreamSession() {
     const fmt = (data.format || '').toUpperCase();
     if (fmt === 'BO3' || fmt === 'BO5') setBestOf(fmt === 'BO5' ? 'Bo5' : 'Bo3');
 
-    showStatus('&#8635; Sincronizado desde stream');
+    // Enviar automáticamente al overlay
+    await updateScoreboard();
+    showStatus('&#8635; Sincronizado y enviado al overlay');
   } catch (_) { /* servidor no disponible */ }
 }
 
