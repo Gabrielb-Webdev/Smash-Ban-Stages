@@ -403,9 +403,6 @@
         <button class="wl-btn wl-l" onclick="setWL('p1','L')">L</button>
         <button class="wl-btn wl-n selected" onclick="setWL('p1','Nada')">—</button>
       </div>
-
-      <div class="section-label">Sets ganados (total torneo)</div>
-      <div class="field"><input id="p1NScore" type="text" placeholder="0" style="text-align:center;font-size:18px;font-weight:bold;"></div>
     </div>
 
     <!-- ── CENTER ── -->
@@ -463,9 +460,6 @@
         <button class="wl-btn wl-l" onclick="setWL('p2','L')">L</button>
         <button class="wl-btn wl-n selected" onclick="setWL('p2','Nada')">—</button>
       </div>
-
-      <div class="section-label">Sets ganados (total torneo)</div>
-      <div class="field"><input id="p2NScore" type="text" placeholder="0" style="text-align:center;font-size:18px;font-weight:bold;"></div>
     </div>
   </div>
 
@@ -770,7 +764,7 @@ function filterChars(p) {
 
 // ─── SWAP ────────────────────────────────────────────────────────
 function swapPlayers() {
-  const fields = ['Name', 'Team', 'Pron', 'NScore'];
+  const fields = ['Name', 'Team', 'Pron'];
   for (const f of fields) {
     const a = document.getElementById('p1' + f);
     const b = document.getElementById('p2' + f);
@@ -803,7 +797,7 @@ function buildData() {
     p1Team:        document.getElementById('p1Team').value.trim(),
     p1Pron:        document.getElementById('p1Pron').value.trim(),
     p1Score:       state.p1Score,
-    p1NScore:      document.getElementById('p1NScore').value.trim(),
+    p1NScore:      String(state.p1Score),
     p1Character:   state.p1Character,
     p1Skin:        state.p1Skin,
     p1Color:       state.p1Color,
@@ -812,7 +806,7 @@ function buildData() {
     p2Team:        document.getElementById('p2Team').value.trim(),
     p2Pron:        document.getElementById('p2Pron').value.trim(),
     p2Score:       state.p2Score,
-    p2NScore:      document.getElementById('p2NScore').value.trim(),
+    p2NScore:      String(state.p2Score),
     p2Character:   state.p2Character,
     p2Skin:        state.p2Skin,
     p2Color:       state.p2Color,
@@ -837,11 +831,9 @@ function populateForm(data) {
   setText('p1Name',         data.p1Name);
   setText('p1Team',         data.p1Team);
   setText('p1Pron',         data.p1Pron);
-  setText('p1NScore',       data.p1NScore || '0');
   setText('p2Name',         data.p2Name);
   setText('p2Team',         data.p2Team);
   setText('p2Pron',         data.p2Pron);
-  setText('p2NScore',       data.p2NScore || '0');
   setText('round',          data.round);
   setText('format',         data.format);
   setText('caster1Name',    data.caster1Name);
@@ -1042,7 +1034,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Auto-envío al escribir en cualquier campo de texto
-  const autoSendFields = ['p1Name','p1Team','p1Pron','p1NScore','p2Name','p2Team','p2Pron','p2NScore','round','format','caster1Name','caster1Twitter','caster1Twitch','caster2Name','caster2Twitter','caster2Twitch','tournamentName'];
+  const autoSendFields = ['p1Name','p1Team','p1Pron','p2Name','p2Team','p2Pron','round','format','caster1Name','caster1Twitter','caster1Twitch','caster2Name','caster2Twitter','caster2Twitch','tournamentName'];
   autoSendFields.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', () => autoSend());
