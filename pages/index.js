@@ -111,6 +111,15 @@ export default function Home() {
       color: 'from-violet-950 via-purple-900 to-violet-950',
       borderColor: 'border-violet-500',
       hoverColor: 'hover:border-violet-400'
+    },
+    {
+      id: 'santafe',
+      name: 'Smash Santa Fe',
+      logo: '/images/Smash_Santa_Fe.png',
+      description: 'Panel de administración de Smash Santa Fe',
+      color: 'from-blue-950 via-blue-900 to-cyan-950',
+      borderColor: 'border-cyan-600',
+      hoverColor: 'hover:border-cyan-400'
     }
   ];
 

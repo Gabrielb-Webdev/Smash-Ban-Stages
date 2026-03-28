@@ -19,6 +19,7 @@ const COMMUNITY_META = {
   'mendoza':   { name: 'Smash Mendoza',  logo: '/images/Team_Anexo/team_anexo_logo_nwe.png' },
   'inc':       { name: 'INC',            logo: '/images/inc.png' },
   'warui':     { name: 'Warui Team',     logo: '/images/warui/logo.png' },
+  'santafe':   { name: 'Smash Santa Fe', logo: '/images/Smash_Santa_Fe.png' },
 };
 
 function getCommunitySetups(comunidad) {
@@ -1241,7 +1242,7 @@ export default function TestAdminPage() {
     const format = setupFormats[setupId] || 'BO3';
     // Para el setup de stream se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
-    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream' };
+    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream', 'santafe': 'santafe-stream' };
     const isStreamSetup = setupId.endsWith('-stream');
     const sessionId = isStreamSetup
       ? (COMMUNITY_STREAM_IDS[community] || setupId)

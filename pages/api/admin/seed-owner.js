@@ -5,7 +5,7 @@
 import redis from '../../../lib/redis';
 
 const ADMIN_SLUGS = (process.env.ADMIN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
-const COMMUNITIES = ['afk', 'cordoba', 'mendoza', 'inc', 'warui'];
+const COMMUNITIES = ['afk', 'cordoba', 'mendoza', 'inc', 'warui', 'santafe'];
 const OWNER_NAME = 'Gabriel Sin H';
 
 export default async function handler(req, res) {

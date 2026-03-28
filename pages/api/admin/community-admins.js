@@ -7,7 +7,7 @@
 import redis from '../../../lib/redis';
 
 const ADMIN_SLUGS = (process.env.ADMIN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
-export const VALID_COMMUNITIES = ['afk', 'cordoba', 'mendoza', 'inc', 'warui'];
+export const VALID_COMMUNITIES = ['afk', 'cordoba', 'mendoza', 'inc', 'warui', 'santafe'];
 
 export const communityAdminsKey = c => `admins:community:${c}`;
 export const userCommunitiesKey  = s => `admins:user:${s}`;
