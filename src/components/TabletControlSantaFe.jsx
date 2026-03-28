@@ -286,15 +286,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
 
   const startCooldown = () => {
-    if (!isStreamSession) return; // Sin cooldown para setups no-stream
-    setIsActionBlocked(true);
-    setCooldown(3);
-    const interval = setInterval(() => {
-      setCooldown(prev => {
-        if (prev <= 1) { clearInterval(interval); setIsActionBlocked(false); return 0; }
-        return prev - 1;
-      });
-    }, 1000);
+    // Cooldown eliminado para Santa Fe — las acciones son inmediatas
   };
 
   const handleBanStage = (stageId) => {

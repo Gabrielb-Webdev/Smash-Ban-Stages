@@ -42,12 +42,16 @@ function syncSantaFeScoreboard(session) {
     try { current = JSON.parse(fs.readFileSync(SANTAFE_SCOREBOARD_PATH, 'utf-8')); } catch {}
     const char1 = session.player1?.character;
     const char2 = session.player2?.character;
+    const p1Score = typeof session.player1?.score === 'number' ? session.player1.score : (current.p1Score || 0);
+    const p2Score = typeof session.player2?.score === 'number' ? session.player2.score : (current.p2Score || 0);
     const updated = {
       ...current,
       p1Name:      session.player1?.name  || current.p1Name  || '',
       p2Name:      session.player2?.name  || current.p2Name  || '',
-      p1Score:     typeof session.player1?.score === 'number' ? session.player1.score : (current.p1Score || 0),
-      p2Score:     typeof session.player2?.score === 'number' ? session.player2.score : (current.p2Score || 0),
+      p1Score,
+      p2Score,
+      p1NScore:    String(p1Score),
+      p2NScore:    String(p2Score),
       p1Character: (char1 && SLUG_TO_DISPLAY[char1]) ? SLUG_TO_DISPLAY[char1] : 'Random',
       p2Character: (char2 && SLUG_TO_DISPLAY[char2]) ? SLUG_TO_DISPLAY[char2] : 'Random',
       p1Skin:      typeof session.player1?.skin === 'number' ? session.player1.skin : 1,
@@ -60,6 +64,13 @@ function syncSantaFeScoreboard(session) {
       _updatedAt:    Date.now(),
     };
     fs.writeFileSync(SANTAFE_SCOREBOARD_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+    // También persistir en Redis vía Vercel API para que el overlay funcione sin Controls.html
+    const vercelUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smash-ban-stages.vercel.app';
+    fetch(`${vercelUrl}/api/scoreboard-update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(e => console.error('⚠️ Error sync Redis scoreboard:', e.message));
   } catch (e) {
     console.error('⚠️ Error sincronizando scoreboard Santa Fe:', e.message);
   }
@@ -434,7 +445,7 @@ const httpServer = createServer(async (req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName } = JSON.parse(body);
+        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName, forceReset } = JSON.parse(body);
         if (!sessionId) { res.writeHead(400); res.end(JSON.stringify({ error: 'sessionId requerido' })); return; }
 
         // Guardar en pending (por si la sesión WebSocket todavía no se creó)
@@ -480,6 +491,19 @@ const httpServer = createServer(async (req, res) => {
           console.log('📝 Sesión pre-creada (CHECKIN) desde /session-meta:', sessionId);
           if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         } else if (session) {
+          // Si la sesión ya tiene progreso y no viene forceReset, solo actualizar metadata
+          const hasProgress = session.phase !== 'CHECKIN' || (session.player1?.score || 0) > 0 || (session.player2?.score || 0) > 0 || session.currentGame > 1;
+          if (hasProgress && !forceReset) {
+            // Solo actualizar datos de start.gg sin tocar el estado del set
+            if (startggSetId) session.startggSetId = startggSetId;
+            if (startggEntrant1Id) session.startggEntrant1Id = startggEntrant1Id;
+            if (startggEntrant2Id) session.startggEntrant2Id = startggEntrant2Id;
+            if (round) session.round = round;
+            if (tournamentName) session.tournamentName = tournamentName;
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, skipped: true }));
+            return;
+          }
           // Sesión ya existe (ej: Stream con sessionId fijo) → resetear completa
           const freshSession = {
             sessionId,

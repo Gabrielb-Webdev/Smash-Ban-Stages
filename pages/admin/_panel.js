@@ -1336,6 +1336,7 @@ export default function TestAdminPage() {
           format,
           round: set.fullRoundText || set.round || '',
           tournamentName: tournament?.name || '',
+          forceReset: true,
         }),
       });
     } catch {}
