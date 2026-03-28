@@ -116,6 +116,7 @@ export default async function handler(req, res) {
             room.bans = {};
             room.banPhase = 'winner_ban';
             room.stage = null;
+            room.banTurnStartedAt = new Date().toISOString(); // reset para evitar auto-ban inmediato
             await redis.set(`mm:room:${roomCode}`, room);
           }
         }

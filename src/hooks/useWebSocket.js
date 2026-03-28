@@ -185,9 +185,9 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
-  const selectCharacter = (sessionId, character, player) => {
+  const selectCharacter = (sessionId, character, player, skin) => {
     if (socket) {
-      socket.emit('select-character', { sessionId, character, player });
+      socket.emit('select-character', { sessionId, character, player, ...(skin ? { skin } : {}) });
     }
   };
 

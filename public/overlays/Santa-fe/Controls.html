@@ -702,6 +702,7 @@ function buildTicks(p) {
       state[p + 'Score'] = idx < state[p + 'Score'] ? idx : idx + 1;
       state[p + 'Score'] = Math.min(state[p + 'Score'], max);
       updateScoreUI(p);
+      autoSend();
     });
     container.appendChild(t);
   }
@@ -734,6 +735,7 @@ function buildSkinPicker(p, char, selectedSkin) {
       row.querySelectorAll('.skin-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       state[p + 'Skin'] = String(i);
+      autoSend();
     });
     row.appendChild(btn);
   }
@@ -745,12 +747,14 @@ function selectColor(p, colorName) {
   row.querySelectorAll('.color-btn').forEach((btn, i) => {
     btn.classList.toggle('selected', COLORS[i].name === colorName);
   });
+  autoSend();
 }
 
 function adjustScore(p, delta) {
   const max = state.bestOf === 'Bo5' ? 3 : 2;
   state[p + 'Score'] = Math.max(0, Math.min(max, state[p + 'Score'] + delta));
   updateScoreUI(p);
+  autoSend();
 }
 
 function updateScoreUI(p) {
@@ -764,18 +768,19 @@ function setWL(p, val) {
   row.querySelectorAll('.wl-btn').forEach(btn => btn.classList.remove('selected'));
   const map = { 'W': 0, 'L': 1, 'Nada': 2 };
   row.querySelectorAll('.wl-btn')[map[val]].classList.add('selected');
+  autoSend();
 }
 
 function setBestOf(val) {
   state.bestOf = val;
   document.getElementById('bo3btn').classList.toggle('selected', val === 'Bo3');
   document.getElementById('bo5btn').classList.toggle('selected', val === 'Bo5');
-  // Clamp scores to new max
   const max = val === 'Bo5' ? 3 : 2;
   state.p1Score = Math.min(state.p1Score, max);
   state.p2Score = Math.min(state.p2Score, max);
   buildTicks('p1');
   buildTicks('p2');
+  autoSend();
 }
 
 function resetScores() {
@@ -783,6 +788,7 @@ function resetScores() {
   state.p2Score = 0;
   updateScoreUI('p1');
   updateScoreUI('p2');
+  autoSend();
 }
 
 function filterChars(p) {
@@ -818,6 +824,7 @@ function swapPlayers() {
     buildSkinPicker(p, state[p + 'Character'], state[p + 'Skin']);
   }
   showStatus('Jugadores intercambiados');
+  autoSend();
 }
 
 // ─── BUILD DATA OBJECT ───────────────────────────────────────────
@@ -1045,6 +1052,14 @@ window.addEventListener('DOMContentLoaded', () => {
     xhr.onerror = () => { populateForm({}); };
     xhr.send();
   }
+
+  // Auto-envío al escribir en cualquier campo de texto
+  const autoSendFields = ['p1Name','p1Team','p1Pron','p1NScore','p2Name','p2Team','p2Pron','p2NScore','round','format','caster1Name','caster1Twitter','caster1Twitch','caster2Name','caster2Twitter','caster2Twitch','tournamentName'];
+  autoSendFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => autoSend());
+  });
+  document.getElementById('allowIntro').addEventListener('change', () => autoSend());
 
   // Poll stream session every 2s (automático desde Vercel o URL manual)
   pollStreamSession();

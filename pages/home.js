@@ -6312,7 +6312,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   ];
 
   const submitBans = async (bansOverride) => {
-    const bans = bansOverride || selectedBans;
+    const bans = Array.isArray(bansOverride) ? bansOverride : selectedBans;
     if (bans.length < 1 || banLoading) return;
     setBanLoading(true);
     try {
@@ -6840,7 +6840,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                 {banLoading ? '⏳ Confirmando…' : `⚔️ Jugar en ${selectedBans[0] || '...'}`}
               </button>
             ) : (
-              <button onClick={submitBans} disabled={selectedBans.length !== maxSelect || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === maxSelect ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === maxSelect ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === maxSelect ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
+              <button onClick={() => submitBans()} disabled={selectedBans.length !== maxSelect || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === maxSelect ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === maxSelect ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === maxSelect ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
                 {banLoading ? '⏳ Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/${maxSelect})`}
               </button>
             )}

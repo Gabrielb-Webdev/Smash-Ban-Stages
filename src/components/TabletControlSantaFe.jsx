@@ -95,6 +95,12 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 // ── Fondo Santa Fe: gradiente oscuro navy/cyan ─────────────────────
 const SANTAFE_BG = 'linear-gradient(160deg, #010810 0%, #031830 50%, #04284a 100%)';
 
+// ── Skins por personaje (por slug) ────────────────────────────────────
+const SANTAFE_SKIN_COUNT = { 'kazuya': 9, 'mii-brawler': 1, 'mii-gunner': 1, 'mii-swordfighter': 1 };
+const getSantaFeSkinCount = (charId) => SANTAFE_SKIN_COUNT[charId] ?? 8;
+const stockIconUrl = (charName, skin) =>
+  `/overlays/Santa-fe/Resources/Characters/Stock%20Icons/${encodeURIComponent(charName)}/${skin}.png`;
+
 // ───────────────────────────────────────────────────────────────
 export default function TabletControlSantaFe({ sessionId, playerName, playerIndex }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay, rpsPick } = useWebSocket(sessionId);
@@ -113,6 +119,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   const [turnModal, setTurnModal] = useState(null);
   const [clickedItemId, setClickedItemId] = useState(null);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
+  const [skinModal, setSkinModal] = useState(null); // { characterId, characterName, characterImage, player }
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -316,8 +323,19 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
     if (session.currentTurn) {
       setClickedItemId(characterId);
       const character = CHARACTERS.find(c => c.id === characterId);
-      setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
+      const skinCount = getSantaFeSkinCount(characterId);
+      if (skinCount <= 1) {
+        setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn, skin: 1 });
+      } else {
+        setSkinModal({ characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
+      }
     }
+  };
+
+  const handleConfirmSkin = (skin) => {
+    const { characterId, characterName, characterImage, player } = skinModal;
+    setSkinModal(null);
+    setPendingAction({ type: 'character', characterId, characterName, characterImage, player, skin });
   };
 
   const handleRandomCharacter = () => {
@@ -338,14 +356,14 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
       case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
-      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player); break;
+      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin); break;
       case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer); break;
     }
     setPendingAction(null);
     setClickedItemId(null);
   };
 
-  const cancelAction = () => { setPendingAction(null); setClickedItemId(null); };
+  const cancelAction = () => { setPendingAction(null); setSkinModal(null); setClickedItemId(null); };
 
   // Stages para Games 2+
   const getAllStages = () => getStagesForTournament(sessionId, session.currentGame);
@@ -1108,13 +1126,56 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
           </div>
         )}
 
+        {/* ── Modal: Selector de skin ── */}
+        {skinModal && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-black to-smash-purple rounded-2xl p-4 shadow-2xl border-4 border-smash-red max-w-sm w-full">
+              <div className="text-center mb-3">
+                <div className="flex items-center justify-center gap-3 mb-1">
+                  <div className="w-10 h-10 bg-white/10 rounded-full border-2 border-smash-red p-0.5 flex items-center justify-center">
+                    <img src={skinModal.characterImage} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">🎨 Elegir skin</h3>
+                </div>
+                <p className="text-white/60 text-sm">{skinModal.characterName}</p>
+              </div>
+              <div className={`grid gap-2 mb-4 ${getSantaFeSkinCount(skinModal.characterId) <= 4 ? 'grid-cols-2' : getSantaFeSkinCount(skinModal.characterId) <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                {Array.from({ length: getSantaFeSkinCount(skinModal.characterId) }, (_, i) => i + 1).map(skin => (
+                  <button
+                    key={skin}
+                    onClick={() => handleConfirmSkin(skin)}
+                    className="aspect-square bg-white/10 rounded-xl border-2 border-white/20 active:scale-95 touch-manipulation overflow-hidden p-1 hover:border-smash-red/60 transition-colors"
+                  >
+                    <img
+                      src={stockIconUrl(skinModal.characterName, skin)}
+                      alt={`Skin ${skin}`}
+                      className="w-full h-full object-contain"
+                      onError={(e) => { e.target.style.opacity = '0.25'; }}
+                    />
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { setSkinModal(null); setClickedItemId(null); }}
+                className="w-full py-2 bg-gray-700 text-white font-bold text-sm rounded-lg active:scale-95 touch-manipulation"
+              >
+                ❌ Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Modal: Confirmación de acción ── */}
         {pendingAction && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-black to-smash-purple rounded-2xl p-4 shadow-2xl border-4 border-smash-red max-w-sm w-full">
               <div className="text-center mb-6">
                 <div className="mb-4 flex justify-center">
-                  {pendingAction.type === 'character' && pendingAction.characterImage ? (
+                  {pendingAction.type === 'character' && pendingAction.skin && pendingAction.characterName ? (
+                    <div className="w-16 h-16 bg-white/10 rounded-xl border-4 border-smash-red p-1 flex items-center justify-center">
+                      <img src={stockIconUrl(pendingAction.characterName, pendingAction.skin)} alt={pendingAction.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = pendingAction.characterImage || '/images/characters/placeholder.png'; }} />
+                    </div>
+                  ) : pendingAction.type === 'character' && pendingAction.characterImage ? (
                     <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-red p-1 flex items-center justify-center">
                       <img src={pendingAction.characterImage} alt={pendingAction.characterName} className="w-full h-full object-contain rounded-full" />
                     </div>
@@ -1133,7 +1194,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                   {pendingAction.type === 'rps' && <p className="text-white text-base"><span className="text-smash-red font-bold">{pendingAction.playerName}</span> ganó el RPS</p>}
                   {pendingAction.type === 'ban' && <p className="text-white text-base">Banear <span className="text-red-400 font-bold">{pendingAction.stageName}</span></p>}
                   {pendingAction.type === 'select' && <p className="text-white text-base">Seleccionar <span className="text-green-400 font-bold">{pendingAction.stageName}</span></p>}
-                  {pendingAction.type === 'character' && <p className="text-white text-base">Seleccionar <span className="text-smash-red font-bold">{pendingAction.characterName}</span></p>}
+                  {pendingAction.type === 'character' && <p className="text-white text-base">Seleccionar <span className="text-smash-red font-bold">{pendingAction.characterName}</span>{pendingAction.skin && pendingAction.skin > 1 ? <span className="text-white/50 text-sm"> (skin {pendingAction.skin})</span> : null}</p>}
                   {pendingAction.type === 'winner' && <p className="text-white text-base"><span className="text-smash-red font-bold">{pendingAction.winnerName}</span> ganó el Game {session.currentGame}</p>}
                 </div>
               </div>

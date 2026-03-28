@@ -50,6 +50,8 @@ function syncSantaFeScoreboard(session) {
       p2Score:     typeof session.player2?.score === 'number' ? session.player2.score : (current.p2Score || 0),
       p1Character: (char1 && SLUG_TO_DISPLAY[char1]) ? SLUG_TO_DISPLAY[char1] : (current.p1Character || 'Mario'),
       p2Character: (char2 && SLUG_TO_DISPLAY[char2]) ? SLUG_TO_DISPLAY[char2] : (current.p2Character || 'Mario'),
+      p1Skin:      typeof session.player1?.skin === 'number' ? session.player1.skin : (current.p1Skin || 1),
+      p2Skin:      typeof session.player2?.skin === 'number' ? session.player2.skin : (current.p2Skin || 1),
       bestOf:      session.format === 'BO5' ? 'Bo5' : 'Bo3',
       _source:     'stream',
       _updatedAt:  Date.now(),
@@ -1284,13 +1286,14 @@ io.on('connection', (socket) => {
   });
 
   // Seleccionar personaje
-  socket.on('select-character', ({ sessionId, character, player }) => {
+  socket.on('select-character', ({ sessionId, character, player, skin }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'CHARACTER_SELECT') {
       if (session.currentTurn !== player) return; // solo el jugador con turno puede seleccionar
       // Guardar en historial por nombre de jugador
       recordCharacterPick(session[player].name, character);
       session[player].character = character;
+      if (skin) session[player].skin = skin;
       
       // Verificar si ambos jugadores han seleccionado
       const otherPlayer = player === 'player1' ? 'player2' : 'player1';
