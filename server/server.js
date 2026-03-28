@@ -1,6 +1,70 @@
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
+const fs   = require('fs');
+const path = require('path');
+
+// ── Sync ScoreboardInfo.json para Santa Fe ───────────────────────────────────
+const SANTAFE_SCOREBOARD_PATH = path.join(__dirname, '..', 'public', 'overlays', 'Santa-fe', 'Resources', 'Texts', 'ScoreboardInfo.json');
+
+// Convierte el slug de personaje (banjo-kazooie) al nombre de display (Banjo & Kazooie)
+const SLUG_TO_DISPLAY = {
+  'banjo-kazooie':'Banjo & Kazooie','bayonetta':'Bayonetta','bowser':'Bowser',
+  'bowser-jr':'Bowser Jr','byleth':'Byleth','captain-falcon':'Captain Falcon',
+  'chrom':'Chrom','cloud':'Cloud','corrin':'Corrin','daisy':'Daisy',
+  'dark-pit':'Dark Pit','dark-samus':'Dark Samus','diddy-kong':'Diddy Kong',
+  'donkey-kong':'Donkey Kong','dr-mario':'Dr Mario','duck-hunt':'Duck Hunt',
+  'falco':'Falco','fox':'Fox','ganondorf':'Ganondorf','greninja':'Greninja',
+  'hero':'Hero','ice-climbers':'Ice Climbers','ike':'Ike','incineroar':'Incineroar',
+  'inkling':'Inkling','isabelle':'Isabelle','jigglypuff':'Jigglypuff','joker':'Joker',
+  'kazuya':'Kazuya','ken':'Ken','king-dedede':'King Dedede','king-k-rool':'King K Rool',
+  'kirby':'Kirby','link':'Link','little-mac':'Little Mac','lucario':'Lucario',
+  'lucas':'Lucas','lucina':'Lucina','luigi':'Luigi','mario':'Mario','marth':'Marth',
+  'mega-man':'Mega Man','meta-knight':'Meta Knight','mewtwo':'Mewtwo',
+  'mii-brawler':'Mii Brawler','mii-gunner':'Mii Gunner','mii-swordfighter':'Mii Swordfighter',
+  'min-min':'Min Min','mr-game-watch':'Mr Game & Watch','ness':'Ness','olimar':'Olimar',
+  'pac-man':'Pac Man','palutena':'Palutena','peach':'Peach','pichu':'Pichu',
+  'pikachu':'Pikachu','piranha-plant':'Piranha Plant','pit':'Pit',
+  'pokemon-trainer':'Pokemon Trainer','pyra-mythra':'Pyra & Mythra',
+  'richter':'Richter','ridley':'Ridley','rob':'Rob','robin':'Robin',
+  'rosalina-luma':'Rosalina & Luma','roy':'Roy','ryu':'Ryu','samus':'Samus',
+  'sephiroth':'Sephiroth','sheik':'Sheik','shulk':'Shulk','simon':'Simon',
+  'snake':'Snake','sonic':'Sonic','sora':'Sora','steve':'Steve','terry':'Terry',
+  'toon-link':'Toon Link','villager':'Villager','wario':'Wario',
+  'wii-fit-trainer':'Wii Fit Trainer','wolf':'Wolf','yoshi':'Yoshi',
+  'young-link':'Young Link','zelda':'Zelda','zero-suit-samus':'Zero Suit Samus',
+};
+
+function syncSantaFeScoreboard(session) {
+  if (!session) return;
+  try {
+    let current = {};
+    try { current = JSON.parse(fs.readFileSync(SANTAFE_SCOREBOARD_PATH, 'utf-8')); } catch {}
+    const char1 = session.player1?.character;
+    const char2 = session.player2?.character;
+    const updated = {
+      ...current,
+      p1Name:      session.player1?.name  || current.p1Name  || '',
+      p2Name:      session.player2?.name  || current.p2Name  || '',
+      p1Score:     typeof session.player1?.score === 'number' ? session.player1.score : (current.p1Score || 0),
+      p2Score:     typeof session.player2?.score === 'number' ? session.player2.score : (current.p2Score || 0),
+      p1Character: (char1 && SLUG_TO_DISPLAY[char1]) ? SLUG_TO_DISPLAY[char1] : (current.p1Character || 'Mario'),
+      p2Character: (char2 && SLUG_TO_DISPLAY[char2]) ? SLUG_TO_DISPLAY[char2] : (current.p2Character || 'Mario'),
+      bestOf:      session.format === 'BO5' ? 'Bo5' : 'Bo3',
+      _source:     'stream',
+      _updatedAt:  Date.now(),
+    };
+    fs.writeFileSync(SANTAFE_SCOREBOARD_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('⚠️ Error sincronizando scoreboard Santa Fe:', e.message);
+  }
+}
+
+function isSantaFe(sessionId) {
+  if (!sessionId) return false;
+  const s = sessionId.toLowerCase();
+  return s === 'santafe-stream' || s.startsWith('santafe-') || s.startsWith('santa-fe-') || s.includes('santafe');
+}
 
 // ── Persistencia de sesiones en Redis (Upstash REST) ─────────────────────────
 const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
@@ -407,6 +471,7 @@ const httpServer = createServer(async (req, res) => {
           };
           sessions.set(sessionId, session);
           console.log('📝 Sesión pre-creada (CHECKIN) desde /session-meta:', sessionId);
+          if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         } else if (session) {
           // Sesión ya existe (ej: Stream con sessionId fijo) → resetear completa
           const freshSession = {
@@ -444,6 +509,7 @@ const httpServer = createServer(async (req, res) => {
           // Notificar a clientes conectados del reset
           io.to(sessionId).emit('session-updated', { session: freshSession });
           console.log('🔄 Sesión reseteada (CHECKIN) desde /session-meta:', sessionId);
+          if (isSantaFe(sessionId)) syncSantaFeScoreboard(freshSession);
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1234,10 +1300,12 @@ io.on('connection', (socket) => {
         session.currentTurn = otherPlayer;
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
+        if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
       } else {
         // Ambos han seleccionado, cambiar a STAGE_BAN (delay para animación VS)
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
+        if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         
         const phaseDelay = 2500;
         setTimeout(() => {
@@ -1330,6 +1398,7 @@ io.on('connection', (socket) => {
 
     sessions.set(sessionId, session);
     io.to(sessionId).emit('session-updated', { session });
+    if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
 
     console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
     if (session.startggSetId && seriesFinished) {

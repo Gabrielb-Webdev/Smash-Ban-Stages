@@ -527,14 +527,25 @@
       </label>
 
       <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+        <div class="section-label" style="color:#26cae2;">&#8635; Sync desde Setup de Stream</div>
+        <p style="font-size:11px;color:#6fa8c5;margin-bottom:8px;line-height:1.5;">
+          URL del servidor WebSocket (Render). El panel se sincroniza automáticamente cada 2s con la sesión <code style="color:#26cae2;font-size:10px;">santafe-stream</code>.
+        </p>
+        <div style="display:flex;gap:6px;">
+          <input id="streamServerUrl" type="text" placeholder="https://tu-servidor.onrender.com"
+            style="flex:1;background:#0b1e2a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;">
+          <button onclick="updateStreamServerUrl(document.getElementById('streamServerUrl').value)"
+            style="padding:7px 12px;background:#0d3050;color:var(--accent);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">
+            Guardar
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
         <div class="section-label">JSON manual (sin servidor)</div>
         <button onclick="downloadJSON()" style="width:100%;padding:8px;background:#0b1e2a;color:var(--accent);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1px;">
           &#11015; Descargar ScoreboardInfo.json
         </button>
-        <p style="font-size:11px;color:#456;margin-top:8px;line-height:1.5;">
-          Si no tenés servidor corriendo, descargá el JSON y reemplazá<br>
-          <code style="color:#5a8;font-size:10px;">Resources/Texts/ScoreboardInfo.json</code>
-        </p>
       </div>
     </div>
   </div>
@@ -546,6 +557,45 @@
 </div>
 
 <script>
+// ─── CONFIGURACIÓN STREAM SERVER ─────────────────────────────────
+// URL del servidor WebSocket (Render). Editá esta línea con tu URL de Render.
+// Ejemplo: 'https://smash-ban-stages.onrender.com'
+const STREAM_SERVER_URL = (() => {
+  try { return localStorage.getItem('santafe-stream-server-url') || ''; } catch { return ''; }
+})();
+
+// ─── MAPEO SLUG → NOMBRE DISPLAY ─────────────────────────────────
+const SLUG_TO_CHAR = {
+  'banjo-kazooie':'Banjo & Kazooie','bayonetta':'Bayonetta','bowser':'Bowser',
+  'bowser-jr':'Bowser Jr','byleth':'Byleth','captain-falcon':'Captain Falcon',
+  'chrom':'Chrom','cloud':'Cloud','corrin':'Corrin','daisy':'Daisy',
+  'dark-pit':'Dark Pit','dark-samus':'Dark Samus','diddy-kong':'Diddy Kong',
+  'donkey-kong':'Donkey Kong','dr-mario':'Dr Mario','duck-hunt':'Duck Hunt',
+  'falco':'Falco','fox':'Fox','ganondorf':'Ganondorf','greninja':'Greninja',
+  'hero':'Hero','ice-climbers':'Ice Climbers','ike':'Ike','incineroar':'Incineroar',
+  'inkling':'Inkling','isabelle':'Isabelle','jigglypuff':'Jigglypuff','joker':'Joker',
+  'kazuya':'Kazuya','ken':'Ken','king-dedede':'King Dedede','king-k-rool':'King K Rool',
+  'kirby':'Kirby','link':'Link','little-mac':'Little Mac','lucario':'Lucario',
+  'lucas':'Lucas','lucina':'Lucina','luigi':'Luigi','mario':'Mario','marth':'Marth',
+  'mega-man':'Mega Man','meta-knight':'Meta Knight','mewtwo':'Mewtwo',
+  'mii-brawler':'Mii Brawler','mii-gunner':'Mii Gunner','mii-swordfighter':'Mii Swordfighter',
+  'min-min':'Min Min','mr-game-watch':'Mr Game & Watch','ness':'Ness','olimar':'Olimar',
+  'pac-man':'Pac Man','palutena':'Palutena','peach':'Peach','pichu':'Pichu',
+  'pikachu':'Pikachu','piranha-plant':'Piranha Plant','pit':'Pit',
+  'pokemon-trainer':'Pokemon Trainer','pyra-mythra':'Pyra & Mythra','random':'Random',
+  'richter':'Richter','ridley':'Ridley','rob':'Rob','robin':'Robin',
+  'rosalina-luma':'Rosalina & Luma','roy':'Roy','ryu':'Ryu','samus':'Samus',
+  'sephiroth':'Sephiroth','sheik':'Sheik','shulk':'Shulk','simon':'Simon',
+  'snake':'Snake','sonic':'Sonic','sora':'Sora','steve':'Steve','terry':'Terry',
+  'toon-link':'Toon Link','villager':'Villager','wario':'Wario',
+  'wii-fit-trainer':'Wii Fit Trainer','wolf':'Wolf','yoshi':'Yoshi',
+  'young-link':'Young Link','zelda':'Zelda','zero-suit-samus':'Zero Suit Samus',
+};
+function slugToChar(slug) {
+  if (!slug) return null;
+  return SLUG_TO_CHAR[slug] || null;
+}
+
 // ─── DATA ───────────────────────────────────────────────────────
 const CHARACTERS = [
   'Banjo & Kazooie','Bayonetta','Bowser','Bowser Jr','Byleth',
@@ -613,6 +663,18 @@ function encodeCharPath(char, skin) {
   return 'Resources/Characters/Stock%20Icons/' + encodeURIComponent(char) + '/' + skin + '.png';
 }
 
+// Personajes con cantidad distinta a 8 skins
+const CHAR_SKIN_COUNT = {
+  'Kazuya': 9,
+  'Mii Brawler': 1,
+  'Mii Gunner': 1,
+  'Mii Swordfighter': 1,
+  'Random': 1,
+};
+function getSkinCount(char) {
+  return CHAR_SKIN_COUNT[char] ?? 8;
+}
+
 function buildColorRow(p) {
   const row = document.getElementById(p + 'ColorRow');
   COLORS.forEach(c => {
@@ -658,14 +720,15 @@ function selectChar(p, char) {
 function buildSkinPicker(p, char, selectedSkin) {
   const row = document.getElementById(p + 'SkinRow');
   row.innerHTML = '';
-  for (let i = 1; i <= 8; i++) {
+  const maxSkins = getSkinCount(char);
+  for (let i = 1; i <= maxSkins; i++) {
     const btn = document.createElement('button');
     btn.className = 'skin-btn' + (String(i) === String(selectedSkin) ? ' selected' : '');
     btn.title = 'Skin ' + i;
+    btn.dataset.skin = String(i);
     const img = document.createElement('img');
     img.src = encodeCharPath(char, i);
     img.alt = 'S' + i;
-    img.onerror = function() { btn.style.display = 'none'; };
     btn.appendChild(img);
     btn.addEventListener('click', () => {
       row.querySelectorAll('.skin-btn').forEach(b => b.classList.remove('selected'));
@@ -891,9 +954,56 @@ function showStatus(msg, type) {
   }
 }
 
+// ─── AUTO-SYNC DESDE STREAM SERVER ───────────────────────────────
+let _lastStreamData = null;
+let _streamServerUrl = STREAM_SERVER_URL;
+
+async function pollStreamSession() {
+  if (!_streamServerUrl) return;
+  try {
+    const resp = await fetch(_streamServerUrl + '/session/santafe-stream', { cache: 'no-store' });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.ok) return;
+
+    // Detectar si hay cambios relevantes
+    const key = JSON.stringify([data.player1, data.player2, data.char1, data.char2, data.score1, data.score2, data.format]);
+    if (key === _lastStreamData) return;
+    _lastStreamData = key;
+
+    // Actualizar solo los campos que vienen del stream
+    if (data.player1) document.getElementById('p1Name').value = data.player1;
+    if (data.player2) document.getElementById('p2Name').value = data.player2;
+
+    const char1 = slugToChar(data.char1);
+    const char2 = slugToChar(data.char2);
+    if (char1) { state.p1Character = char1; selectChar('p1', char1); }
+    if (char2) { state.p2Character = char2; selectChar('p2', char2); }
+
+    if (typeof data.score1 === 'number') { state.p1Score = data.score1; updateScoreUI('p1'); }
+    if (typeof data.score2 === 'number') { state.p2Score = data.score2; updateScoreUI('p2'); }
+
+    const fmt = (data.format || '').toUpperCase();
+    if (fmt === 'BO3' || fmt === 'BO5') setBestOf(fmt === 'BO5' ? 'Bo5' : 'Bo3');
+
+    showStatus('&#8635; Sincronizado desde stream');
+  } catch (_) { /* servidor no disponible */ }
+}
+
+function updateStreamServerUrl(url) {
+  _streamServerUrl = url.trim();
+  try { localStorage.setItem('santafe-stream-server-url', _streamServerUrl); } catch {}
+  _lastStreamData = null;
+  if (_streamServerUrl) { pollStreamSession(); showStatus('URL guardada'); }
+}
+
 // ─── INIT ────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   buildAll();
+
+  // Restaurar URL del stream server en el input
+  const urlInput = document.getElementById('streamServerUrl');
+  if (urlInput && _streamServerUrl) urlInput.value = _streamServerUrl;
 
   // Primero intentar cargar desde localStorage (sesión de navegador activa)
   try {
@@ -901,28 +1011,30 @@ window.addEventListener('DOMContentLoaded', () => {
     if (local) {
       populateForm(JSON.parse(local));
       showStatus('Datos cargados');
-      return;
     }
   } catch(_) {}
 
-  // Fallback: cargar desde JSON en disco
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', 'Resources/Texts/ScoreboardInfo.json');
-  xhr.onload = () => {
-    try {
-      const data = JSON.parse(xhr.responseText);
-      populateForm(data);
-      showStatus('Datos cargados');
-    } catch {
-      populateForm({});
-      showStatus('JSON inválido', 'error');
-    }
-  };
-  xhr.onerror = () => {
-    populateForm({});
-    showStatus('Listo (sin datos previos)');
-  };
-  xhr.send();
+  if (!localStorage.getItem('santa-fe-scoreboard')) {
+    // Fallback: cargar desde JSON en disco
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'Resources/Texts/ScoreboardInfo.json');
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        populateForm(data);
+        showStatus('Datos cargados');
+      } catch {
+        populateForm({});
+        showStatus('JSON inválido', 'error');
+      }
+    };
+    xhr.onerror = () => { populateForm({}); };
+    xhr.send();
+  }
+
+  // Poll stream session every 2s
+  if (_streamServerUrl) pollStreamSession();
+  setInterval(pollStreamSession, 2000);
 });
 </script>
 </body>
