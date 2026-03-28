@@ -962,7 +962,7 @@ async function pollStreamSession() {
     if (!data.ok) return;
 
     // Detectar si hay cambios relevantes
-    const key = JSON.stringify([data.player1, data.player2, data.char1, data.char2, data.skin1, data.skin2, data.score1, data.score2, data.format]);
+    const key = JSON.stringify([data.player1, data.player2, data.char1, data.char2, data.skin1, data.skin2, data.score1, data.score2, data.format, data.round, data.tournamentName]);
     if (key === _lastStreamData) return;
     _lastStreamData = key;
 
@@ -986,6 +986,12 @@ async function pollStreamSession() {
 
     const fmt = (data.format || '').toUpperCase();
     if (fmt === 'BO3' || fmt === 'BO5') setBestOf(fmt === 'BO5' ? 'Bo5' : 'Bo3');
+
+    // Ronda, formato (número) y nombre del torneo
+    if (data.round)          document.getElementById('round').value          = data.round;
+    if (data.tournamentName) document.getElementById('tournamentName').value = data.tournamentName;
+    if (fmt === 'BO3') document.getElementById('format').value = '3';
+    if (fmt === 'BO5') document.getElementById('format').value = '5';
 
     // Enviar automáticamente al overlay
     await updateScoreboard();

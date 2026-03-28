@@ -1334,6 +1334,8 @@ export default function TestAdminPage() {
           player1: players[0] || 'Jugador 1',
           player2: players[1] || 'Jugador 2',
           format,
+          round: set.fullRoundText || set.round || '',
+          tournamentName: tournament?.name || '',
         }),
       });
     } catch {}

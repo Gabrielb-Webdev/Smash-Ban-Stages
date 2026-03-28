@@ -52,9 +52,12 @@ function syncSantaFeScoreboard(session) {
       p2Character: (char2 && SLUG_TO_DISPLAY[char2]) ? SLUG_TO_DISPLAY[char2] : 'Random',
       p1Skin:      typeof session.player1?.skin === 'number' ? session.player1.skin : 1,
       p2Skin:      typeof session.player2?.skin === 'number' ? session.player2.skin : 1,
-      bestOf:      session.format === 'BO5' ? 'Bo5' : 'Bo3',
-      _source:     'stream',
-      _updatedAt:  Date.now(),
+      bestOf:        session.format === 'BO5' ? 'Bo5' : 'Bo3',
+      round:         session.round         || current.round         || '',
+      tournamentName:session.tournamentName || current.tournamentName || '',
+      format:        session.format === 'BO5' ? '5' : '3',
+      _source:       'stream',
+      _updatedAt:    Date.now(),
     };
     fs.writeFileSync(SANTAFE_SCOREBOARD_PATH, JSON.stringify(updated, null, 2), 'utf-8');
   } catch (e) {
@@ -431,7 +434,7 @@ const httpServer = createServer(async (req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format } = JSON.parse(body);
+        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName } = JSON.parse(body);
         if (!sessionId) { res.writeHead(400); res.end(JSON.stringify({ error: 'sessionId requerido' })); return; }
 
         // Guardar en pending (por si la sesión WebSocket todavía no se creó)
@@ -470,6 +473,8 @@ const httpServer = createServer(async (req, res) => {
             startggSetId: startggSetId || null,
             startggEntrant1Id: startggEntrant1Id || null,
             startggEntrant2Id: startggEntrant2Id || null,
+            round: round || '',
+            tournamentName: tournamentName || '',
           };
           sessions.set(sessionId, session);
           console.log('📝 Sesión pre-creada (CHECKIN) desde /session-meta:', sessionId);
@@ -506,6 +511,8 @@ const httpServer = createServer(async (req, res) => {
             startggSetId: startggSetId || null,
             startggEntrant1Id: startggEntrant1Id || null,
             startggEntrant2Id: startggEntrant2Id || null,
+            round: round || '',
+            tournamentName: tournamentName || '',
           };
           sessions.set(sessionId, freshSession);
           // Notificar a clientes conectados del reset
@@ -572,6 +579,8 @@ const httpServer = createServer(async (req, res) => {
         selectedStage: session.selectedStage || null,
         currentGame: session.currentGame || 1,
         format: session.format || 'BO3',
+        round: session.round || '',
+        tournamentName: session.tournamentName || '',
         games: (session.games || []).map(g => ({
           gameNum:        g.gameNum,
           winnerName:     g.winnerName    || null,
