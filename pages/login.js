@@ -64,12 +64,9 @@ export default function Login() {
           <div style={{ textAlign:'center', marginBottom:40 }}>
             <div style={{
               display:'inline-flex', alignItems:'center', justifyContent:'center',
-              width:72, height:72, borderRadius:22,
-              background:'linear-gradient(135deg,#FF8C00,#E85D00)',
-              fontSize:36, marginBottom:20,
-              boxShadow:'0 0 40px rgba(232,142,0,0.4), 0 12px 28px rgba(0,0,0,0.5)',
+              marginBottom:20,
               animation:'float 4s ease-in-out infinite',
-            }}><img src="/images/logo.app.png" alt="Logo" style={{ width:50, height:50, objectFit:'contain', filter:'invert(1)' }} /></div>
+            }}><img src="/images/logo.app.png" alt="Logo" style={{ width:90, height:90, objectFit:'contain', filter:'invert(1)' }} /></div>
             <h1 style={{ margin:'0 0 6px', fontSize:38, fontWeight:900, color:'#fff', letterSpacing:'-1px' }}>LA APP <span style={{ color:'#FF8C00' }}>sin H</span></h1>
             <p style={{ margin:0, fontSize:12, fontWeight:700, letterSpacing:'0.22em', color:'rgba(255,255,255,0.3)', textTransform:'uppercase' }}>Comunidad Competitiva</p>
           </div>
