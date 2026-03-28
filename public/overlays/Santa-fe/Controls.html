@@ -529,10 +529,10 @@
       <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
         <div class="section-label" style="color:#26cae2;">&#8635; Sync desde Setup de Stream</div>
         <p style="font-size:11px;color:#6fa8c5;margin-bottom:8px;line-height:1.5;">
-          URL del servidor WebSocket (Render). El panel se sincroniza automáticamente cada 2s con la sesión <code style="color:#26cae2;font-size:10px;">santafe-stream</code>.
+          En Vercel se sincroniza automáticamente. El campo de abajo es solo para uso local (Live Server).
         </p>
         <div style="display:flex;gap:6px;">
-          <input id="streamServerUrl" type="text" placeholder="https://tu-servidor.onrender.com"
+          <input id="streamServerUrl" type="text" placeholder="Solo en local: https://tu-servidor.onrender.com"
             style="flex:1;background:#0b1e2a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;">
           <button onclick="updateStreamServerUrl(document.getElementById('streamServerUrl').value)"
             style="padding:7px 12px;background:#0d3050;color:var(--accent);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">
@@ -958,10 +958,22 @@ function showStatus(msg, type) {
 let _lastStreamData = null;
 let _streamServerUrl = STREAM_SERVER_URL;
 
+// Detectar si estamos en Vercel (tiene el proxy /api/santa-fe/stream-session)
+function getStreamEndpoint() {
+  const origin = window.location.origin;
+  // Si estamos en Vercel (o cualquier servidor Next.js), usamos el proxy propio
+  if (origin.includes('vercel.app') || origin.includes('localhost:3000') || origin.includes('127.0.0.1:3000')) {
+    return origin + '/api/santa-fe/stream-session';
+  }
+  // Fallback: URL manual configurada (para Live Server u otros entornos)
+  return _streamServerUrl ? _streamServerUrl + '/session/santafe-stream' : null;
+}
+
 async function pollStreamSession() {
-  if (!_streamServerUrl) return;
+  const endpoint = getStreamEndpoint();
+  if (!endpoint) return;
   try {
-    const resp = await fetch(_streamServerUrl + '/session/santafe-stream', { cache: 'no-store' });
+    const resp = await fetch(endpoint, { cache: 'no-store' });
     if (!resp.ok) return;
     const data = await resp.json();
     if (!data.ok) return;
@@ -1032,8 +1044,8 @@ window.addEventListener('DOMContentLoaded', () => {
     xhr.send();
   }
 
-  // Poll stream session every 2s
-  if (_streamServerUrl) pollStreamSession();
+  // Poll stream session every 2s (automático desde Vercel o URL manual)
+  pollStreamSession();
   setInterval(pollStreamSession, 2000);
 });
 </script>
