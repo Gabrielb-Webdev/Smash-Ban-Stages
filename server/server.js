@@ -82,6 +82,49 @@ function isSantaFe(sessionId) {
   return s === 'santafe-stream' || s.startsWith('santafe-') || s.startsWith('santa-fe-') || s.includes('santafe');
 }
 
+// Extrae la comunidad del sessionId (ej: 'santafe-stream' → 'santafe', 'afk-multi-1' → 'afk-multi')
+function communityFromSessionId(sessionId, sessionCommunity) {
+  if (sessionCommunity) return sessionCommunity;
+  if (!sessionId) return '';
+  const s = sessionId.toLowerCase();
+  const COMMUNITY_PREFIXES = ['santafe', 'santa-fe', 'cordoba', 'mendoza', 'afk-multi', 'afk', 'warui', 'inc', 'test'];
+  for (const prefix of COMMUNITY_PREFIXES) {
+    if (s.startsWith(prefix + '-') || s === prefix) return prefix;
+  }
+  return s.split('-')[0] || '';
+}
+
+// Guardar historial de torneo en Vercel (Redis) cuando una serie termina
+async function saveTournamentHistory(session, winner) {
+  try {
+    const loser = winner === 'player1' ? 'player2' : 'player1';
+    const winnerData = session[winner];
+    const loserData  = session[loser];
+    const community  = communityFromSessionId(session.sessionId, session.community);
+    const vercelUrl  = process.env.NEXT_PUBLIC_APP_URL || 'https://smash-ban-stages.vercel.app';
+    await fetch(`${vercelUrl}/api/tournament/save-result`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        winnerName:    winnerData.name,
+        loserName:     loserData.name,
+        winnerScore:   winnerData.score,
+        loserScore:    loserData.score,
+        winnerCharId:  winnerData.character || '',
+        loserCharId:   loserData.character  || '',
+        community,
+        format:        session.format || 'BO3',
+        round:         session.round  || '',
+        tournamentName:session.tournamentName || '',
+        games:         session.games  || [],
+        sessionId:     session.sessionId,
+      }),
+    });
+  } catch (e) {
+    console.error('⚠️ Error guardando historial de torneo:', e.message);
+  }
+}
+
 // ── Persistencia de sesiones en Redis (Upstash REST) ─────────────────────────
 const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -1412,6 +1455,8 @@ io.on('connection', (socket) => {
     if (seriesFinished) {
       session.phase = 'FINISHED';
       io.to(sessionId).emit('series-finished', { winner, session });
+      // Guardar en historial de torneo (Redis vía Vercel API)
+      saveTournamentHistory(session, winner);
     } else {
       // Guardar datos del stage actual para ofrecer repetir en el próximo game
       session.previousStageData = {

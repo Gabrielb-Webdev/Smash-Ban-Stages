@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout, verifySession } from '../src/utils/auth';
@@ -1970,6 +1970,160 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   );
 }
 
+// ── Helpers de historial (compartidos entre tabs) ─────────────────────────────
+const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
+const HIST_COMM_SHORT  = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
+const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '/images/SCC.webp', 'mendoza': '/images/Team_Anexo/team_anexo_logo_nwe.png', 'afk-multi': '/images/AFK.webp', 'afk': '/images/AFK.webp', 'warui': '/images/warui/logo.png', 'inc': '/images/inc.png' };
+function buildHistFilterTabs(hist) {
+  const hasCasual = hist.some(m => m.type === 'casual');
+  const commIds = [...new Set(hist.filter(m => m.type === 'tournament' && m.community).map(m => m.community))];
+  return [['all','Todos'],['ranked','Ranked'],...(hasCasual?[['casual','Normal']]:[]),...commIds.map(c=>[c,HIST_COMM_LABELS[c]||c])];
+}
+function applyHistFilter(hist, filter) {
+  if (filter === 'all') return hist;
+  if (filter === 'casual') return hist.filter(m => m.type === 'casual');
+  if (filter === 'ranked') return hist.filter(m => !m.type || m.type === 'ranked');
+  return hist.filter(m => m.type === 'tournament' && m.community === filter);
+}
+function groupHistByDate(matches) {
+  const groups = []; let curKey = null, curGroup = null;
+  for (const m of matches) {
+    const d = m.playedAt ? new Date(m.playedAt) : null;
+    const key = d ? d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: '2-digit' }) : 'Sin fecha';
+    if (key !== curKey) { curKey = key; curGroup = { dateStr: key, matches: [] }; groups.push(curGroup); }
+    curGroup.matches.push(m);
+  }
+  return groups;
+}
+function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histExpanded, setHistExpanded, viewedUserId, setViewMatchDetail }) {
+  if (!hist || hist.length === 0) return (
+    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+      <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
+      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+    </div>
+  );
+  const tabs = buildHistFilterTabs(hist);
+  const filtered = applyHistFilter(hist, histFilter);
+  const toShow = histExpanded ? filtered : filtered.slice(0, 5);
+  const groups = groupHistByDate(toShow);
+  return (
+    <div>
+      {tabs.length > 2 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+          {tabs.map(([id, lbl]) => (
+            <button key={id} onClick={() => { setHistFilter(id); setHistExpanded(false); }} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, background: histFilter === id ? 'rgba(255,140,0,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${histFilter === id ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.06)'}`, color: histFilter === id ? '#FF8C00' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontFamily: 'inherit' }}>{lbl}</button>
+          ))}
+        </div>
+      )}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>Sin partidas para este filtro</div>
+      ) : (
+        <div>
+          {groups.map(({ dateStr, matches: gm }, gi) => {
+            const gW = gm.filter(m => (m.mode === '2v2' || m.type === 'tournament') ? !!m.isWin : String(m.winnerId) === String(viewedUserId)).length;
+            return (
+              <div key={gi}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 2px 5px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', flex: 1 }}>{dateStr}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#22C55E' }}>{gW}W</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>//</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#EF4444' }}>{gm.length - gW}L</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
+                  {gm.map((m, i) => {
+                    const isCasual = m.type === 'casual';
+                    const isTournament = m.type === 'tournament';
+                    const is2v2 = m.mode === '2v2';
+                    const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === String(viewedUserId);
+                    const opponent = is2v2 ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`) : (isWin ? m.loserName : m.winnerName);
+                    const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
+                    const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
+                    const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                    const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
+                    const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
+                    const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
+                    const charSrc = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[Math.max(0,(mySkin||1)-1)] : charImgPath(charObj.img)) : null;
+                    const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
+                    const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
+                    const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
+                    const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[Math.max(0,(oppSkin||1)-1)] : charImgPath(oppCharObj.img)) : null;
+                    const isMyPlacement = !isCasual && !is2v2 && !isTournament && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
+                    const rpDelta = isCasual || is2v2 || isTournament ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
+                    const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
+                    const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
+                    const games = m.games || [];
+                    const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
+                    const uniqueStages = [...new Set(playedStages)];
+                    return (
+                      <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewedUserId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                          {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
+                            <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                          )) : (
+                            <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
+                          )}
+                        </div>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                        {isTournament && HIST_COMM_LOGOS[m.community] && (
+                          <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
+                        )}
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
+                          <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
+                            {charSrc ? (
+                              <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                            ) : (
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                            )}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                              {isCasual ? (
+                                <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
+                              ) : isTournament ? (
+                                <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{HIST_COMM_SHORT[m.community] || 'TRN'}</span>
+                              ) : is2v2 ? (
+                                <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
+                              ) : tierIcon ? (
+                                <span style={{ fontSize: 14 }}>{tierIcon}</span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                              {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                            </p>
+                            {isTournament ? (
+                              m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
+                            ) : !isCasual && !is2v2 && (
+                              isMyPlacement ? (
+                                <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
+                              ) : rpDelta != null ? (
+                                <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
+                              ) : null
+                            )}
+                          </div>
+                          <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                            {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
+                            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+                            {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {!histExpanded && filtered.length > 5 && (
+            <button onClick={() => setHistExpanded(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
+              Ver todo ({filtered.length}) →
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 /* --- TAB AMIGOS ------------------------------------------------ */
 function TabAmigos({ user }) {
   const [friendTab, setFriendTab]       = useState('list');
@@ -1998,6 +2152,8 @@ function TabAmigos({ user }) {
   const [history, setHistory]           = useState([]);
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual'
   const [viewMatchDetail, setViewMatchDetail] = useState(null);
+  const [profileHistFilter, setProfileHistFilter] = useState('all');
+  const [profileHistExpanded, setProfileHistExpanded] = useState(false);
   const chatEndRef = useRef(null);
 
   const uid   = user ? String(user?.id || user?.slug || '') : '';
@@ -2011,7 +2167,16 @@ function TabAmigos({ user }) {
     fetch('/api/friends?userId=' + uidEnc + '&type=requests').then(r => r.ok ? r.json() : []).then(d => setFriendRequests(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/friends?userId=' + uidEnc + '&type=sent').then(r => r.ok ? r.json() : []).then(d => setSentRequests(Array.isArray(d) ? d : [])).catch(() => {});
     fetch('/api/party?userId=' + uidEnc).then(r => r.ok ? r.json() : null).then(d => { if (d && d.status !== 'none') setPartyState(d); }).catch(() => {});
-    fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []).then(h => setHistory(Array.isArray(h) ? h : []));
+    const playerNameEnc = encodeURIComponent(String(user?.player?.gamerTag || user?.name || ''));
+    Promise.all([
+      fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []),
+      playerNameEnc ? fetch('/api/tournament/player-history?name=' + playerNameEnc + '&limit=50').then(r => r.json()).catch(() => []) : Promise.resolve([]),
+    ]).then(([h, th]) => {
+      const ranked = Array.isArray(h) ? h : [];
+      const tournament = Array.isArray(th) ? th : [];
+      const merged = [...ranked, ...tournament].sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
+      setHistory(merged);
+    });
   }, [uid]);
 
   // Registrar presencia WS y callbacks de tiempo real una vez que tengamos amigos + userId
@@ -2139,6 +2304,8 @@ function TabAmigos({ user }) {
     setSelectedCharAmigos(null);
     setShowCharsModalAmigos(false);
     setCharFromModalAmigos(false);
+    setProfileHistFilter('all');
+    setProfileHistExpanded(false);
     setProfileLoading(true);
     fetch('/api/players/profile?id=' + encodeURIComponent(playerId) + '&full=true')
       .then(r => r.ok ? r.json() : null)
@@ -2826,92 +2993,19 @@ function TabAmigos({ user }) {
                 </div>
 
                 {/* Historial */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
                 </div>
-                {(!profileData.history || profileData.history.length === 0) ? (
-                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
-                    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {profileData.history.slice(0, 20).map((m, i) => {
-                      const isCasual = m.type === 'casual';
-                      const is2v2 = m.mode === '2v2';
-                      const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(viewProfile.userId);
-                      const opponent = is2v2
-                        ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
-                        : (isWin ? m.loserName : m.winnerName);
-                      const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
-                      const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
-                      const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
-                      const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                      const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
-                      const charSrc = charObj ? charImgPath(charObj.img) : null;
-                      const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
-                      const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
-                      const oppCharSrc = oppCharObj ? charImgPath(oppCharObj.img) : null;
-                      const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
-                      const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
-                      const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
-                      const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
-                      const games = m.games || [];
-                      const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
-                      const uniqueStages = [...new Set(playedStages)];
-                      return (
-
-                        <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewProfile.userId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-                            {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
-                              <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                            )) : (
-                              <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
-                            )}
-                          </div>
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
-                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
-                            <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
-                              {charSrc ? (
-                                <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
-                              ) : (
-                                <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
-                              )}
-                              {isCasual ? (
-                                <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
-                              ) : is2v2 ? (
-                                <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
-                              ) : isMyPlacement ? (
-                                <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
-                              ) : tierIcon ? (
-                                <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
-                              ) : null}
-                            </div>
-                            <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}
-                              </p>
-                              {!isCasual && !is2v2 && (
-                                isMyPlacement ? (
-                                  <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
-                                ) : rpDelta != null ? (
-                                  <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
-                                ) : null
-                              )}
-                            </div>
-                            <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                              {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
-                              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                              {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <ProfileHistorySection
+                  history={profileData.history || []}
+                  histFilter={profileHistFilter}
+                  setHistFilter={setProfileHistFilter}
+                  histExpanded={profileHistExpanded}
+                  setHistExpanded={setProfileHistExpanded}
+                  viewedUserId={viewProfile.userId}
+                  setViewMatchDetail={setViewMatchDetail}
+                />
               </div>
             </div>
           ) : (
@@ -2942,7 +3036,10 @@ function timeAgo(iso) {
 function TabPerfil({ user }) {
   const [stats, setStats]     = useState(null);
   const [history, setHistory] = useState([]);
-  const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual'
+  const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual' | community-id
+  const [histExpanded, setHistExpanded] = useState(false);
+  const [profileHistFilter, setProfileHistFilter] = useState('all');
+  const [profileHistExpanded, setProfileHistExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showRanks, setShowRanks]       = useState(false);
   const [partyState, setPartyState]     = useState(null);
@@ -2969,11 +3066,19 @@ function TabPerfil({ user }) {
   useEffect(() => {
     if (!user) return;
     const uidEnc = encodeURIComponent(String(user.id || user.slug || ''));
+    const playerName = encodeURIComponent(String(user?.player?.gamerTag || user?.name || ''));
     Promise.all([
       fetch('/api/players/stats?userId=' + uidEnc).then(r => r.json()).catch(() => null),
       fetch('/api/players/history?userId=' + uidEnc + '&limit=30').then(r => r.json()).catch(() => []),
       fetch('/api/matchmaking/recent-chars?userId=' + uidEnc).then(r => r.json()).catch(() => []),
-    ]).then(([s, h, chars]) => { setStats(s); setHistory(Array.isArray(h) ? h : []); setRecentChars(Array.isArray(chars) ? chars : []); setLoading(false); });
+      playerName ? fetch('/api/tournament/player-history?name=' + playerName + '&limit=50').then(r => r.json()).catch(() => []) : Promise.resolve([]),
+    ]).then(([s, h, chars, th]) => {
+      const ranked = Array.isArray(h) ? h : [];
+      const tournament = Array.isArray(th) ? th : [];
+      // Merge y ordenar por fecha desc
+      const merged = [...ranked, ...tournament].sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
+      setStats(s); setHistory(merged); setRecentChars(Array.isArray(chars) ? chars : []); setLoading(false);
+    });
 
     // Fetch Start.GG stats
     try {
@@ -3037,6 +3142,8 @@ function TabPerfil({ user }) {
     setProfileData(null);
     setProfileLoading(true);
     setProfileStartggStats(null);
+    setProfileHistFilter('all');
+    setProfileHistExpanded(false);
     fetch('/api/players/profile?id=' + encodeURIComponent(playerId) + '&full=true')
       .then(r => r.ok ? r.json() : null)
       .then(d => {
@@ -3687,92 +3794,19 @@ function TabPerfil({ user }) {
                   </div>
 
                   {/* Historial */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
                     <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
                     <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
                   </div>
-                  {(!profileData.history || profileData.history.length === 0) ? (
-                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-                      <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
-                      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {profileData.history.slice(0, 20).map((m, i) => {
-                        const isCasual = m.type === 'casual';
-                        const is2v2 = m.mode === '2v2';
-                        const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(viewProfile.userId);
-                        const opponent = is2v2
-                          ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
-                          : (isWin ? m.loserName : m.winnerName);
-                        const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
-                        const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
-                        const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
-                        const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                        const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
-                        const charSrc = charObj ? charImgPath(charObj.img) : null;
-                        const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
-                        const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
-                        const oppCharSrc = oppCharObj ? charImgPath(oppCharObj.img) : null;
-                        const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
-                        const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
-                        const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
-                        const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
-                        const games = m.games || [];
-                        const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
-                        const uniqueStages = [...new Set(playedStages)];
-                        return (
-
-                          <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewProfile.userId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
-                            <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-                              {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
-                                <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                              )) : (
-                                <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
-                              )}
-                            </div>
-                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
-                              <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
-                                {charSrc ? (
-                                  <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
-                                ) : (
-                                  <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
-                                )}
-                                {isCasual ? (
-                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
-                                ) : is2v2 ? (
-                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
-                                ) : isMyPlacement ? (
-                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
-                                ) : tierIcon ? (
-                                  <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
-                                ) : null}
-                              </div>
-                              <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                  {platLabel(m.platform)} · {timeAgo(m.playedAt)}
-                                </p>
-                                {!isCasual && !is2v2 && (
-                                  isMyPlacement ? (
-                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
-                                  ) : rpDelta != null ? (
-                                    <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
-                                  ) : null
-                                )}
-                              </div>
-                              <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                                {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
-                                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                                {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <ProfileHistorySection
+                    history={profileData.history || []}
+                    histFilter={profileHistFilter}
+                    setHistFilter={setProfileHistFilter}
+                    histExpanded={profileHistExpanded}
+                    setHistExpanded={setProfileHistExpanded}
+                    viewedUserId={viewProfile.userId}
+                    setViewMatchDetail={setViewMatchDetail}
+                  />
                 </div>
               </div>
             ) : (
@@ -3895,34 +3929,71 @@ function TabPerfil({ user }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 10px' }}>
-          <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial de partidas</p>
-        </div>
-        {/* Filtros */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-          {[['all','Todos'],['ranked','Ranked'],['casual','Normal']].map(([id, label]) => (
-            <button key={id} onClick={() => setHistoryFilter(id)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, background: historyFilter === id ? 'rgba(255,140,0,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${historyFilter === id ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.06)'}`, color: historyFilter === id ? '#FF8C00' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.15s' }}>{label}</button>
-          ))}
+        <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#0B0B12', paddingTop: 12, paddingBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 10px' }}>
+            <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#6366F1,#4F46E5)', flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial de partidas</p>
+          </div>
+          {/* Filtros dinámicos */}
+          {(() => {
+            const hasCasual = history.some(m => m.type === 'casual');
+            const communityIds = [...new Set(history.filter(m => m.type === 'tournament' && m.community).map(m => m.community))];
+            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
+            const filterTabs = [
+              ['all', 'Todos'],
+              ['ranked', 'Ranked'],
+              ...(hasCasual ? [['casual', 'Normal']] : []),
+              ...communityIds.map(c => [c, COMMUNITY_LABELS_MAP[c] || c]),
+            ];
+            return (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                {filterTabs.map(([id, label]) => (
+                  <button key={id} onClick={() => { setHistoryFilter(id); setHistExpanded(false); }} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, background: historyFilter === id ? 'rgba(255,140,0,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${historyFilter === id ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.06)'}`, color: historyFilter === id ? '#FF8C00' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit' }}>{label}</button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
         ) : (() => {
-          const filtered = history.filter(m => historyFilter === 'all' ? true : historyFilter === 'casual' ? m.type === 'casual' : !m.type || m.type === 'ranked');
+          const filtered = history.filter(m => {
+            if (historyFilter === 'all') return true;
+            if (historyFilter === 'casual') return m.type === 'casual';
+            if (historyFilter === 'ranked') return !m.type || m.type === 'ranked';
+            // Community filter
+            return m.type === 'tournament' && m.community === historyFilter;
+          });
           if (filtered.length === 0) return (
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
-              <p style={{ fontSize: 28, margin: '0 0 8px' }}>{historyFilter === 'casual' ? '⚔️' : '🏆'}</p>
+              <p style={{ fontSize: 28, margin: '0 0 8px' }}>🏆</p>
               <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>{historyFilter === 'casual' ? 'Jugá partidas normales para llenar tu historial' : 'Jugá partidas ranked para ver tu historial'}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jugá partidas para ver tu historial</p>
             </div>
           );
+          const toShow = histExpanded ? filtered : filtered.slice(0, 5);
+          const groups = groupHistByDate(toShow);
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filtered.map((m, i) => {
+            <div>
+              {groups.map(({ dateStr, matches: gm }, gi) => {
+                const selfId = String(user.id || user.slug);
+                const gW = gm.filter(m => (m.mode === '2v2' || m.type === 'tournament') ? !!m.isWin : String(m.winnerId) === selfId).length;
+                return (
+                  <div key={gi}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 2px 5px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', flex: 1 }}>{dateStr}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#22C55E' }}>{gW}W</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>//</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#EF4444' }}>{gm.length - gW}L</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
+                      {gm.map((m, i) => {
                 const isCasual = m.type === 'casual';
+                const isTournament = m.type === 'tournament';
                 const is2v2 = m.mode === '2v2';
-                // Para 2v2 (casual o ranked) usamos el campo isWin guardado por servidor
-                const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(user.id || user.slug);
+                const COMMUNITY_SHORT = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
+                // Para 2v2 y torneo usamos el campo isWin guardado por servidor
+                const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === String(user.id || user.slug);
                 const opponent = is2v2
                   ? (isWin
                     ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}`
@@ -3934,13 +4005,15 @@ function TabPerfil({ user }) {
                 const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
                 const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                 const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
-                const charSrcRaw = charObj ? charImgPath(charObj.img) : null;
+                const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
+                const charSrcRaw = charObj ? (charObj.alts?.length ? '/images/characters/' + charObj.alts[Math.max(0,(mySkin||1)-1)] : charImgPath(charObj.img)) : null;
                 // Fallback al mainChar del perfil si la partida no tiene charId
                 const mainCharObj = !charSrcRaw && mainChar ? CHARACTERS.find(ch => ch.id === mainChar) : null;
                 const charSrc = charSrcRaw || (mainCharObj ? charImgPath(mainCharObj.img) : null);
                 const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                 const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
-                const oppCharSrc = oppCharObj ? charImgPath(oppCharObj.img) : null;
+                const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
+                const oppCharSrc = oppCharObj ? (oppCharObj.alts?.length ? '/images/characters/' + oppCharObj.alts[Math.max(0,(oppSkin||1)-1)] : charImgPath(oppCharObj.img)) : null;
                 const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
                 const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
                 const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
@@ -3962,32 +4035,39 @@ function TabPerfil({ user }) {
                     </div>
                     {/* Overlay oscuro */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
+                    {isTournament && HIST_COMM_LOGOS[m.community] && (
+                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 46, height: 46, objectFit: 'contain', opacity: 0.22, pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))' }} />
+                    )}
                     {/* Contenido */}
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
                       {/* Izquierda: personaje + badge */}
-                      <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
+                      <div style={{ width: 64, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 4px 8px 8px' }}>
                         {charSrc ? (
-                          <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                          <img src={charSrc} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
                         ) : (
-                          <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 18 : 16 }}>{is2v2 ? '👥' : '⚔️'}</div>
                         )}
-                        {isCasual ? (
-                          <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
-                        ) : is2v2 ? (
-                          <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
-                        ) : isMyPlacement ? (
-                          <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
-                        ) : tierIcon ? (
-                          <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
-                        ) : null}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                          {isCasual ? (
+                            <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
+                          ) : isTournament ? (
+                            <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{COMMUNITY_SHORT[m.community] || 'TRN'}</span>
+                          ) : is2v2 ? (
+                            <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
+                          ) : tierIcon ? (
+                            <span style={{ fontSize: 14 }}>{tierIcon}</span>
+                          ) : null}
+                        </div>
                       </div>
                       {/* Centro: info */}
                       <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, }}> 
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                          {platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                          {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
                         </p>
-                        {!isCasual && !is2v2 && (
+                        {isTournament ? (
+                          m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
+                        ) : !isCasual && !is2v2 && (
                           isMyPlacement ? (
                             <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
                           ) : rpDelta != null ? (
@@ -4005,6 +4085,15 @@ function TabPerfil({ user }) {
                   </div>
                 );
               })}
+                    </div>
+                  </div>
+                );
+              })}
+              {!histExpanded && filtered.length > 5 && (
+                <button onClick={() => setHistExpanded(true)} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em' }}>
+                  Ver todo ({filtered.length}) →
+                </button>
+              )}
             </div>
           );
         })()}
@@ -4180,6 +4269,8 @@ function TabRankings({ user, setTab }) {
   const [profileLoading, setProfileLoading]     = useState(false);
   const [profileStartggStats, setProfileStartggStats] = useState(null);
   const [viewMatchDetail, setViewMatchDetail] = useState(null);
+  const [profileHistFilter, setProfileHistFilter] = useState('all');
+  const [profileHistExpanded, setProfileHistExpanded] = useState(false);
   const [selectedCharRank, setSelectedCharRank]       = useState(null);
   const [showCharsModalRank, setShowCharsModalRank]   = useState(false);
   const [charFromModalRank, setCharFromModalRank]     = useState(false);
@@ -4193,6 +4284,8 @@ function TabRankings({ user, setTab }) {
     setSelectedCharRank(null);
     setShowCharsModalRank(false);
     setCharFromModalRank(false);
+    setProfileHistFilter('all');
+    setProfileHistExpanded(false);
     setProfileLoading(true);
     fetch('/api/players/profile?id=' + encodeURIComponent(playerId) + '&full=true')
       .then(r => r.ok ? r.json() : null)
@@ -4804,92 +4897,19 @@ function TabRankings({ user, setTab }) {
                 </div>
 
                 {/* Historial */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
                   <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
                 </div>
-                {(!profileData.history || profileData.history.length === 0) ? (
-                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
-                    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {profileData.history.slice(0, 20).map((m, i) => {
-                      const isCasual = m.type === 'casual';
-                      const is2v2 = m.mode === '2v2';
-                      const isWin = is2v2 ? !!m.isWin : String(m.winnerId) === String(viewProfile.userId);
-                      const opponent = is2v2
-                        ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`)
-                        : (isWin ? m.loserName : m.winnerName);
-                      const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
-                      const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
-                      const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
-                      const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
-                      const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
-                      const charSrc = charObj ? charImgPath(charObj.img) : null;
-                      const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
-                      const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
-                      const oppCharSrc = oppCharObj ? charImgPath(oppCharObj.img) : null;
-                      const isMyPlacement = !isCasual && !is2v2 && (isWin ? m.isPlacementWinner : m.isPlacementLoser);
-                      const rpDelta = isCasual || is2v2 ? null : (isMyPlacement ? null : (isWin ? m.rpDelta : (m.loserRpDelta || -10)));
-                      const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
-                      const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
-                      const games = m.games || [];
-                      const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
-                      const uniqueStages = [...new Set(playedStages)];
-                      return (
-
-                        <div key={i} onClick={() => setViewMatchDetail({ match: m, viewingId: String(viewProfile.userId) })} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-                            {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
-                              <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                            )) : (
-                              <div style={{ flex: 1, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)' }} />
-                            )}
-                          </div>
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.52) 100%)' }} />
-                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '100%' }}>
-                            <div style={{ width: 58, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '8px 4px' }}>
-                              {charSrc ? (
-                                <img src={charSrc} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
-                              ) : (
-                                <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: is2v2 ? 20 : 18 }}>{is2v2 ? '👥' : '⚔️'}</div>
-                              )}
-                              {isCasual ? (
-                                <span style={{ fontSize: 9, fontWeight: 800, color: '#A78BFA', padding: '1px 4px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', marginTop: 2 }}>NRM</span>
-                              ) : is2v2 ? (
-                                <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', padding: '1px 4px', borderRadius: 3, background: 'rgba(96,165,250,0.15)', marginTop: 2 }}>2v2</span>
-                              ) : isMyPlacement ? (
-                                <span style={{ fontSize: 9, fontWeight: 800, color: '#FBBF24', padding: '1px 4px', borderRadius: 3, background: 'rgba(251,191,36,0.15)', marginTop: 2 }}>POS</span>
-                              ) : tierIcon ? (
-                                <span style={{ fontSize: 13, marginTop: 1 }}>{tierIcon}</span>
-                              ) : null}
-                            </div>
-                            <div style={{ flex: 1, padding: '9px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                                {platLabel(m.platform)} · {timeAgo(m.playedAt)}
-                              </p>
-                              {!isCasual && !is2v2 && (
-                                isMyPlacement ? (
-                                  <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24' }}>Posicionamiento</span>
-                                ) : rpDelta != null ? (
-                                  <span style={{ fontSize: 10, fontWeight: 800, color: rpDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rpDelta >= 0 ? '+' : ''}{rpDelta} RR</span>
-                                ) : null
-                              )}
-                            </div>
-                            <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                              {oppCharSrc && <img src={oppCharSrc} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.7 }} onError={e => { e.target.style.display='none'; }} />}
-                              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: isWin ? '#22C55E' : '#EF4444' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                              {myScore != null && <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)' }}>{myScore}–{oppScore ?? 0}</p>}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <ProfileHistorySection
+                  history={profileData.history || []}
+                  histFilter={profileHistFilter}
+                  setHistFilter={setProfileHistFilter}
+                  histExpanded={profileHistExpanded}
+                  setHistExpanded={setProfileHistExpanded}
+                  viewedUserId={viewProfile.userId}
+                  setViewMatchDetail={setViewMatchDetail}
+                />
               </div>
             </div>
           ) : (
@@ -5943,6 +5963,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
   // Estado de búsqueda
   const [searchPlat, setSearchPlat]   = useState(null);
   const [searchChar, setSearchChar]   = useState(null);
+  const [searchSkin, setSearchSkin]   = useState(1);
   const [loading, setLoading]         = useState(false);
   const [formError, setFormError]     = useState(null);
   const [onlineCount, setOnlineCount] = useState(null);
@@ -6116,15 +6137,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
     setLoading(true); setFormError(null);
     try {
-      let searchCharAlt = null;
-      try {
-        const savedChar = localStorage.getItem('afk_main_char');
-        const savedAlt = localStorage.getItem('afk_main_alt');
-        if (savedAlt && savedChar && String(savedChar) === String(searchChar)) searchCharAlt = savedAlt;
-      } catch {}
       const r = await fetch('/api/matchmaking/queue', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, charAlt: searchCharAlt, parsecRole }),
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, charAlt: searchSkin || 1, parsecRole }),
       });
       const data = await r.json();
       if (r.status === 409) {
@@ -6144,7 +6159,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     try {
       const r = await fetch('/api/matchmaking/casual-queue', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, parsecRole }),
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, charAlt: searchSkin || 1, parsecRole }),
       });
       const data = await r.json();
       if (r.status === 409) { setFormError(data.error); return; }
@@ -6238,7 +6253,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     try {
       const r = await fetch('/api/matchmaking/casual-party', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, charId: searchChar, platform }),
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, charId: searchChar, charAlt: searchSkin || 1, platform }),
       });
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
@@ -6254,7 +6269,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
     try {
       const r = await fetch('/api/matchmaking/casual-party', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, charId: searchChar, code: code.toUpperCase() }),
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, charId: searchChar, charAlt: searchSkin || 1, code: code.toUpperCase() }),
       });
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
@@ -7022,9 +7037,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
 
       {/* Personaje */}
       <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
-      <div style={{ marginBottom: 24 }}>
-        <CharPicker selected={searchChar} onSelect={setSearchChar} platform={searchPlat} userId={uid} />
+      <div style={{ marginBottom: 8 }}>
+        <CharPicker selected={searchChar} onSelect={c => { setSearchChar(c); setSearchSkin(1); }} platform={searchPlat} userId={uid} />
       </div>
+      {searchChar && (() => {
+        const sc = CHARACTERS.find(c => c.id === searchChar);
+        if (!sc?.alts?.length) return null;
+        return (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Color</p>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {sc.alts.map((alt, idx) => (
+                <button key={idx} onClick={() => setSearchSkin(idx + 1)}
+                  style={{ width: 36, height: 36, borderRadius: 8, padding: 2, cursor: 'pointer',
+                    border: searchSkin === idx + 1 ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.1)',
+                    background: searchSkin === idx + 1 ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)' }}>
+                  <img src={'/images/characters/' + alt} alt={'Skin ' + (idx+1)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Contador online */}
       {onlineCount && (

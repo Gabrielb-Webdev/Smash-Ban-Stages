@@ -297,6 +297,8 @@ async function saveHistory(match) {
     winnerId, loserId, winnerName, loserName,
     winnerCharId: player1.userId === winnerId ? player1.charId : player2.charId,
     loserCharId:  player1.userId === loserId  ? player1.charId : player2.charId,
+    winnerAltId:  player1.userId === winnerId ? (player1.charAlt || null) : (player2.charAlt || null),
+    loserAltId:   player1.userId === loserId  ? (player1.charAlt || null) : (player2.charAlt || null),
     stocksWon, rpDelta: 0, mmrDelta: 0, playedAt,
   };
 

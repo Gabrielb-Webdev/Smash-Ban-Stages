@@ -127,8 +127,8 @@ async function createRoom(platform, p1, p2) {
     code,
     platform,
     type: 'casual',
-    host:  { userId: p1.userId, userName: p1.userName, charId: p1.charId || null },
-    guest: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null },
+    host:  { userId: p1.userId, userName: p1.userName, charId: p1.charId || null, charAlt: p1.charAlt || null },
+    guest: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null, charAlt: p2.charAlt || null },
     password: null,
     status: 'pending_accept',
     matchId,
@@ -142,8 +142,8 @@ async function createRoom(platform, p1, p2) {
   await redis.set(userRoomKey(p2.userId), code, { ex: 3600 });
   await redis.set(casualMatchKey(matchId), {
     matchId, platform, type: 'casual',
-    player1: { userId: p1.userId, userName: p1.userName, charId: p1.charId || null },
-    player2: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null },
+    player1: { userId: p1.userId, userName: p1.userName, charId: p1.charId || null, charAlt: p1.charAlt || null },
+    player2: { userId: p2.userId, userName: p2.userName, charId: p2.charId || null, charAlt: p2.charAlt || null },
     status: 'pending_accept',
     reports: [],
     pendingResult: null,
@@ -202,13 +202,14 @@ export default async function handler(req, res) {
 
   // ── POST: entrar a la cola casual ─────────────────────────────
   if (req.method === 'POST') {
-    const { userId, userName, platform, charId, parsecRole, mode, team } = req.body || {};
+    const { userId, userName, platform, charId, charAlt, parsecRole, mode, team } = req.body || {};
     if (!userId || !userName || !['switch', 'parsec'].includes(platform)) {
       return res.status(400).json({ error: 'userId, userName y platform requeridos' });
     }
     const cleanId   = sanitize(userId);
     const cleanName = sanitize(userName);
     const cleanChar = charId ? sanitize(charId) : null;
+    const cleanAlt  = charAlt ? (Number(charAlt) || 1) : 1;
 
     // Check si ya tiene sala activa
     const existingRoom = await redis.get(userRoomKey(cleanId));
@@ -238,7 +239,7 @@ export default async function handler(req, res) {
     }
 
     queue.push({
-      userId: cleanId, userName: cleanName, charId: cleanChar,
+      userId: cleanId, userName: cleanName, charId: cleanChar, charAlt: cleanAlt,
       parsecRole: parsecRole || null,
       platform, joinedAt: new Date().toISOString(),
     });

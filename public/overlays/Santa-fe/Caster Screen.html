@@ -6,6 +6,48 @@
 
     <script src="Resources/Scripts/Caster Screen.js"></script>
     <script src="Resources/Scripts/gsap.min.js"></script>
+
+    <!-- Override getInfo() para leer desde la API de Vercel (funciona en OBS con URL online) -->
+    <script>
+    getInfo = function() {
+      return new Promise(function(resolve) {
+        // 1) localStorage (funciona cuando Controls.html está abierto en el mismo navegador)
+        try {
+          var local = localStorage.getItem('santa-fe-scoreboard');
+          if (local) { resolve(JSON.parse(local)); return; }
+        } catch(_) {}
+
+        // 2) API de Vercel (guarda en Redis, funciona en OBS con URL online)
+        var apiUrl = (location.origin.includes('vercel.app') || location.origin.includes('localhost'))
+          ? location.origin + '/api/scoreboard-update'
+          : null;
+        if (apiUrl) {
+          fetch(apiUrl, { cache: 'no-store' })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+              if (data && Object.keys(data).length > 0) { resolve(data); return; }
+              loadLocalJson(resolve);
+            })
+            .catch(function() { loadLocalJson(resolve); });
+          return;
+        }
+
+        // 3) Fallback: JSON en disco (para OBS con archivo local)
+        loadLocalJson(resolve);
+      });
+    };
+
+    function loadLocalJson(resolve) {
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener('load', function() {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch(_) { resolve({}); }
+      });
+      xhr.onerror = function() { resolve({}); };
+      xhr.open('GET', 'Resources/Texts/ScoreboardInfo.json');
+      xhr.send();
+    }
+    </script>
     
 
     <style>
