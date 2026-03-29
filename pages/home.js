@@ -2832,7 +2832,10 @@ function TabAmigos({ user }) {
             <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
               {/* Hero banner */}
               {(() => {
-                const heroCharId = (() => {
+                const heroCharSrc = (() => {
+                  if (profileData.profile?.mainCharAlt) return profileData.profile.mainCharAlt;
+                  const mc = profileData.profile?.mainChar;
+                  if (mc && CHARACTER_RENDERS[mc]) return charRenderPath(CHARACTER_RENDERS[mc]);
                   const hist = profileData.history || [];
                   if (hist.length) {
                     const counts = {};
@@ -2842,15 +2845,16 @@ function TabAmigos({ user }) {
                     }
                     let best = null, max = 0;
                     for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
-                    return best;
+                    if (best && CHARACTER_RENDERS[best]) return charRenderPath(CHARACTER_RENDERS[best]);
                   }
-                  return profileData.recentChars?.[0] || null;
+                  const rc = profileData.recentChars?.[0];
+                  if (rc && CHARACTER_RENDERS[rc]) return charRenderPath(CHARACTER_RENDERS[rc]);
+                  return null;
                 })();
-                const heroRenderFile = heroCharId ? CHARACTER_RENDERS[heroCharId] : null;
                 return (
                   <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-                    {heroRenderFile ? (
-                      <img src={charRenderPath(heroRenderFile)} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
+                    {heroCharSrc ? (
+                      <img src={heroCharSrc} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
                     ) : (
                       <div style={{ height: 100 }} />
                     )}
@@ -3745,7 +3749,10 @@ function TabPerfil({ user }) {
               <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
                 {/* Hero banner */}
                 {(() => {
-                  const heroCharId = (() => {
+                  const heroCharSrc = (() => {
+                    if (profileData.profile?.mainCharAlt) return profileData.profile.mainCharAlt;
+                    const mc = profileData.profile?.mainChar;
+                    if (mc && CHARACTER_RENDERS[mc]) return charRenderPath(CHARACTER_RENDERS[mc]);
                     const hist = profileData.history || [];
                     if (hist.length) {
                       const counts = {};
@@ -3755,15 +3762,16 @@ function TabPerfil({ user }) {
                       }
                       let best = null, max = 0;
                       for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
-                      return best;
+                      if (best && CHARACTER_RENDERS[best]) return charRenderPath(CHARACTER_RENDERS[best]);
                     }
-                    return profileData.recentChars?.[0] || null;
+                    const rc = profileData.recentChars?.[0];
+                    if (rc && CHARACTER_RENDERS[rc]) return charRenderPath(CHARACTER_RENDERS[rc]);
+                    return null;
                   })();
-                  const heroRenderFile = heroCharId ? CHARACTER_RENDERS[heroCharId] : null;
                   return (
                     <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-                      {heroRenderFile ? (
-                        <img src={charRenderPath(heroRenderFile)} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
+                      {heroCharSrc ? (
+                        <img src={heroCharSrc} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
                       ) : (
                         <div style={{ height: 100 }} />
                       )}
@@ -4646,12 +4654,13 @@ function TabRankings({ user, setTab }) {
   }, [mode, charPlat, charSel]);
 
   return (
-    <div style={{ padding: '24px 18px' }}>
-      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Rankings</h1>
-      <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
+    <div>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0D0D15', padding: '20px 18px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Rankings</h1>
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
 
-      {/* Pill switcher */}
-      <div className="pill-switcher" style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 22, flexWrap: 'wrap' }}>
+        {/* Pill switcher */}
+        <div className="pill-switcher" style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 0, flexWrap: 'wrap' }}>
         {MODES.map(m => (
           <button key={m.id} onClick={() => setMode(m.id)}
             style={{
@@ -4665,18 +4674,11 @@ function TabRankings({ user, setTab }) {
             {m.label}
           </button>
         ))}
-      </div>
+        </div>
 
-      {(mode === 'ranked' || mode === 'ranked2v2') ? (
-        <>
-          {mode === 'ranked2v2' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <span style={{ fontSize: 18 }}>👥</span>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#A78BFA' }}>Ranked Dobles (2v2)</p>
-            </div>
-          )}
-          {/* Sub-selector de plataforma */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {/* Sub-selector de plataforma - sticky */}
+        {(mode === 'ranked' || mode === 'ranked2v2') && (
+          <div style={{ display: 'flex', gap: 8, padding: '12px 0 0' }}>
             {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
               <button key={p.id} onClick={() => setRankPlat(p.id)} style={{
                 flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
@@ -4689,6 +4691,19 @@ function TabRankings({ user, setTab }) {
               </button>
             ))}
           </div>
+        )}
+        <div style={{ height: 14 }} />
+      </div>
+
+      <div style={{ padding: '0 18px' }}>
+      {(mode === 'ranked' || mode === 'ranked2v2') ? (
+        <>
+          {mode === 'ranked2v2' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <span style={{ fontSize: 18 }}>👥</span>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#A78BFA' }}>Ranked Dobles (2v2)</p>
+            </div>
+          )}
 
           {rankLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4883,7 +4898,10 @@ function TabRankings({ user, setTab }) {
             <div style={{ maxWidth: 480, margin: '0 auto', width: '100%' }}>
               {/* Hero banner */}
               {(() => {
-                const heroCharId = (() => {
+                const heroCharSrc = (() => {
+                  if (profileData.profile?.mainCharAlt) return profileData.profile.mainCharAlt;
+                  const mc = profileData.profile?.mainChar;
+                  if (mc && CHARACTER_RENDERS[mc]) return charRenderPath(CHARACTER_RENDERS[mc]);
                   const hist = profileData.history || [];
                   if (hist.length) {
                     const counts = {};
@@ -4893,15 +4911,16 @@ function TabRankings({ user, setTab }) {
                     }
                     let best = null, max = 0;
                     for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
-                    return best;
+                    if (best && CHARACTER_RENDERS[best]) return charRenderPath(CHARACTER_RENDERS[best]);
                   }
-                  return profileData.recentChars?.[0] || null;
+                  const rc = profileData.recentChars?.[0];
+                  if (rc && CHARACTER_RENDERS[rc]) return charRenderPath(CHARACTER_RENDERS[rc]);
+                  return null;
                 })();
-                const heroRenderFile = heroCharId ? CHARACTER_RENDERS[heroCharId] : null;
                 return (
                   <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-                    {heroRenderFile ? (
-                      <img src={charRenderPath(heroRenderFile)} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
+                    {heroCharSrc ? (
+                      <img src={heroCharSrc} alt="" style={{ display: 'block', height: 180, objectFit: 'contain', position: 'relative', zIndex: 1 }} onError={e => { e.target.style.display = 'none'; }} />
                     ) : (
                       <div style={{ height: 100 }} />
                     )}
@@ -5209,6 +5228,7 @@ function TabRankings({ user, setTab }) {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
