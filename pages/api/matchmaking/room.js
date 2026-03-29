@@ -71,6 +71,7 @@ export default async function handler(req, res) {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId requerido' });
     const cleanId = sanitize(userId);
+    try {
 
     const found = await getUserRoom(cleanId);
     if (!found) {
@@ -201,6 +202,10 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ status: room.status, code, room, autoConfirmSignal });
+    } catch (err) {
+      console.error('[room GET] Error:', err);
+      return res.status(500).json({ error: err?.message || 'Error interno', type: err?.name });
+    }
   }
 
   // POST: acciones

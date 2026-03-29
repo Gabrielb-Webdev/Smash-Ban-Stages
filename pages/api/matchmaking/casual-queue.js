@@ -170,7 +170,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'userId y platform requeridos' });
     }
     const clean = sanitize(userId);
-
+    try {
     // Check si tiene sala activa
     const roomCode = await redis.get(userRoomKey(clean));
     if (roomCode) {
@@ -198,6 +198,10 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ status: 'idle' });
+    } catch (err) {
+      console.error('[casual-queue GET] Error:', err);
+      return res.status(500).json({ error: err?.message || 'Error interno', type: err?.name });
+    }
   }
 
   // ── POST: entrar a la cola casual ─────────────────────────────

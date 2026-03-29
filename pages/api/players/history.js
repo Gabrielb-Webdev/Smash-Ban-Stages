@@ -20,6 +20,11 @@ export default async function handler(req, res) {
   const cleanId = sanitize(userId);
   const n = Math.min(50, Math.max(1, parseInt(limit) || 20));
 
-  const history = await redis.lrange(matchHistoryKey(cleanId), 0, n - 1);
-  return res.status(200).json(Array.isArray(history) ? history : []);
+  try {
+    const history = await redis.lrange(matchHistoryKey(cleanId), 0, n - 1);
+    return res.status(200).json(Array.isArray(history) ? history : []);
+  } catch (err) {
+    console.error('[history] Error:', err);
+    return res.status(500).json({ error: err?.message || 'Error interno', type: err?.name });
+  }
 }

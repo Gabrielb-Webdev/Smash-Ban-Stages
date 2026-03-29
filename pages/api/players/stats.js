@@ -24,24 +24,25 @@ export default async function handler(req, res) {
   const cleanId = sanitize(userId);
   const empty = { wins: 0, losses: 0, rankPoints: 0, rank: 'Plástico I', rankIndex: 0, placementDone: false };
 
-  if (mode === 'doubles') {
-    const [switchStats, parsecStats] = await Promise.all([
-      redis.get(rankedDoubleStatsKey(cleanId, 'switch')),
-      redis.get(rankedDoubleStatsKey(cleanId, 'parsec')),
-    ]);
+  try {
+    if (mode === 'doubles') {
+      const switchStats = await redis.get(rankedDoubleStatsKey(cleanId, 'switch'));
+      const parsecStats = await redis.get(rankedDoubleStatsKey(cleanId, 'parsec'));
+      return res.status(200).json({
+        switch: switchStats || empty,
+        parsec: parsecStats || empty,
+      });
+    }
+
+    const switchStats = await redis.get(rankedStatsKey(cleanId, 'switch'));
+    const parsecStats = await redis.get(rankedStatsKey(cleanId, 'parsec'));
+
     return res.status(200).json({
       switch: switchStats || empty,
       parsec: parsecStats || empty,
     });
+  } catch (err) {
+    console.error('[stats] Error:', err);
+    return res.status(500).json({ error: err?.message || 'Error interno', type: err?.name });
   }
-
-  const [switchStats, parsecStats] = await Promise.all([
-    redis.get(rankedStatsKey(cleanId, 'switch')),
-    redis.get(rankedStatsKey(cleanId, 'parsec')),
-  ]);
-
-  return res.status(200).json({
-    switch: switchStats || empty,
-    parsec: parsecStats || empty,
-  });
 }
