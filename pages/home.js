@@ -1551,7 +1551,7 @@ function StatCard({ icon, label, value, sub, accent }) {
       {accent && (
         <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${accent}60,transparent)` }} />
       )}
-      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span style={{ fontSize: 20 }}>▶️</span>
       <span style={{ fontSize: 21, fontWeight: 900, color: accent || '#fff', lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</span>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em' }}>{label}</span>
       {sub && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{sub}</span>}
@@ -1890,7 +1890,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 
 
 /* --- MATCH DETAIL MODAL --------------------------------------- */
-function MatchDetail({ match: m, viewingId, onClose }) {
+function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
   if (!m) return null;
   const myId = String(viewingId);
   const is2v2 = m.mode === '2v2';
@@ -1906,6 +1906,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   const oppSkin = is2v2 ? null : (isWin ? (m.loserAltId || 1) : (m.winnerAltId || 1));
   const myCharSrc = stockIconPath(myCharObj, mySkin);
   const oppCharSrc = stockIconPath(oppCharObj, oppSkin);
+  const oppId = is2v2 ? null : (isWin ? m.loserId : m.winnerId);
   const myName = is2v2 ? 'Tu equipo' : (isWin ? m.winnerName : m.loserName);
   const myScore = m.winnerScore != null ? (isWin ? m.winnerScore : (m.loserScore ?? 0)) : null;
   const oppScore = m.winnerScore != null ? (isWin ? (m.loserScore ?? 0) : m.winnerScore) : null;
@@ -1914,8 +1915,8 @@ function MatchDetail({ match: m, viewingId, onClose }) {
   const myRankName = !isCasual && !is2v2 ? (isWin ? m.winnerRankAfter : m.loserRankAfter) : null;
   const myRankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
   const games = (m.games || []).filter(g => g?.result);
-  const CharSlot = ({ src, playerName, charName }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
+  const CharSlot = ({ src, playerName, charName, onClick }) => (
+    <div onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1, minWidth: 0, cursor: onClick ? 'pointer' : 'default' }}>
       {playerName && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textAlign: 'center', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerName}</span>}
       <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {src ? <img src={src} alt="" style={{ width: 58, height: 58, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <span style={{ fontSize: 28 }}>{is2v2 ? '👥' : '⚔️'}</span>}
@@ -1933,7 +1934,8 @@ function MatchDetail({ match: m, viewingId, onClose }) {
         </div>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Resumen de partida</p>
+          {onBack && <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#FF8C00', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 8px 0 0', flexShrink: 0 }}>←</button>}
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff', flex: 1 }}>Resumen de partida</p>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>✕</button>
         </div>
         {/* Scrollable content */}
@@ -1950,7 +1952,7 @@ function MatchDetail({ match: m, viewingId, onClose }) {
                 {isMyPlacement && <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24', padding: '1px 6px', borderRadius: 8, background: 'rgba(251,191,36,0.12)' }}>Posicionamiento</span>}
                 {myRankObj && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: myRankObj.color, padding: '2px 7px', borderRadius: 10, background: myRankObj.bg, border: `1px solid ${myRankObj.border}` }}>{TIER_ICONS[myRankObj.tier]} {myRankObj.name}</span>}
               </div>
-              <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} />
+              <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} onClick={onViewOpponent && oppId ? () => onViewOpponent(String(oppId), opponent) : undefined} />
             </div>
           </div>
           <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}{isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : isTournament ? (' · ' + (m.communityLabel || m.community || 'Torneo')) : ' · Ranked'}{m.round ? ` · ${m.round}` : ''}</p>
@@ -2114,7 +2116,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                               ) : isMyPlacement ? (
                                 <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
                               ) : (
-                                <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                                <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.35)', lineHeight: 1 }}>?</span></div>
                               )}
                             </div>
                           </div>
@@ -2201,7 +2203,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                         const playedStages = games.map(g => g?.result?.stage).filter(Boolean);
                         const uniqueStages = [...new Set(playedStages)];
                         return (
-                          <div key={i} onClick={() => { setShowAllModal(false); setTimeout(() => setViewMatchDetail({ match: m, viewingId: String(viewedUserId) }), 180); }} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
+                          <div key={i} onClick={() => { setShowAllModal(false); setViewMatchDetail({ match: m, viewingId: String(viewedUserId), onBack: () => { setViewMatchDetail(null); setShowAllModal(true); } }); }} style={{ position: 'relative', height: 72, borderRadius: 12, overflow: 'hidden', borderLeft: '3px solid ' + (isWin ? '#22C55E' : '#EF4444'), cursor: 'pointer' }}>
                             <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
                               {uniqueStages.length > 0 ? uniqueStages.map((stage, si) => (
                                 <div key={si} style={{ flex: 1, backgroundImage: `url(${STAGE_IMG[stage] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -2235,7 +2237,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                   ) : isMyPlacement ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
                                   ) : (
-                                    <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.35)', lineHeight: 1 }}>?</span></div>
                                   )}
                                 </div>
                               </div>
@@ -2809,7 +2811,7 @@ function TabAmigos({ user }) {
         </div>
       )}
 
-      {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
+      {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} onBack={viewMatchDetail.onBack} onViewOpponent={(id, name) => { setViewMatchDetail(null); openProfile(id, name); }} />}
 
       {/* ═══ MODAL PERFIL JUGADOR ═══ */}
       {viewProfile && (
@@ -3728,7 +3730,7 @@ function TabPerfil({ user }) {
           </div>
         )}
 
-        {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} />}
+        {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} onBack={viewMatchDetail.onBack} onViewOpponent={(id, name) => { setViewMatchDetail(null); openProfile(id, name); }} />}
 
         {/* ═══ MODAL PERFIL JUGADOR ═══ */}
         {viewProfile && (
@@ -4222,7 +4224,7 @@ function TabPerfil({ user }) {
                           ) : isMyPlacement ? (
                             <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
                           ) : (
-                            <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.35)', lineHeight: 1 }}>?</span></div>
                           )}
                         </div>
                       </div>
@@ -4361,7 +4363,7 @@ function TabPerfil({ user }) {
                                   ) : isMyPlacement ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
                                   ) : (
-                                    <span style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.25)', padding: '1px 3px', borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>?</span>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.35)', lineHeight: 1 }}>?</span></div>
                                   )}
                                 </div>
                               </div>
@@ -5513,7 +5515,7 @@ function TipCard({ tip, currentUserId, currentUserName, onDelete, onEdit }) {
             </label>
             {(editNewMedia || tip.mediaData) && !editRemoveMedia && (
               <button onClick={() => { setEditRemoveMedia(true); setEditNewMedia(null); }}
-                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '7px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>âœ• Quitar media</button>
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '7px 10px', color: '#EF4444', fontSize: 11, cursor: 'pointer' }}>✕ Quitar media</button>
             )}
           </div>
           <input type="url" value={editVideoUrl} onChange={e => setEditVideoUrl(e.target.value)} placeholder="Link de YouTube / Vimeo..."
@@ -5696,7 +5698,7 @@ function TabTips() {
           color: '#FF8C00', fontWeight: 800, fontSize: 14, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          {showForm ? 'âœ• Cancelar' : '+ Subir tip'}
+          {showForm ? '✕ Cancelar' : '+ Subir tip'}
         </button>
 
         {/* Formulario */}
