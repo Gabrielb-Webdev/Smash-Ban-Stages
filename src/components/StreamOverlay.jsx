@@ -243,7 +243,7 @@ export default function StreamOverlay({ sessionId }) {
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
-          height: '150px',
+          height: isWarui ? '220px' : '150px',
           // Para AFK usar fondo negro, para Mendoza solo video, para Warui solo imagen, para otros el fondo con imagen
           ...(isAfk ? {
             background: '#000000'

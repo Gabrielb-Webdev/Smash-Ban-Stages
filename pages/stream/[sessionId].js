@@ -19,7 +19,7 @@ export default function Stream() {
   if (s === 'mendoza' || s.startsWith('mendoza-')) return <StreamOverlayMendoza  sessionId={resolvedId} />;
   if (s === 'inc' || s.startsWith('inc-'))              return <StreamOverlayInc      sessionId={resolvedId} />;
   if (s === 'santafe' || s.startsWith('santafe-'))   return <StreamOverlaySantaFe  sessionId={resolvedId} />;
-  if (s === 'warui' || s.startsWith('warui-'))       return <StreamOverlayWarui />;
+  if (s === 'warui' || s.startsWith('warui-'))       return <StreamOverlay          sessionId={resolvedId} />;
   return <StreamOverlay sessionId={resolvedId} />;
 }
 
