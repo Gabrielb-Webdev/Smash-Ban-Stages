@@ -238,8 +238,24 @@ export const getCharacterData = (characterId) => {
 };
 
 // ── Mapa de overrides y conteo de skins ────────────────────────────────
-const _STOCK_OVERRIDES = { 'rob': 'Rob', 'pyra-mythra': 'Pyra & Mythra' };
-const _SKIN_COUNT = { 'kazuya': 9, 'mii-brawler': 1, 'mii-gunner': 1, 'mii-swordfighter': 1 };
+const _STOCK_OVERRIDES = {
+  'rob': 'Rob',
+  'pac-man': 'Pac Man',
+  'ice-climbers': 'Ice Climbers/Popo',
+  'pyra-mythra': 'Pyra & Mythra/Pyra',
+};
+const _SKIN_COUNT = {
+  'kazuya': 9,
+  'chrom': 9,
+  'corrin': 9,
+  'ken': 9,
+  'daisy': 12,
+  'mii-brawler': 2,
+  'mii-gunner': 1,
+  'mii-swordfighter': 1,
+  'richter': 8,
+  'ridley': 8,
+};
 
 /** Retorna la ruta a /images/Stock Icons V2/{folder}/{skin}.png */
 export function getStockIconPath(charId, skin = 1) {
