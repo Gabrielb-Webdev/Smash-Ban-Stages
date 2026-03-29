@@ -7,15 +7,14 @@
 <script>
 (function() {
   function scaleOverlay() {
+    var el = document.querySelector('.overlay');
+    if (!el) return;
     var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-    var el = document.documentElement;
     el.style.transform = 'scale(' + s + ')';
-    el.style.transformOrigin = 'top left';
-    el.style.width = '1920px';
-    el.style.height = '1080px';
-    el.style.overflow = 'hidden';
+    el.style.transformOrigin = 'center center';
+    el.style.visibility = 'visible';
   }
-  scaleOverlay();
+  document.addEventListener('DOMContentLoaded', scaleOverlay);
   window.addEventListener('resize', scaleOverlay);
 })();
 </script>
@@ -36,19 +35,26 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    width: 1920px;
-    height: 1080px;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
     background: #07020f;
     font-family: 'Exo 2', sans-serif;
     margin: 0;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .overlay {
-    width: 100%;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
     position: relative;
     user-select: none;
+    flex-shrink: 0;
+    visibility: hidden;
   }
 
   /* ── TOP BAR ── */
@@ -344,12 +350,12 @@
 
     <!-- Player 2 -->
     <div class="player right" id="panel-p2">
-      <div class="player-char empty" id="char-wrap-2">
-        <img id="char-img-2" src="" alt="" style="display:none">
-      </div>
       <div class="player-info">
         <div class="player-tag" id="display-p2">JUGADOR 2</div>
         <div class="player-sponsor" id="display-sp2"></div>
+      </div>
+      <div class="player-char empty" id="char-wrap-2">
+        <img id="char-img-2" src="" alt="" style="display:none">
       </div>
     </div>
 
@@ -369,7 +375,7 @@
 
   <!-- ══ PIXEL LOGO ══ -->
   <div class="pixel-logo-wrap">
-    <img src="img/Pixel_logo.jpg" class="pixel-logo" alt="Arena Warui">
+    <img src="img/Pixel_logo.png" class="pixel-logo" alt="Arena Warui">
   </div>
 
 </div>
@@ -384,7 +390,11 @@
     const wrap = document.getElementById('char-wrap-' + n);
     const img  = document.getElementById('char-img-' + n);
     if (filename) {
-      img.src = BASE + '/images/characters/' + encodeURIComponent(filename);
+      if (filename.startsWith('Stock Icons V2/')) {
+        img.src = BASE + '/images/' + filename.split('/').map(encodeURIComponent).join('/');
+      } else {
+        img.src = BASE + '/images/characters/' + encodeURIComponent(filename);
+      }
       img.style.display = '';
       wrap.classList.remove('empty');
     } else {

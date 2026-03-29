@@ -117,6 +117,11 @@
 
   .divider { border: none; border-top: 1px solid rgba(123,47,255,0.2); margin: 12px 0; }
 
+  .skin-btn { background: rgba(123,47,255,0.15); border: 2px solid rgba(123,47,255,0.3); border-radius: 8px; cursor: pointer; padding: 3px; transition: all 0.15s; }
+  .skin-btn:hover { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,229,255,0.3); }
+  .skin-btn.skin-active { border-color: var(--magenta); box-shadow: 0 0 10px rgba(233,30,140,0.5); }
+  .skin-btn img { display: block; width: 44px; height: 44px; object-fit: contain; }
+
   .status {
     margin-top: 20px;
     font-family: 'Rajdhani', sans-serif;
@@ -147,7 +152,7 @@
 
   <div class="ctrl-row">
     <span class="ctrl-label">Personaje J1</span>
-    <select id="in-char1" onchange="updateChar()">
+    <select id="in-char1" onchange="onCharChange(1)">
       <option value="">— Sin personaje —</option>
       <option value="Banjo Kazooie.png">Banjo &amp; Kazooie</option>
       <option value="Bayonetta.png">Bayonetta</option>
@@ -237,9 +242,13 @@
       <option value="Zero Suit Samus.png">Zero Suit Samus</option>
     </select>
   </div>
+  <div id="skin-picker-1" style="display:none; margin-left:130px; margin-bottom:14px;">
+    <div style="font-family:'Rajdhani',sans-serif; font-size:11px; color:var(--white); opacity:0.45; margin-bottom:5px; letter-spacing:1px; text-transform:uppercase;">Skin</div>
+    <div id="skin-grid-1" style="display:flex; gap:5px; flex-wrap:wrap; max-width:450px;"></div>
+  </div>
   <div class="ctrl-row">
     <span class="ctrl-label">Personaje J2</span>
-    <select id="in-char2" onchange="updateChar()">
+    <select id="in-char2" onchange="onCharChange(2)">
       <option value="">— Sin personaje —</option>
       <option value="Banjo Kazooie.png">Banjo &amp; Kazooie</option>
       <option value="Bayonetta.png">Bayonetta</option>
@@ -328,6 +337,10 @@
       <option value="Zelda.png">Zelda</option>
       <option value="Zero Suit Samus.png">Zero Suit Samus</option>
     </select>
+  </div>
+  <div id="skin-picker-2" style="display:none; margin-left:130px; margin-bottom:14px;">
+    <div style="font-family:'Rajdhani',sans-serif; font-size:11px; color:var(--white); opacity:0.45; margin-bottom:5px; letter-spacing:1px; text-transform:uppercase;">Skin</div>
+    <div id="skin-grid-2" style="display:flex; gap:5px; flex-wrap:wrap; max-width:450px;"></div>
   </div>
 
   <hr class="divider">
@@ -399,6 +412,71 @@
   const AUTH = 'Bearer afk-admin-2025';
   let sc = [0, 0];
 
+  const CHAR_FOLDER = {
+    'Banjo Kazooie.png':'Banjo & Kazooie','Bayonetta.png':'Bayonetta','Bowser.png':'Bowser',
+    'Bowser Jr.png':'Bowser Jr','Byleth.png':'Byleth','Captain Falcon.png':'Captain Falcon',
+    'Chrom.png':'Chrom','Cloud.png':'Cloud','Corrin.png':'Corrin','Daisy.png':'Daisy',
+    'Dark Pit.png':'Dark Pit','Dark Samus.png':'Dark Samus','Diddy Kong.png':'Diddy Kong',
+    'Donkey Kong.png':'Donkey Kong','Dr. Mario.png':'Dr Mario','Duck Hunt.png':'Duck Hunt',
+    'Falco.png':'Falco','Fox.png':'Fox','Ganondorf.png':'Ganondorf','Greninja.png':'Greninja',
+    'Hero.png':'Hero','Ice Climbers.png':'Ice Climbers','Ike.png':'Ike','Incineroar.png':'Incineroar',
+    'Inkling.png':'Inkling','Isabelle.png':'Isabelle','Jigglypuff.png':'Jigglypuff','Joker.png':'Joker',
+    'Kazuya.png':'Kazuya','Ken.png':'Ken','King Dedede.png':'King Dedede','King K. Rool.png':'King K Rool',
+    'Kirby.png':'Kirby','Link.png':'Link','Little Mac.png':'Little Mac','Lucario.png':'Lucario',
+    'Lucas.png':'Lucas','Lucina.png':'Lucina','Luigi.png':'Luigi','Mario.png':'Mario',
+    'Marth.png':'Marth','Mega Man.png':'Mega Man','Meta Knight.png':'Meta Knight','Mewtwo.png':'Mewtwo',
+    'Mii Brawler.png':'Mii Brawler','Mii Gunner.png':'Mii Gunner','Mii Swordfighter.png':'Mii Swordfighter',
+    'Min Min.png':'Min Min','Mr. Game & Watch.png':'Mr Game & Watch','Ness.png':'Ness','Olimar.png':'Olimar',
+    'Pac-Man.png':'Pac Man','Palutena.png':'Palutena','Peach.png':'Peach','Pichu.png':'Pichu',
+    'Pikachu.png':'Pikachu','Piranha Plant.png':'Piranha Plant','Pit.png':'Pit',
+    'Pokemon Trainer.png':'Pokemon Trainer','Pyra Mythra.png':'Pyra & Mythra','R.O.B.png':'Rob',
+    'Richter.png':'Richter','Ridley.png':'Ridley','Robin.png':'Robin',
+    'Rosalina & Luma.png':'Rosalina & Luma','Roy.png':'Roy','Ryu.png':'Ryu','Samus.png':'Samus',
+    'Sephiroth.png':'Sephiroth','Sheik.png':'Sheik','Shulk.png':'Shulk','Simon.png':'Simon',
+    'Snake.png':'Snake','Sonic.png':'Sonic','Sora.png':'Sora','Steve.png':'Steve','Terry.png':'Terry',
+    'Toon Link.png':'Toon Link','Villager.png':'Villager','Wario.png':'Wario',
+    'Wii Fit Trainer.png':'Wii Fit Trainer','Wolf.png':'Wolf','Yoshi.png':'Yoshi',
+    'Young Link.png':'Young Link','Zelda.png':'Zelda','Zero Suit Samus.png':'Zero Suit Samus',
+  };
+  const selectedSkin = { 1: 1, 2: 1 };
+
+  function onCharChange(n) {
+    selectedSkin[n] = 1;
+    renderSkinGrid(n);
+    updateChar();
+  }
+
+  function renderSkinGrid(n) {
+    const charVal = document.getElementById('in-char' + n).value;
+    const picker  = document.getElementById('skin-picker-' + n);
+    const grid    = document.getElementById('skin-grid-' + n);
+    const folder  = charVal ? CHAR_FOLDER[charVal] : null;
+    if (!folder) { picker.style.display = 'none'; return; }
+    picker.style.display = 'block';
+    grid.innerHTML = '';
+    for (let i = 1; i <= 8; i++) {
+      const skin = i;
+      const btn  = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'skin-btn' + (selectedSkin[n] === skin ? ' skin-active' : '');
+      btn.onclick = function() { selectedSkin[n] = skin; renderSkinGrid(n); updateChar(); };
+      const img = document.createElement('img');
+      img.src = 'https://smash-ban-stages.vercel.app/images/Stock%20Icons%20V2/' + encodeURIComponent(folder) + '/' + skin + '.png';
+      img.width = 44; img.height = 44;
+      img.onerror = function() { btn.remove(); };
+      btn.appendChild(img);
+      grid.appendChild(btn);
+    }
+  }
+
+  function getSkinPath(n) {
+    const charVal = document.getElementById('in-char' + n).value;
+    if (!charVal) return '';
+    const folder = CHAR_FOLDER[charVal];
+    if (!folder) return charVal;
+    return 'Stock Icons V2/' + folder + '/' + selectedSkin[n] + '.png';
+  }
+
   function setStatus(text, ok = true) {
     const msg = document.getElementById('status-msg');
     msg.textContent = text;
@@ -446,12 +524,10 @@
       .catch(() => setStatus('✗ Error de conexión', false));
   }
   function updateChar() {
-    const char1 = document.getElementById('in-char1').value;
-    const char2 = document.getElementById('in-char2').value;
     fetch(API, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
-      body: JSON.stringify({ char1, char2 }),
+      body: JSON.stringify({ char1: getSkinPath(1), char2: getSkinPath(2) }),
     })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => setStatus('\u2713 Personajes actualizados'))
@@ -486,8 +562,21 @@
       document.getElementById('ctrl-s2').textContent = sc[1];
       const c1 = document.getElementById('in-char1');
       const c2 = document.getElementById('in-char2');
-      if (d.char1) { for (const o of c1.options) { if (o.value === d.char1) { c1.value = d.char1; break; } } }
-      if (d.char2) { for (const o of c2.options) { if (o.value === d.char2) { c2.value = d.char2; break; } } }
+      function restoreChar(inp, val, n) {
+        if (!val) return;
+        if (val.startsWith('Stock Icons V2/')) {
+          const parts = val.split('/');
+          const folder = parts[1];
+          const skinN  = parseInt(parts[2]) || 1;
+          const key    = Object.keys(CHAR_FOLDER).find(k => CHAR_FOLDER[k] === folder);
+          if (key) { inp.value = key; selectedSkin[n] = skinN; renderSkinGrid(n); }
+        } else {
+          for (const o of inp.options) { if (o.value === val) { inp.value = val; break; } }
+          renderSkinGrid(n);
+        }
+      }
+      restoreChar(c1, d.char1, 1);
+      restoreChar(c2, d.char2, 2);
       const bf = document.getElementById('in-bestof');
       const rd = document.getElementById('in-round');
       if (d.format) { for (const o of bf.options) { if (o.value === d.format) { bf.value = d.format; break; } } }

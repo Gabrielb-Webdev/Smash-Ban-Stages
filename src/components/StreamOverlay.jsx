@@ -243,7 +243,7 @@ export default function StreamOverlay({ sessionId }) {
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
-          height: isWarui ? '220px' : '150px',
+          height: isWarui ? '30vh' : '150px',
           // Para AFK usar fondo negro, para Mendoza solo video, para Warui solo imagen, para otros el fondo con imagen
           ...(isAfk ? {
             background: '#000000'
@@ -339,15 +339,15 @@ export default function StreamOverlay({ sessionId }) {
               <img 
                 src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
-                className="w-32 h-32 rounded-full"
-                style={{ objectFit: 'cover' }}
+                className="rounded-full"
+                style={{ objectFit: 'cover', width: isWarui ? '16vh' : '8rem', height: isWarui ? '16vh' : '8rem' }}
               />
               <motion.div 
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className={useOriginalStyles ? "h-32 w-1 bg-white ml-4" : "h-32 w-1 ml-4"}
-                style={useOriginalStyles ? {} : { backgroundColor: theme.colors.accent }}
+                className={useOriginalStyles ? "w-1 bg-white ml-4" : "w-1 ml-4"}
+                style={useOriginalStyles ? { height: isWarui ? '16vh' : '8rem' } : { backgroundColor: theme.colors.accent, height: isWarui ? '16vh' : '8rem' }}
               ></motion.div>
             </motion.div>
 
@@ -374,14 +374,14 @@ export default function StreamOverlay({ sessionId }) {
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className={useOriginalStyles ? "h-32 w-1 bg-white mr-4" : "h-32 w-1 mr-4"}
-                style={useOriginalStyles ? {} : { backgroundColor: theme.colors.accent }}
+                className={useOriginalStyles ? "w-1 bg-white mr-4" : "w-1 mr-4"}
+                style={useOriginalStyles ? { height: isWarui ? '16vh' : '8rem' } : { backgroundColor: theme.colors.accent, height: isWarui ? '16vh' : '8rem' }}
               ></motion.div>
               <img 
                 src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
-                className="w-32 h-32 rounded-full"
-                style={{ objectFit: 'cover' }}
+                className="rounded-full"
+                style={{ objectFit: 'cover', width: isWarui ? '16vh' : '8rem', height: isWarui ? '16vh' : '8rem' }}
               />
             </motion.div>
           </>
@@ -436,9 +436,9 @@ export default function StreamOverlay({ sessionId }) {
 
         {/* Stages - Aparecen después del texto Stage Bans */}
         {session.player1.character && session.player2.character && (
-          <div className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none px-44 ${
+          <div className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none ${
             session.currentGame === 1 ? 'gap-3' : 'gap-4'
-          }`} style={{ zIndex: 15 }}>
+          }`} style={{ zIndex: 15, paddingLeft: isWarui ? '18vh' : '11rem', paddingRight: isWarui ? '18vh' : '11rem' }}>
             {getStagesForTournament(sessionId, session.currentGame).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
               const isSelected = session.selectedStage === stage.id;
@@ -449,7 +449,7 @@ export default function StreamOverlay({ sessionId }) {
               
               // Tamaños diferentes según el game
               const isGame1 = session.currentGame === 1;
-              const imageClass = isGame1 ? 'w-48 h-28' : 'w-32 h-20';
+              const imageClass = isWarui ? '' : (isGame1 ? 'w-48 h-28' : 'w-32 h-20');
               const borderRadius = isGame1 ? 'rounded-xl' : 'rounded-lg';
               const iconSize = isGame1 ? 'text-7xl' : 'text-5xl';
               
@@ -483,13 +483,15 @@ export default function StreamOverlay({ sessionId }) {
                     style={useOriginalStyles ? { 
                       objectFit: 'cover',
                       borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
-                      filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none'
+                      filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
+                      ...(isWarui ? { width: isGame1 ? '26.7vh' : '18.7vh', height: isGame1 ? '15.6vh' : '11.1vh' } : {})
                     } : { 
                       objectFit: 'cover',
                       borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
                       borderColor: isSelected && showSelectOverlay ? '#4ADE80' : theme.colors.accent,
                       filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
-                      borderStyle: 'solid'
+                      borderStyle: 'solid',
+                      ...(isWarui ? { width: isGame1 ? '26.7vh' : '18.7vh', height: isGame1 ? '15.6vh' : '11.1vh' } : {})
                     }}
                   />
                   
@@ -541,7 +543,7 @@ export default function StreamOverlay({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '150px' }}
+            style={{ height: isWarui ? '30vh' : '150px' }}
           >
             {/* Imagen del stage de fondo */}
             <div className="absolute inset-0">
@@ -616,7 +618,7 @@ export default function StreamOverlay({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '150px' }}
+            style={{ height: isWarui ? '30vh' : '150px' }}
           >
             {/* Imagen del stage de fondo */}
             <div className="absolute inset-0">
