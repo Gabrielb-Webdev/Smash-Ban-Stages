@@ -56,15 +56,17 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, state });
   }
 
-  // PATCH: actualizar scores
+  // PATCH: actualizar scores y/o personajes
   if (req.method === 'PATCH') {
     if (!checkAuth(req)) return res.status(401).json({ error: 'No autorizado' });
-    const { score1, score2 } = req.body || {};
+    const { score1, score2, char1, char2 } = req.body || {};
     const current = (await redis.get(STATE_KEY)) || {};
     const updated = {
       ...current,
-      score1: score1 ?? current.score1 ?? 0,
-      score2: score2 ?? current.score2 ?? 0,
+      score1: score1 !== undefined ? (score1 ?? current.score1 ?? 0) : (current.score1 ?? 0),
+      score2: score2 !== undefined ? (score2 ?? current.score2 ?? 0) : (current.score2 ?? 0),
+      ...(char1 !== undefined && { char1: sanitize(char1) }),
+      ...(char2 !== undefined && { char2: sanitize(char2) }),
       updatedAt: new Date().toISOString(),
     };
     await redis.set(STATE_KEY, updated, { ex: 60 * 60 * 4 });
