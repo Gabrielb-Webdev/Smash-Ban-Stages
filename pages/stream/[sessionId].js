@@ -5,6 +5,7 @@ import StreamOverlayCordoba from '../../src/components/StreamOverlayCordoba';
 import StreamOverlayMendoza from '../../src/components/StreamOverlayMendoza';
 import StreamOverlayInc from '../../src/components/StreamOverlayInc';
 import StreamOverlaySantaFe from '../../src/components/StreamOverlaySantaFe';
+import StreamOverlayWarui from '../../src/components/StreamOverlayWarui';
 
 export default function Stream() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function Stream() {
   if (s === 'mendoza' || s.startsWith('mendoza-')) return <StreamOverlayMendoza  sessionId={resolvedId} />;
   if (s === 'inc' || s.startsWith('inc-'))              return <StreamOverlayInc      sessionId={resolvedId} />;
   if (s === 'santafe' || s.startsWith('santafe-'))   return <StreamOverlaySantaFe  sessionId={resolvedId} />;
-  if (s === 'warui' || s.startsWith('warui-'))       return <StreamOverlay          sessionId={resolvedId} />;
+  if (s === 'warui' || s.startsWith('warui-'))       return <StreamOverlayWarui />;
   return <StreamOverlay sessionId={resolvedId} />;
 }
 

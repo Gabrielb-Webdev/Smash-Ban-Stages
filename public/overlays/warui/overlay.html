@@ -23,20 +23,20 @@
   body {
     background: transparent;
     font-family: 'Exo 2', sans-serif;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 20px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   /* ══════════════════════════════════════
-     OVERLAY CONTAINER  1920×200 aprox
+     OVERLAY CONTAINER  — escala a 1920px
   ══════════════════════════════════════ */
   .overlay {
     width: 1440px;
     position: relative;
     user-select: none;
+    transform: scale(calc(100vw / 1440));
+    transform-origin: top left;
   }
 
   /* ── TOP BAR ── */
