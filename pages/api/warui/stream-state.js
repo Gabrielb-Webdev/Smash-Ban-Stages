@@ -39,9 +39,10 @@ export default async function handler(req, res) {
   // POST: nuevo match iniciado (desde callMatch en _panel.js)
   if (req.method === 'POST') {
     if (!checkAuth(req)) return res.status(401).json({ error: 'No autorizado' });
-    const { player1, player2, format, round, sessionId } = req.body || {};
+    const { player1, player2, format, round, sessionId, char1, char2 } = req.body || {};
     const p1 = parsePlayerName(player1 || 'Jugador 1');
     const p2 = parsePlayerName(player2 || 'Jugador 2');
+    const current = (await redis.get(STATE_KEY)) || {};
     const state = {
       player1: { name: sanitize(player1 || 'Jugador 1'), ...p1 },
       player2: { name: sanitize(player2 || 'Jugador 2'), ...p2 },
@@ -49,6 +50,8 @@ export default async function handler(req, res) {
       round: sanitize(round || ''),
       score1: 0,
       score2: 0,
+      char1: char1 !== undefined ? sanitize(char1) : (current.char1 || ''),
+      char2: char2 !== undefined ? sanitize(char2) : (current.char2 || ''),
       sessionId: sanitize(sessionId || ''),
       updatedAt: new Date().toISOString(),
     };

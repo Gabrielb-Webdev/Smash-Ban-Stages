@@ -243,7 +243,7 @@ export default function StreamOverlay({ sessionId }) {
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
-          height: isWarui ? '30vh' : '150px',
+          height: isWarui ? '15vh' : '150px',
           // Para AFK usar fondo negro, para Mendoza solo video, para Warui solo imagen, para otros el fondo con imagen
           ...(isAfk ? {
             background: '#000000'
@@ -543,7 +543,7 @@ export default function StreamOverlay({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: isWarui ? '30vh' : '150px' }}
+            style={{ height: isWarui ? '15vh' : '150px' }}
           >
             {/* Imagen del stage de fondo */}
             <div className="absolute inset-0">
@@ -618,7 +618,7 @@ export default function StreamOverlay({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: isWarui ? '30vh' : '150px' }}
+            style={{ height: isWarui ? '15vh' : '150px' }}
           >
             {/* Imagen del stage de fondo */}
             <div className="absolute inset-0">
