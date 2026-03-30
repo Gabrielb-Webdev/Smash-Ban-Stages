@@ -143,6 +143,7 @@ export default function HomePage() {
   const [pushBannerState, setPushBannerState] = useState(null); // null | 'loading' | 'ok' | 'error' | 'denied'
   const [installPrompt, setInstallPrompt] = useState(null); // Android beforeinstallprompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
   const [showIconUpdateBanner, setShowIconUpdateBanner] = useState(false); // iOS standalone: actualizar ícono
   const [activeTournamentMatch, setActiveTournamentMatch] = useState(null);
 
@@ -1046,6 +1047,22 @@ export default function HomePage() {
                 </button>
               </div>
 
+              {/* Configuración */}
+              <div style={{ padding: '4px 10px 0' }}>
+                <button onClick={() => { setShowMenu(false); setShowConfig(true); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>⚙️</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>Configuración</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Personajes preferidos</p>
+                  </div>
+                  <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
+                </button>
+              </div>
+
               {/* Logout */}
               <div style={{ padding: '4px 10px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <button onClick={() => { logout(); setShowMenu(false); window.location.href = '/login'; }}
@@ -1063,6 +1080,9 @@ export default function HomePage() {
             </div>
           </>
         )}
+
+        {/* ── CONFIG MODAL ── */}
+        {showConfig && <ConfigModal onClose={() => setShowConfig(false)} userId={uid} />}
 
         {/* ── NOTIFICATION DRAWER ── */}
         {showNotifs && (
@@ -1623,6 +1643,135 @@ function RankBadge({ rankName }) {
     }}>
       {icon} {rankObj.name}
     </span>
+  );
+}
+
+/* ─── CONFIG MODAL ──────────────────────────────── */
+function ConfigModal({ onClose, userId }) {
+  const SECTIONS = [
+    { key: 'ranked',  label: '⚔️ Ranked',  lsKey: 'afk_chars_ranked'  },
+    { key: 'casual',  label: '🎮 Casual',   lsKey: 'afk_chars_casual'  },
+    { key: 'tourney', label: '🏆 Torneos',  lsKey: 'afk_chars_tourney' },
+  ];
+  const MAX_CHARS = 5;
+  const [prefs, setPrefs] = useState(() => {
+    const r = {};
+    SECTIONS.forEach(s => {
+      try { r[s.key] = JSON.parse(localStorage.getItem(s.lsKey) || '[]'); } catch { r[s.key] = []; }
+    });
+    return r;
+  });
+  const [activeSection, setActiveSection] = useState('ranked');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch('/api/players/profile?id=' + encodeURIComponent(userId))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const cp = d?.profile?.charPrefs;
+        if (!cp || typeof cp !== 'object') return;
+        setPrefs(prev => ({
+          ranked:  Array.isArray(cp.ranked)  ? cp.ranked  : prev.ranked,
+          casual:  Array.isArray(cp.casual)  ? cp.casual  : prev.casual,
+          tourney: Array.isArray(cp.tourney) ? cp.tourney : prev.tourney,
+        }));
+      }).catch(() => {});
+  }, [userId]);
+
+  const toggleChar = (charId) => {
+    setPrefs(prev => {
+      const current = prev[activeSection] || [];
+      if (current.includes(charId)) return { ...prev, [activeSection]: current.filter(c => c !== charId) };
+      if (current.length >= MAX_CHARS) return prev;
+      return { ...prev, [activeSection]: [...current, charId] };
+    });
+  };
+
+  const handleSave = () => {
+    setSaving(true);
+    SECTIONS.forEach(s => {
+      try { localStorage.setItem(s.lsKey, JSON.stringify(prefs[s.key] || [])); } catch {}
+    });
+    if (userId) {
+      fetch('/api/players/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, charPrefs: prefs }),
+      }).catch(() => {});
+    }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => { setSaved(false); onClose(); }, 800);
+  };
+
+  const currentChars = prefs[activeSection] || [];
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }} />
+      <div style={{
+        position: 'fixed', zIndex: 61,
+        bottom: 0, left: 'max(0px, calc(50% - 240px))', right: 'max(0px, calc(50% - 240px))',
+        background: '#0F0F18', borderRadius: '24px 24px 0 0',
+        boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+        animation: 'slideUp 0.22s ease',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>⚙️ Configuración</p>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 99, width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontSize: 16, fontFamily: 'inherit' }}>✕</button>
+        </div>
+        {/* Tabs de sección */}
+        <div style={{ display: 'flex', margin: '14px 16px 0', background: 'rgba(255,255,255,0.04)', borderRadius: 12, overflow: 'hidden' }}>
+          {SECTIONS.map(s => (
+            <button key={s.key} onClick={() => setActiveSection(s.key)} style={{
+              flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer',
+              background: activeSection === s.key ? 'rgba(255,140,0,0.15)' : 'transparent',
+              borderBottom: activeSection === s.key ? '2px solid #FF8C00' : '2px solid transparent',
+              color: activeSection === s.key ? '#FF8C00' : 'rgba(255,255,255,0.4)',
+              fontSize: 12, fontWeight: 800, fontFamily: 'inherit', transition: 'all 0.15s',
+            }}>{s.label}</button>
+          ))}
+        </div>
+        <p style={{ margin: '10px 18px 6px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>
+          {currentChars.length}/{MAX_CHARS} personajes · tocá para seleccionar / deseleccionar
+        </p>
+        {/* Grilla de personajes */}
+        <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+            {CHARACTERS.map(ch => {
+              const sel = currentChars.includes(ch.id);
+              return (
+                <button key={ch.id} onClick={() => toggleChar(ch.id)} style={{
+                  background: sel ? 'rgba(255,140,0,0.18)' : 'rgba(255,255,255,0.04)',
+                  border: sel ? '2px solid #FF8C00' : '2px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10, padding: '6px 2px 4px', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                  opacity: (!sel && currentChars.length >= MAX_CHARS) ? 0.35 : 1,
+                  transition: 'all 0.12s', fontFamily: 'inherit',
+                }}>
+                  <img src={charImgPath(ch.img)} alt={ch.name} style={{ width: 36, height: 36, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                  <span style={{ fontSize: 7.5, fontWeight: 700, color: sel ? '#FF8C00' : 'rgba(255,255,255,0.55)', lineHeight: 1.2, overflow: 'hidden', maxWidth: '100%', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* Botón guardar */}
+        <div style={{ padding: '12px 16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <button onClick={handleSave} disabled={saving} style={{
+            width: '100%', padding: '14px', borderRadius: 14, border: 'none', cursor: 'pointer',
+            background: saved ? 'rgba(34,197,94,0.2)' : 'linear-gradient(135deg,#FF8C00,#E85D00)',
+            color: saved ? '#22C55E' : '#fff',
+            fontSize: 15, fontWeight: 900, fontFamily: 'inherit', transition: 'all 0.2s',
+          }}>
+            {saved ? '✓ Guardado' : saving ? 'Guardando...' : 'Guardar preferencias'}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -4858,30 +5007,6 @@ function TabRankings({ user, setTab }) {
             </div>
           )}
 
-          {/* --- JUGADORES EN LÍNEA --- */}
-          <div style={{ marginTop: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E' }} />
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Jugadores buscando partida</p>
-            </div>
-            {onlinePlayers.length === 0 ? (
-              <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: '20px 16px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>Nadie buscando partida ahora</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {onlinePlayers.map(p => (
-                  <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 14px' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E', flexShrink: 0 }} />
-                    <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.userName}</p>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>
-                      {p.platform === 'switch' ? '🎮 Switch' : '🖥️ Parsec'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </>
       ) : mode !== 'char' ? (
         <>
@@ -7571,18 +7696,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           </div>
         );
       })()}
-
-      {/* Contador online */}
-      {onlineCount && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '8px 14px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E' }} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-            {onlineCount.total} jugador{onlineCount.total !== 1 ? 'es' : ''} buscando
-            {onlineCount.switch > 0 ? ` · ${onlineCount.switch} Switch` : ''}
-            {onlineCount.parsec > 0 ? ` · ${onlineCount.parsec} Parsec` : ''}
-          </span>
-        </div>
-      )}
 
       {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
 

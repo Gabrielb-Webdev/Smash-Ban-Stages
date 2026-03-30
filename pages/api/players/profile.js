@@ -36,6 +36,20 @@ export default async function handler(req, res) {
     if (req.body.dismissedIconBanner !== undefined) {
       existing.dismissedIconBanner = !!req.body.dismissedIconBanner;
     }
+    if (req.body.charPrefs !== undefined) {
+      const cp = req.body.charPrefs;
+      if (cp && typeof cp === 'object') {
+        const cleaned = {};
+        ['ranked', 'casual', 'tourney'].forEach(k => {
+          if (Array.isArray(cp[k])) {
+            cleaned[k] = cp[k].filter(v => typeof v === 'string').map(v => sanitize(v).slice(0, 60)).slice(0, 5);
+          }
+        });
+        existing.charPrefs = cleaned;
+      } else {
+        existing.charPrefs = null;
+      }
+    }
 
     await redis.set(playerKey(cleanId), existing);
     return res.status(200).json({ success: true });
