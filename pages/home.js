@@ -6065,7 +6065,7 @@ function CharPicker({ selected, onSelect, platform, userId }) {
         </div>
       )}
 
-      {/* Búsqueda */
+      {/* Búsqueda */}
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
