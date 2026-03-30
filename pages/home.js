@@ -3387,14 +3387,6 @@ function TabPerfil({ user }) {
     <div style={{ paddingBottom: 32 }}>
       {/* -- Hero Banner -- */}
       <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-        {/* Character picker button — top right */}
-        <button onClick={() => setShowMainPicker(true)} style={{ position: 'absolute', top: 10, right: 12, zIndex: 10, background: 'rgba(255,140,0,0.15)', border: '1px solid rgba(255,140,0,0.35)', borderRadius: 12, width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-          {mainChar ? (
-            <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-          ) : (
-            <span style={{ fontSize: 20 }}>🎮</span>
-          )}
-        </button>
         {heroSrc ? (
           <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 4, cursor: 'pointer' }}>
             <img src={heroSrc} alt="" style={{ display: 'block', height: 180, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
@@ -6074,3 +6066,1608 @@ function CharPicker({ selected, onSelect, platform, userId }) {
       )}
 
       {/* Búsqueda */
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Buscar personaje…"
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
+      />
+
+      {/* Grilla */}
+      <div className="char-grid-5" style={{ maxHeight: 220, overflowY: 'auto' }}>
+        {filtered.map(c => (
+          <button
+            key={c.id}
+            onClick={() => selected === c.id ? setExpanded(false) : onSelect(c.id)}
+            title={c.name}
+            style={{
+              background: selected === c.id ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.03)',
+              border: selected === c.id ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10, padding: 4, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1',
+            }}
+          >
+            <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+          </button>
+        ))}
+      </div>
+
+      {/* Botón cancelar cambio (si ya hay uno seleccionado) */}
+      {char && (
+        <button
+          onClick={() => setExpanded(false)}
+          style={{ marginTop: 8, width: '100%', padding: '8px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer' }}
+        >
+          Cancelar
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TabMatch({ bgMM, setBgMM, userId, userName }) {
+  const uid = userId || '';
+  const uName = userName || 'Jugador';
+
+  const p = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
+  const matchData = bgMM?.room;
+  const matchStatus = bgMM?.status;
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput]       = useState('');
+  const [chatSending, setChatSending]   = useState(false);
+  const chatBottomRef = useRef(null);
+
+  // Polling de chat
+  useEffect(() => {
+    if (!matchData?.matchId || !['active','pending_confirm','disputed'].includes(matchStatus)) return;
+    let lastTs = 0;
+    const fetchChat = async () => {
+      try {
+        const url = '/api/matchmaking/chat?matchId=' + encodeURIComponent(matchData.matchId) + (lastTs ? '&since=' + lastTs : '');
+        const r = await fetch(url);
+        if (!r.ok) return;
+        const data = await r.json();
+        if (data.messages?.length) {
+          lastTs = data.messages[data.messages.length - 1].ts;
+          setChatMessages(prev => {
+            const ids = new Set(prev.map(m => m.id));
+            const newOnes = data.messages.filter(m => !ids.has(m.id));
+            return newOnes.length ? [...prev, ...newOnes] : prev;
+          });
+        }
+      } catch {}
+    };
+    fetchChat();
+    const iv = setInterval(fetchChat, 2500);
+    return () => clearInterval(iv);
+  }, [matchData?.matchId, matchStatus]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  // Timers AFK / ban / confirm
+  const [banTimeLeft, setBanTimeLeft]         = useState(null);
+  const [confirmTimeLeft, setConfirmTimeLeft] = useState(null);
+  const [chatAfkTimeLeft, setChatAfkTimeLeft] = useState(null);
+  const autoConfirmFiredRef = useRef(false);
+  const chatAfkFiredRef     = useRef(false);
+  const banAutoFiredRef     = useRef(null);
+
+  // Constantes de timers
+  const BAN_TURN_SECONDS     = 25;
+  const CONFIRM_TIMEOUT_SECS = 60;
+  const CHAT_AFK_SECS        = 900; // 15 min
+
+  // -- Timer de ban/pick (cuenta regresiva 25s) --------------
+  useEffect(() => {
+    if (matchStatus !== 'banning' || !matchData?.banTurnStartedAt) { setBanTimeLeft(null); return; }
+    const update = () => {
+      const left = Math.max(0, BAN_TURN_SECONDS - (Date.now() - new Date(matchData.banTurnStartedAt).getTime()) / 1000);
+      setBanTimeLeft(Math.ceil(left));
+    };
+    update();
+    const iv = setInterval(update, 500);
+    return () => clearInterval(iv);
+  }, [matchStatus, matchData?.banTurnStartedAt]); // eslint-disable-line
+
+  // -- Auto-ban/pick cuando el timer llega a 0 (lado cliente) -
+  useEffect(() => {
+    if (banTimeLeft !== 0 || !matchData || banAutoFiredRef.current === matchData.banTurnStartedAt) return;
+    const phase = matchData.banPhase;
+    const j1 = matchData.j1; const j2 = matchData.j2;
+    const prevWinnerId = matchData.games?.[matchData.games.length - 1]?.result?.winnerId;
+    const isMyTurn =
+      (phase === 'j1_ban'    && j1 === uid) ||
+      (phase === 'j2_ban'    && j2 === uid) ||
+      (phase === 'j1_pick'   && j1 === uid) ||
+      (phase === 'winner_ban' && prevWinnerId === uid) ||
+      (phase === 'loser_pick' && prevWinnerId !== uid);
+    if (!isMyTurn) return;
+    banAutoFiredRef.current = matchData.banTurnStartedAt;
+    const isGame1 = (matchData.currentGame || 1) === 1;
+    const STAGES  = isGame1 ? BAN_STAGES_G1 : BAN_STAGES_G2;
+    const allBanned = Object.values(matchData.bans || {}).flat();
+    const available = STAGES.filter(s => !allBanned.includes(s));
+    if (phase === 'j1_pick' || phase === 'loser_pick') {
+      const random = available[Math.floor(Math.random() * available.length)];
+      if (random) pickStage(random);
+    } else {
+      const count = phase === 'j1_ban' ? 1 : phase === 'j2_ban' ? 2 : 3;
+      const j1b = (matchData.bans || {})[j1] || [];
+      const pool = phase === 'j2_ban' ? available.filter(s => !j1b.includes(s)) : available;
+      const randomBans = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+      if (randomBans.length === count) submitBans(randomBans);
+    }
+  }, [banTimeLeft]); // eslint-disable-line
+
+  // -- Timer de confirmación de resultado (1 min) ------------
+  useEffect(() => {
+    if (matchStatus !== 'pending_confirm' || !matchData?.pendingResult?.reportedAt) { setConfirmTimeLeft(null); return; }
+    const update = () => setConfirmTimeLeft(Math.max(0, Math.ceil(CONFIRM_TIMEOUT_SECS - (Date.now() - new Date(matchData.pendingResult.reportedAt).getTime()) / 1000)));
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [matchStatus, matchData?.pendingResult?.reportedAt]); // eslint-disable-line
+
+  // -- Auto-confirmar cuando el servidor lo señala -----------
+  useEffect(() => {
+    if (!bgMM?.autoConfirmSignal || autoConfirmFiredRef.current) return;
+    const pending = matchData?.pendingResult;
+    if (!pending || pending.reporterId !== uid) return;
+    autoConfirmFiredRef.current = true;
+    reportResult(pending.winnerId, pending.stocks, 'confirm');
+  }, [bgMM?.autoConfirmSignal]); // eslint-disable-line
+
+  // -- Timer AFK de chat (15 min) ----------------------------
+  useEffect(() => {
+    if (!['active','pending_confirm','disputed'].includes(matchStatus) || !matchData?.activeAt) { setChatAfkTimeLeft(null); return; }
+    const opp = uid === matchData.host?.userId ? matchData.guest : matchData.host;
+    const myPresent  = !!(matchData.chatPresence?.[uid]);
+    const oppPresent = !!(matchData.chatPresence?.[opp?.userId]);
+    if (myPresent && oppPresent) { setChatAfkTimeLeft(null); return; }
+    const update = () => setChatAfkTimeLeft(Math.max(0, Math.ceil(CHAT_AFK_SECS - (Date.now() - new Date(matchData.activeAt).getTime()) / 1000)));
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [matchStatus, matchData?.activeAt, matchData?.chatPresence, uid]); // eslint-disable-line
+
+  // -- Reclamar victoria AFK cuando el servidor lo autoriza -
+  useEffect(() => {
+    if (bgMM?.chatAfkWinId !== uid || chatAfkFiredRef.current || !matchData?.matchId) return;
+    chatAfkFiredRef.current = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/matchmaking/result', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: uid, stocksWon: 1, action: 'afk_win' }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+          setBgMM(prev => prev ? { ...prev, status: 'finished', room: { ...prev.room, status: 'finished', result: data.result } } : prev);
+        }
+      } catch {}
+    })();
+  }, [bgMM?.chatAfkWinId]); // eslint-disable-line
+
+  // -- Reset refs cuando cambia el match --------------------
+  useEffect(() => {
+    autoConfirmFiredRef.current = false;
+    chatAfkFiredRef.current = false;
+    banAutoFiredRef.current = null;
+  }, [matchData?.matchId]);
+
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatSending || !matchData?.matchId) return;
+    setChatSending(true);
+    const msg = chatInput.trim();
+    setChatInput('');
+    try {
+      await fetch('/api/matchmaking/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: matchData.matchId, userId: uid, userName: uName, message: msg }),
+      });
+    } catch {}
+    setChatSending(false);
+  };
+
+  // Reportar resultado
+  const [reported, setReported]           = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError]     = useState(null);
+  const [reportStocks, setReportStocks]   = useState(1);
+  const [matchRpDelta, setMatchRpDelta]   = useState(null);
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
+  const [forfeitLoading, setForfeitLoading]         = useState(false);
+
+  // Estado de búsqueda
+  const [searchPlat, setSearchPlat]   = useState(null);
+  const [searchChar, setSearchChar]   = useState(null);
+  const [searchSkin, setSearchSkin]   = useState(1);
+  const [loading, setLoading]         = useState(false);
+  const [formError, setFormError]     = useState(null);
+  const [onlineCount, setOnlineCount] = useState(null);
+  const [searchElapsed, setSearchElapsed] = useState(0);
+  const [matchMode, setMatchMode]     = useState('1v1'); // '1v1' o '2v2'
+  const [matchTypeMode, setMatchTypeMode] = useState('ranked'); // 'ranked' | 'casual'
+  const [casualMode, setCasualMode]   = useState('1v1'); // '1v1' | '2v2' para casual
+  const [casualParty, setCasualParty] = useState(null);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [rankedParty, setRankedParty] = useState(null);
+  const [rankedJoinCodeInput, setRankedJoinCodeInput] = useState('');
+  const [partyInfo, setPartyInfo]     = useState(null); // Para 2v2 ranked (legado)
+  const [parsecRole, setParsecRole]   = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('afk_parsec_role') || null;
+    return null;
+  }); // 'host' | 'nohost' | null — modo de conexión para matchmaking Parsec
+
+  // Ban state (Bo3)
+  const [selectedBans, setSelectedBans] = useState([]);
+  const [banLoading, setBanLoading]     = useState(false);
+
+  // Modal Cómo jugar
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
+  // Contador online
+  useEffect(() => {
+    const fetchOnline = () => {
+      fetch('/api/matchmaking/online')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setOnlineCount(d); })
+        .catch(() => {});
+    };
+    fetchOnline();
+    const iv = setInterval(fetchOnline, 10000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Check party status for 2v2
+  useEffect(() => {
+    if (matchMode !== '2v2' || !uid) return;
+    const checkParty = () => {
+      fetch('/api/party?userId=' + encodeURIComponent(uid))
+        .then(r => r.ok ? r.json() : null)
+        .then(d => setPartyInfo(d && d.status !== 'none' ? d : null))
+        .catch(() => {});
+    };
+    checkParty();
+    const iv = setInterval(checkParty, 5000);
+    return () => clearInterval(iv);
+  }, [matchMode, uid]);
+
+  // Poll casual party para 2v2
+  useEffect(() => {
+    if (!uid || matchTypeMode !== 'casual' || casualMode !== '2v2') return;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/matchmaking/casual-party?userId=' + encodeURIComponent(uid));
+        const d = await r.json();
+        setCasualParty(d.status === 'none' ? null : d.party);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 4000);
+    return () => clearInterval(iv);
+  }, [uid, matchTypeMode, casualMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll ranked party para 2v2
+  useEffect(() => {
+    if (!uid || matchTypeMode !== 'ranked' || matchMode !== '2v2') return;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/matchmaking/ranked-party?userId=' + encodeURIComponent(uid));
+        const d = await r.json();
+        setRankedParty(d.status === 'none' ? null : d.party);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 4000);
+    return () => clearInterval(iv);
+  }, [uid, matchTypeMode, matchMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Timer de búsqueda (basado en searchStartedAt para sobrevivir F5)
+  useEffect(() => {
+    if (matchStatus !== 'searching') { setSearchElapsed(0); return; }
+    const startedAt = bgMM?.searchStartedAt || Date.now();
+    setSearchElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    const iv = setInterval(() => setSearchElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(iv);
+  }, [matchStatus, bgMM?.searchStartedAt]);
+
+  const reportResult = async (winnerId, stocks, action) => {
+    if (!matchData?.matchId) return;
+    setReportLoading(true); setReportError(null);
+    try {
+      const is2v2 = matchData.mode === '2v2';
+      const isCasual = matchData.type === 'casual';
+      const apiUrl = isCasual ? '/api/matchmaking/casual-result'
+        : is2v2 ? '/api/matchmaking/result-doubles'
+        : '/api/matchmaking/result';
+      const bodyPayload = !is2v2
+        ? { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: winnerId, stocksWon: stocks ?? 1, action }
+        : { matchId: matchData.matchId, reportingUserId: uid, claimedWinnerTeam: winnerId, stocksWon: stocks ?? 1, action };
+      const r = await fetch(apiUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyPayload),
+      });
+      const data = await r.json();
+      if (!r.ok) { setReportError(data.error || 'Error al reportar'); return; }
+      if (data.denied) {
+        setReported(false);
+        setReportStocks(1);
+        setReportError(null);
+      } else {
+        setReported(true);
+      }
+      if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+      if (data.matchStatus === 'banning') {
+        setReported(false);
+        setReportStocks(1);
+        setReportError(null);
+        setSelectedBans([]);
+      }
+      setBgMM(prev => prev ? {
+        ...prev,
+        room: { ...prev.room, status: data.matchStatus, result: data.result, pendingResult: data.pendingResult || null },
+        status: data.matchStatus === 'finished' ? 'finished' :
+                data.matchStatus === 'banning' ? 'banning' :
+                data.matchStatus === 'pending_confirm' ? 'pending_confirm' :
+                data.matchStatus === 'active' ? 'active' : prev.status,
+      } : prev);
+    } catch { setReportError('Error de conexión'); }
+    finally { setReportLoading(false); }
+  };
+
+  const forfeit = async () => {
+    if (!matchData?.matchId) return;
+    setForfeitLoading(true);
+    try {
+      const isCasual = matchData.type === 'casual';
+      const apiUrl = isCasual ? '/api/matchmaking/casual-result' : '/api/matchmaking/result';
+      const r = await fetch(apiUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: matchData.matchId, reportingUserId: uid, claimedWinnerId: uid, action: 'forfeit' }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setReportError(data.error || 'Error al rendirse'); setShowForfeitConfirm(false); return; }
+      if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+      setBgMM(prev => prev ? {
+        ...prev,
+        room: { ...prev.room, status: 'finished', result: data.result },
+        status: 'finished',
+      } : prev);
+      setShowForfeitConfirm(false);
+    } catch { setReportError('Error de conexión'); }
+    finally { setForfeitLoading(false); }
+  };
+
+  const resetAll = () => {
+    setBgMM(null);
+    setChatMessages([]); setChatInput('');
+    setReported(false); setReportError(null);
+    setReportStocks(1); setMatchRpDelta(null);
+    setShowForfeitConfirm(false); setForfeitLoading(false);
+    setSearchPlat(null); setSearchChar(null);
+    setMatchTypeMode('ranked');
+    setCasualMode('1v1'); setCasualParty(null); setJoinCodeInput('');
+    setRankedParty(null); setRankedJoinCodeInput('');
+  };
+
+  const startSearch = async (platform) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, charAlt: searchSkin || 1, parsecRole }),
+      });
+      const data = await r.json();
+      if (r.status === 409) {
+        // Ya en cola o match activo
+        setFormError(data.error);
+        return;
+      }
+      if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
+      setBgMM({ status: 'searching', plat: platform, polling: true, searchStartedAt: Date.now() });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const startCasualSearch = async (platform) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, userName: uName, platform, charId: searchChar, charAlt: searchSkin || 1, parsecRole }),
+      });
+      const data = await r.json();
+      if (r.status === 409) { setFormError(data.error); return; }
+      if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
+      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', polling: true, searchStartedAt: Date.now() });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const cancelSearch = async () => {
+    const isCasual = bgMM?.gameType === 'casual';
+    try {
+      await fetch(isCasual ? '/api/matchmaking/casual-queue' : '/api/matchmaking/queue', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, platform: bgMM?.plat }),
+      });
+    } catch {}
+    setBgMM(null);
+  };
+
+  const startSearch2v2 = async (platform) => {
+    if (!rankedParty || rankedParty.status !== 'ready') {
+      setFormError('El equipo no está completo todavía');
+      return;
+    }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/queue-doubles', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, platform }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
+      setBgMM({ status: 'searching', plat: platform, mode: '2v2', polling: true, searchStartedAt: Date.now() });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const createRankedParty = async (platform) => {
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/ranked-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, platform }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
+      setRankedParty(d.party);
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const joinRankedParty = async (code) => {
+    if (!code || code.length < 4) { setFormError('Ingresá el código de sala (4 caracteres)'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/ranked-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, code: code.toUpperCase() }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
+      setRankedParty(d.party); setRankedJoinCodeInput('');
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const leaveRankedParty = async () => {
+    try {
+      await fetch('/api/matchmaking/ranked-party', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid }),
+      });
+    } catch {}
+    setRankedParty(null);
+  };
+
+  const cancelSearch2v2 = async () => {
+    try {
+      await fetch('/api/matchmaking/queue-doubles', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, platform: bgMM?.plat }),
+      });
+    } catch {}
+    setBgMM(null);
+  };
+
+  const createCasualParty = async (platform) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, charId: searchChar, charAlt: searchSkin || 1, platform }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Error al crear sala'); return; }
+      setCasualParty(d.party);
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const joinCasualParty = async (code) => {
+    if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (!code || code.length < 4) { setFormError('Ingresá el código de sala (4 caracteres)'); return; }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-party', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', userId: uid, userName: uName, charId: searchChar, charAlt: searchSkin || 1, code: code.toUpperCase() }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setFormError(d.error || 'Sala no encontrada'); return; }
+      setCasualParty(d.party); setJoinCodeInput('');
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  const leaveCasualParty = async () => {
+    try {
+      await fetch('/api/matchmaking/casual-party', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid }),
+      });
+    } catch {}
+    setCasualParty(null);
+  };
+
+  const startCasual2v2Search = async (platform) => {
+    if (!casualParty || casualParty.status !== 'ready') {
+      setFormError('El equipo no está completo todavía');
+      return;
+    }
+    setLoading(true); setFormError(null);
+    try {
+      const r = await fetch('/api/matchmaking/casual-queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: uid, platform, mode: '2v2',
+          team: [
+            { userId: casualParty.leader.userId, userName: casualParty.leader.userName, charId: casualParty.leader.charId },
+            { userId: casualParty.partner.userId, userName: casualParty.partner.userName, charId: casualParty.partner.charId },
+          ],
+        }),
+      });
+      const data = await r.json();
+      if (r.status === 409) { setFormError(data.error); return; }
+      if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
+      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', mode: '2v2', polling: true });
+    } catch { setFormError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
+
+  // STAGE_IMG is now at module scope
+
+  const BAN_STAGES_G1 = [
+    'Battlefield', 'Small Battlefield', 'Town and City',
+    'Smashville', 'Pokémon Stadium 2',
+  ];
+
+  const BAN_STAGES_G2 = [
+    'Battlefield', 'Small Battlefield', 'Town and City',
+    'Smashville', 'Pokémon Stadium 2',
+    'Final Destination', 'Hollow Bastion', 'Kalos',
+  ];
+
+  const submitBans = async (bansOverride) => {
+    const bans = Array.isArray(bansOverride) ? bansOverride : selectedBans;
+    if (bans.length < 1 || banLoading) return;
+    setBanLoading(true);
+    try {
+      const r = await fetch('/api/matchmaking/room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ban', userId: uid, userName: uName, bannedStages: bans }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setFormError(data.error); setBanLoading(false); return; }
+      setSelectedBans([]);
+      setFormError(null);
+      setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room } : prev);
+    } catch { setFormError('Error de conexión'); }
+    finally { setBanLoading(false); }
+  };
+
+  const pickStage = async (stage) => {
+    if (banLoading) return;
+    setBanLoading(true);
+    try {
+      const r = await fetch('/api/matchmaking/room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pick_stage', userId: uid, userName: uName, pickedStage: stage }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setFormError(data.error); setBanLoading(false); return; }
+      setSelectedBans([]);
+      setFormError(null);
+      setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room } : prev);
+    } catch { setFormError('Error de conexión'); }
+    finally { setBanLoading(false); }
+  };
+
+  // --- RENDER: RESULTADO FINAL -------------------------------------------
+  if (matchStatus === 'finished' && matchData?.result) {
+    const is2v2Finished = matchData.mode === '2v2';
+    const myTeamFinished = is2v2Finished ? (matchData.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
+    const iWon = is2v2Finished
+      ? matchData.result.winnerTeam === myTeamFinished
+      : matchData.result.winnerId === uid;
+    const stocks = matchData.result.stocksWon;
+    const isCasualFinished = matchData.type === 'casual';
+    const winnerCharData = (() => { const wd = matchData.result.winnerId === matchData.host?.userId ? matchData.host : matchData.guest; return CHARACTERS.find(c => c.id === wd?.charId); })();
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Nueva partida
+        </button>
+        <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: '1px solid ' + (iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'), borderRadius: 24, marginBottom: 16 }}>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
+          {isCasualFinished && <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚔️ Partida Normal</p>}
+          <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? (is2v2Finished ? '¡Ganaron!' : '¡Ganaste!') : (is2v2Finished ? 'Perdieron' : 'Perdiste')}</p>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado ??' : 'La próxima será'}</p>
+          {stocks && (
+            <div style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={charImgPath(winnerCharData.img)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>{stocks} stock{stocks > 1 ? 's' : ''} de ventaja</span>
+            </div>
+          )}
+          {!isCasualFinished && iWon && matchRpDelta != null && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)' }}>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#34D399' }}>+{matchRpDelta} RP</span>
+            </div>
+          )}
+          {!isCasualFinished && !iWon && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>-10 RP</span>
+            </div>
+          )}
+          {/* Bo3 Games Summary */}
+          {matchData.format === 'bo3' && matchData.result?.games?.length > 0 && (
+            <div style={{ marginTop: 16, textAlign: 'left', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '10px 14px' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Score: {matchData.result.score?.[uid] || 0} — {matchData.result.score?.[Object.keys(matchData.result.score || {}).find(k => k !== uid)] || 0}
+              </p>
+              {matchData.result.games.map(g => {
+                const gWon = g.result?.winnerId === uid;
+                return (
+                  <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0' }}>
+                    <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: gWon ? '#22C55E' : '#EF4444' }}>Game {g.gameNum}: {g.stage || g.result?.stage}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+          Jugar otra vez
+        </button>
+      </div>
+    );
+  }
+
+  // --- RENDER: MATCH ACTIVO (active / pending_confirm / disputed) ----------
+  if (matchData && ['active','pending_confirm','disputed'].includes(matchStatus)) {
+    const is2v2 = matchData.mode === '2v2';
+    const opponent = is2v2 ? null : (uid === matchData.host?.userId ? matchData.guest : matchData.host);
+    const myTeam = is2v2 ? (matchData.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
+    const enemyTeam = is2v2 ? (myTeam === 'team1' ? matchData.team2 : matchData.team1) : null;
+    const stage    = matchData.stage || '—';
+    const STAGE_EMOJI = { 'Battlefield': '⚔️', 'Final Destination': '🌌', 'Small Battlefield': '⚔️', 'Pokémon Stadium 2': '⚡', 'Town and City': '🏙️', 'Smashville': '🏘️', 'Hollow Bastion': '🏯', 'Kalos': '❄️' };
+    const isBo3 = matchData.format === 'bo3';
+    const gameNum = matchData.currentGame || 1;
+    const myScore = isBo3 ? (matchData.score?.[uid] || 0) : 0;
+    const oppScore = isBo3 ? (matchData.score?.[opponent?.userId] || 0) : 0;
+    const myData = uid === matchData.host?.userId ? matchData.host : matchData.guest;
+    const myChar = CHARACTERS.find(c => c.id === myData?.charId);
+    const oppChar = CHARACTERS.find(c => c.id === opponent?.charId);
+    return (
+      <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '??'}</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>{is2v2 ? '¡Rivales encontrados!' : '¡Rival encontrado!'}</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p?.label}</p>
+          </div>
+          {isBo3 && (
+            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '6px 12px' }}>
+              <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Game {gameNum}/3</p>
+              <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 900, color: '#fff' }}>
+                <span style={{ color: '#22C55E' }}>{myScore}</span>
+                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>—</span>
+                <span style={{ color: '#EF4444' }}>{oppScore}</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Personajes: yo vs rival */}
+        {!is2v2 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '12px 16px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+              {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(52,211,153,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Vos</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#34D399' }}>{myChar?.name || myData?.charId || '—'}</p>
+              </div>
+            </div>
+            <span style={{ fontSize: 18, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end', textAlign: 'right' }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Rival</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
+              </div>
+              {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+            </div>
+          </div>
+        )}
+
+        {is2v2 && (
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Equipo rival</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {(enemyTeam || []).map(p => (
+                <p key={p.userId} style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{p.userName}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Nombre rival (1v1) */}
+        {!is2v2 && (
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu rival</p>
+                    <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
+          </div>
+        )}
+
+        <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(232,142,0,0.2)', height: 88 }}>
+          {STAGE_IMG[stage] && (
+            <img src={STAGE_IMG[stage]} alt={stage} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+          <div style={{ position: 'relative', background: STAGE_IMG[stage] ? 'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 65%, transparent 100%)' : 'linear-gradient(135deg,rgba(232,142,0,0.1),rgba(232,142,0,0.04))', padding: '14px 16px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: 'rgba(255,165,0,0.8)', textTransform: 'uppercase', letterSpacing: 1 }}>Escenario</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#FF8C00' }}>{stage}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stock 3 · 7 min · Sin objetos</p>
+          </div>
+        </div>
+
+        <div style={{ background: 'rgba(232,142,0,0.05)', border: '1px solid rgba(232,142,0,0.12)', borderRadius: 14, padding: '10px 14px' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+            {bgMM?.plat === 'switch' ? '🎮 Coordiná con tu rival quién crea la Arena en Nintendo Switch Online.' : '🖥️ Coordiná con tu rival quién hostea la sesión en Parsec.'}
+          </p>
+        </div>
+
+        {/* Scroll hint */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>▼</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 600, letterSpacing: '0.03em' }}>Chat y reporte de resultado abajo</span>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', animation: 'bounce 1.4s ease-in-out infinite' }}>▼</span>
+        </div>
+
+        {/* AFK Timer: aviso de presencia en el chat */}
+        {chatAfkTimeLeft !== null && (() => {
+          const opp = uid === matchData.host?.userId ? matchData.guest : matchData.host;
+          const myPresent  = !!(matchData.chatPresence?.[uid]);
+          const oppPresent = !!(matchData.chatPresence?.[opp?.userId]);
+          const mins = Math.floor(chatAfkTimeLeft / 60);
+          const secs = chatAfkTimeLeft % 60;
+          const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `${secs}s`;
+          return (
+            <div style={{ background: chatAfkTimeLeft <= 60 ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.07)', border: `1px solid ${chatAfkTimeLeft <= 60 ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.22)'}`, borderRadius: 14, padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 16 }}>?</span>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: chatAfkTimeLeft <= 60 ? '#EF4444' : '#FBBF24' }}>
+                  {chatAfkTimeLeft > 0 ? `${timeStr} para confirmar presencia` : '¡Tiempo agotado!'}
+                </p>
+              </div>
+              {!myPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>👇 Enviá un mensaje para avisar que estás aquí</p>}
+              {myPresent && !oppPresent && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Tu rival aún no dio señales de estar conectado</p>}
+              {myPresent && oppPresent && <p style={{ margin: 0, fontSize: 11, color: '#22C55E' }}>? Ambos confirmaron presencia</p>}
+            </div>
+          );
+        })()}
+
+        {/* Chat */}
+        <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E' }} />
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Chat</p>
+            {chatAfkTimeLeft !== null && !matchData?.chatPresence?.[uid] && (
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#FBBF24', fontWeight: 700, background: 'rgba(251,191,36,0.1)', padding: '2px 7px', borderRadius: 6 }}>Enviá un mensaje ?</span>
+            )}
+          </div>
+          <div style={{ height: 130, overflowY: 'auto', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {chatMessages.length === 0 && (
+              <p style={{ margin: 'auto', fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>Sin mensajes aún…</p>
+            )}
+            {chatMessages.map(m => {
+              const isMe = m.userId === uid;
+              return (
+                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                  {!isMe && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>{m.userName}</span>}
+                  <div style={{ maxWidth: '80%', background: isMe ? 'rgba(232,142,0,0.18)' : 'rgba(255,255,255,0.06)', border: '1px solid ' + (isMe ? 'rgba(232,142,0,0.25)' : 'rgba(255,255,255,0.08)'), borderRadius: 10, padding: '6px 10px' }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#fff', wordBreak: 'break-word' }}>{m.message}</p>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatBottomRef} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, padding: '8px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendChat()}
+              placeholder="Escribí un mensaje…"
+              maxLength={200}
+              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none' }}
+            />
+            <button onClick={sendChat} disabled={!chatInput.trim() || chatSending} style={{ background: 'rgba(232,142,0,0.15)', border: '1px solid rgba(232,142,0,0.3)', borderRadius: 10, padding: '0 14px', color: '#FF8C00', fontWeight: 700, cursor: 'pointer', fontSize: 18 }}>?</button>
+          </div>
+        </div>
+
+        {/* Reporte resultado */}
+        {matchStatus === 'disputed' ? (
+          <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#FBBF24' }}>⚠️ Resultado en disputa</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Reportaron resultados distintos. Contactá a un admin.</p>
+          </div>
+        ) : matchStatus === 'pending_confirm' && matchData.pendingResult ? (
+          matchData.pendingResult.reporterId === uid ? (
+            <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 20 }}>?</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#818CF8' }}>Esperando que tu rival confirme el resultado…</p>
+              {confirmTimeLeft !== null && (
+                <p style={{ margin: '8px 0 0', fontSize: 11, color: confirmTimeLeft <= 10 ? '#22C55E' : 'rgba(255,255,255,0.3)' }}>
+                  {confirmTimeLeft > 0 ? `Se acepta automáticamente en ${confirmTimeLeft}s` : '? Auto-confirmando…'}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: '#fff' }}>
+                Tu rival dice que {matchData.pendingResult.winnerId === uid ? 'vos ganaste' : 'él ganó'}
+              </p>
+              {confirmTimeLeft !== null && confirmTimeLeft <= 30 && (
+                <p style={{ margin: '-4px 0 8px', fontSize: 11, color: '#EF4444', fontWeight: 700 }}>
+                  ⚠️ Si no respondés en {confirmTimeLeft}s, se confirma automáticamente
+                </p>
+              )}
+              {matchData.pendingResult.winnerId === uid && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>¿Con cuántos stocks quedaste?</p>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                    {[1,2,3].map(n => (
+                      <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, maxWidth: 100, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                        {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {matchData.pendingResult.winnerId !== uid && (
+                <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                  Según tu rival: {matchData.pendingResult.stocks} stock{matchData.pendingResult.stocks > 1 ? 's' : ''}
+                </p>
+              )}
+              {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>? Confirmar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>? Negar</button>
+              </div>
+            </div>
+          )
+        ) : matchStatus !== 'pending_confirm' ? (
+          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '14px 16px' }}>
+            <p style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 800, color: '#fff' }}>¿Quién ganó?</p>
+            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Stocks que te quedaban</p>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              {[1,2,3].map(n => (
+                <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+                </button>
+              ))}
+            </div>
+            {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => reportResult(is2v2 ? myTeam : uid, reportStocks)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>🏆 {is2v2 ? 'Ganamos' : 'Yo gané'}</button>
+              <button onClick={() => reportResult(is2v2 ? (myTeam === 'team1' ? 'team2' : 'team1') : (uid === matchData.host?.userId ? matchData.guest?.userId : matchData.host?.userId), 1)} disabled={reportLoading} style={{ padding: '13px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>💀 {is2v2 ? 'Perdimos' : 'Perdí'}</button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Rendirse */}
+        {!is2v2 && matchStatus !== 'disputed' && (
+          showForfeitConfirm ? (
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>🏳️ ¿Confirmás que querés rendirte?</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganará automáticamente y perderás puntos.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowForfeitConfirm(false)} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '⏳ Procesando…' : '🏳️ Sí, rendirme'}</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🏳️ Rendirse</button>
+          )
+        )}
+      </div>
+    );
+  }
+
+  // --- RENDER: BANNING (Bo3 stage bans) ----------------------------------
+  if (matchStatus === 'banning' && matchData) {
+    const is2v2 = matchData.mode === '2v2';
+    const opponent = is2v2 ? null : (uid === matchData.host?.userId ? matchData.guest : matchData.host);
+    const myData = is2v2 ? null : (uid === matchData.host?.userId ? matchData.host : matchData.guest);
+    const myTeam2v2 = is2v2 ? (matchData.team1?.player1?.userId === uid || matchData.team1?.player2?.userId === uid ? 'team1' : 'team2') : null;
+    const enemyTeam2v2 = is2v2 ? (myTeam2v2 === 'team1' ? matchData.team2 : matchData.team1) : null;
+    const myChar = CHARACTERS.find(c => c.id === myData?.charId);
+    const oppChar = CHARACTERS.find(c => c.id === opponent?.charId);
+    const gameNum = matchData.currentGame || 1;
+    const myScore = is2v2 ? (matchData.score?.[myTeam2v2] || 0) : (matchData.score?.[uid] || 0);
+    const oppScore = is2v2 ? (matchData.score?.[myTeam2v2 === 'team1' ? 'team2' : 'team1'] || 0) : (matchData.score?.[opponent?.userId] || 0);
+    const opponentLabel = is2v2
+      ? `${enemyTeam2v2?.player1?.userName || '?'} & ${enemyTeam2v2?.player2?.userName || '?'}`
+      : (opponent?.userName || '—');
+    const banPhase = matchData.banPhase;
+    const prevGame = matchData.games?.length ? matchData.games[matchData.games.length - 1] : null;
+    const prevWinnerId = prevGame?.result?.winnerId || null;
+    const iAmPrevWinner = prevWinnerId === uid;
+    const myBansSent = matchData.bans?.[uid];
+    const isGame1 = gameNum === 1;
+
+    const winnerBans = banPhase === 'loser_pick' && prevWinnerId ? (matchData.bans?.[prevWinnerId] || []) : [];
+    const j1Bans = (banPhase === 'j2_ban' || banPhase === 'j1_pick') ? (matchData.bans?.[matchData.j1] || []) : [];
+    const j2Bans = banPhase === 'j1_pick' ? (matchData.bans?.[matchData.j2] || []) : [];
+    const allCurrentBans = [...winnerBans, ...j1Bans, ...j2Bans];
+
+    const CURRENT_STAGES = isGame1 ? BAN_STAGES_G1 : BAN_STAGES_G2;
+    const availableForPick = CURRENT_STAGES.filter(s => !allCurrentBans.includes(s));
+
+    const iAmJ1 = matchData.j1 === uid;
+    const iAmJ2 = matchData.j2 === uid;
+    const isCapitan = iAmJ1 || iAmJ2;
+
+    let subtitle, showStages = false, canSelect = false, maxSelect = 0, isPickMode = false;
+    if (banPhase === 'j1_ban') {
+      if (iAmJ1) {
+        subtitle = 'Baneá 1 escenario';
+        showStages = true; canSelect = true; maxSelect = 1;
+      } else {
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
+      }
+    } else if (banPhase === 'j2_ban') {
+      if (iAmJ2) {
+        subtitle = 'Baneá 2 escenarios';
+        showStages = true; canSelect = true; maxSelect = 2;
+      } else {
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
+      }
+    } else if (banPhase === 'j1_pick') {
+      if (iAmJ1) {
+        subtitle = 'Elegí un escenario';
+        showStages = true; canSelect = true; maxSelect = 1; isPickMode = true;
+      } else {
+        subtitle = 'Tu rival está eligiendo escenario…';
+      }
+    } else if (banPhase === 'winner_ban') {
+      if (iAmPrevWinner) {
+        subtitle = 'Baneá 3 escenarios';
+        showStages = true; canSelect = true; maxSelect = 3;
+      } else {
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está baneando…' : 'Tu rival está baneando…';
+      }
+    } else if (banPhase === 'loser_pick') {
+      if (!iAmPrevWinner) {
+        subtitle = 'Elegí un escenario';
+        showStages = true; canSelect = true; maxSelect = 1; isPickMode = true;
+      } else {
+        subtitle = is2v2 && !isCapitan ? 'Tu capitán está eligiendo escenario…' : 'Tu rival está eligiendo escenario…';
+      }
+    }
+
+    const stagesToShow = isPickMode ? availableForPick : CURRENT_STAGES.filter(s => !allCurrentBans.includes(s));
+
+    const toggleBan = (stage) => {
+      if (!canSelect) return;
+      if (allCurrentBans.includes(stage) && !isPickMode) return;
+      if (isPickMode) { setSelectedBans([stage]); return; }
+      setSelectedBans(prev => {
+        if (prev.includes(stage)) return prev.filter(s => s !== stage);
+        if (prev.length >= maxSelect) return prev;
+        return [...prev, stage];
+      });
+    };
+
+    return (
+      <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '??'}</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>⚔️ Game {gameNum} de 3</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>vs {opponentLabel}</p>
+          </div>
+          <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '6px 12px' }}>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>
+              <span style={{ color: '#22C55E' }}>{myScore}</span>
+                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>—</span>
+              <span style={{ color: '#EF4444' }}>{oppScore}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Personajes */}
+        {(myChar || oppChar) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '10px 14px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(34,197,94,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#34D399' }}>{myChar?.name || '—'}</p>
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
+              {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+            </div>
+          </div>
+        )}
+
+        {/* Subtitle / Phase */}
+        <div style={{ textAlign: 'center', padding: '10px 16px', background: 'rgba(232,142,0,0.08)', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 14 }}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#FF8C00' }}>{subtitle}</p>
+          {showStages && !isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Seleccioná {maxSelect} escenarios para banear</p>}
+          {showStages && isPickMode && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Elegí en qué escenario jugar</p>}
+          {/* Cuenta regresiva del turno */}
+          {banTimeLeft !== null && (
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `3px solid ${banTimeLeft <= 5 ? '#EF4444' : banTimeLeft <= 15 ? '#FBBF24' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.3s' }}>
+                <span style={{ fontSize: 12, fontWeight: 900, color: banTimeLeft <= 5 ? '#EF4444' : banTimeLeft <= 15 ? '#FBBF24' : 'rgba(255,255,255,0.5)' }}>{banTimeLeft}</span>
+              </div>
+              <span style={{ fontSize: 11, color: banTimeLeft <= 5 ? '#EF4444' : 'rgba(255,255,255,0.35)', fontWeight: canSelect ? 700 : 400 }}>
+                {canSelect ? (banTimeLeft <= 5 ? '¡Auto-ban en instantes!' : `${banTimeLeft}s para ${isPickMode ? 'elegir' : 'banear'}`) : `Rival tiene ${banTimeLeft}s`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Banned stages indicator */}
+        {allCurrentBans.length > 0 && showStages && !isPickMode && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {allCurrentBans.map(s => (
+              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '3px 8px' }}>
+                <span style={{ fontSize: 10 }}>🚫</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(239,68,68,0.7)' }}>{s}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Stages grid or waiting spinner */}
+        {showStages ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {stagesToShow.map(stage => {
+                const isSel = selectedBans.includes(stage);
+                const isBanned = allCurrentBans.includes(stage);
+                return (
+                  <div key={stage} onClick={() => toggleBan(stage)} style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', cursor: 'pointer', border: isSel ? (isPickMode ? '2px solid #22C55E' : '2px solid #EF4444') : '2px solid rgba(255,255,255,0.1)', transition: 'all 0.15s' }}>
+                    <img src={STAGE_IMG[stage] || ''} alt={stage} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
+                    {isSel && !isPickMode && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(239,68,68,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 32 }}>🚫</span>
+                      </div>
+                    )}
+                    {isSel && isPickMode && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 32 }}>?</span>
+                      </div>
+                    )}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px 8px 6px' }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#fff', textShadow: '0 1px 3px #000' }}>{stage}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Confirm button */}
+            {isPickMode ? (
+              <button onClick={() => selectedBans.length === 1 && pickStage(selectedBans[0])} disabled={selectedBans.length !== 1 || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === 1 ? 'linear-gradient(135deg,#22C55E,#16A34A)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === 1 ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === 1 ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
+                {banLoading ? '? Confirmando…' : `⚔️ Jugar en ${selectedBans[0] || '...'}`}
+              </button>
+            ) : (
+              <button onClick={() => submitBans()} disabled={selectedBans.length !== maxSelect || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === maxSelect ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === maxSelect ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === maxSelect ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
+                {banLoading ? '? Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/${maxSelect})`}
+              </button>
+            )}
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(232,142,0,0.3)', borderTopColor: '#FF8C00', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>{subtitle}</p>
+          </div>
+        )}
+
+        {formError && <p style={{ margin: 0, fontSize: 12, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+        {/* Rendirse en fase de baneo */}
+        {!is2v2 && (
+          showForfeitConfirm ? (
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '14px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: '#EF4444' }}>🏳️ ¿Confirmás que querés rendirte?</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tu rival ganará el set y perderás puntos.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowForfeitConfirm(false)} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={forfeit} disabled={forfeitLoading} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: forfeitLoading ? 'not-allowed' : 'pointer' }}>{forfeitLoading ? '⏳ Procesando…' : '🏳️ Sí, rendirme'}</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowForfeitConfirm(true)} style={{ width: '100%', padding: '10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🏳️ Rendirse</button>
+          )
+        )}
+
+        {/* Previous games summary */}
+        {matchData.games?.filter(g => g.result).length > 0 && (
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '10px 14px' }}>
+            <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Games anteriores</p>
+            {matchData.games.filter(g => g.result).map(g => {
+              const won = g.result.winnerId === uid;
+              return (
+                <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                  <span style={{ fontSize: 14 }}>{won ? '🏆' : '💀'}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: won ? '#22C55E' : '#EF4444' }}>Game {g.gameNum}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>— {g.stage}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- RENDER: BUSCANDO RANKED -------------------------------------------
+  if (matchStatus === 'searching') {
+    const sp = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <div style={{ background: sp ? 'linear-gradient(135deg,' + sp.from + '15,' + sp.to + '08)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (sp?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: '16px', background: sp ? 'linear-gradient(135deg,' + sp.from + ',' + sp.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{sp?.icon || '?'}</div>
+          </div>
+          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>{bgMM?.mode === '2v2' ? 'Buscando rivales 2v2…' : 'Buscando rival…'}</p>
+          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || ''}{bgMM?.gameType === 'casual' ? ' (Normal)' : ''}</p>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
+          <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'rgba(255,255,255,0.5)', fontVariantNumeric: 'tabular-nums' }}>
+            {Math.floor(searchElapsed / 60)}:{String(searchElapsed % 60).padStart(2, '0')}
+          </p>
+        </div>
+
+        <button onClick={bgMM?.mode === '2v2' ? cancelSearch2v2 : cancelSearch} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+          Cancelar búsqueda
+        </button>
+      </div>
+    );
+  }
+
+  // --- RENDER: SALA WAITING (reconexión a sala anterior) ------------------
+  if (matchStatus === 'waiting' && matchData) {
+    const myCode = bgMM?.code || '????';
+    return (
+      <div style={{ padding: '24px 18px' }}>
+        <button onClick={async () => {
+          await fetch('/api/matchmaking/room', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) });
+          setBgMM(null);
+        }} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
+          <Svg size={18} sw={2}>{ICO.back}</Svg> Cancelar
+        </button>
+
+        <div style={{ background: p ? 'linear-gradient(135deg,' + p.from + '15,' + p.to + '08)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (p?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: '16px', background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '?'}</div>
+          </div>
+          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>Esperando rival…</p>
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
+          <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>Código de sala</p>
+          <p style={{ margin: 0, fontSize: 36, fontWeight: 900, color: '#FF8C00', letterSpacing: 6 }}>{myCode}</p>
+        </div>
+
+        <button onClick={async () => {
+          await fetch('/api/matchmaking/room', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid }) });
+          setBgMM(null);
+        }} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+          Cancelar sala
+        </button>
+      </div>
+    );
+  }
+
+  // --- RENDER: PANTALLA PRINCIPAL — Buscar Ranked ------------------------
+  return (
+    <div style={{ padding: '24px 18px' }}>
+      {/* Modal Cómo jugar */}
+      {showHowToPlay && (
+        <div onClick={() => setShowHowToPlay(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ position: 'sticky', top: 0, background: '#0F0F1A', padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>📖 Cómo jugar</p>
+              <button onClick={() => setShowHowToPlay(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>?</button>
+            </div>
+            <div style={{ padding: '20px 20px 0' }}>
+              {[
+                { icon: '⚔️', title: 'Formato Bo3', desc: 'Las partidas ranked son al mejor de 3 juegos (Bo3). Ganás el set cuando ganás 2 juegos.' },
+                { icon: '🚫', title: 'Fase de baneo — Game 1', desc: 'Se sortea quién es J1 y J2.\n• J1 banea 1 escenario.\n• J2 banea 2 escenarios.\n• J1 elige el escenario donde se juega.' },
+                { icon: '🔄', title: 'Fase de baneo — Games 2 y 3', desc: 'El ganador del game anterior banea 3 escenarios. El perdedor elige dónde jugar el siguiente game.' },
+                { icon: '👥', title: '2v2 — Capitanes', desc: 'En partidas 2v2, el creador de la sala es el capitán del equipo. Solo los capitanes pueden banear y elegir escenarios.' },
+                { icon: '📊', title: 'Reportar resultado', desc: 'Al terminar cada game, ambos jugadores reportan quién ganó y con cuántos stocks de ventaja. Si hay discrepancia, se abre una disputa.' },
+                { icon: '?', title: 'AFK / Tiempo límite', desc: 'Tenés 25 segundos por turno en la fase de baneo. Si no actuás, el sistema elige automáticamente. Si tu rival no aparece al chat en 15 minutos, podés reclamar victoria.' },
+                { icon: '📈', title: 'Ranking y RP', desc: 'Cada victoria suma RP y cada derrota resta 10 RP. Los primeros 5 juegos son de posicionamiento y definen tu rango inicial.' },
+                { icon: '🎯', title: 'Modos', desc: '• Ranked: afecta tu rango y RP.\n• Normal: partidas casuales sin efecto en el rango.' },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ marginBottom: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 16px' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: '#fff' }}>{icon} {title}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#fff' }}>{matchTypeMode === 'casual' ? 'Normal' : 'Ranked'}</h1>
+        <button onClick={() => setShowHowToPlay(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px', color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>❓ Cómo jugar</button>
+      </div>
+      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{matchTypeMode === 'casual' ? 'Partidas casuales sin efecto en el rango' : 'Elegí tu personaje y buscá rival'}</p>
+
+      {/* Tipo: Ranked / Normal */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        {[{ id: 'ranked', label: '⚔️ Ranked', accent: '#FF8C00' }, { id: 'casual', label: '🎮 Normal', accent: '#A78BFA' }].map(t => (
+          <button key={t.id} onClick={() => setMatchTypeMode(t.id)} style={{ flex: 1, padding: '10px 0', background: matchTypeMode === t.id ? (t.id === 'casual' ? 'rgba(167,139,250,0.15)' : 'rgba(255,140,0,0.15)') : 'transparent', border: 'none', borderBottom: matchTypeMode === t.id ? `2px solid ${t.accent}` : '2px solid transparent', color: matchTypeMode === t.id ? t.accent : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Mode selector: 1v1 / 2v2 - solo para ranked */}
+      {matchTypeMode !== 'casual' && (
+        <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          {[{ id: '1v1', label: '⚔️ Solo (1v1)' }, { id: '2v2', label: '👥 Dobles (2v2)' }].map(m => (
+            <button key={m.id} onClick={() => setMatchMode(m.id)} style={{ flex: 1, padding: '10px 0', background: matchMode === m.id ? 'rgba(255,140,0,0.15)' : 'transparent', border: 'none', borderBottom: matchMode === m.id ? '2px solid #FF8C00' : '2px solid transparent', color: matchMode === m.id ? '#FF8C00' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{m.label}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Banner de sala activa */}
+      {bgMM && ['waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(135deg,rgba(124,58,237,0.14),rgba(255,140,0,0.08))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 18, padding: '14px 16px', marginBottom: 20, cursor: 'default' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : bgMM.status === 'waiting' ? '#FF8C00' : '#FBBF24', flexShrink: 0, boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00'), animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 14, color: '#fff' }}>
+              {bgMM.status === 'waiting'        ? 'Sala activa — esperando rival' :
+               bgMM.status === 'pending_accept' ? '¡Match encontrado!' :
+               bgMM.status === 'active'         ? '¡Partida en juego!' :
+               bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' :
+                                                   'Resultado en disputa'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Personaje */}
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
+      <div style={{ marginBottom: 8 }}>
+        <CharPicker selected={searchChar} onSelect={c => { setSearchChar(c); setSearchSkin(1); }} platform={searchPlat} userId={uid} />
+      </div>
+      {searchChar && (() => {
+        const sc = CHARACTERS.find(c => c.id === searchChar);
+        if (!sc?.alts?.length) return null;
+        return (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Color</p>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {sc.alts.map((alt, idx) => (
+                <button key={idx} onClick={() => setSearchSkin(idx + 1)}
+                  style={{ width: 36, height: 36, borderRadius: 8, padding: 2, cursor: 'pointer',
+                    border: searchSkin === idx + 1 ? '2px solid #FF8C00' : '1px solid rgba(255,255,255,0.1)',
+                    background: searchSkin === idx + 1 ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)' }}>
+                  <img src={stockIconPath(sc, idx + 1)} alt={'Skin ' + (idx+1)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Contador online */}
+      {onlineCount && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '8px 14px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E' }} />
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+            {onlineCount.total} jugador{onlineCount.total !== 1 ? 'es' : ''} buscando
+            {onlineCount.switch > 0 ? ` · ${onlineCount.switch} Switch` : ''}
+            {onlineCount.parsec > 0 ? ` · ${onlineCount.parsec} Parsec` : ''}
+          </span>
+        </div>
+      )}
+
+      {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+      {matchTypeMode === 'casual' ? (
+        <>
+          {/* Mode selector casual: 1v1 / 2v2 */}
+          <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            {[{ id: '1v1', label: '⚔️ Solo (1v1)' }, { id: '2v2', label: '👥 Dobles (2v2)' }].map(m => (
+              <button key={m.id} onClick={() => setCasualMode(m.id)} style={{ flex: 1, padding: '10px 0', background: casualMode === m.id ? 'rgba(167,139,250,0.15)' : 'transparent', border: 'none', borderBottom: casualMode === m.id ? '2px solid #A78BFA' : '2px solid transparent', color: casualMode === m.id ? '#A78BFA' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s' }}>{m.label}</button>
+            ))}
+          </div>
+
+          {casualMode === '1v1' ? (
+            /* Botones de búsqueda casual 1v1 */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {PLATFORMS.map(px => (
+                <button
+                  key={px.id}
+                  onClick={() => { setSearchPlat(px.id); startCasualSearch(px.id); }}
+                  disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
+                >
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar Normal en {px.label}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Sin efecto en el rango</p>
+                  </div>
+                  <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Casual 2v2: Party UI */
+            <div>
+              {!casualParty ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Formá un equipo antes de buscar rivales 2v2</p>
+                  {PLATFORMS.map(px => (
+                    <button key={'cp-' + px.id} onClick={() => createCasualParty(px.id)} disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#A78BFA' }}>Crear sala en {px.label}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para invitar a tu compañero</p>
+                      </div>
+                    </button>
+                  ))}
+                  <div style={{ marginTop: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px' }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unirse a sala existente</p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4))} placeholder="Ej: AB3Z" maxLength={4}
+                        style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: 6, padding: '8px 14px', outline: 'none', textAlign: 'center' }} />
+                      <button onClick={() => joinCasualParty(joinCodeInput)} disabled={loading || joinCodeInput.length < 4}
+                        style={{ padding: '8px 18px', background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, color: '#A78BFA', fontWeight: 800, fontSize: 13, cursor: joinCodeInput.length < 4 || loading ? 'not-allowed' : 'pointer', opacity: joinCodeInput.length < 4 ? 0.5 : 1, transition: 'all 0.15s' }}>Unirse</button>
+                    </div>
+                  </div>
+                </div>
+              ) : casualParty.status === 'waiting' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '8px 0' }}>
+                  {casualParty.leader?.userId === uid ? (
+                    <>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compartí este código con tu compañero</p>
+                      <div style={{ background: 'rgba(167,139,250,0.1)', border: '2px solid rgba(167,139,250,0.4)', borderRadius: 20, padding: '18px 32px', textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                        <p style={{ margin: 0, fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{casualParty.code}</p>
+                        <button onClick={() => { try { navigator.clipboard.writeText(casualParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 8, color: '#A78BFA', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{casualParty.platform === 'switch' ? '?? Switch' : '?? Parsec'}</strong></p>
+                    </>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el líder comience la búsqueda...</p>
+                  )}
+                  <div style={{ width: 28, height: 28, border: '3px solid rgba(167,139,250,0.3)', borderTop: '3px solid #A78BFA', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <button onClick={leaveCasualParty} style={{ padding: '7px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#EF4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Cancelar sala</button>
+                </div>
+              ) : casualParty.status === 'ready' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: '14px 16px' }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ?</p>
+                    {[casualParty.leader, casualParty.partner].map((p, i) => {
+                      if (!p) return null;
+                      const rf = p.charId ? CHARACTER_RENDERS[p.charId] : null;
+                      const cs = rf ? charRenderPath(rf) : null;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                          {cs ? <img src={cs} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚔️</div>}
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{p.userName}</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{p.userId === uid ? '(vos)' : 'compañero'}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {PLATFORMS.map(px => (
+                    <button key={px.id} onClick={() => { setSearchPlat(px.id); startCasual2v2Search(px.id); }} disabled={loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>Buscar 2v2 Normal en {px.label}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Sin efecto en el rango</p>
+                      </div>
+                      <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                    </button>
+                  ))}
+                  <button onClick={leaveCasualParty} style={{ padding: '7px 0', background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.6)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>Abandonar equipo</button>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </>
+      ) : matchMode === '1v1' ? (
+        <>
+          {/* Botones de búsqueda por plataforma */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {PLATFORMS.map(px => (
+              <button
+                key={px.id}
+                onClick={() => { setSearchPlat(px.id); startSearch(px.id); }}
+                disabled={loading}
+                style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
+              >
+                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar en {px.label}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+                    {px.id === 'switch' ? 'Ranked en Nintendo Switch Online' : (
+                      <>Ranked en Parsec (PC)
+                        {parsecRole && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 5, fontSize: 10, fontWeight: 800, background: parsecRole === 'host' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', color: parsecRole === 'host' ? '#22C55E' : '#EF4444' }}>{parsecRole === 'host' ? 'HOST' : 'NO HOST'}</span>}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+              </button>
+            ))}
+          </div>
+
+          {/* Modo de conexión Parsec */}
+          <div style={{ marginTop: 10, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: '10px 14px' }}>
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Modo Parsec</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  const nr = parsecRole === 'host' ? null : 'host';
+                  setParsecRole(nr);
+                  if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
+                  fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
+                }}
+                style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
+              >{parsecRole === 'host' ? '? ' : ''}Host</button>
+              <button
+                onClick={() => {
+                  const nr = parsecRole === 'nohost' ? null : 'nohost';
+                  setParsecRole(nr);
+                  if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
+                  fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
+                }}
+                style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
+              >{parsecRole === 'nohost' ? '? ' : ''}No Host</button>
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indicá si podés hostear Parsec. Evita que te emparejen con otro No Host.</p>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* 2v2 Ranked - Room code party system */}
+          {!rankedParty ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Formá un equipo antes de buscar rivales Ranked 2v2</p>
+              {PLATFORMS.map(px => (
+                <button key={'rp-' + px.id} onClick={() => createRankedParty(px.id)} disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,140,0,0.06)', border: '1px solid rgba(255,140,0,0.22)', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#FF8C00' }}>Crear sala en {px.label}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para invitar a tu compañero</p>
+                  </div>
+                </button>
+              ))}
+              <div style={{ marginTop: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unirse a sala existente</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input value={rankedJoinCodeInput} onChange={e => setRankedJoinCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4))} placeholder="Ej: AB3Z" maxLength={4}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: 6, padding: '8px 14px', outline: 'none', textAlign: 'center' }} />
+                  <button onClick={() => joinRankedParty(rankedJoinCodeInput)} disabled={loading || rankedJoinCodeInput.length < 4}
+                    style={{ padding: '8px 18px', background: 'rgba(255,140,0,0.18)', border: '1px solid rgba(255,140,0,0.4)', borderRadius: 10, color: '#FF8C00', fontWeight: 800, fontSize: 13, cursor: rankedJoinCodeInput.length < 4 || loading ? 'not-allowed' : 'pointer', opacity: rankedJoinCodeInput.length < 4 ? 0.5 : 1, transition: 'all 0.15s' }}>Unirse</button>
+                </div>
+              </div>
+            </div>
+          ) : rankedParty.status === 'waiting' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '8px 0' }}>
+              {rankedParty.leader?.userId === uid ? (
+                <>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>Compartí este código con tu compañero</p>
+                  <div style={{ background: 'rgba(255,140,0,0.08)', border: '2px solid rgba(255,140,0,0.4)', borderRadius: 20, padding: '18px 32px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                    <p style={{ margin: 0, fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: 10 }}>{rankedParty.code}</p>
+                    <button onClick={() => { try { navigator.clipboard.writeText(rankedParty.code); } catch {} }} style={{ marginTop: 10, background: 'rgba(255,140,0,0.18)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 8, color: '#FF8C00', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>Plataforma: <strong style={{ color: '#fff' }}>{rankedParty.platform === 'switch' ? '?? Switch' : '?? Parsec'}</strong></p>
+                </>
+              ) : (
+                    <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>Esperando que el líder comience la búsqueda...</p>
+              )}
+              <div style={{ width: 28, height: 28, border: '3px solid rgba(255,140,0,0.3)', borderTop: '3px solid #FF8C00', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <button onClick={leaveRankedParty} style={{ padding: '7px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, color: '#EF4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Cancelar sala</button>
+            </div>
+          ) : rankedParty.status === 'ready' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ background: 'rgba(255,140,0,0.05)', border: '1px solid rgba(255,140,0,0.18)', borderRadius: 16, padding: '14px 16px' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Tu equipo ?</p>
+                {[rankedParty.leader, rankedParty.invited].map((p, idx) => p ? (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>👤</div>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{p.userName}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.userId === uid ? '(vos)' : 'compañero'}</p>
+                    </div>
+                  </div>
+                ) : null)}
+              </div>
+              {PLATFORMS.filter(px => px.id === rankedParty.platform).map(px => (
+                <button key={px.id} onClick={() => { setSearchPlat(px.id); startSearch2v2(px.id); }} disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 18, padding: '14px 16px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{px.icon}</div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>Buscar 2v2 Ranked en {px.label}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Ranked dobles</p>
+                  </div>
+                  <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                </button>
+              ))}
+              <button onClick={leaveRankedParty} style={{ padding: '7px 0', background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.6)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>Abandonar equipo</button>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      {/* Cómo funciona */}
+      <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
+        {matchTypeMode === 'casual' ? (
+          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola Normal'],['?','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['??','A jugar','Partida casual, sin efecto en el rango']].map(([icon,t,d])=>(
+            <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
+              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+              <div>
+                <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
+              </div>
+            </div>
+          ))
+        ) : matchMode === '1v1' ? (
+          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola'],['?','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['??','Coordiná en el chat','Decidan quién crea la sala/hostea'],['??','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
+            <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
+              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+              <div>
+                <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
+              </div>
+            </div>
+          ))
+        ) : (
+          [['👥','Invitá a un amigo','Desde tu perfil, tocá 💬 y usá el botón 2v2'],['✅','Tu amigo acepta','Cuando acepte, el party estará listo'],['🔍','Buscar rivales','Entrá a la cola como equipo de 2'],['⚔️','Los 4 aceptan','Ambos equipos confirman la partida'],['🏆','Reportá el resultado','El equipo ganador reporta y sube de rango']].map(([icon,t,d])=>(
+            <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
+              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+              <div>
+                <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
