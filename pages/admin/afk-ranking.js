@@ -253,6 +253,11 @@ export default function AfkRankingAdmin() {
   const [csvMsg,       setCsvMsg]       = useState(null);
   const csvFileRef = useRef(null);
 
+  // Config comunidades visibles en home
+  const [rankingComms,        setRankingComms]        = useState(['afk']);
+  const [rankingCommsSaving,  setRankingCommsSaving]  = useState(false);
+  const [rankingCommsMsg,     setRankingCommsMsg]     = useState(null);
+
   // Comunidades visibles
   const visibleComms = userIsAdmin
     ? ALL_COMMUNITIES
@@ -279,6 +284,37 @@ export default function AfkRankingAdmin() {
       setChecking(false);
     });
   }, []);
+
+  // ── cargar config de comunidades del home ──
+  useEffect(() => {
+    if (!userIsAdmin) return;
+    fetch('/api/community-ranking/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.communities) setRankingComms(d.communities); })
+      .catch(() => {});
+  }, [userIsAdmin]);
+
+  async function saveRankingComms() {
+    setRankingCommsSaving(true);
+    setRankingCommsMsg(null);
+    try {
+      const r = await fetch('/api/community-ranking/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ communities: rankingComms }),
+      });
+      const json = await r.json();
+      if (r.ok) {
+        setRankingComms(json.communities);
+        setRankingCommsMsg({ ok: true, text: '✅ Configuración guardada' });
+      } else {
+        setRankingCommsMsg({ ok: false, text: json.error || 'Error al guardar' });
+      }
+    } catch (err) {
+      setRankingCommsMsg({ ok: false, text: err.message });
+    }
+    setRankingCommsSaving(false);
+  }
 
   // ── cargar datos ──
   async function loadData(c, y) {
@@ -428,6 +464,42 @@ export default function AfkRankingAdmin() {
         </div>
 
         <div style={S.body}>
+
+          {/* ── Comunidades visibles en Rankings (solo superadmin) ── */}
+          {userIsAdmin && (
+            <div style={S.section}>
+              <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800 }}>🌐 Comunidades en Rankings</h2>
+              <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                Elegí qué comunidades aparecen como tabs en la sección Rankings de la app.
+                Solo mostrá las que tengan datos cargados.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                {ALL_COMMUNITIES.map(c => {
+                  const active = rankingComms.includes(c.id);
+                  return (
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '10px 14px', borderRadius: 12, background: active ? 'rgba(255,140,0,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${active ? 'rgba(255,140,0,0.3)' : 'rgba(255,255,255,0.08)'}`, transition: 'all 0.15s' }}>
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        onChange={e => {
+                          if (e.target.checked) setRankingComms(prev => [...prev, c.id]);
+                          else setRankingComms(prev => prev.filter(x => x !== c.id));
+                          setRankingCommsMsg(null);
+                        }}
+                        style={{ width: 16, height: 16, accentColor: '#FF8C00', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: active ? '#FF8C00' : 'rgba(255,255,255,0.6)' }}>{c.label}</span>
+                      {active && <span style={{ marginLeft: 'auto', fontSize: 11, color: '#22C55E', fontWeight: 700 }}>Visible</span>}
+                    </label>
+                  );
+                })}
+              </div>
+              <button onClick={saveRankingComms} disabled={rankingCommsSaving} style={{ ...S.btn, background: 'rgba(255,140,0,0.8)' }}>
+                {rankingCommsSaving ? '⏳ Guardando...' : '💾 Guardar cambios'}
+              </button>
+              {rankingCommsMsg && <div style={rankingCommsMsg.ok ? S.success : S.error}>{rankingCommsMsg.text}</div>}
+            </div>
+          )}
 
           {/* ── Agregar torneo ── */}
           <div style={S.section}>

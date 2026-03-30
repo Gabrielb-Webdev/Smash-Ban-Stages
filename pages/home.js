@@ -4824,6 +4824,17 @@ function TabRankings({ user, setTab }) {
   const [commRanking, setCommRanking] = useState({ players: [], tournaments: [], loading: false, loaded: false });
   const [commYear, setCommYear]       = useState('2025');
   const [commPage, setCommPage]       = useState(1);
+  const [enabledRankComms, setEnabledRankComms] = useState(['afk']);
+
+  // Cargar config de comunidades visibles
+  useEffect(() => {
+    fetch('/api/community-ranking/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.communities?.length) setEnabledRankComms(d.communities);
+      })
+      .catch(() => {});
+  }, []);
 
   const myUid = String(user?.id || user?.slug || '');
   const openProfile = (playerId, playerName) => {
@@ -4872,13 +4883,25 @@ function TabRankings({ user, setTab }) {
     return () => clearInterval(iv);
   }, [mode]);
 
-  const MODES = [
-    { id: 'ba',       label: 'AFK'  },
-    { id: 'inc',      label: 'INC'       },
-    { id: 'char',     label: 'Personaje' },
-    { id: 'ranked',   label: 'Ranked'    },
-    { id: 'ranked2v2', label: '2v2'      },
+  const COMM_TAB_MAP = [
+    { commId: 'afk',  modeId: 'ba',  label: 'AFK'  },
+    { commId: 'inc',  modeId: 'inc', label: 'INC'  },
   ];
+
+  const MODES = [
+    ...COMM_TAB_MAP.filter(t => enabledRankComms.includes(t.commId)).map(t => ({ id: t.modeId, label: t.label })),
+    { id: 'char',      label: 'Personaje' },
+    { id: 'ranked',    label: 'Ranked'    },
+    { id: 'ranked2v2', label: '2v2'       },
+  ];
+
+  // Si el modo actual ya no es válido, saltar al primero disponible
+  useEffect(() => {
+    if (!MODES.find(m => m.id === mode)) {
+      setMode(MODES[0]?.id || 'ranked');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledRankComms]);
 
   useEffect(() => {
     if (mode !== 'ranked' && mode !== 'ranked2v2') return;
@@ -4906,8 +4929,9 @@ function TabRankings({ user, setTab }) {
   }, [mode, charPlat, charSel]);
 
   useEffect(() => {
-    if (mode !== 'ba' && mode !== 'inc') return;
-    const community = mode === 'ba' ? 'afk' : 'inc';
+    const commTab = COMM_TAB_MAP.find(t => t.modeId === mode);
+    if (!commTab) return;
+    const community = commTab.commId;
     setCommRanking(r => ({ ...r, loading: true }));
     setCommPage(1);
     fetch(`/api/community-ranking/get?community=${community}&year=${commYear}`)
@@ -5013,7 +5037,7 @@ function TabRankings({ user, setTab }) {
           {/* Header con año y nombre de comunidad */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-              {mode === 'ba' ? '📍 Buenos Aires' : '📍 INC'}
+              {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
             </p>
             {/* Selector de año */}
             <div style={{ display: 'flex', gap: 4 }}>
@@ -5034,7 +5058,7 @@ function TabRankings({ user, setTab }) {
           {!commRanking.loading && commRanking.loaded && commRanking.players.length === 0 && (
             <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
-              <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'AFK' : 'Smash INC'} {commYear}</p>
+              <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? t.label : ''; })()} {commYear}</p>
               <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán después de cada torneo registrado en Start.GG</p>
               <div style={{ display: 'inline-flex', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 10, padding: '7px 16px' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
