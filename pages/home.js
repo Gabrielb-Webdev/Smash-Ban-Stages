@@ -1727,7 +1727,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
             height: isTop3 ? 88 : 68,
             objectFit: 'contain',
             position: 'relative', zIndex: 1,
-            marginRight: isTop3 ? -10 : -6,
+            marginRight: 25,
             marginLeft: isTop3 ? -8 : -6,
             filter: isTop3 ? 'none' : 'brightness(0.85)',
             flexShrink: 0,
