@@ -601,13 +601,13 @@
     .then(d => { loadState(d); setStatus('Listo ✓'); })
     .catch(() => setStatus('✗ Sin conexión', false));
 
-  // Polling cada 3s para recibir actualizaciones del admin panel (scores, personajes, nombres)
+  // Polling cada 800ms para recibir actualizaciones del admin panel (scores, personajes, nombres)
   setInterval(() => {
     fetch(API)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d && !d.empty) loadState(d); })
       .catch(() => {});
-  }, 3000);
+  }, 800);
 </script>
 </body>
 </html>
