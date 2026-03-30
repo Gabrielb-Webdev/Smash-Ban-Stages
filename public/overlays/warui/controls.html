@@ -492,6 +492,15 @@
     return s ? `${s} | ${t}` : t;
   }
 
+  function resetCharsToRandom() {
+    document.getElementById('in-char1').value = 'Random.png';
+    document.getElementById('in-char2').value = 'Random.png';
+    selectedSkin[1] = 1;
+    selectedSkin[2] = 1;
+    renderSkinGrid(1);
+    renderSkinGrid(2);
+  }
+
   function update() {
     const p1 = document.getElementById('in-p1').value.trim();
     const sp1 = document.getElementById('in-sp1').value.trim();
@@ -499,13 +508,15 @@
     const sp2 = document.getElementById('in-sp2').value.trim();
     const bestof = document.getElementById('in-bestof').value;
     const round  = document.getElementById('in-round').value;
+    resetCharsToRandom();
     fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
       body: JSON.stringify({
         player1: getPlayerName(p1, sp1),
         player2: getPlayerName(p2, sp2),
-        format: bestof, round, sessionId: ''
+        format: bestof, round, sessionId: '',
+        char1: 'Random.png', char2: 'Random.png'
       }),
     })
       .then(r => r.ok ? r.json() : Promise.reject())
