@@ -607,7 +607,7 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ delay: 0.4 }}
                 className="text-center"
               >
-                <p className="text-red-500 text-5xl font-black drop-shadow-xl mb-2"
+                <p className="text-red-500 text-7xl font-black drop-shadow-xl mb-2"
                    style={{ 
                      fontFamily: 'Anton',
                      textShadow: '3px 3px 0px rgba(0, 0, 0, 0.8), 0 0 20px rgba(239, 68, 68, 0.6)'
@@ -615,7 +615,7 @@ export default function StreamOverlay({ sessionId }) {
                 >
                   BANEADO
                 </p>
-                <p className="text-white text-3xl font-bold drop-shadow-lg">
+                <p className="text-white text-5xl font-bold drop-shadow-lg">
                   {bannedStage.name}
                 </p>
               </motion.div>
@@ -688,7 +688,7 @@ export default function StreamOverlay({ sessionId }) {
                 transition={{ delay: 0.4 }}
                 className="text-center"
               >
-                <p className="text-green-400 text-5xl font-black drop-shadow-xl mb-2 uppercase"
+                <p className="text-green-400 text-7xl font-black drop-shadow-xl mb-2 uppercase"
                    style={{ 
                      fontFamily: 'Anton',
                      textShadow: '4px 4px 0px rgba(0, 0, 0, 1), 0 0 30px rgba(34, 197, 94, 0.8)',
@@ -697,7 +697,7 @@ export default function StreamOverlay({ sessionId }) {
                 >
                   SELECCIONADO
                 </p>
-                <p className="text-white text-3xl font-bold drop-shadow-lg"
+                <p className="text-white text-5xl font-bold drop-shadow-lg"
                    style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9)' }}>
                   {selectedStage.name}
                 </p>
