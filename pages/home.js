@@ -1698,10 +1698,11 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
           src={charSrc}
           alt=""
           style={{
-            height: isTop3 ? 68 : 52,
+            height: isTop3 ? 88 : 68,
             objectFit: 'contain',
             position: 'relative', zIndex: 1,
-            marginRight: isTop3 ? -4 : -2,
+            marginRight: isTop3 ? -10 : -6,
+            marginLeft: isTop3 ? -8 : -6,
             filter: isTop3 ? 'none' : 'brightness(0.85)',
             flexShrink: 0,
           }}

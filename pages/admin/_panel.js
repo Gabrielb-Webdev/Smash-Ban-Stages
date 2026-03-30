@@ -1367,6 +1367,8 @@ export default function TestAdminPage() {
           format,
           round: set.fullRoundText || set.round || '',
           sessionId,
+          char1: '',
+          char2: '',
         }),
       }).catch(() => {});
     }
