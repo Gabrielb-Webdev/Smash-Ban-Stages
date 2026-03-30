@@ -1902,6 +1902,24 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
 
 /* --- MATCH DETAIL MODAL --------------------------------------- */
 function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
+  // Hooks must run before any conditional return
+  const isTournament_h = m?.type === 'tournament';
+  const isWin_h = m ? (m.mode === '2v2' ? !!m.isWin : String(m.winnerId) === String(viewingId)) : false;
+  const opponent_h = m ? (m.mode === '2v2' ? '?' : (isWin_h ? m.loserName : m.winnerName)) : '';
+  // Para partidas de torneo: buscar si el oponente tiene perfil en la app por nombre
+  const [tourOppProfile, setTourOppProfile] = useState(undefined); // undefined=buscando, null=no tiene la app, obj=encontrado
+  useEffect(() => {
+    if (!isTournament_h || !opponent_h) { setTourOppProfile(null); return; }
+    setTourOppProfile(undefined);
+    fetch('/api/players/search?q=' + encodeURIComponent(opponent_h))
+      .then(r => r.ok ? r.json() : [])
+      .then(results => {
+        const exact = results.find(p => p.userName.toLowerCase() === opponent_h.toLowerCase());
+        setTourOppProfile(exact || null);
+      })
+      .catch(() => setTourOppProfile(null));
+  }, [isTournament_h, opponent_h]);
+
   if (!m) return null;
   const myId = String(viewingId);
   const is2v2 = m.mode === '2v2';
@@ -1931,13 +1949,25 @@ function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
     const isGameWin = isTournament ? (g.winnerName === (isWin ? m.winnerName : '___')) : String(g.winnerId) === myId;
     return { ...g, result: { gameNum: g.gameNum, stage: stageName, winnerId: isGameWin ? myId : '__opp__', stocksWon: g.stocksWon ?? null } };
   });
-  const CharSlot = ({ src, playerName, charName, onClick }) => (
+  // Para torneo: determinar si el oponente tiene perfil clickeable
+  const oppClickable = isTournament
+    ? (tourOppProfile ? () => onViewOpponent && onViewOpponent(String(tourOppProfile.userId), tourOppProfile.userName) : undefined)
+    : (onViewOpponent && oppId ? () => onViewOpponent(String(oppId), opponent) : undefined);
+  const oppBadge = isTournament ? (
+    tourOppProfile === undefined
+      ? <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Buscando...</span>
+      : tourOppProfile
+        ? <span style={{ fontSize: 9, fontWeight: 700, color: '#A78BFA', cursor: 'pointer' }}>Ver perfil →</span>
+        : <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center', lineHeight: 1.3 }}>Sin perfil en la app</span>
+  ) : null;
+  const CharSlot = ({ src, playerName, charName, onClick, badge }) => (
     <div onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1, minWidth: 0, cursor: onClick ? 'pointer' : 'default' }}>
       {playerName && <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textAlign: 'center', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerName}</span>}
-      <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <div style={{ width: 64, height: 64, borderRadius: 16, background: onClick ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.06)', border: onClick ? '1px solid rgba(167,139,250,0.3)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {src ? <img src={src} alt="" style={{ width: 58, height: 58, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <span style={{ fontSize: 28 }}>{is2v2 ? '👥' : '⚔️'}</span>}
       </div>
       {charName && <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charName}</span>}
+      {badge}
     </div>
   );
   const commLogo = isTournament && HIST_COMM_LOGOS[m.community] ? HIST_COMM_LOGOS[m.community] : null;
@@ -1968,10 +1998,10 @@ function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
                 {isMyPlacement && <span style={{ fontSize: 10, fontWeight: 800, color: '#FBBF24', padding: '1px 6px', borderRadius: 8, background: 'rgba(251,191,36,0.12)' }}>Posicionamiento</span>}
                 {myRankObj && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: myRankObj.color, padding: '2px 7px', borderRadius: 10, background: myRankObj.bg, border: `1px solid ${myRankObj.border}` }}>{TIER_ICONS[myRankObj.tier]} {myRankObj.name}</span>}
               </div>
-              <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} onClick={onViewOpponent && oppId ? () => onViewOpponent(String(oppId), opponent) : undefined} />
+              <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} onClick={oppClickable} badge={oppBadge} />
             </div>
           </div>
-          <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{platLabel(m.platform)} · {timeAgo(m.playedAt)}{isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : isTournament ? (' · ' + (m.communityLabel || m.community || 'Torneo')) : ' · Ranked'}{m.round ? ` · ${m.round}` : ''}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{isTournament ? `${m.communityLabel || m.community || 'Torneo'}${m.round ? ` · ${m.round}` : ''} · ${timeAgo(m.playedAt)}` : `${platLabel(m.platform)} · ${timeAgo(m.playedAt)}${isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : ' · Ranked'}`}</p>
           {/* Juegos */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
