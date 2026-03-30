@@ -1004,6 +1004,32 @@ export default function HomePage() {
                 ));
               })()}
 
+              {/* Ranking Comunitario Admin */}
+              {(isAdmin || adminCommunities.length > 0) && (() => {
+                const rankComms = isAdmin
+                  ? [{ id: 'afk', label: 'AFK' }, { id: 'inc', label: 'INC' }, { id: 'cordoba', label: 'Córdoba' }, { id: 'mendoza', label: 'Mendoza' }]
+                  : adminCommunities.map(id => ({
+                      id,
+                      label: id === 'afk' ? 'AFK' : id === 'inc' ? 'INC' : id === 'cordoba' ? 'Córdoba' : id === 'mendoza' ? 'Mendoza' : id,
+                    }));
+                return rankComms.map(c => (
+                  <div key={`ranking-${c.id}`} style={{ padding: '0 10px 4px' }}>
+                    <button onClick={() => { setShowMenu(false); window.location.href = `/admin/afk-ranking?community=${c.id}`; }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(167,139,250,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(167,139,250,0.14)', border: '1px solid rgba(167,139,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🏆</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>Ranking {c.label}</p>
+                        <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(167,139,250,0.45)' }}>Administrar torneos y puntos</p>
+                      </div>
+                      <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
+                    </button>
+                  </div>
+                ));
+              })()}
+
               {/* Amigos */}
               <div style={{ padding: '4px 10px 0' }}>
                 <button onClick={() => { setShowMenu(false); setTab('amigos'); }}
@@ -1851,7 +1877,7 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
         {/* ── Admin button ── */}
         {isAdmin && (
           <button onClick={() => router.push('/')} style={{
-            width: '100%', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 14,
+            width: '100%', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14,
             background: 'linear-gradient(135deg,rgba(232,142,0,0.12),rgba(232,80,0,0.05))',
             border: '1px solid rgba(232,142,0,0.2)', borderRadius: 24, padding: '15px 18px',
             cursor: 'pointer', textAlign: 'left',
@@ -1864,6 +1890,36 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
             <Svg size={16} sw={2}>{ICO.chevron}</Svg>
           </button>
         )}
+
+        {/* ── Ranking admin (por comunidad) ── */}
+        {(isAdmin || (user?.adminCommunities?.length > 0)) && (() => {
+          const rankComms = isAdmin
+            ? [{ id: 'afk', label: 'AFK' }, { id: 'inc', label: 'INC' }]
+            : (user?.adminCommunities || []).map(id => ({
+                id,
+                label: id === 'afk' ? 'AFK' : id === 'inc' ? 'INC' : id === 'cordoba' ? 'Córdoba' : id === 'mendoza' ? 'Mendoza' : id,
+              }));
+          if (rankComms.length === 0) return null;
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {rankComms.map(c => (
+                <button key={c.id} onClick={() => router.push(`/admin/afk-ranking?community=${c.id}`)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(99,42,190,0.04))',
+                  border: '1px solid rgba(124,58,237,0.2)', borderRadius: 24, padding: '13px 18px',
+                  cursor: 'pointer', textAlign: 'left',
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 4px 12px rgba(124,58,237,0.3)', flexShrink: 0 }}>🏆</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontWeight: 800, color: '#A78BFA', fontSize: 14 }}>Ranking {c.label}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Administrar torneos y puntos</p>
+                  </div>
+                  <Svg size={16} sw={2}>{ICO.chevron}</Svg>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ── Comunidades ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
@@ -4618,6 +4674,7 @@ function TabRankings({ user, setTab }) {
   // Community ranking (AFK, INC, etc.)
   const [commRanking, setCommRanking] = useState({ players: [], tournaments: [], loading: false, loaded: false });
   const [commYear, setCommYear]       = useState('2025');
+  const [commPage, setCommPage]       = useState(1);
 
   const myUid = String(user?.id || user?.slug || '');
   const openProfile = (playerId, playerName) => {
@@ -4703,6 +4760,7 @@ function TabRankings({ user, setTab }) {
     if (mode !== 'ba' && mode !== 'inc') return;
     const community = mode === 'ba' ? 'afk' : 'inc';
     setCommRanking(r => ({ ...r, loading: true }));
+    setCommPage(1);
     fetch(`/api/community-ranking/get?community=${community}&year=${commYear}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => {
@@ -4735,20 +4793,26 @@ function TabRankings({ user, setTab }) {
         ))}
         </div>
 
-        {/* Sub-selector de plataforma - sticky */}
-        {(mode === 'ranked' || mode === 'ranked2v2') && (
+        {/* Sub-selector de plataforma - sticky (ranked, 2v2 y personaje) */}
+        {(mode === 'ranked' || mode === 'ranked2v2' || mode === 'char') && (
           <div style={{ display: 'flex', gap: 8, padding: '12px 0 0' }}>
-            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
-              <button key={p.id} onClick={() => setRankPlat(p.id)} style={{
-                flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
-                cursor: 'pointer', transition: 'all 0.15s',
-                background: rankPlat === p.id ? 'rgba(232,142,0,0.1)' : '#10101A',
-                border: `1px solid ${rankPlat === p.id ? 'rgba(232,142,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
-                color: rankPlat === p.id ? '#FF8C00' : 'rgba(255,255,255,0.35)',
-              }}>
-                {p.label}
-              </button>
-            ))}
+            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => {
+              const activeVal  = mode === 'char' ? charPlat  : rankPlat;
+              const setActive  = mode === 'char'
+                ? v => { setCharPlat(v); setCharSel(null); }
+                : v => setRankPlat(v);
+              return (
+                <button key={p.id} onClick={() => setActive(p.id)} style={{
+                  flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  background: activeVal === p.id ? 'rgba(232,142,0,0.1)' : '#10101A',
+                  border: `1px solid ${activeVal === p.id ? 'rgba(232,142,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                  color: activeVal === p.id ? '#FF8C00' : 'rgba(255,255,255,0.35)',
+                }}>
+                  {p.label}
+                </button>
+              );
+            })}
           </div>
         )}
         <div style={{ height: 14 }} />
@@ -4853,75 +4917,87 @@ function TabRankings({ user, setTab }) {
             </div>
           )}
 
-          {!commRanking.loading && commRanking.players.length > 0 && (
-            <>
-              {/* Podio top 3 */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-                {commRanking.players.slice(0, 3).map((p, i) => {
-                  const medals = ['🥇', '🥈', '🥉'];
-                  const colors = ['#EAB308', 'rgba(255,255,255,0.4)', '#CD7F32'];
-                  return (
-                    <div key={p.name} style={{
-                      flex: '1 1 90px', background: '#10101A',
-                      border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                      borderRadius: 14, padding: '14px 10px', textAlign: 'center',
-                    }}>
-                      <div style={{ fontSize: 24, marginBottom: 4 }}>{medals[i]}</div>
-                      <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#fff', wordBreak: 'break-all' }}>{p.name}</p>
-                      <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: colors[i] }}>{p.total} pts</p>
-                    </div>
-                  );
-                })}
-              </div>
+          {!commRanking.loading && commRanking.players.length > 0 && (() => {
+            const PAGE_SIZE = 100;
+            const totalPages = Math.ceil(commRanking.players.length / PAGE_SIZE);
+            const pageSlice  = commRanking.players.slice((commPage - 1) * PAGE_SIZE, commPage * PAGE_SIZE);
+            return (
+              <>
+                {/* Podio top 3 (solo pág 1) */}
+                {commPage === 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+                    {commRanking.players.slice(0, 3).map((p, i) => {
+                      const medals = ['🥇', '🥈', '🥉'];
+                      const colors = ['#EAB308', 'rgba(255,255,255,0.4)', '#CD7F32'];
+                      return (
+                        <div key={p.name} style={{
+                          flex: '1 1 90px', background: '#10101A',
+                          border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                          borderRadius: 14, padding: '14px 10px', textAlign: 'center',
+                        }}>
+                          <div style={{ fontSize: 24, marginBottom: 4 }}>{medals[i]}</div>
+                          <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#fff', wordBreak: 'break-all' }}>{p.name}</p>
+                          <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: colors[i] }}>{p.total} pts</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-              {/* Tabla completa */}
-              {commRanking.players.length > 3 && (
+                {/* Contador */}
+                <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+                  Mostrando {(commPage - 1) * PAGE_SIZE + 1} - {Math.min(commPage * PAGE_SIZE, commRanking.players.length)} de {commRanking.players.length}
+                </p>
+
+                {/* Tabla */}
                 <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden' }}>
-                  {commRanking.players.slice(3).map((p, i) => (
+                  {pageSlice.map((p, i) => (
                     <div key={p.name} style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px',
                       borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                     }}>
-                      <span style={{ width: 24, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textAlign: 'right', flexShrink: 0 }}>{p.position}</span>
+                      <span style={{ width: 28, fontSize: 12, fontWeight: 700, color: p.position <= 3 ? '#EAB308' : 'rgba(255,255,255,0.25)', textAlign: 'right', flexShrink: 0 }}>{p.position}</span>
                       <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.name}</p>
                       <span style={{ fontSize: 14, fontWeight: 900, color: '#A78BFA' }}>{p.total}</span>
                     </div>
                   ))}
                 </div>
-              )}
 
-              {/* Info de torneos */}
-              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
-                  {commRanking.tournaments.length} torneo{commRanking.tournaments.length !== 1 ? 's' : ''} registrado{commRanking.tournaments.length !== 1 ? 's' : ''}
-                </span>
-                {commRanking.tournaments.slice(-3).map(t => (
-                  <span key={t.id} style={{
-                    fontSize: 11, color: t.type === 'M' ? '#A78BFA' : '#60A5FA',
-                    background: t.type === 'M' ? 'rgba(167,139,250,0.08)' : 'rgba(96,165,250,0.08)',
-                    border: `1px solid ${t.type === 'M' ? 'rgba(167,139,250,0.2)' : 'rgba(96,165,250,0.2)'}`,
-                    borderRadius: 6, padding: '2px 8px'
-                  }}>{t.name}</span>
-                ))}
-              </div>
-            </>
-          )}
+                {/* Paginación */}
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+                      <button key={pg} onClick={() => setCommPage(pg)} style={{
+                        padding: '6px 14px', borderRadius: 8, fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer',
+                        background: commPage === pg ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.04)',
+                        color: commPage === pg ? '#A78BFA' : 'rgba(255,255,255,0.4)',
+                      }}>
+                        {(pg - 1) * PAGE_SIZE + 1}–{Math.min(pg * PAGE_SIZE, commRanking.players.length)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Info de torneos */}
+                <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+                    {commRanking.tournaments.length} torneo{commRanking.tournaments.length !== 1 ? 's' : ''} registrado{commRanking.tournaments.length !== 1 ? 's' : ''}
+                  </span>
+                  {commRanking.tournaments.slice(-3).map(t => (
+                    <span key={t.id} style={{
+                      fontSize: 11, color: t.type === 'M' ? '#A78BFA' : '#60A5FA',
+                      background: t.type === 'M' ? 'rgba(167,139,250,0.08)' : 'rgba(96,165,250,0.08)',
+                      border: `1px solid ${t.type === 'M' ? 'rgba(167,139,250,0.2)' : 'rgba(96,165,250,0.2)'}`,
+                      borderRadius: 6, padding: '2px 8px'
+                    }}>{t.name}</span>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </>
       ) : (
         <>
-          {/* Selector de plataforma */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => (
-              <button key={p.id} onClick={() => { setCharPlat(p.id); setCharSel(null); }} style={{
-                flex: 1, padding: '10px 4px', borderRadius: 12, fontWeight: 700, fontSize: 12,
-                cursor: 'pointer', transition: 'all 0.15s',
-                background: charPlat === p.id ? 'rgba(232,142,0,0.1)' : '#10101A',
-                border: `1px solid ${charPlat === p.id ? 'rgba(232,142,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
-                color: charPlat === p.id ? '#FF8C00' : 'rgba(255,255,255,0.35)',
-              }}>{p.label}</button>
-            ))}
-          </div>
-
           {!charSel ? (
             <>
               {/* Búsqueda + grid */}

@@ -4,13 +4,13 @@ import Head from 'next/head';
 import { getStoredUser, verifySession } from '../../src/utils/auth';
 
 const ADMIN_SECRET = 'afk-admin-2025';
-const COMMUNITIES = [
+const ALL_COMMUNITIES = [
   { id: 'afk',     label: 'AFK (Buenos Aires)' },
   { id: 'inc',     label: 'Smash INC'           },
   { id: 'cordoba', label: 'Smash Córdoba'        },
   { id: 'mendoza', label: 'Smash Mendoza'        },
 ];
-const YEARS = ['2025', '2026'];
+const BASE_YEARS = ['2024', '2025', '2026'];
 
 const TYPE_LABELS = { M: 'Mensual', S: 'Semanal' };
 
@@ -179,33 +179,103 @@ function RankingPreview({ players }) {
   );
 }
 
+// ── CSV parser ───────────────────────────────────────────────────────────────
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+
+  // Detectar separador
+  const sep = lines[0].includes(';') ? ';' : ',';
+
+  // Detectar si la primera fila es cabecera
+  const firstCols = lines[0].split(sep).map(c => c.trim().toLowerCase());
+  const hasHeader = firstCols.some(c => /pos|place|rank|nombre|name|jugador|player|punt|pts|point/.test(c));
+
+  // Detectar índices de columnas
+  let idxPos = -1, idxName = -1, idxPts = -1;
+  if (hasHeader) {
+    firstCols.forEach((c, i) => {
+      if (/^(pos|place|rank|#)/.test(c)) idxPos = i;
+      else if (/nombre|name|jugador|player|tag/.test(c)) idxName = i;
+      else if (/punt|pts|point|total/.test(c)) idxPts = i;
+    });
+  }
+  // Fallback posicional
+  if (idxPos === -1) idxPos = 0;
+  if (idxName === -1) idxName = 1;
+  if (idxPts === -1) idxPts = 2;
+
+  const startLine = hasHeader ? 1 : 0;
+  const rows = [];
+  for (let i = startLine; i < lines.length; i++) {
+    const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+    if (cols.length < 2) continue;
+    const placement = parseInt(cols[idxPos], 10) || (i - startLine + 1);
+    const playerName = cols[idxName] || '';
+    const basePoints = parseInt(cols[idxPts], 10) || 0;
+    if (!playerName) continue;
+    rows.push({ placement, playerName, basePoints });
+  }
+  return rows.length > 0 ? rows : null;
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function AfkRankingAdmin() {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking]           = useState(true);
+  const [userIsAdmin, setUserIsAdmin]     = useState(false);
+  const [allowedComms, setAllowedComms]   = useState([]);
 
   // Filtros
   const [community, setCommunity] = useState('afk');
-  const [year, setYear] = useState('2025');
+  const [year, setYear]           = useState('2025');
+  const [availableYears, setAvailableYears] = useState(BASE_YEARS);
+  const [newYearInput, setNewYearInput]     = useState('');
 
   // Datos
-  const [data, setData] = useState({ players: [], tournaments: [] });
+  const [data, setData]             = useState({ players: [], tournaments: [] });
   const [loadingData, setLoadingData] = useState(false);
 
-  // Formulario agregar
-  const [formUrl, setFormUrl] = useState('');
+  // Formulario start.gg
+  const [formUrl,  setFormUrl]  = useState('');
   const [formType, setFormType] = useState('S');
   const [formName, setFormName] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [addMsg, setAddMsg] = useState(null);
+  const [adding,   setAdding]   = useState(false);
+  const [addMsg,   setAddMsg]   = useState(null);
+
+  // CSV
+  const [csvRows,      setCsvRows]      = useState(null);
+  const [csvName,      setCsvName]      = useState('');
+  const [csvType,      setCsvType]      = useState('S');
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvMsg,       setCsvMsg]       = useState(null);
+  const csvFileRef = useRef(null);
+
+  // Comunidades visibles
+  const visibleComms = userIsAdmin
+    ? ALL_COMMUNITIES
+    : ALL_COMMUNITIES.filter(c => allowedComms.includes(c.id));
 
   // ── auth ──
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored?.access_token) { router.replace('/login'); return; }
     verifySession().then(d => {
-      if (!d || !d.isAdmin) { router.replace('/'); return; }
+      if (!d) { router.replace('/login'); return; }
+      const comms = d.adminCommunities || [];
+      const admin = !!d.isAdmin;
+      if (!admin && comms.length === 0) { router.replace('/'); return; }
+      setUserIsAdmin(admin);
+      setAllowedComms(comms);
+      // Tomar comunidad del query string, si no la primera permitida
+      const qComm = new URLSearchParams(window.location.search).get('community');
+      if (qComm) {
+        setCommunity(qComm);
+      } else if (!admin && comms.length > 0) {
+        setCommunity(comms[0]);
+      }
       setChecking(false);
     });
   }, []);
@@ -226,6 +296,16 @@ export default function AfkRankingAdmin() {
   useEffect(() => {
     if (!checking) loadData(community, year);
   }, [community, year, checking]);
+
+  // ── agregar año ──
+  function handleAddYear(e) {
+    e.preventDefault();
+    const y = newYearInput.trim();
+    if (!y || !/^\d{4}$/.test(y)) return;
+    if (!availableYears.includes(y)) setAvailableYears(prev => [...prev, y].sort());
+    setYear(y);
+    setNewYearInput('');
+  }
 
   // ── agregar torneo ──
   async function handleAdd(e) {
@@ -252,6 +332,47 @@ export default function AfkRankingAdmin() {
       setAddMsg({ ok: false, text: err.message });
     }
     setAdding(false);
+  }
+
+  // ── CSV ──
+  function handleCSVFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const rows = parseCSV(ev.target.result);
+      if (!rows) { setCsvRows(null); setCsvMsg({ ok: false, text: 'No se pudo parsear el CSV. Revisá el formato.' }); return; }
+      setCsvRows(rows);
+      setCsvName(file.name.replace(/\.(csv|txt)$/i, ''));
+      setCsvMsg(null);
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function handleImportCSV(e) {
+    e.preventDefault();
+    if (!csvRows || csvRows.length === 0 || !csvName.trim()) return;
+    setCsvImporting(true);
+    setCsvMsg(null);
+    try {
+      const r = await fetch('/api/community-ranking/import-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ rows: csvRows, community, year, tournamentName: csvName.trim(), type: csvType }),
+      });
+      const json = await r.json();
+      if (r.ok) {
+        setCsvMsg({ ok: true, text: `✅ Importado "${json.tournament?.name}" con ${json.tournament?.standings?.length} jugadores` });
+        setCsvRows(null);
+        if (csvFileRef.current) csvFileRef.current.value = '';
+        loadData(community, year);
+      } else {
+        setCsvMsg({ ok: false, text: json.error || 'Error desconocido' });
+      }
+    } catch (err) {
+      setCsvMsg({ ok: false, text: err.message });
+    }
+    setCsvImporting(false);
   }
 
   // ── eliminar torneo ──
@@ -283,13 +404,27 @@ export default function AfkRankingAdmin() {
 
           {/* Comunidad */}
           <select value={community} onChange={e => setCommunity(e.target.value)} style={S.select}>
-            {COMMUNITIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            {visibleComms.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
 
           {/* Año */}
           <select value={year} onChange={e => setYear(e.target.value)} style={S.select}>
-            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+
+          {/* Agregar año */}
+          <form onSubmit={handleAddYear} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              value={newYearInput}
+              onChange={e => setNewYearInput(e.target.value)}
+              placeholder="Ej: 2027"
+              maxLength={4}
+              style={{ ...S.input, width: 80, padding: '10px 10px' }}
+            />
+            <button type="submit" style={{ ...S.btn, padding: '10px 12px', background: 'rgba(99,102,241,0.7)' }} title="Agregar año">
+              ＋ Año
+            </button>
+          </form>
         </div>
 
         <div style={S.body}>
@@ -360,6 +495,57 @@ export default function AfkRankingAdmin() {
                 </div>
               </div>
             </details>
+          </div>
+
+          {/* ── Importar CSV ── */}
+          <div style={S.section}>
+            <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 800 }}>Importar desde CSV</h2>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+              Para ranking histórico o con puntos ya calculados. Columnas esperadas: <code style={{ background: '#141420', padding: '1px 5px', borderRadius: 4 }}>posición, nombre, puntos</code> (con o sin cabecera).
+            </p>
+            <form onSubmit={handleImportCSV}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'end', flexWrap: 'wrap', marginBottom: 10 }}>
+                <div>
+                  <label style={S.label}>Archivo CSV *</label>
+                  <input
+                    ref={csvFileRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleCSVFile}
+                    style={{ ...S.input, padding: '8px 12px', cursor: 'pointer' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Tipo</label>
+                  <select value={csvType} onChange={e => setCsvType(e.target.value)} style={S.select}>
+                    <option value="S">Semanal</option>
+                    <option value="M">Mensual</option>
+                    <option value="IMPORT">Importación</option>
+                  </select>
+                </div>
+                <button type="submit" style={{ ...S.btn, background: 'rgba(16,185,129,0.8)' }} disabled={csvImporting || !csvRows}>
+                  {csvImporting ? '⏳ Importando...' : '📥 Importar'}
+                </button>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={S.label}>Nombre del registro *</label>
+                <input
+                  style={{ ...S.input, maxWidth: 400 }}
+                  placeholder="Ej: Ranking AFK 2024"
+                  value={csvName}
+                  onChange={e => setCsvName(e.target.value)}
+                  required
+                />
+              </div>
+              {csvRows && (
+                <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#86EFAC' }}>
+                  ✅ CSV listo: <strong>{csvRows.length} jugadores</strong> detectados.
+                  {' '}Top 3: {csvRows.slice(0, 3).map(r => `${r.playerName} (${r.basePoints}pts)`).join(', ')}
+                </div>
+              )}
+              {csvMsg && <div style={csvMsg.ok ? S.success : S.error}>{csvMsg.text}</div>}
+            </form>
           </div>
 
           {/* ── Torneos cargados ── */}
