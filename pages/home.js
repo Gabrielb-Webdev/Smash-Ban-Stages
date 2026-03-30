@@ -1005,32 +1005,6 @@ export default function HomePage() {
                 ));
               })()}
 
-              {/* Ranking Comunitario Admin */}
-              {(isAdmin || adminCommunities.length > 0) && (() => {
-                const rankComms = isAdmin
-                  ? [{ id: 'afk', label: 'AFK' }, { id: 'inc', label: 'INC' }, { id: 'cordoba', label: 'Córdoba' }, { id: 'mendoza', label: 'Mendoza' }]
-                  : adminCommunities.map(id => ({
-                      id,
-                      label: id === 'afk' ? 'AFK' : id === 'inc' ? 'INC' : id === 'cordoba' ? 'Córdoba' : id === 'mendoza' ? 'Mendoza' : id,
-                    }));
-                return rankComms.map(c => (
-                  <div key={`ranking-${c.id}`} style={{ padding: '0 10px 4px' }}>
-                    <button onClick={() => { setShowMenu(false); window.location.href = `/admin/afk-ranking?community=${c.id}`; }}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(167,139,250,0.08)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(167,139,250,0.14)', border: '1px solid rgba(167,139,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🏆</div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>Ranking {c.label}</p>
-                        <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(167,139,250,0.45)' }}>Administrar torneos y puntos</p>
-                      </div>
-                      <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
-                    </button>
-                  </div>
-                ));
-              })()}
-
               {/* Amigos */}
               <div style={{ padding: '4px 10px 0' }}>
                 <button onClick={() => { setShowMenu(false); setTab('amigos'); }}
@@ -2040,35 +2014,22 @@ function TabInicio({ user, isAdmin, router, displayName, initial, setTab }) {
           </button>
         )}
 
-        {/* ── Ranking admin (por comunidad) ── */}
-        {(isAdmin || (user?.adminCommunities?.length > 0)) && (() => {
-          const rankComms = isAdmin
-            ? [{ id: 'afk', label: 'AFK' }, { id: 'inc', label: 'INC' }]
-            : (user?.adminCommunities || []).map(id => ({
-                id,
-                label: id === 'afk' ? 'AFK' : id === 'inc' ? 'INC' : id === 'cordoba' ? 'Córdoba' : id === 'mendoza' ? 'Mendoza' : id,
-              }));
-          if (rankComms.length === 0) return null;
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-              {rankComms.map(c => (
-                <button key={c.id} onClick={() => router.push(`/admin/afk-ranking?community=${c.id}`)} style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                  background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(99,42,190,0.04))',
-                  border: '1px solid rgba(124,58,237,0.2)', borderRadius: 24, padding: '13px 18px',
-                  cursor: 'pointer', textAlign: 'left',
-                }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 4px 12px rgba(124,58,237,0.3)', flexShrink: 0 }}>🏆</div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontWeight: 800, color: '#A78BFA', fontSize: 14 }}>Ranking {c.label}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Administrar torneos y puntos</p>
-                  </div>
-                  <Svg size={16} sw={2}>{ICO.chevron}</Svg>
-                </button>
-              ))}
+        {/* ── Gestionar Rankings (por comunidad) ── */}
+        {(isAdmin || (user?.adminCommunities?.length > 0)) && (
+          <button onClick={() => router.push('/admin/afk-ranking')} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+            background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(99,42,190,0.04))',
+            border: '1px solid rgba(124,58,237,0.2)', borderRadius: 24, padding: '15px 18px',
+            cursor: 'pointer', textAlign: 'left', marginBottom: 12,
+          }}>
+            <div style={{ width: 44, height: 44, borderRadius: 15, background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 14px rgba(124,58,237,0.3)', flexShrink: 0 }}>🏆</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontWeight: 800, color: '#A78BFA', fontSize: 14 }}>Gestionar Rankings</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Rankings comunitarios y puntos</p>
             </div>
-          );
-        })()}
+            <Svg size={16} sw={2}>{ICO.chevron}</Svg>
+          </button>
+        )}
 
         {/* ── Comunidades ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
@@ -6271,9 +6232,15 @@ const STAGE_EMOJI = {
 function fmtElapsed(s) { return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; }
 
 /* --- CharPicker ----------------------------------------------------------- */
-function CharPicker({ selected, onSelect, platform, userId }) {
+function CharPicker({ selected, onSelect, platform, userId, prefKey }) {
   // - Estado persistido: personajes usados recientemente -
   const [recentIds, setRecentIds] = useState([]);
+
+  // Personajes preferidos del usuario para este contexto (configuración)
+  const prefChars = (() => {
+    if (!prefKey) return [];
+    try { return JSON.parse(localStorage.getItem(prefKey) || '[]'); } catch { return []; }
+  })();
 
   // Cargar recientes desde Redis al montar (o migrar desde localStorage)
   useEffect(() => {
@@ -6375,11 +6342,37 @@ function CharPicker({ selected, onSelect, platform, userId }) {
 
   // -- Vista expandida (picker) --------------------------------------------
   const recents = recentIds.map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean);
+  // Preferidos: excluir los que ya están en recents para no duplicar
+  const prefCharObjs = prefChars
+    .map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean)
+    .filter(c => !recentIds.includes(c.id));
   const filtered = CHARACTERS.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
-      {/* Personajes recientes */}
+      {/* Personajes preferidos (de Configuración) */}
+      {prefCharObjs.length > 0 && !search && (
+        <div style={{ marginBottom: 10 }}>
+          <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,140,0,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>⚙️ Mis personajes</p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {prefCharObjs.map(c => (
+              <button
+                key={c.id}
+                onClick={() => selected === c.id ? setExpanded(false) : onSelect(c.id)}
+                title={c.name}
+                style={{
+                  background: selected === c.id ? 'rgba(255,140,0,0.15)' : 'rgba(255,140,0,0.06)',
+                  border: selected === c.id ? '2px solid #FF8C00' : '1px solid rgba(255,140,0,0.25)',
+                  borderRadius: 10, padding: 4, cursor: 'pointer',
+                  width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {recents.length > 0 && !search && (
         <div style={{ marginBottom: 10 }}>
           <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos jugados</p>
@@ -7699,7 +7692,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       {/* Personaje */}
       <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Tu personaje</p>
       <div style={{ marginBottom: 8 }}>
-        <CharPicker selected={searchChar} onSelect={c => { setSearchChar(c); setSearchSkin(1); }} platform={searchPlat} userId={uid} />
+        <CharPicker selected={searchChar} onSelect={c => { setSearchChar(c); setSearchSkin(1); }} platform={searchPlat} userId={uid} prefKey={matchTypeMode === 'casual' ? 'afk_chars_casual' : 'afk_chars_ranked'} />
       </div>
       {searchChar && (() => {
         const sc = CHARACTERS.find(c => c.id === searchChar);

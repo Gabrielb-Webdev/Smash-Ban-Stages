@@ -1,4 +1,4 @@
-import { redis, crTournamentsKey } from '../../../lib/redis';
+import redis, { crTournamentsKey } from '../../../lib/redis';
 import { buildRanking } from '../../../lib/communityRanking';
 
 export default async function handler(req, res) {
