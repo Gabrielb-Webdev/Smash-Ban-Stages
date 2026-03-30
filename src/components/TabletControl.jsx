@@ -2146,7 +2146,176 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
 
         {/* Playing Phase */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border-2 border-white/30 flex-1 flex flex-col justify-center">
+          isWarui ? (
+            /* ── WARUI: UI mejorada ── */
+            <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+
+              {/* Header: Game badge */}
+              <div className="flex items-center justify-center gap-3">
+                <div style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', borderRadius: 12, padding: '4px 18px', border: '2px solid rgba(168,85,247,0.6)' }}>
+                  <span style={{ fontFamily: 'Anton', fontSize: 13, color: '#fff', letterSpacing: 2 }}>GAME {session.currentGame}</span>
+                </div>
+                <div style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))', borderRadius: 12, padding: '4px 18px', border: '2px solid rgba(255,255,255,0.2)' }}>
+                  <span style={{ fontFamily: 'Anton', fontSize: 13, color: '#E8A000', letterSpacing: 1 }}>EN COMBATE</span>
+                </div>
+              </div>
+
+              {/* Stage - imagen prominent */}
+              {session.selectedStage && (
+                <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '2px solid rgba(168,85,247,0.5)', flexShrink: 0, height: 72 }}>
+                  <img
+                    src={getStageData(session.selectedStage)?.image}
+                    alt={getStageData(session.selectedStage)?.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)' }} />
+                  <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, textAlign: 'center' }}>
+                    <span style={{ fontFamily: 'Anton', fontSize: 15, color: '#fff', letterSpacing: 1, textShadow: '2px 2px 6px rgba(0,0,0,1)', textTransform: 'uppercase' }}>
+                      {getStageData(session.selectedStage)?.name}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Matchup: P1 | Scores | P2 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'stretch' }}>
+                {/* Player 1 */}
+                <div style={{ background: 'linear-gradient(160deg, rgba(220,38,38,0.35) 0%, rgba(127,29,29,0.25) 100%)', borderRadius: 14, border: '2px solid rgba(239,68,68,0.45)', padding: '10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  {/* Stock icon */}
+                  {session.player1.character ? (
+                    <img
+                      src={getStockIconPath(session.player1.character, session.player1.skin || 1)}
+                      alt={getCharacterData(session.player1.character)?.name}
+                      style={{ width: 52, height: 52, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.8))' }}
+                      onError={e => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>❓</div>
+                  )}
+                  {/* Name */}
+                  <p style={{ margin: 0, fontFamily: 'Anton', fontSize: 13, color: '#fff', textAlign: 'center', textShadow: '2px 2px 6px rgba(0,0,0,0.9)', lineHeight: 1.2, wordBreak: 'break-word', maxWidth: '100%' }}>
+                    {session.player1.name}
+                  </p>
+                  {/* Character name */}
+                  <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.55)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {getCharacterData(session.player1.character)?.name || '—'}
+                  </p>
+                </div>
+
+                {/* VS + Scores */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, minWidth: 56 }}>
+                  <div style={{ background: 'rgba(232,160,0,0.2)', border: '2px solid rgba(232,160,0,0.5)', borderRadius: 10, padding: '3px 10px' }}>
+                    <span style={{ fontFamily: 'Anton', fontSize: 28, color: '#E8A000', textShadow: '2px 2px 0 rgba(0,0,0,0.8)', lineHeight: 1 }}>
+                      {session.player1.score}
+                    </span>
+                  </div>
+                  <span style={{ fontFamily: 'Anton', fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>VS</span>
+                  <div style={{ background: 'rgba(232,160,0,0.2)', border: '2px solid rgba(232,160,0,0.5)', borderRadius: 10, padding: '3px 10px' }}>
+                    <span style={{ fontFamily: 'Anton', fontSize: 28, color: '#E8A000', textShadow: '2px 2px 0 rgba(0,0,0,0.8)', lineHeight: 1 }}>
+                      {session.player2.score}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Player 2 */}
+                <div style={{ background: 'linear-gradient(160deg, rgba(37,99,235,0.35) 0%, rgba(29,78,216,0.25) 100%)', borderRadius: 14, border: '2px solid rgba(59,130,246,0.45)', padding: '10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  {/* Stock icon */}
+                  {session.player2.character ? (
+                    <img
+                      src={getStockIconPath(session.player2.character, session.player2.skin || 1)}
+                      alt={getCharacterData(session.player2.character)?.name}
+                      style={{ width: 52, height: 52, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.8))' }}
+                      onError={e => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>❓</div>
+                  )}
+                  {/* Name */}
+                  <p style={{ margin: 0, fontFamily: 'Anton', fontSize: 13, color: '#fff', textAlign: 'center', textShadow: '2px 2px 6px rgba(0,0,0,0.9)', lineHeight: 1.2, wordBreak: 'break-word', maxWidth: '100%' }}>
+                    {session.player2.name}
+                  </p>
+                  {/* Character name */}
+                  <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.55)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {getCharacterData(session.player2.character)?.name || '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'linear-gradient(to right, transparent, rgba(168,85,247,0.5), transparent)' }} />
+
+              {/* Winner reporting */}
+              <div className="flex-1 flex flex-col justify-center gap-2">
+                <p style={{ margin: 0, fontFamily: 'Anton', fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center', letterSpacing: 1 }}>
+                  🏆 ¿QUIÉN GANÓ EL GAME {session.currentGame}?
+                </p>
+
+                {session.winnerProposal && myPlayer && session.winnerProposal.proposedBy !== myPlayer ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>🤔</div>
+                    <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+                      <span style={{ color: '#E8A000', fontWeight: 800 }}>{session[session.winnerProposal.proposedBy]?.name}</span>{' '}dice que{' '}
+                      <span style={{ color: '#fff', fontWeight: 800 }}>{session[session.winnerProposal.winner]?.name}</span>{' '}ganó
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <button
+                        onClick={() => setGameWinner(sessionId, session.winnerProposal.winner)}
+                        style={{ padding: '14px 8px', borderRadius: 14, border: '2px solid rgba(34,197,94,0.6)', background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.2))', color: '#fff', fontFamily: 'Anton', fontSize: 15, cursor: 'pointer', letterSpacing: 1 }}
+                      >✅ CONFIRMAR</button>
+                      <button
+                        onClick={() => rejectGameWinner(sessionId)}
+                        style={{ padding: '14px 8px', borderRadius: 14, border: '2px solid rgba(220,38,38,0.6)', background: 'linear-gradient(135deg, rgba(220,38,38,0.35), rgba(185,28,28,0.2))', color: '#fff', fontFamily: 'Anton', fontSize: 15, cursor: 'pointer', letterSpacing: 1 }}
+                      >❌ RECHAZAR</button>
+                    </div>
+                  </div>
+                ) : session.winnerProposal && myPlayer && session.winnerProposal.proposedBy === myPlayer ? (
+                  <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }} className="animate-pulse">⏳</div>
+                    <p style={{ margin: '0 0 4px', fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+                      Propusiste que <span style={{ color: '#E8A000', fontWeight: 800 }}>{session[session.winnerProposal.winner]?.name}</span> ganó
+                    </p>
+                    <p style={{ margin: '0 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Esperando confirmación del rival...</p>
+                    <button
+                      onClick={() => rejectGameWinner(sessionId)}
+                      style={{ padding: '8px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                    >Cancelar propuesta</button>
+                  </div>
+                ) : (
+                  /* Botones ganador - diseño premium */
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button
+                      onClick={() => setPendingAction({ type: 'winner', winner: 'player1', winnerName: session.player1.name })}
+                      style={{ padding: '0 8px', paddingTop: 12, paddingBottom: 12, borderRadius: 16, border: '2px solid rgba(239,68,68,0.6)', background: 'linear-gradient(160deg, rgba(220,38,38,0.45) 0%, rgba(127,29,29,0.35) 100%)', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, boxShadow: '0 4px 16px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.1)', transition: 'transform 0.1s, box-shadow 0.1s' }}
+                      onTouchStart={e => e.currentTarget.style.transform = 'scale(0.96)'}
+                      onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      {session.player1.character ? (
+                        <img src={getStockIconPath(session.player1.character, session.player1.skin || 1)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }} onError={e => { e.target.style.display='none'; }} />
+                      ) : <span style={{ fontSize: 28 }}>🔴</span>}
+                      <span style={{ fontFamily: 'Anton', fontSize: 13, textShadow: '2px 2px 6px rgba(0,0,0,0.9)', lineHeight: 1.2, textAlign: 'center', wordBreak: 'break-word', maxWidth: '100%' }}>
+                        {session.player1.name}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setPendingAction({ type: 'winner', winner: 'player2', winnerName: session.player2.name })}
+                      style={{ padding: '0 8px', paddingTop: 12, paddingBottom: 12, borderRadius: 16, border: '2px solid rgba(59,130,246,0.6)', background: 'linear-gradient(160deg, rgba(37,99,235,0.45) 0%, rgba(29,78,216,0.35) 100%)', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, boxShadow: '0 4px 16px rgba(37,99,235,0.25), inset 0 1px 0 rgba(255,255,255,0.1)', transition: 'transform 0.1s, box-shadow 0.1s' }}
+                      onTouchStart={e => e.currentTarget.style.transform = 'scale(0.96)'}
+                      onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      {session.player2.character ? (
+                        <img src={getStockIconPath(session.player2.character, session.player2.skin || 1)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }} onError={e => { e.target.style.display='none'; }} />
+                      ) : <span style={{ fontSize: 28 }}>🔵</span>}
+                      <span style={{ fontFamily: 'Anton', fontSize: 13, textShadow: '2px 2px 6px rgba(0,0,0,0.9)', lineHeight: 1.2, textAlign: 'center', wordBreak: 'break-word', maxWidth: '100%' }}>
+                        {session.player2.name}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* ── Default (Córdoba, etc.) ── */
+            <div className="bg-white/10 rounded-xl p-2 sm:p-4 border-2 border-white/30 flex-1 flex flex-col justify-center">
             {/* Contenido principal */}
             <div>
               <div className="text-center mb-2 sm:mb-4">
@@ -2350,6 +2519,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* Finished Phase */}
