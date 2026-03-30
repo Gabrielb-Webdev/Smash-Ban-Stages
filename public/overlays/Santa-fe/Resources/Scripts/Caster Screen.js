@@ -870,13 +870,13 @@ function getCharInfo(pCharacter) {
 async function updateChar(pCharacter, pSkin, charID, sagaID) {
 	const charEL = document.getElementById(charID);
 	//change the image path depending on the character and skin
-	charEL.setAttribute('src', 'Resources/Characters/Stock Icons/' + pCharacter + '/' + pSkin + '.png');
+	charEL.setAttribute('src', '/images/Stock Icons V2/' + pCharacter + '/' + pSkin + '.png');
 	//add a listener to show the random portrait if the image fails to load
 	if (startup) {charEL.addEventListener("error", () => {
 		if (charEL == document.getElementById("p1Character")) {
-			charEL.setAttribute('src', 'Resources/Characters/Stock Icons/Random.png');
+			charEL.setAttribute('src', '/images/Stock Icons V2/Random/1.png');
 		} else {
-			charEL.setAttribute('src', 'Resources/Characters/Stock Icons/Random.png');
+			charEL.setAttribute('src', '/images/Stock Icons V2/Random/1.png');
 		}
 	})}
 

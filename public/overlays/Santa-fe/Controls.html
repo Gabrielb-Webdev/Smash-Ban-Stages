@@ -615,7 +615,7 @@ function buildCharGrid(p) {
     const img = document.createElement('img');
     img.src = encodeCharPath(char, 1);
     img.alt = char;
-    img.onerror = function() { this.src = 'Resources/Characters/Stock%20Icons/Random.png'; };
+    img.onerror = function() { this.src = '/images/Stock%20Icons%20V2/Random/1.png'; };
     btn.appendChild(img);
     btn.addEventListener('click', () => selectChar(p, char));
     grid.appendChild(btn);
@@ -623,7 +623,7 @@ function buildCharGrid(p) {
 }
 
 function encodeCharPath(char, skin) {
-  return 'Resources/Characters/Stock%20Icons/' + encodeURIComponent(char) + '/' + skin + '.png';
+  return '/images/Stock%20Icons%20V2/' + encodeURIComponent(char) + '/' + skin + '.png';
 }
 
 // Personajes con cantidad distinta a 8 skins
