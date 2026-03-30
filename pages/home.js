@@ -2174,7 +2174,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
           )}
         </div>
       )}
-      {/* Bottom sheet: Historial completo */
+      {/* Bottom sheet: Historial completo */}
       {showAllModal && (
         <div onClick={() => setShowAllModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(5px)', zIndex: 10001, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '90vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '22px 22px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .22s ease-out' }}>
