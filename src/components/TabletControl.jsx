@@ -2232,8 +2232,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 40, gap: 4 }}>
                   <span style={{ fontFamily: 'Anton', fontSize: 14, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 }}>VS</span>
                   {!session.winnerProposal && (
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', lineHeight: 1.2 }}>tap{'
-'}ganó</span>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', lineHeight: 1.2 }}>tap ganó</span>
                   )}
                 </div>
 
