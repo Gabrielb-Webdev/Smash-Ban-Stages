@@ -4615,6 +4615,10 @@ function TabRankings({ user, setTab }) {
   const [showCharsModalRank, setShowCharsModalRank]   = useState(false);
   const [charFromModalRank, setCharFromModalRank]     = useState(false);
 
+  // Community ranking (AFK, INC, etc.)
+  const [commRanking, setCommRanking] = useState({ players: [], tournaments: [], loading: false, loaded: false });
+  const [commYear, setCommYear]       = useState('2025');
+
   const myUid = String(user?.id || user?.slug || '');
   const openProfile = (playerId, playerName) => {
     if (String(playerId) === myUid) { setTab('perfil'); return; }
@@ -4694,6 +4698,19 @@ function TabRankings({ user, setTab }) {
       .then(d => { setCharBoard(d?.leaderboard || []); setCharLoading(false); })
       .catch(() => setCharLoading(false));
   }, [mode, charPlat, charSel]);
+
+  useEffect(() => {
+    if (mode !== 'ba' && mode !== 'inc') return;
+    const community = mode === 'ba' ? 'afk' : 'inc';
+    setCommRanking(r => ({ ...r, loading: true }));
+    fetch(`/api/community-ranking/get?community=${community}&year=${commYear}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) setCommRanking({ players: d.players || [], tournaments: d.tournaments || [], loading: false, loaded: true });
+        else   setCommRanking({ players: [], tournaments: [], loading: false, loaded: true });
+      })
+      .catch(() => setCommRanking({ players: [], tournaments: [], loading: false, loaded: true }));
+  }, [mode, commYear]);
 
   return (
     <div>
@@ -4804,26 +4821,91 @@ function TabRankings({ user, setTab }) {
         </>
       ) : mode !== 'char' ? (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{mode === 'ba' ? '📍 Buenos Aires' : 'INC'}</p>
-            <Tag color="#EAB308">Próximamente</Tag>
-          </div>
-
-          <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
-            <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'AFK' : 'Smash INC'}</p>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán automáticamente después de cada torneo registrado en Start.GG</p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {['🥇 1er lugar', '🥈 2do lugar', '🥉 3er lugar', '4° lugar', '5° lugar'].map((label, i) => (
-                <div key={i} style={{ background: i === 0 ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, padding: '8px 14px' }}>
-                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: i === 0 ? '#EAB308' : 'rgba(255,255,255,0.3)' }}>{label}</p>
-                </div>
+          {/* Header con año y nombre de comunidad */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+              {mode === 'ba' ? '📍 Buenos Aires' : '📍 INC'}
+            </p>
+            {/* Selector de año */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['2025'].map(y => (
+                <button key={y} onClick={() => setCommYear(y)} style={{
+                  padding: '4px 14px', borderRadius: 8, fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer',
+                  background: commYear === y ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: commYear === y ? '#FF8C00' : 'rgba(255,255,255,0.3)',
+                }}>{y}</button>
               ))}
             </div>
-            <div style={{ marginTop: 20, display: 'inline-flex', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 10, padding: '7px 16px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
-            </div>
           </div>
+
+          {commRanking.loading && (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Cargando ranking...</div>
+          )}
+
+          {!commRanking.loading && commRanking.loaded && commRanking.players.length === 0 && (
+            <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: '36px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 14 }}>🏆</div>
+              <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 16, color: '#fff' }}>Ranking {mode === 'ba' ? 'AFK' : 'Smash INC'} {commYear}</p>
+              <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>Los puntos se actualizarán después de cada torneo registrado en Start.GG</p>
+              <div style={{ display: 'inline-flex', background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 10, padding: '7px 16px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(234,179,8,0.6)', letterSpacing: '0.05em' }}>Próximamente</span>
+              </div>
+            </div>
+          )}
+
+          {!commRanking.loading && commRanking.players.length > 0 && (
+            <>
+              {/* Podio top 3 */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+                {commRanking.players.slice(0, 3).map((p, i) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const colors = ['#EAB308', 'rgba(255,255,255,0.4)', '#CD7F32'];
+                  return (
+                    <div key={p.name} style={{
+                      flex: '1 1 90px', background: '#10101A',
+                      border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                      borderRadius: 14, padding: '14px 10px', textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: 24, marginBottom: 4 }}>{medals[i]}</div>
+                      <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#fff', wordBreak: 'break-all' }}>{p.name}</p>
+                      <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: colors[i] }}>{p.total} pts</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Tabla completa */}
+              {commRanking.players.length > 3 && (
+                <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden' }}>
+                  {commRanking.players.slice(3).map((p, i) => (
+                    <div key={p.name} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px',
+                      borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                    }}>
+                      <span style={{ width: 24, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textAlign: 'right', flexShrink: 0 }}>{p.position}</span>
+                      <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.name}</p>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: '#A78BFA' }}>{p.total}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Info de torneos */}
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+                  {commRanking.tournaments.length} torneo{commRanking.tournaments.length !== 1 ? 's' : ''} registrado{commRanking.tournaments.length !== 1 ? 's' : ''}
+                </span>
+                {commRanking.tournaments.slice(-3).map(t => (
+                  <span key={t.id} style={{
+                    fontSize: 11, color: t.type === 'M' ? '#A78BFA' : '#60A5FA',
+                    background: t.type === 'M' ? 'rgba(167,139,250,0.08)' : 'rgba(96,165,250,0.08)',
+                    border: `1px solid ${t.type === 'M' ? 'rgba(167,139,250,0.2)' : 'rgba(96,165,250,0.2)'}`,
+                    borderRadius: 6, padding: '2px 8px'
+                  }}>{t.name}</span>
+                ))}
+              </div>
+            </>
+          )}
         </>
       ) : (
         <>
