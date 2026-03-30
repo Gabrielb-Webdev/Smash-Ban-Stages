@@ -297,14 +297,14 @@ export default function TestAdminPage() {
           patchData.score1 = wSt.score1 ?? 0;
           patchData.score2 = wSt.score2 ?? 0;
         }
-        // Convertir charId+skin a ruta Santa-fe/Stock Icons para controls.html
+        // Convertir charId+skin a ruta Stock Icons V2 para controls.html
         if (wSt.char1) {
           const p = getStockIconPath(wSt.char1, wSt.skin1 || 1);
-          patchData.char1 = p ? decodeURIComponent(p.replace('/overlays/Santa-fe/Resources/Characters/Stock%20Icons/', 'Santa-fe/Stock Icons/')) : wSt.char1;
+          patchData.char1 = p ? decodeURIComponent(p.replace('/images/Stock%20Icons%20V2/', 'Stock Icons V2/')) : wSt.char1;
         }
         if (wSt.char2) {
           const p = getStockIconPath(wSt.char2, wSt.skin2 || 1);
-          patchData.char2 = p ? decodeURIComponent(p.replace('/overlays/Santa-fe/Resources/Characters/Stock%20Icons/', 'Santa-fe/Stock Icons/')) : wSt.char2;
+          patchData.char2 = p ? decodeURIComponent(p.replace('/images/Stock%20Icons%20V2/', 'Stock Icons V2/')) : wSt.char2;
         }
         if (Object.keys(patchData).length > 0) {
           fetch('/api/warui/stream-state', {

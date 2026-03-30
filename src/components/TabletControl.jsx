@@ -352,7 +352,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   }
 
   const handleRPSWinner = (winner) => {
-    const playerName = session[winner].name;
+    const playerName = session[winner]?.name;
     const proposedBy = myPlayer || 'admin';
     setPendingAction({ type: 'rps', winner, playerName, proposedBy });
   };
@@ -387,6 +387,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
     
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
+      if (!stage) return;
       setPendingAction({ type: 'ban', stageId, stageName: stage.name, player: effectivePlayer || session.currentTurn });
       startCooldown();
     }
@@ -398,6 +399,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
     
     if (session.currentTurn) {
       const stage = getAllStagesForBanning().find(s => s.id === stageId);
+      if (!stage) return;
       setPendingAction({ type: 'select', stageId, stageName: stage.name, player: effectivePlayer || session.currentTurn });
       // No activar cooldown después de seleccionar stage
     }

@@ -390,8 +390,8 @@
     const wrap = document.getElementById('char-wrap-' + n);
     const img  = document.getElementById('char-img-' + n);
     if (filename) {
-      if (filename.startsWith('Santa-fe/Stock Icons/') || filename.startsWith('Stock Icons V2/')) {
-        img.src = BASE + '/overlays/Santa-fe/Resources/Characters/Stock%20Icons/' + filename.split('/').slice(-2).map(encodeURIComponent).join('/');
+      if (filename.startsWith('Stock Icons V2/')) {
+        img.src = BASE + '/images/Stock%20Icons%20V2/' + filename.split('/').slice(-2).map(encodeURIComponent).join('/');
       } else {
         img.src = BASE + '/images/characters/' + encodeURIComponent(filename);
       }
