@@ -243,7 +243,7 @@ export default function StreamOverlay({ sessionId }) {
       <footer 
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
         style={{
-          height: isWarui ? '15vh' : '150px',
+          height: isWarui ? '16vh' : '150px',
           // Para AFK usar fondo negro, para Mendoza solo video, para Warui solo imagen, para otros el fondo con imagen
           ...(isAfk ? {
             background: '#000000'
@@ -471,6 +471,7 @@ export default function StreamOverlay({ sessionId }) {
                     damping: 18
                   }}
                   className="relative"
+                  style={isWarui ? { display: 'flex', flexDirection: 'column', alignItems: 'center' } : {}}
                 >
                   <img 
                     src={stage.image}
@@ -484,16 +485,32 @@ export default function StreamOverlay({ sessionId }) {
                       objectFit: 'cover',
                       borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
                       filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
-                      ...(isWarui ? { width: isGame1 ? '26.7vh' : '18.7vh', height: isGame1 ? '15.6vh' : '11.1vh' } : {})
+                      ...(isWarui ? { width: isGame1 ? '20vh' : '15vh', height: isGame1 ? '11.7vh' : '8.8vh' } : {})
                     } : { 
                       objectFit: 'cover',
                       borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
                       borderColor: isSelected && showSelectOverlay ? '#4ADE80' : theme.colors.accent,
                       filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
                       borderStyle: 'solid',
-                      ...(isWarui ? { width: isGame1 ? '26.7vh' : '18.7vh', height: isGame1 ? '15.6vh' : '11.1vh' } : {})
+                      ...(isWarui ? { width: isGame1 ? '20vh' : '15vh', height: isGame1 ? '11.7vh' : '8.8vh' } : {})
                     }}
                   />
+                  {/* Nombre del stage debajo - Solo para Warui */}
+                  {isWarui && (
+                    <span style={{
+                      fontSize: '1.1vh',
+                      fontWeight: 800,
+                      color: isBanned && showBanOverlay ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.85)',
+                      textAlign: 'center',
+                      marginTop: '0.3vh',
+                      textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      fontFamily: 'Anton, sans-serif',
+                    }}>
+                      {stage.name}
+                    </span>
+                  )}
                   
                   {/* X Roja para baneado - Solo después de la animación del footer */}
                   {showBanOverlay && (
@@ -543,7 +560,7 @@ export default function StreamOverlay({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: isWarui ? '15vh' : '150px' }}
+            style={{ height: isWarui ? '16vh' : '150px' }}
           >
             {/* Imagen del stage de fondo */}
             <div className="absolute inset-0">
@@ -618,7 +635,7 @@ export default function StreamOverlay({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: isWarui ? '15vh' : '150px' }}
+            style={{ height: isWarui ? '16vh' : '150px' }}
           >
             {/* Imagen del stage de fondo */}
             <div className="absolute inset-0">

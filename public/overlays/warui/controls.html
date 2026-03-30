@@ -548,42 +548,50 @@
   }
 
   // Cargar estado actual al abrir
+  function loadState(d) {
+    if (!d || d.empty) return;
+    document.getElementById('in-p1').value  = d.player1?.tag || '';
+    document.getElementById('in-sp1').value = d.player1?.sponsor || '';
+    document.getElementById('in-p2').value  = d.player2?.tag || '';
+    document.getElementById('in-sp2').value = d.player2?.sponsor || '';
+    sc[0] = d.score1 ?? 0;
+    sc[1] = d.score2 ?? 0;
+    document.getElementById('ctrl-s1').textContent = sc[0];
+    document.getElementById('ctrl-s2').textContent = sc[1];
+    const c1 = document.getElementById('in-char1');
+    const c2 = document.getElementById('in-char2');
+    function restoreChar(inp, val, n) {
+      if (!val) return;
+      if (val.startsWith('Stock Icons V2/')) {
+        const parts = val.split('/');
+        const folder = parts[1];
+        const skinN  = parseInt(parts[2]) || 1;
+        const key    = Object.keys(CHAR_FOLDER).find(k => CHAR_FOLDER[k] === folder);
+        if (key) { inp.value = key; selectedSkin[n] = skinN; renderSkinGrid(n); }
+      } else {
+        for (const o of inp.options) { if (o.value === val) { inp.value = val; break; } }
+        renderSkinGrid(n);
+      }
+    }
+    restoreChar(c1, d.char1, 1);
+    restoreChar(c2, d.char2, 2);
+    const bf = document.getElementById('in-bestof');
+    const rd = document.getElementById('in-round');
+    if (d.format) { for (const o of bf.options) { if (o.value === d.format) { bf.value = d.format; break; } } }
+    if (d.round)  { for (const o of rd.options) { if (o.value.toUpperCase() === d.round.toUpperCase()) { rd.value = o.value; break; } } }
+  }
   fetch(API)
     .then(r => r.ok ? r.json() : null)
-    .then(d => {
-      if (!d || d.empty) { setStatus('Listo ✓'); return; }
-      document.getElementById('in-p1').value  = d.player1?.tag || '';
-      document.getElementById('in-sp1').value = d.player1?.sponsor || '';
-      document.getElementById('in-p2').value  = d.player2?.tag || '';
-      document.getElementById('in-sp2').value = d.player2?.sponsor || '';
-      sc[0] = d.score1 ?? 0;
-      sc[1] = d.score2 ?? 0;
-      document.getElementById('ctrl-s1').textContent = sc[0];
-      document.getElementById('ctrl-s2').textContent = sc[1];
-      const c1 = document.getElementById('in-char1');
-      const c2 = document.getElementById('in-char2');
-      function restoreChar(inp, val, n) {
-        if (!val) return;
-        if (val.startsWith('Stock Icons V2/')) {
-          const parts = val.split('/');
-          const folder = parts[1];
-          const skinN  = parseInt(parts[2]) || 1;
-          const key    = Object.keys(CHAR_FOLDER).find(k => CHAR_FOLDER[k] === folder);
-          if (key) { inp.value = key; selectedSkin[n] = skinN; renderSkinGrid(n); }
-        } else {
-          for (const o of inp.options) { if (o.value === val) { inp.value = val; break; } }
-          renderSkinGrid(n);
-        }
-      }
-      restoreChar(c1, d.char1, 1);
-      restoreChar(c2, d.char2, 2);
-      const bf = document.getElementById('in-bestof');
-      const rd = document.getElementById('in-round');
-      if (d.format) { for (const o of bf.options) { if (o.value === d.format) { bf.value = d.format; break; } } }
-      if (d.round)  { for (const o of rd.options) { if (o.value.toUpperCase() === d.round.toUpperCase()) { rd.value = o.value; break; } } }
-      setStatus('Listo ✓');
-    })
+    .then(d => { loadState(d); setStatus('Listo ✓'); })
     .catch(() => setStatus('✗ Sin conexión', false));
+
+  // Polling cada 3s para recibir actualizaciones del admin panel (scores, personajes, nombres)
+  setInterval(() => {
+    fetch(API)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.empty) loadState(d); })
+      .catch(() => {});
+  }, 3000);
 </script>
 </body>
 </html>

@@ -288,14 +288,21 @@ export default function TestAdminPage() {
         } catch {}
       }
       setSessionStatuses(prev => ({ ...prev, ...updates }));
-      // Actualizar scores en overlay Warui Team en tiempo real
+      // Actualizar scores y personajes en overlay Warui Team en tiempo real
       if (community === 'warui' && updates['warui-stream']) {
         const wSt = updates['warui-stream'];
+        const patchData = {};
         if (wSt.score1 != null || wSt.score2 != null) {
+          patchData.score1 = wSt.score1 ?? 0;
+          patchData.score2 = wSt.score2 ?? 0;
+        }
+        if (wSt.char1) patchData.char1 = wSt.char1;
+        if (wSt.char2) patchData.char2 = wSt.char2;
+        if (Object.keys(patchData).length > 0) {
           fetch('/api/warui/stream-state', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-            body: JSON.stringify({ score1: wSt.score1 ?? 0, score2: wSt.score2 ?? 0 }),
+            body: JSON.stringify(patchData),
           }).catch(() => {});
         }
       }

@@ -2105,7 +2105,11 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                               {isCasual ? (
                                 <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                               ) : isTournament ? (
-                                <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{HIST_COMM_SHORT[m.community] || 'TRN'}</span>
+                                HIST_COMM_LOGOS[m.community] ? (
+                                  <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                                ) : (
+                                  <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
+                                )
                               ) : is2v2 ? (
                                 <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                               ) : rankObj ? (
@@ -2226,7 +2230,11 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                   {isCasual ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                                   ) : isTournament ? (
-                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{HIST_COMM_SHORT[m.community] || 'TRN'}</span>
+                                    HIST_COMM_LOGOS[m.community] ? (
+                                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                                    ) : (
+                                      <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
+                                    )
                                   ) : is2v2 ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                                   ) : rankObj ? (
@@ -4213,7 +4221,11 @@ function TabPerfil({ user }) {
                           {isCasual ? (
                             <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                           ) : isTournament ? (
-                            <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{COMMUNITY_SHORT[m.community] || 'TRN'}</span>
+                            HIST_COMM_LOGOS[m.community] ? (
+                              <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                            ) : (
+                              <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
+                            )
                           ) : is2v2 ? (
                             <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                           ) : rankObj ? (
@@ -4352,7 +4364,11 @@ function TabPerfil({ user }) {
                                   {isCasual ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                                   ) : isTournament ? (
-                                    <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>{COMMUNITY_SHORT[m.community] || 'TRN'}</span>
+                                    HIST_COMM_LOGOS[m.community] ? (
+                                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                                    ) : (
+                                      <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
+                                    )
                                   ) : is2v2 ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                                   ) : rankObj ? (

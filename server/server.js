@@ -269,6 +269,10 @@ const CORDOBA_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemo
 const INC_STAGES_GAME1 = ['battlefield', 'small-battlefield', 'town-and-city', 'smashville', 'pokemon-stadium-2'];
 const INC_STAGES_GAME2_PLUS = ['battlefield', 'small-battlefield', 'town-and-city', 'smashville', 'pokemon-stadium-2', 'final-destination', 'hollow-bastion', 'kalos'];
 
+// Warui stages
+const WARUI_STAGES_GAME1      = ['town-and-city', 'smashville', 'battlefield', 'small-battlefield', 'pokemon-stadium-2'];
+const WARUI_STAGES_GAME2_PLUS = ['town-and-city', 'smashville', 'battlefield', 'small-battlefield', 'pokemon-stadium-2', 'hollow-bastion', 'final-destination', 'kalos'];
+
 // Función para detectar el torneo basado en sessionId
 function detectTournament(sessionId) {
   console.log('🔍 SERVER detectTournament input:', sessionId);
@@ -318,6 +322,12 @@ function detectTournament(sessionId) {
     console.log('✅ INC detected');
     return 'inc';
   }
+
+  // Detectar Warui
+  if (s === 'warui' || s.startsWith('warui-') || s.includes('/warui')) {
+    console.log('✅ Warui detected');
+    return 'warui';
+  }
   
   console.log('⚪ No match found, defaulting to cordoba');
   return 'cordoba'; // Por defecto
@@ -349,6 +359,12 @@ function getStagesForTournament(sessionId, currentGame) {
   if (tournament === 'inc') {
     const stages = currentGame === 1 ? INC_STAGES_GAME1 : INC_STAGES_GAME2_PLUS;
     console.log('✅ INC ruleset selected:', stages);
+    return stages;
+  }
+
+  if (tournament === 'warui') {
+    const stages = currentGame === 1 ? WARUI_STAGES_GAME1 : WARUI_STAGES_GAME2_PLUS;
+    console.log('✅ Warui ruleset selected:', stages);
     return stages;
   }
   
