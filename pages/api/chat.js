@@ -30,10 +30,13 @@ export default async function handler(req, res) {
     // Modo inbox: últimos mensajes de cada conversación
     if (inbox === 'true' || inbox === '1') {
       const friends = (await redis.get(friendsKey(cleanUserId))) || [];
+      if (friends.length === 0) return res.status(200).json({ conversations: [] });
+      // Batch: 1 mget en vez de N gets individuales
+      const chatKeys = friends.map(f => chatKey(cleanUserId, f.userId));
+      const allMessages = await redis.mget(...chatKeys);
       const conversations = [];
-      await Promise.allSettled(friends.map(async (f) => {
-        const key = chatKey(cleanUserId, f.userId);
-        const messages = (await redis.get(key)) || [];
+      friends.forEach((f, i) => {
+        const messages = allMessages[i] || [];
         if (messages.length > 0) {
           const last = messages[messages.length - 1];
           conversations.push({
@@ -43,7 +46,7 @@ export default async function handler(req, res) {
             total: messages.length,
           });
         }
-      }));
+      });
       // Ordenar por fecha del último mensaje (más reciente primero)
       conversations.sort((a, b) => new Date(b.lastMessage.sentAt) - new Date(a.lastMessage.sentAt));
       return res.status(200).json({ conversations });

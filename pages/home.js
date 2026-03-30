@@ -158,6 +158,14 @@ export default function HomePage() {
   const [miniChatInput, setMiniChatInput] = useState('');
   const miniChatScrollRef               = useRef(null);
 
+  // Page visibility: pausar polling cuando la tab está oculta
+  const pageVisible = useRef(true);
+  useEffect(() => {
+    const onVis = () => { pageVisible.current = !document.hidden; };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   // Estado global de matchmaking (persiste al cambiar de tab)
   const [bgMM, setBgMM]               = useState(null);
   const [acceptCountdown, setAcceptCountdown] = useState(15);
@@ -261,26 +269,30 @@ export default function HomePage() {
     setShowInstallBanner(false);
     sessionStorage.setItem('install_dismissed', '1');
   }
+  // Poll unificado: heartbeat + amigos + chat inbox en 1 sola llamada (3 requests → 1)
   useEffect(() => {
     if (!user?.id) return;
     const userName = (user.name || (user.slug || '').replace(/^\/user\//, '') || '').toLowerCase();
-    const ping = async () => {
+    const uid = String(user.id || user.slug || '');
+    const poll = async () => {
+      if (!pageVisible.current) return;
       const status = localStorage.getItem('afk_my_status') || 'online';
       try {
-        const r = await fetch('/api/heartbeat', {
+        const r = await fetch('/api/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: String(user.id), status, userName }),
+          body: JSON.stringify({ userId: uid, status, userName }),
         });
         if (r.ok) {
           const d = await r.json();
-          // Actualizar notificaciones desde la respuesta del heartbeat
-          if (Array.isArray(d.notifs)) setNotifs(d.notifs);
+          if (Array.isArray(d.notifs))  setNotifs(d.notifs);
+          if (Array.isArray(d.friends)) setFriends(d.friends);
+          if (Array.isArray(d.inbox))   setChatInbox(d.inbox);
         }
       } catch {}
     };
-    ping();
-    const iv = setInterval(ping, 30000);
+    poll();
+    const iv = setInterval(poll, 45000);
     return () => clearInterval(iv);
   }, [user?.id]);
 
@@ -377,6 +389,7 @@ export default function HomePage() {
     if (!playerName) return;
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const fetchMatch = async () => {
+      if (!pageVisible.current) return;
       try {
         const r = await fetch(`${socketUrl}/sessions/player?name=${encodeURIComponent(playerName)}`);
         if (!r.ok) return;
@@ -386,23 +399,7 @@ export default function HomePage() {
       } catch {}
     };
     fetchMatch();
-    const iv = setInterval(fetchMatch, 8000);
-    return () => clearInterval(iv);
-  }, [user]);
-
-  // Polling del chat inbox (cada 30s)
-  useEffect(() => {
-    if (!user) return;
-    const uid = String(user?.id || user?.slug || '');
-    if (!uid) return;
-    const loadInbox = () => {
-      fetch(`/api/chat?userId=${encodeURIComponent(uid)}&inbox=true`)
-        .then(r => r.ok ? r.json() : { conversations: [] })
-        .then(d => { if (Array.isArray(d.conversations)) setChatInbox(d.conversations); })
-        .catch(() => {});
-    };
-    loadInbox();
-    const iv = setInterval(loadInbox, 30000);
+    const iv = setInterval(fetchMatch, 15000);
     return () => clearInterval(iv);
   }, [user]);
 
@@ -412,6 +409,7 @@ export default function HomePage() {
     const uid = String(user?.id || user?.slug || '');
     if (!uid) return;
     const poll = () => {
+      if (!pageVisible.current) return;
       fetch(`/api/chat?userId=${encodeURIComponent(uid)}&friendId=${encodeURIComponent(miniChat.friendId)}`)
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d?.messages) setMiniChatMsgs(d.messages); })
@@ -2389,21 +2387,6 @@ function TabAmigos({ user }) {
     registerPresence(uid, friendIds);
   }, [uid, friends.length]);
 
-  // Polling de estados de amigos cada 30s � fallback para cambios que no emiten evento WS
-  // (away/dnd via heartbeat, in_match, searching via cola)
-  useEffect(() => {
-    if (!uid || friends.length === 0) return;
-    const iv = setInterval(() => {
-      fetch('/api/friends?userId=' + encodeURIComponent(uid))
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (Array.isArray(d)) setFriends(d); })
-        .catch(() => {});
-    }, 30000);
-    return () => clearInterval(iv);
-  // Solo reiniciar si uid cambia o si la lista pasa de vac�a a con amigos
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, friends.length > 0]);
-
   // Refrescar solicitudes pendientes cuando estemos en la tab de amigos (sin polling)
   // El polling agresivo de 8s se reemplaza por un refresh manual al abrir la tab
   // + Los cambios de estado de presencia llegan en tiempo real por WS
@@ -2427,6 +2410,7 @@ function TabAmigos({ user }) {
   useEffect(() => {
     if (!chatOpen || !uid) return;
     const fetchMsgs = () => {
+      if (!pageVisible.current) return;
       fetch('/api/chat?userId=' + encodeURIComponent(uid) + '&friendId=' + encodeURIComponent(chatOpen.userId))
         .then(r => r.ok ? r.json() : { messages: [] }).then(d => setChatMessages(d.messages || [])).catch(() => {});
     };

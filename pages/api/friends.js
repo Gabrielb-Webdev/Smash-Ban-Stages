@@ -13,26 +13,20 @@ function sanitize(s) {
 
 function userRoomKey(id) { return `mm:user:room:${id}`; }
 
-async function getOnlineStatus(userId) {
-  // 1. En partida?
-  const roomCode = await redis.get(userRoomKey(userId));
-  if (roomCode) return 'in_match';
-  // 2. Buscando partida?
-  for (const plat of ['switch', 'parsec']) {
-    const queue = (await redis.get(mmQueueKey(plat))) || [];
-    const now = Date.now();
-    if (queue.find(e => e.userId === userId && now - new Date(e.joinedAt).getTime() < QUEUE_TTL_MS)) {
+/** Determina el estado online a partir de datos pre-cargados (evita gets individuales) */
+function resolveOnlineStatus(userId, roomVal, presenceVal, switchQueue, parsecQueue) {
+  if (roomVal) return 'in_match';
+  const now = Date.now();
+  for (const queue of [switchQueue, parsecQueue]) {
+    if (Array.isArray(queue) && queue.find(e => e.userId === userId && now - new Date(e.joinedAt).getTime() < QUEUE_TTL_MS)) {
       return 'searching';
     }
   }
-  // 3. Tiene presencia (heartbeat)? Puede ser 'online', 'away' o 'dnd'
-  const presence = await redis.get(presenceKey(userId));
-  if (presence) {
-    if (presence === 'away') return 'away';
-    if (presence === 'dnd') return 'dnd';
+  if (presenceVal) {
+    if (presenceVal === 'away') return 'away';
+    if (presenceVal === 'dnd') return 'dnd';
     return 'online';
   }
-  // 4. Desconectado
   return 'offline';
 }
 
@@ -59,13 +53,24 @@ export default async function handler(req, res) {
     }
 
     const friends = (await redis.get(friendsKey(clean))) || [];
-    const enriched = await Promise.all(friends.map(async (f) => {
-      const [status, switchStats, parsecStats, profile] = await Promise.all([
-        getOnlineStatus(f.userId),
-        redis.get(rankedStatsKey(f.userId, 'switch')),
-        redis.get(rankedStatsKey(f.userId, 'parsec')),
-        redis.get(playerKey(f.userId)),
-      ]);
+    if (friends.length === 0) return res.status(200).json([]);
+
+    // Batch: leer todas las keys de una vez con mget (1 comando por mget en vez de N gets)
+    const ids = friends.map(f => f.userId);
+    const [queues, rooms, presences, statsAndProfiles] = await Promise.all([
+      redis.mget(mmQueueKey('switch'), mmQueueKey('parsec')),
+      redis.mget(...ids.map(id => userRoomKey(id))),
+      redis.mget(...ids.map(id => presenceKey(id))),
+      redis.mget(...ids.flatMap(id => [rankedStatsKey(id, 'switch'), rankedStatsKey(id, 'parsec'), playerKey(id)])),
+    ]);
+    const switchQueue = queues[0] || [];
+    const parsecQueue = queues[1] || [];
+
+    const enriched = friends.map((f, i) => {
+      const status = resolveOnlineStatus(f.userId, rooms[i], presences[i], switchQueue, parsecQueue);
+      const switchStats = statsAndProfiles[i * 3] || null;
+      const parsecStats = statsAndProfiles[i * 3 + 1] || null;
+      const profile = statsAndProfiles[i * 3 + 2] || null;
       const bestStats = (switchStats && parsecStats)
         ? ((switchStats.rankIndex || 0) >= (parsecStats.rankIndex || 0) ? switchStats : parsecStats)
         : (switchStats || parsecStats || null);
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
         placementDone: bestStats?.placementDone || false,
         country: profile?.country || null,
       };
-    }));
+    });
     const order = { in_match: 0, searching: 1, online: 2, away: 3, dnd: 4, offline: 5 };
     enriched.sort((a, b) => (order[a.online] ?? 5) - (order[b.online] ?? 5));
     return res.status(200).json(enriched);

@@ -14,6 +14,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // HTTP cache: Vercel Edge sirve desde CDN sin invocar la función durante s-maxage
+  res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=15');
+
   const platform = ['switch', 'parsec'].includes(req.query.platform)
     ? req.query.platform
     : 'switch';
@@ -23,19 +26,21 @@ export default async function handler(req, res) {
   const boardKey = isDoubles ? rankedDoubleBoardKey(platform) : rankedBoardKey(platform);
   const statsKeyFn = isDoubles ? rankedDoubleStatsKey : rankedStatsKey;
 
-  // zrange con rev:true devuelve miembros del sorted set de mayor a menor score
-  const playerIds = await redis.zrange(boardKey, 0, limit - 1, { rev: true });
+  // Paralizar zrange + zcard (2 comandos concurrentes en vez de 2 secuenciales)
+  const [playerIds, total] = await Promise.all([
+    redis.zrange(boardKey, 0, limit - 1, { rev: true }),
+    redis.zcard(boardKey),
+  ]);
 
   if (!playerIds || playerIds.length === 0) {
     return res.status(200).json({ players: [], total: 0 });
   }
 
-  const total = await redis.zcard(boardKey);
-
+  // mget: 150 redis.get individuales → 3 mget (1 comando cada uno, 50× más eficiente)
   const [statsArray, recentCharsArray, profilesArray] = await Promise.all([
-    Promise.all(playerIds.map(id => redis.get(statsKeyFn(id, platform)))),
-    Promise.all(playerIds.map(id => redis.get(`recent:chars:${id}`))),
-    Promise.all(playerIds.map(id => redis.get(playerKey(id)))),
+    redis.mget(...playerIds.map(id => statsKeyFn(id, platform))),
+    redis.mget(...playerIds.map(id => `recent:chars:${id}`)),
+    redis.mget(...playerIds.map(id => playerKey(id))),
   ]);
 
   const leaderboard = statsArray

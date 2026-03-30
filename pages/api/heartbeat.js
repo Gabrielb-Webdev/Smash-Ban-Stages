@@ -2,7 +2,7 @@
 // Al hacer POST también devuelve notificaciones (consolida round-trips)
 import redis, { presenceKey, userStatusKey, notifsKey, broadcastNotifsKey } from '../../lib/redis';
 
-const PRESENCE_TTL = 60; // segundos
+const PRESENCE_TTL = 90; // segundos (heartbeat cada 45s, TTL doble para margen)
 const VALID_STATUSES = ['online', 'away', 'dnd', 'invisible'];
 
 export default async function handler(req, res) {
@@ -36,18 +36,24 @@ export default async function handler(req, res) {
   }
 
   // Set presence heartbeat (skip if invisible)
-  const currentStatus = newStatus || (await redis.get(userStatusKey(userId))) || 'online';
+  // Batch: leer status + notifs + broadcasts en 1 mget (1 comando en vez de 3)
+  const userName = String(req.body?.userName ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100).toLowerCase();
+  const mgetKeys = [userStatusKey(userId)];
+  if (userName) mgetKeys.push(notifsKey(userName));
+  mgetKeys.push(broadcastNotifsKey);
+  const mgetResults = await redis.mget(...mgetKeys);
+
+  const currentStatus = newStatus || mgetResults[0] || 'online';
   if (currentStatus !== 'invisible') {
     await redis.set(presenceKey(userId), currentStatus, { ex: PRESENCE_TTL });
   }
 
   // Devolver también las notificaciones para evitar un fetch extra
-  const userName = String(req.body?.userName ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100).toLowerCase();
   let notifs = [];
   const TWELVE_HOURS = 12 * 60 * 60 * 1000;
   const now = Date.now();
   if (userName) {
-    const rawNotifs = (await redis.get(notifsKey(userName))) || [];
+    const rawNotifs = mgetResults[1] || [];
     notifs = rawNotifs.filter(n => {
       if (!n?.sentAt) return true;
       return (now - new Date(n.sentAt).getTime()) < TWELVE_HOURS;
@@ -60,7 +66,7 @@ export default async function handler(req, res) {
 
   // Merge broadcast notifications (globales para todos)
   try {
-    const broadcasts = (await redis.get(broadcastNotifsKey)) || [];
+    const broadcasts = (userName ? mgetResults[2] : mgetResults[1]) || [];
     const recentBroadcasts = broadcasts.filter(n => {
       if (!n?.sentAt) return true;
       return (now - new Date(n.sentAt).getTime()) < TWELVE_HOURS;
