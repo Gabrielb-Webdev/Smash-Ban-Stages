@@ -606,9 +606,8 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             {/* Jugadores */}
             <div className="flex items-center gap-2 flex-1">
               <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
-                <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 1</p>
-                <p className="text-white font-bold text-xs sm:text-sm truncate" 
-                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                <p className="text-white font-bold text-xs sm:text-sm leading-tight break-words"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)', wordBreak: 'break-word' }}>
                   {session.player1.name}
                 </p>
                 <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none"
@@ -621,9 +620,8 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 VS
               </div>
               <div className="bg-smash-blue/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
-                <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 2</p>
-                <p className="text-white font-bold text-xs sm:text-sm truncate"
-                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)' }}>
+                <p className="text-white font-bold text-xs sm:text-sm leading-tight break-words"
+                   style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)', wordBreak: 'break-word' }}>
                   {session.player2.name}
                 </p>
                 <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none"
@@ -2169,7 +2167,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         {session.phase === 'PLAYING' && (
           isWarui ? (
             /* ── WARUI: UI mejorada ── */
-            <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minHeight: 'calc(100dvh - 72px)', paddingTop: '1rem', paddingBottom: '5rem' }}>
 
               {/* Header: Game badge */}
               <div className="flex items-center justify-center gap-3">
@@ -2198,7 +2196,14 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 </div>
               )}
 
-              {/* Matchup: P1 | Scores | P2 */}
+              {/* Instrucción ganador */}
+              {!session.winnerProposal && (
+                <div style={{ textAlign: 'center', background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(79,70,229,0.1))', border: '1px solid rgba(168,85,247,0.3)', borderRadius: 10, padding: '6px 12px' }}>
+                  <p style={{ margin: 0, fontFamily: 'Anton', fontSize: 12, color: 'rgba(168,85,247,0.9)', letterSpacing: 2, textTransform: 'uppercase' }}>🏆 Tap al que ganó este game</p>
+                </div>
+              )}
+
+              {/* Matchup: P1 | VS | P2 */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'stretch' }}>
                 {/* Player 1 - botón ganador */}
                 <button
@@ -2225,7 +2230,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                   <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.55)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {getCharacterData(session.player1.character)?.name || '—'}
                   </p>
-                  {!session.winnerProposal && <p style={{ margin: 0, fontSize: 9, color: 'rgba(239,68,68,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>🏆 GANÓ</p>}
+                  {!session.winnerProposal && <div style={{ marginTop: 2, background: 'rgba(239,68,68,0.25)', border: '1px solid rgba(239,68,68,0.6)', borderRadius: 8, padding: '3px 10px' }}><p style={{ margin: 0, fontFamily: 'Anton', fontSize: 11, color: '#ff6b6b', textTransform: 'uppercase', letterSpacing: 1 }}>🏆 GANAÓ ESTE</p></div>}
                 </button>
 
                 {/* VS */}
@@ -2261,7 +2266,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                   <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.55)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {getCharacterData(session.player2.character)?.name || '—'}
                   </p>
-                  {!session.winnerProposal && <p style={{ margin: 0, fontSize: 9, color: 'rgba(59,130,246,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>🏆 GANÓ</p>}
+                  {!session.winnerProposal && <div style={{ marginTop: 2, background: 'rgba(59,130,246,0.25)', border: '1px solid rgba(59,130,246,0.6)', borderRadius: 8, padding: '3px 10px' }}><p style={{ margin: 0, fontFamily: 'Anton', fontSize: 11, color: '#74b0ff', textTransform: 'uppercase', letterSpacing: 1 }}>🏆 GANAÓ ESTE</p></div>}
                 </button>
               </div>
 
