@@ -248,7 +248,7 @@ const _SKIN_COUNT = {
   'mii-swordfighter': 1,
 };
 
-/** Retorna la ruta a /overlays/Santa-fe/Resources/Characters/Stock Icons/{folder}/{skin}.png */
+/** Retorna la ruta a /images/Stock Icons V2/{folder}/{skin}.png */
 export function getStockIconPath(charId, skin = 1) {
   const char = CHARACTERS.find(c => c.id === charId);
   if (!char) return null;
@@ -257,7 +257,7 @@ export function getStockIconPath(charId, skin = 1) {
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const maxSkins = _SKIN_COUNT[charId] ?? 8;
   const idx = Math.max(1, Math.min(parseInt(skin) || 1, maxSkins));
-  return `/overlays/Santa-fe/Resources/Characters/Stock%20Icons/${encodeURIComponent(folder)}/${idx}.png`;
+  return `/images/Stock%20Icons%20V2/${encodeURIComponent(folder)}/${idx}.png`;
 }
 
 /** Retorna la cantidad de skins disponibles para un personaje */

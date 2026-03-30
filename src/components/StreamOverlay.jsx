@@ -339,7 +339,6 @@ export default function StreamOverlay({ sessionId }) {
               <img 
                 src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
-                className="rounded-full"
                 style={{ objectFit: 'cover', width: isWarui ? '16vh' : '8rem', height: isWarui ? '16vh' : '8rem' }}
               />
               <motion.div 
@@ -380,7 +379,6 @@ export default function StreamOverlay({ sessionId }) {
               <img 
                 src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
-                className="rounded-full"
                 style={{ objectFit: 'cover', width: isWarui ? '16vh' : '8rem', height: isWarui ? '16vh' : '8rem' }}
               />
             </motion.div>
@@ -742,7 +740,7 @@ export default function StreamOverlay({ sessionId }) {
                 <img 
                   src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                   alt={getCharacterData(session.player1.character)?.name}
-                  className="w-24 h-24 rounded-full border-4 border-white shadow-2xl"
+                  className="w-24 h-24 border-4 border-white shadow-2xl"
                   style={{ objectFit: 'cover' }}
                 />
               </motion.div>
@@ -800,7 +798,7 @@ export default function StreamOverlay({ sessionId }) {
                 <img 
                   src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                   alt={getCharacterData(session.player2.character)?.name}
-                  className="w-24 h-24 rounded-full border-4 border-white shadow-2xl"
+                  className="w-24 h-24 border-4 border-white shadow-2xl"
                   style={{ objectFit: 'cover' }}
                 />
               </motion.div>
@@ -1038,7 +1036,7 @@ export default function StreamOverlay({ sessionId }) {
                     <img 
                       src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                       alt={getCharacterData(session.player1.character)?.name}
-                      className="w-24 h-24 mx-auto mb-2 rounded-full border-4 border-smash-yellow shadow-lg"
+                      className="w-24 h-24 mx-auto mb-2 border-4 border-smash-yellow shadow-lg"
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.nextSibling.style.display = 'block';
@@ -1073,7 +1071,7 @@ export default function StreamOverlay({ sessionId }) {
                     <img 
                       src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                       alt={getCharacterData(session.player2.character)?.name}
-                      className="w-24 h-24 mx-auto mb-2 rounded-full border-4 border-smash-yellow shadow-lg"
+                      className="w-24 h-24 mx-auto mb-2 border-4 border-smash-yellow shadow-lg"
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.nextSibling.style.display = 'block';
