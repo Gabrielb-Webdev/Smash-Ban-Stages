@@ -977,11 +977,11 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             </div>
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
-              {/* Layout específico para Mendoza */}
-              {isMendoza() ? (
-                /* Mendoza: Layout hardcodeado solo para Game 1, dinámico para Games 2+ */
+              {/* Layout específico para Mendoza / Warui */}
+              {(isMendoza() || isWarui) ? (
+                /* Mendoza / Warui: Layout hardcodeado solo para Game 1, dinámico para Games 2+ */
                 session.currentGame === 1 ? (
-                  /* Game 1 para Mendoza - Layout hardcodeado de 5 stages */
+                  /* Game 1 para Mendoza / Warui - Layout hardcodeado de 5 stages */
                   <>
                     {/* Primera fila: 3 stages */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
@@ -1565,11 +1565,11 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             </div>
 
             <div className="flex-1 flex flex-col gap-1.5 sm:gap-2 overflow-y-auto pb-2">
-              {/* Layout específico para Mendoza */}
-              {isMendoza() ? (
-                /* Mendoza: Layout hardcodeado solo para Game 1, dinámico para Games 2+ */
+              {/* Layout específico para Mendoza / Warui */}
+              {(isMendoza() || isWarui) ? (
+                /* Mendoza / Warui: Layout hardcodeado solo para Game 1, dinámico para Games 2+ */
                 session.currentGame === 1 ? (
-                  /* Game 1 para Mendoza - Layout hardcodeado de 5 stages */
+                  /* Game 1 para Mendoza / Warui - Layout hardcodeado de 5 stages */
                   <>
                     {/* Primera fila: 3 stages */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
