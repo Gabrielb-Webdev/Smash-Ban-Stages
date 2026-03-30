@@ -9,8 +9,7 @@ export default async function handler(req, res) {
 
   const index = (await redis.get(tipsIndexKey)) || [];
   if (index.length === 0) return res.status(200).json({});
-  // mget en vez de N gets individuales via Promise.all
-  const allTips = await redis.mget(...index.map(char => tipsKey(char)));
+  const allTips = await Promise.all(index.map(char => redis.get(tipsKey(char))));
   const counts = {};
   index.forEach((char, i) => {
     const tips = allTips[i] || [];
