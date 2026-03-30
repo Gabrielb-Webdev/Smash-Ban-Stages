@@ -1005,6 +1005,24 @@ export default function HomePage() {
                 ));
               })()}
 
+              {/* Gestionar Rankings */}
+              {(isAdmin || adminCommunities.length > 0) && (
+                <div style={{ padding: '0 10px 4px' }}>
+                  <button onClick={() => { setShowMenu(false); window.location.href = '/admin/afk-ranking'; }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(167,139,250,0.08)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: 38, height: 38, borderRadius: 13, background: 'rgba(167,139,250,0.14)', border: '1px solid rgba(167,139,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>🏆</div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>Gestionar Rankings</p>
+                      <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(167,139,250,0.45)' }}>Rankings comunitarios y puntos</p>
+                    </div>
+                    <Svg size={14} sw={2.5} style={{ color: 'rgba(255,255,255,0.2)' }}>{ICO.chevron}</Svg>
+                  </button>
+                </div>
+              )}
+
               {/* Amigos */}
               <div style={{ padding: '4px 10px 0' }}>
                 <button onClick={() => { setShowMenu(false); setTab('amigos'); }}
@@ -6344,8 +6362,7 @@ function CharPicker({ selected, onSelect, platform, userId, prefKey }) {
   const recents = recentIds.map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean);
   // Preferidos: excluir los que ya están en recents para no duplicar
   const prefCharObjs = prefChars
-    .map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean)
-    .filter(c => !recentIds.includes(c.id));
+    .map(id => CHARACTERS.find(c => c.id === id)).filter(Boolean);
   const filtered = CHARACTERS.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -6373,7 +6390,7 @@ function CharPicker({ selected, onSelect, platform, userId, prefKey }) {
           </div>
         </div>
       )}
-      {recents.length > 0 && !search && (
+      {recents.length > 0 && !search && prefCharObjs.length === 0 && (
         <div style={{ marginBottom: 10 }}>
           <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Últimos jugados</p>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
