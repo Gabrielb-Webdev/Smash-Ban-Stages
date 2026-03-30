@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import io from 'socket.io-client';
 import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
+import { getStockIconPath } from '../../src/utils/constants';
 import dynamic from 'next/dynamic';
 
 const TournamentBracket = dynamic(
@@ -296,8 +297,15 @@ export default function TestAdminPage() {
           patchData.score1 = wSt.score1 ?? 0;
           patchData.score2 = wSt.score2 ?? 0;
         }
-        if (wSt.char1) patchData.char1 = wSt.char1;
-        if (wSt.char2) patchData.char2 = wSt.char2;
+        // Convertir charId+skin a ruta Santa-fe/Stock Icons para controls.html
+        if (wSt.char1) {
+          const p = getStockIconPath(wSt.char1, wSt.skin1 || 1);
+          patchData.char1 = p ? decodeURIComponent(p.replace('/overlays/Santa-fe/Resources/Characters/Stock%20Icons/', 'Santa-fe/Stock Icons/')) : wSt.char1;
+        }
+        if (wSt.char2) {
+          const p = getStockIconPath(wSt.char2, wSt.skin2 || 1);
+          patchData.char2 = p ? decodeURIComponent(p.replace('/overlays/Santa-fe/Resources/Characters/Stock%20Icons/', 'Santa-fe/Stock Icons/')) : wSt.char2;
+        }
         if (Object.keys(patchData).length > 0) {
           fetch('/api/warui/stream-state', {
             method: 'PATCH',

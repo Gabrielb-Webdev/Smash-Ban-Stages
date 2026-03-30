@@ -27,6 +27,9 @@ export default function Tablet() {
     if (p === 'player1' || p === 'player2') setPlayerIndex(p);
   }, [router.isReady, router.query.p]);
 
+  // No renderizar hasta que el router esté listo para evitar flash de estilos incorrectos
+  if (!router.isReady || !sessionId) return null;
+
   const s = (sessionId || '').toLowerCase();
   const props = { sessionId, playerName, playerIndex };
   if (s === 'afk' || s.startsWith('afk-'))        return <TabletControlAfk     {...props} />;

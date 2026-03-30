@@ -2012,7 +2012,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             <div className="flex items-center gap-6 sm:gap-14">
               <div className="text-center" style={{ animation: 'vsSlideLeft 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto">
-                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.style.display='none'; }} />
                 </div>
                 <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
                 <p className="text-white/50 text-xs">{getCharacterData(session.player1.character)?.name}</p>
@@ -2022,7 +2022,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               </div>
               <div className="text-center" style={{ animation: 'vsSlideRight 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
                 <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
-                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.style.display='none'; }} />
                 </div>
                 <div>
                   <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>
@@ -2043,7 +2043,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               <div style={{ fontSize: 56 }}>✅</div>
               <p className="text-green-400 font-black text-xl mt-3 mb-1">¡Personaje enviado!</p>
               {confirmedChar.characterImage && (
-                <img src={confirmedChar.characterImage} alt={confirmedChar.characterName} style={{ width: 96, height: 96, objectFit: 'contain', margin: '8px auto' }} onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                <img src={confirmedChar.characterImage} alt={confirmedChar.characterName} style={{ width: 96, height: 96, objectFit: 'contain', margin: '8px auto' }} onError={(e) => { e.target.style.display='none'; }} />
               )}
               {!confirmedChar.characterImage && confirmedChar.characterId === 'random' && (
                 <span style={{ fontSize: 56 }}>?</span>
@@ -2072,7 +2072,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 const cd = getCharacterData(oppChar);
                 return (
                   <div className="mb-2 flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/30 rounded-lg px-2 py-1.5">
-                    <img src={getStockIconPath(oppChar, 1) || cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                    <img src={getStockIconPath(oppChar, 1) || cd?.image} alt={cd?.name} className="w-10 h-10 object-contain flex-shrink-0" onError={(e) => { e.target.style.display='none'; }} />
                     <div>
                       <p className="text-yellow-300 text-[10px] sm:text-xs font-bold uppercase tracking-wide">Tu rival ya eligió:</p>
                       <p className="text-white text-xs sm:text-sm font-black leading-tight">{cd?.name}</p>
@@ -2095,7 +2095,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                           title={char.name}
                           className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-lg border-2 border-smash-yellow/60 active:scale-95 touch-manipulation overflow-hidden"
                         >
-                          <img src={getStockIconPath(char.id, 1) || char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                          <img src={getStockIconPath(char.id, 1) || char.image} alt={char.name} className="w-full h-full object-contain" onError={(e) => { e.target.style.display='none'; }} />
                         </button>
                       );
                     })}
@@ -2132,7 +2132,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                       src={getStockIconPath(character.id, 1) || character.image} 
                       alt={character.name}
                       className="w-full h-full object-contain"
-                      onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                      onError={(e) => { e.target.style.display='none'; }}
                     />
                   </div>
                 </button>
@@ -2505,7 +2505,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
               <div className="text-center mb-3">
                 <div className="flex items-center justify-center gap-3 mb-1">
                   <div className="w-10 h-10 bg-white/10 rounded-full border-2 border-smash-yellow p-0.5 flex items-center justify-center">
-                    <img src={getStockIconPath(skinModal.characterId, 1)} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }} />
+                    <img src={getStockIconPath(skinModal.characterId, 1)} alt={skinModal.characterName} className="w-full h-full object-contain" onError={(e) => { e.target.style.display='none'; }} />
                   </div>
                   <h3 className="text-lg font-bold text-white">🎨 Elegir skin</h3>
                 </div>

@@ -572,10 +572,10 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
               {publishedTournaments.map((t) => (
                 <div key={t.slug} className="rounded-xl border border-white/15 bg-black/20 p-3 flex items-center gap-3">
                   <img
-                    src={t.image || '/images/characters/placeholder.png'}
+                    src={t.image || ''}
                     alt={t.name || t.slug}
                     className="w-14 h-14 rounded-lg object-cover border border-white/10 flex-shrink-0"
-                    onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                    onError={(e) => { e.target.style.display='none'; }}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-bold text-sm truncate">{t.name || t.slug}</p>

@@ -241,23 +241,14 @@ export const getCharacterData = (characterId) => {
 const _STOCK_OVERRIDES = {
   'rob': 'Rob',
   'pac-man': 'Pac Man',
-  'ice-climbers': 'Ice Climbers/Popo',
-  'pyra-mythra': 'Pyra & Mythra/Pyra',
 };
 const _SKIN_COUNT = {
-  'kazuya': 9,
-  'chrom': 9,
-  'corrin': 9,
-  'ken': 9,
-  'daisy': 12,
-  'mii-brawler': 2,
+  'mii-brawler': 1,
   'mii-gunner': 1,
   'mii-swordfighter': 1,
-  'richter': 8,
-  'ridley': 8,
 };
 
-/** Retorna la ruta a /images/Stock Icons V2/{folder}/{skin}.png */
+/** Retorna la ruta a /overlays/Santa-fe/Resources/Characters/Stock Icons/{folder}/{skin}.png */
 export function getStockIconPath(charId, skin = 1) {
   const char = CHARACTERS.find(c => c.id === charId);
   if (!char) return null;
@@ -266,7 +257,7 @@ export function getStockIconPath(charId, skin = 1) {
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const maxSkins = _SKIN_COUNT[charId] ?? 8;
   const idx = Math.max(1, Math.min(parseInt(skin) || 1, maxSkins));
-  return `/images/Stock%20Icons%20V2/${encodeURIComponent(folder)}/${idx}.png`;
+  return `/overlays/Santa-fe/Resources/Characters/Stock%20Icons/${encodeURIComponent(folder)}/${idx}.png`;
 }
 
 /** Retorna la cantidad de skins disponibles para un personaje */

@@ -170,7 +170,7 @@ export default function StreamOverlaySantaFe({ sessionId }) {
                 alt={getCharacterData(session.player1.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
-                onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                onError={(e) => { e.target.style.display='none'; }}
               />
               <motion.div
                 initial={{ scaleY: 0 }}
@@ -199,7 +199,7 @@ export default function StreamOverlaySantaFe({ sessionId }) {
                 alt={getCharacterData(session.player2.character)?.name}
                 className="w-32 h-32 rounded-full"
                 style={{ objectFit: 'cover' }}
-                onError={(e) => { e.target.src = '/images/characters/placeholder.png'; }}
+                onError={(e) => { e.target.style.display='none'; }}
               />
             </motion.div>
           </>

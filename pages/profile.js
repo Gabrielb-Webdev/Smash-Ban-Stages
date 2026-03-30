@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, logout } from '../src/utils/auth';
@@ -19,20 +19,20 @@ function timeAgo(iso) {
 }
 
 const COUNTRY_TO_CODE = {
-  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','México':'MX',
-  'Chile':'CL','Peru':'PE','Perú':'PE','Colombia':'CO','Venezuela':'VE',
+  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','M�xico':'MX',
+  'Chile':'CL','Peru':'PE','Per�':'PE','Colombia':'CO','Venezuela':'VE',
   'Uruguay':'UY','Paraguay':'PY','Bolivia':'BO','Ecuador':'EC','Costa Rica':'CR',
-  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','España':'ES',
+  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','Espa�a':'ES',
   'Japan':'JP','South Korea':'KR','France':'FR','Germany':'DE','Italy':'IT',
   'United Kingdom':'GB','UK':'GB','Australia':'AU','New Zealand':'NZ',
   'Portugal':'PT','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
 };
 const AR_PROVINCES = {
-  'Buenos Aires':'BA','Ciudad Autónoma de Buenos Aires':'CABA','CABA':'CABA',
-  'Capital Federal':'CABA','Córdoba':'CBA','Cordoba':'CBA','Santa Fe':'SF',
-  'Mendoza':'MZA','Tucumán':'TUC','Tucuman':'TUC','Entre Ríos':'ER','Entre Rios':'ER',
+  'Buenos Aires':'BA','Ciudad Aut�noma de Buenos Aires':'CABA','CABA':'CABA',
+  'Capital Federal':'CABA','C�rdoba':'CBA','Cordoba':'CBA','Santa Fe':'SF',
+  'Mendoza':'MZA','Tucum�n':'TUC','Tucuman':'TUC','Entre R�os':'ER','Entre Rios':'ER',
   'Salta':'SLA','Misiones':'MIS','Chaco':'CHA','Corrientes':'COR','Santiago del Estero':'SDE',
-  'San Juan':'SJ','Jujuy':'JUJ','Río Negro':'RN','Rio Negro':'RN','Neuquén':'NQN','Neuquen':'NQN',
+  'San Juan':'SJ','Jujuy':'JUJ','R�o Negro':'RN','Rio Negro':'RN','Neuqu�n':'NQN','Neuquen':'NQN',
   'Formosa':'FOR','Chubut':'CHU','San Luis':'SL','Catamarca':'CAT','La Rioja':'LR',
   'La Pampa':'LP','Santa Cruz':'SC','Tierra del Fuego':'TDF',
 };
@@ -66,7 +66,7 @@ function getRankBadgeData(rankName) {
   const rankObj = RANKS.find(r => r.name === rankName);
   if (!rankObj) return null;
   return {
-    icon: TIER_ICONS[rankObj.tier] || '🎮',
+    icon: TIER_ICONS[rankObj.tier] || '??',
     division: rankObj.subdivision || '',
     color: rankObj.color || '#9CA3AF',
   };
@@ -136,7 +136,7 @@ export default function ProfilePage() {
       return;
     }
     setUser(u);
-    // Limpiar localStorage per-user si cambió el usuario
+    // Limpiar localStorage per-user si cambi� el usuario
     try {
       const lastUid = localStorage.getItem('afk_last_uid');
       const currentUid = String(u.id || u.slug || '');
@@ -293,7 +293,7 @@ export default function ProfilePage() {
   return (
     <>
       <Head>
-        <title>{displayName} â€” AFK Smash</title>
+        <title>{displayName} — AFK Smash</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <style>{`
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -304,7 +304,7 @@ export default function ProfilePage() {
       </Head>
       <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', -apple-system, sans-serif", maxWidth: 480, margin: '0 auto' }}>
 
-        {/* â”€â”€ Top bar â”€â”€ */}
+        {/* ── Top bar ── */}
         <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}>
@@ -316,12 +316,12 @@ export default function ProfilePage() {
             {mainChar ? (
               <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
             ) : (
-              <span style={{ fontSize: 18 }}>🎮</span>
+              <span style={{ fontSize: 18 }}>??</span>
             )}
           </button>
         </div>
 
-        {/* â”€â”€ Banner / Hero â”€â”€ */}
+        {/* ── Banner / Hero ── */}
         <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
           {heroSrc ? (
             <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 4, cursor: 'pointer' }}>
@@ -332,14 +332,14 @@ export default function ProfilePage() {
                 onError={e => { e.target.style.display = 'none'; }}
               />
               <div style={{ position: 'absolute', bottom: 8, right: 0, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 12 }}>✏️</span>
+                <span style={{ fontSize: 12 }}>??</span>
                 <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Main</span>
               </div>
             </div>
           ) : (
             <div style={{ height: 120, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>🎮</span>
+                <span style={{ fontSize: 16 }}>??</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Elegir main</span>
               </button>
             </div>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
 
           {/* Change main button */}
           <button onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 5, margin: '6px 0 4px', background: 'rgba(255,140,0,0.1)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 10, padding: '5px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12 }}>🎮</span>
+            <span style={{ fontSize: 12 }}>??</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>{mainChar ? 'Cambiar main' : 'Elegir main'}</span>
           </button>
 
@@ -373,22 +373,22 @@ export default function ProfilePage() {
             <button onClick={() => setShowStatusMenu(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : '#555', boxShadow: `0 0 4px ${myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : 'transparent'}` }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
-                {myStatus === 'online' ? 'En línea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
+                {myStatus === 'online' ? 'En l�nea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
               </span>
-              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>▼</span>
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>?</span>
             </button>
             {showStatusMenu && (
               <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 4, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', zIndex: 50, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
                 {[
-                  { key: 'online', color: '#22C55E', label: 'En línea', icon: '🟢' },
-                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '🌙' },
-                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '⛔' },
-                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '👻' },
+                  { key: 'online', color: '#22C55E', label: 'En l�nea', icon: '??' },
+                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '??' },
+                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '?' },
+                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '??' },
                 ].map(opt => (
                   <button key={opt.key} onClick={() => changeStatus(opt.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: myStatus === opt.key ? 'rgba(255,255,255,0.06)' : 'transparent', cursor: 'pointer' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, boxShadow: opt.color !== '#555' ? `0 0 4px ${opt.color}` : 'none' }} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: myStatus === opt.key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{opt.label}</span>
-                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>✓</span>}
+                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>?</span>}
                   </button>
                 ))}
               </div>
@@ -405,10 +405,10 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* â”€â”€ Content â”€â”€ */}
+        {/* ── Content ── */}
         <div style={{ padding: '0 18px 40px' }}>
 
-          {/* â•â•â•â• OVERVIEW â•â•â•â• */}
+          {/* ════ OVERVIEW ════ */}
           {activeTab === 'overview' && (
             <div>
               <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Winrates</p>
@@ -420,16 +420,16 @@ export default function ProfilePage() {
                     <div>
                       <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ALL TIME</p>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: '#22C55E', lineHeight: 1 }}>{loading ? 'â€”' : totalW}</span>
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#22C55E', lineHeight: 1 }}>{loading ? '—' : totalW}</span>
                         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>W</span>
-                        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', margin: '0 2px' }}>â€“</span>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{loading ? 'â€”' : totalL}</span>
+                        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', margin: '0 2px' }}>–</span>
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{loading ? '—' : totalL}</span>
                         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>L</span>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ margin: 0, fontSize: 40, fontWeight: 900, lineHeight: 1, color: loading ? 'rgba(255,255,255,0.2)' : winRate >= 50 ? '#22C55E' : winRate >= 40 ? '#F59E0B' : 'rgba(255,255,255,0.45)' }}>
-                        {loading ? 'â€”' : `${winRate}%`}
+                        {loading ? '—' : `${winRate}%`}
                       </p>
                     </div>
                   </div>
@@ -443,8 +443,8 @@ export default function ProfilePage() {
                 {/* Platform breakdown */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                   {[
-                    { label: '🎮 Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
-                    { label: '🖥️ Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
+                    { label: '?? Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
+                    { label: '??? Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
                   ].map((p, i) => (
                     <div key={i} style={{ padding: '14px 20px', borderRight: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                       <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</p>
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                         ? <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin datos</p>
                         : <>
                           <p style={{ margin: '0 0 3px', fontSize: 24, fontWeight: 900, lineHeight: 1, color: p.wr >= 50 ? '#22C55E' : 'rgba(255,255,255,0.45)' }}>{p.wr}%</p>
-                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{p.w}W Â· {p.l}L</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{p.w}W · {p.l}L</p>
                         </>
                       }
                     </div>
@@ -460,7 +460,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* ── SUMMARY (Start.GG character usage) ── */}
+              {/* -- SUMMARY (Start.GG character usage) -- */}
               {startggStats && startggStats.charUsage && startggStats.charUsage.length > 0 && (
                 <div style={{ marginBottom: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '22px 0 12px' }}>
@@ -468,9 +468,9 @@ export default function ProfilePage() {
                       <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
                       <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
                     </div>
-                    <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
+                    <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG � {startggStats.totalSets} sets</p>
                     <button onClick={refreshStartgg} disabled={refreshing} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', cursor: refreshing ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: refreshing ? 0.5 : 1 }}>
-                      <span style={{ fontSize: 12, display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                      <span style={{ fontSize: 12, display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>??</span>
                       <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>{refreshing ? '...' : 'Sync'}</span>
                     </button>
                   </div>
@@ -532,7 +532,7 @@ export default function ProfilePage() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
-                          <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                          <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
                         </div>
                         <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                           {startggStats.charUsage.map((ch, i) => {
@@ -554,9 +554,9 @@ export default function ProfilePage() {
                                   <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                                     <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
                                   </div>
-                                  <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+                                  <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g � {cWR}% WR</p>
                                 </div>
-                                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>›</span>
+                                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>�</span>
                               </div>
                             );
                           })}
@@ -674,7 +674,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* â•â•â•â• RANKED â•â•â•â• */}
+          {/* ════ RANKED ════ */}
           {activeTab === 'ranked' && (
             <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {(['switch', 'parsec']).map(plat => {
@@ -690,11 +690,11 @@ export default function ProfilePage() {
                   || null;
                 const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
                 const tierIconVal = rankObj
-                  ? (TIER_ICONS[rankObj.tier] || '🎮')
+                  ? (TIER_ICONS[rankObj.tier] || '??')
                   : (rankName ? (TIER_ICONS[rankName.split(' ')[0]] || null) : null);
                 const tierIcon = unranked ? null : tierIconVal;
                 const pColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
-                const pLabel   = plat === 'switch' ? '🎮 Switch Online' : '🖥️ Parsec';
+                const pLabel   = plat === 'switch' ? '?? Switch Online' : '??? Parsec';
                 const platWR   = tot > 0 ? Math.round((s?.wins || 0) * 100 / tot) : null;
                 return (
                   <div key={plat} style={{ background: unranked ? 'rgba(255,255,255,0.03)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : rankColor + '35'}`, borderRadius: 20, padding: '20px' }}>
@@ -712,9 +712,9 @@ export default function ProfilePage() {
                         </p>
                         <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
                           <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
-                          {' Â· '}
+                          {' · '}
                           <span style={{ color: '#EF4444', fontWeight: 700 }}>{s?.losses || 0}L</span>
-                          {platWR !== null && <span style={{ color: 'rgba(255,255,255,0.3)' }}> Â· {platWR}%</span>}
+                          {platWR !== null && <span style={{ color: 'rgba(255,255,255,0.3)' }}> · {platWR}%</span>}
                         </p>
                         {!unranked && !inPlac && !isSmasher && (
                           <div>
@@ -736,23 +736,23 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* â•â•â•â• HISTORIAL â•â•â•â• */}
+          {/* ════ HISTORIAL ════ */}
           {activeTab === 'historial' && (
             <div style={{ paddingTop: 20 }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
               ) : history.length === 0 ? (
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>âš”ï¸</p>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aÃºn</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>JugÃ¡ ranked para ver tu historial</p>
+                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Jugá ranked para ver tu historial</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {history.map((m, i) => {
                     const isWin    = String(m.winnerId) === String(user.id || user.slug);
                     const opponent = isWin ? m.loserName : m.winnerName;
-                    const pLabel   = m.platform === 'switch' ? '🎮 Switch' : '🖥️ Parsec';
+                    const pLabel   = m.platform === 'switch' ? '?? Switch' : '??? Parsec';
                     const myCharId = isWin ? m.winnerCharId : m.loserCharId;
                     const myCharObj = CHARACTERS.find(c => c.id === myCharId) || null;
                     const myIconSrc = stockIconPath(myCharObj, 1) || (myCharObj ? charImgPath(myCharObj.img) : null);
@@ -773,7 +773,7 @@ export default function ProfilePage() {
                               src={myIconSrc}
                               alt=""
                               style={{ width: 50, height: 50, objectFit: 'contain' }}
-                              onError={e => { e.target.src = '/images/characters/placeholder.png'; }}
+                              onError={e => { e.target.style.display='none'; }}
                             />
                           ) : (
                             <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: 900 }}>?</div>
@@ -793,7 +793,7 @@ export default function ProfilePage() {
                         </div>
                         <div style={{ flex: '1 1 0%', padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{pLabel} · {timeAgo(m.playedAt)}</p>
+                          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{pLabel} � {timeAgo(m.playedAt)}</p>
                           {rrText && (
                             <span style={{ fontSize: 10, fontWeight: 800, color: rrDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rrText}</span>
                           )}
@@ -818,23 +818,23 @@ export default function ProfilePage() {
           <div style={{ marginTop: 28 }}>
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ajustes de Parsec</p>
             <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 16, padding: '14px 16px' }}>
-              <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#fff' }}>Modo de conexión en Parsec</p>
+              <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#fff' }}>Modo de conexi�n en Parsec</p>
               <p style={{ margin: '0 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
-                Indicá si podés hostear una sesión. Esto evita que el sistema te empareje con otro jugador que tampoco puede hostear.
+                Indic� si pod�s hostear una sesi�n. Esto evita que el sistema te empareje con otro jugador que tampoco puede hostear.
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => changeParsecRole('host')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
-                  {parsecRole === 'host' ? '✓ ' : ''}Host
+                  {parsecRole === 'host' ? '? ' : ''}Host
                 </button>
                 <button onClick={() => changeParsecRole('nohost')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
-                  {parsecRole === 'nohost' ? '✓ ' : ''}No Host
+                  {parsecRole === 'nohost' ? '? ' : ''}No Host
                 </button>
               </div>
             </div>
           </div>
 
           <button onClick={() => { logout(); window.location.href = '/login'; }} style={{ marginTop: 24, width: '100%', padding: '14px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-            Cerrar sesión
+            Cerrar sesi�n
           </button>
         </div>
       </div>
@@ -849,7 +849,7 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {pickerStep === 'alt' && (
-                  <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>←</button>
+                  <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>?</button>
                 )}
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>
                   {pickerStep === 'char' ? 'Elegir main' : 'Elegir skin'}
@@ -859,7 +859,7 @@ export default function ProfilePage() {
                 {mainChar && pickerStep === 'char' && (
                   <button onClick={clearMainChar} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#EF4444' }}>Quitar</button>
                 )}
-                <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
               </div>
             </div>
 

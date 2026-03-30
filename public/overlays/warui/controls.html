@@ -461,7 +461,7 @@
       btn.className = 'skin-btn' + (selectedSkin[n] === skin ? ' skin-active' : '');
       btn.onclick = function() { selectedSkin[n] = skin; renderSkinGrid(n); updateChar(); };
       const img = document.createElement('img');
-      img.src = 'https://smash-ban-stages.vercel.app/images/Stock%20Icons%20V2/' + encodeURIComponent(folder) + '/' + skin + '.png';
+      img.src = 'https://smash-ban-stages.vercel.app/overlays/Santa-fe/Resources/Characters/Stock%20Icons/' + encodeURIComponent(folder) + '/' + skin + '.png';
       img.width = 44; img.height = 44;
       img.onerror = function() { btn.remove(); };
       btn.appendChild(img);
@@ -474,7 +474,7 @@
     if (!charVal) return '';
     const folder = CHAR_FOLDER[charVal];
     if (!folder) return charVal;
-    return 'Stock Icons V2/' + folder + '/' + selectedSkin[n] + '.png';
+    return 'Santa-fe/Stock Icons/' + folder + '/' + selectedSkin[n] + '.png';
   }
 
   function setStatus(text, ok = true) {
@@ -562,11 +562,18 @@
     const c2 = document.getElementById('in-char2');
     function restoreChar(inp, val, n) {
       if (!val) return;
-      if (val.startsWith('Stock Icons V2/')) {
+      let folder, skinN;
+      if (val.startsWith('Santa-fe/Stock Icons/')) {
         const parts = val.split('/');
-        const folder = parts[1];
-        const skinN  = parseInt(parts[2]) || 1;
-        const key    = Object.keys(CHAR_FOLDER).find(k => CHAR_FOLDER[k] === folder);
+        folder = parts[2];
+        skinN  = parseInt(parts[3]) || 1;
+      } else if (val.startsWith('Stock Icons V2/')) {
+        const parts = val.split('/');
+        folder = parts[1];
+        skinN  = parseInt(parts[2]) || 1;
+      }
+      if (folder) {
+        const key = Object.keys(CHAR_FOLDER).find(k => CHAR_FOLDER[k] === folder);
         if (key) { inp.value = key; selectedSkin[n] = skinN; renderSkinGrid(n); }
       } else {
         for (const o of inp.options) { if (o.value === val) { inp.value = val; break; } }
