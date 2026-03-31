@@ -314,6 +314,33 @@ export default function AfkRankingAdmin() {
     setRefreshingNames(false);
   }
 
+  // Corregir nombres de perfil a gamerTag
+  const [fixingNames, setFixingNames] = useState(false);
+  const [fixNamesMsg, setFixNamesMsg] = useState(null);
+
+  async function handleFixPlayerNames() {
+    setFixingNames(true);
+    setFixNamesMsg(null);
+    try {
+      const r = await fetch('/api/admin/fix-player-names', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${ADMIN_SECRET}` },
+      });
+      const d = await r.json();
+      if (d.ok) {
+        const msg = d.updated === 0
+          ? '✅ Todos los nombres ya eran correctos'
+          : `✅ ${d.updated} nombre(s) corregido(s): ${d.changes.map(c => `${c.oldName} → ${c.newName}`).join(', ')}`;
+        setFixNamesMsg({ ok: true, text: msg });
+      } else {
+        setFixNamesMsg({ ok: false, text: d.error || 'Error' });
+      }
+    } catch (e) {
+      setFixNamesMsg({ ok: false, text: e.message });
+    }
+    setFixingNames(false);
+  }
+
   // Renombrar jugador manualmente
   const [renameOld, setRenameOld] = useState('');
   const [renameNew, setRenameNew] = useState('');
@@ -765,9 +792,17 @@ export default function AfkRankingAdmin() {
                 title="Consulta start.gg y actualiza los nombres de jugadores que hayan cambiado de nick">
                 {refreshingNames ? '⏳ Actualizando...' : '👤 Actualizar nombres'}
               </button>
+              <button
+                onClick={handleFixPlayerNames}
+                disabled={fixingNames}
+                style={{ ...S.btnOutline, fontSize: 12, gap: 6 }}
+                title="Corrige perfiles que guardaron el nombre real (ej: Paco Garcia) en vez del gamerTag (ej: Paco)">
+                {fixingNames ? '⏳ Corrigiendo...' : '🔧 Corregir nombres (gamerTag)'}
+              </button>
             </div>
             {refreshCharsMsg && <div style={{ ...refreshCharsMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshCharsMsg.text}</div>}
             {refreshNamesMsg && <div style={{ ...refreshNamesMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshNamesMsg.text}</div>}
+            {fixNamesMsg && <div style={{ ...fixNamesMsg.ok ? S.success : S.error, marginBottom: 10 }}>{fixNamesMsg.text}</div>}
 
             {/* Renombrar jugador manualmente */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
