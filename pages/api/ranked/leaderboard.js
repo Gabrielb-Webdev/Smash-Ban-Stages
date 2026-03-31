@@ -36,20 +36,27 @@ export default async function handler(req, res) {
     return res.status(200).json({ players: [], total: 0 });
   }
 
-  // mget: 150 redis.get individuales → 3 mget (1 comando cada uno, 50× más eficiente)
-  const [statsArray, recentCharsArray, profilesArray] = await Promise.all([
+  // mget: 2 mget en paralelo (stats y perfiles)
+  const [statsArray, profilesArray] = await Promise.all([
     redis.mget(...playerIds.map(id => statsKeyFn(id, platform))),
-    redis.mget(...playerIds.map(id => `recent:chars:${id}`)),
     redis.mget(...playerIds.map(id => playerKey(id))),
   ]);
 
   const leaderboard = statsArray
-    .map((s, i) => s ? {
-      ...s,
-      mainCharId: profilesArray[i]?.mainChar || recentCharsArray[i]?.[0] || null,
-      mainCharAlt: profilesArray[i]?.mainCharAlt || null,
-      country: profilesArray[i]?.country || null,
-    } : null)
+    .map((s, i) => {
+      if (!s) return null;
+      // Personaje más usado en ranked (calculado desde charCounts acumulado en cada partida)
+      const topRankedChar = s.charCounts
+        ? (Object.entries(s.charCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null)
+        : null;
+      return {
+        ...s,
+        // Prioridad: mainChar del perfil (elegido explícitamente) > más usado en partidas ranked
+        mainCharId: profilesArray[i]?.mainChar || topRankedChar || null,
+        mainCharAlt: profilesArray[i]?.mainCharAlt || null,
+        country: profilesArray[i]?.country || null,
+      };
+    })
     .filter(Boolean)
     .sort((a, b) => {
       const aRanked = !!a.placementDone;

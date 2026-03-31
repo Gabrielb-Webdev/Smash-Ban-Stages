@@ -319,6 +319,18 @@ async function applyFinishedStats(match, matchId) {
   const wWasInPlacement = !wStats.placementDone && ((wStats.wins || 0) + (wStats.losses || 0)) < PLACEMENT_MATCHES;
   const lWasInPlacement = !lStats.placementDone && ((lStats.wins || 0) + (lStats.losses || 0)) < PLACEMENT_MATCHES;
 
+  // ── Actualizar conteo de personajes en stats ──
+  const wcId = String(match.player1.userId) === String(winnerId) ? match.player1.charId : match.player2.charId;
+  const lcId = String(match.player1.userId) === String(loserId)  ? match.player1.charId : match.player2.charId;
+  if (wcId) {
+    if (!wStats.charCounts) wStats.charCounts = {};
+    wStats.charCounts[String(wcId)] = (wStats.charCounts[String(wcId)] || 0) + 1;
+  }
+  if (lcId) {
+    if (!lStats.charCounts) lStats.charCounts = {};
+    lStats.charCounts[String(lcId)] = (lStats.charCounts[String(lcId)] || 0) + 1;
+  }
+
   // ── Procesar resultado con el nuevo sistema ──
   const result = processMatchResult(wStats, lStats, { stocksWon: finalStocks });
 

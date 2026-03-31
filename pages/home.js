@@ -1768,10 +1768,11 @@ function ConfigModal({ onClose, userId }) {
 }
 
 function CommPlayerRow({ position, player, onPlayerClick, onNoProfile }) {
-  // topChar = personaje más usado en los torneos del ranking (2025), tiene prioridad
-  const charId     = player.topChar || player.mainCharId || null;
+  // Solo mostrar el personaje más usado en los torneos importados (topChar)
+  // No usar datos del perfil del jugador (mainCharId/mainCharAlt)
+  const charId     = player.topChar ? String(player.topChar) : null;
   const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
-  const charSrc    = player.mainCharAlt || (renderFile ? charRenderPath(renderFile) : null);
+  const charSrc    = renderFile ? charRenderPath(renderFile) : null;
 
   const isTop3 = position <= 3;
   const topColors = {
