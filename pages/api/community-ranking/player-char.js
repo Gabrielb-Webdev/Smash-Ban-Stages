@@ -11,7 +11,7 @@ import redis, { crCharOverrideKey } from '../../../lib/redis';
 import { CHARACTERS } from '../../../lib/characters';
 
 const ADMIN_SECRET = 'afk-admin-2025';
-const VALID_CHAR_IDS = new Set(CHARACTERS.map(c => c.id));
+const VALID_CHAR_IDS = new Set([...CHARACTERS.map(c => c.id), 'random']);
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization;

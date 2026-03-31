@@ -981,6 +981,7 @@ export default function AfkRankingAdmin() {
                 style={{ ...S.select, flex: 1, minWidth: 160 }}
               >
                 <option value="">Sin personaje (limpiar)</option>
+                <option value="random">🎲 Random</option>
                 {CHARACTERS.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
