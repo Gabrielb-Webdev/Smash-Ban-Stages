@@ -4863,8 +4863,12 @@ function TabRankings({ user, setTab }) {
   }, [mode]);
 
   const COMM_TAB_MAP = [
-    { commId: 'afk',  modeId: 'ba',  label: 'AFK'  },
-    { commId: 'inc',  modeId: 'inc', label: 'INC'  },
+    { commId: 'afk',     modeId: 'ba',      label: 'AFK'      },
+    { commId: 'inc',     modeId: 'inc',     label: 'INC'      },
+    { commId: 'cordoba', modeId: 'cordoba', label: 'Córdoba'  },
+    { commId: 'mendoza', modeId: 'mendoza', label: 'Mendoza'  },
+    { commId: 'warui',   modeId: 'warui',   label: 'Warui'    },
+    { commId: 'santafe', modeId: 'santafe', label: 'Santa Fe' },
   ];
 
   const MODES = [

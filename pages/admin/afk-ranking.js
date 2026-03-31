@@ -5,10 +5,12 @@ import { getStoredUser, verifySession } from '../../src/utils/auth';
 
 const ADMIN_SECRET = 'afk-admin-2025';
 const ALL_COMMUNITIES = [
-  { id: 'afk',     label: 'AFK (Buenos Aires)' },
-  { id: 'inc',     label: 'Smash INC'           },
-  { id: 'cordoba', label: 'Smash Córdoba'        },
-  { id: 'mendoza', label: 'Smash Mendoza'        },
+  { id: 'afk',     label: 'AFK (Buenos Aires)', short: 'AFK', color: '#F59E0B', icon: '🇦🇷' },
+  { id: 'inc',     label: 'Smash INC',          short: 'INC', color: '#EF4444', icon: '🎮' },
+  { id: 'cordoba', label: 'Smash Córdoba',       short: 'CBA', color: '#EC4899', icon: '🏙️' },
+  { id: 'mendoza', label: 'Smash Mendoza',       short: 'MDZ', color: '#6366F1', icon: '🍇' },
+  { id: 'warui',   label: 'Warui Team',          short: 'WAR', color: '#A78BFA', icon: '⚔️' },
+  { id: 'santafe', label: 'Smash Santa Fe',      short: 'SFE', color: '#06B6D4', icon: '🌊' },
 ];
 const BASE_YEARS = ['2024', '2025', '2026'];
 
@@ -434,36 +436,67 @@ export default function AfkRankingAdmin() {
       <Head><title>Ranking Comunitario — Admin</title></Head>
       <div style={S.page}>
         {/* Header */}
-        <div style={S.header}>
-          <span style={{ fontSize: 24 }}>🏆</span>
-          <h1 style={S.title}>Ranking Comunitario</h1>
-
-          {/* Comunidad */}
-          <select value={community} onChange={e => setCommunity(e.target.value)} style={S.select}>
-            {visibleComms.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-
-          {/* Año */}
-          <select value={year} onChange={e => setYear(e.target.value)} style={S.select}>
-            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-
-          {/* Agregar año */}
-          <form onSubmit={handleAddYear} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input
-              value={newYearInput}
-              onChange={e => setNewYearInput(e.target.value)}
-              placeholder="Ej: 2027"
-              maxLength={4}
-              style={{ ...S.input, width: 80, padding: '10px 10px' }}
-            />
-            <button type="submit" style={{ ...S.btn, padding: '10px 12px', background: 'rgba(99,102,241,0.7)' }} title="Agregar año">
-              ＋ Año
-            </button>
-          </form>
+        <div style={{ ...S.header, gap: 12, position: 'sticky', top: 0, zIndex: 20 }}>
+          <button
+            onClick={() => router.push('/?panel=1')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '8px 14px', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
+            ← Volver
+          </button>
+          <span style={{ fontSize: 22, flexShrink: 0 }}>🏆</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ ...S.title, fontSize: 17, margin: 0 }}>Ranking Comunitario</h1>
+            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+              {visibleComms.find(c => c.id === community)?.label || ''} — {year}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
+            {availableYears.map(y => (
+              <button key={y} onClick={() => setYear(y)} style={{
+                padding: '6px 14px', borderRadius: 20, border: y === year ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                background: y === year ? '#7C3AED' : 'rgba(255,255,255,0.04)',
+                color: y === year ? '#fff' : 'rgba(255,255,255,0.5)',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'background 0.15s',
+              }}>{y}</button>
+            ))}
+            <form onSubmit={handleAddYear} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <input
+                value={newYearInput}
+                onChange={e => setNewYearInput(e.target.value)}
+                placeholder="+ año"
+                maxLength={4}
+                style={{ ...S.input, width: 72, padding: '6px 10px', fontSize: 13 }}
+              />
+              <button type="submit" style={{ ...S.btn, padding: '6px 10px', background: 'rgba(99,102,241,0.7)', fontSize: 13 }} title="Agregar año">＋</button>
+            </form>
+          </div>
         </div>
 
         <div style={S.body}>
+
+          {/* ── Selector de comunidad ── */}
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Comunidad activa</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {visibleComms.map(c => {
+                const active = community === c.id;
+                return (
+                  <button key={c.id} onClick={() => setCommunity(c.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '9px 16px', borderRadius: 12,
+                    background: active ? `${c.color}22` : 'rgba(255,255,255,0.03)',
+                    border: `1.5px solid ${active ? c.color : 'rgba(255,255,255,0.08)'}`,
+                    color: active ? c.color : 'rgba(255,255,255,0.5)',
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                    <span style={{ fontSize: 15 }}>{c.icon}</span>
+                    <span>{c.short || c.label}</span>
+                    {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* ── Comunidades visibles en Rankings (solo superadmin) ── */}
           {userIsAdmin && (
