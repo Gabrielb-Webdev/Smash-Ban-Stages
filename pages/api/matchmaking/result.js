@@ -136,11 +136,17 @@ export default async function handler(req, res) {
 
     // Run stats if finished...
     let finishedRPDelta = 0;
+    let finishedLoserRPDelta = 0;
     let finishedMMRDelta = 0;
+    let finishedWinnerRankChange = null;
+    let finishedLoserRankChange = null;
     if (match.status === 'finished') {
       const statsResult = await applyFinishedStats(match, matchId, cleanReporter);
       finishedRPDelta = statsResult.rpDelta;
+      finishedLoserRPDelta = statsResult.loserRpDelta;
       finishedMMRDelta = statsResult.mmrDelta;
+      finishedWinnerRankChange = statsResult.winnerRankChange;
+      finishedLoserRankChange = statsResult.loserRankChange;
     }
 
     return res.status(200).json({
@@ -148,7 +154,10 @@ export default async function handler(req, res) {
       matchStatus: match.status,
       result: match.result,
       rpDelta: finishedRPDelta || undefined,
+      loserRpDelta: finishedLoserRPDelta || undefined,
       mmrDelta: finishedMMRDelta || undefined,
+      winnerRankChange: finishedWinnerRankChange || undefined,
+      loserRankChange: finishedLoserRankChange || undefined,
     });
   }
 
@@ -244,6 +253,9 @@ export default async function handler(req, res) {
       success: true, matchStatus: 'finished',
       result: match.result,
       rpDelta: statsResult.rpDelta,
+      loserRpDelta: statsResult.loserRpDelta || undefined,
+      winnerRankChange: statsResult.winnerRankChange || undefined,
+      loserRankChange: statsResult.loserRankChange || undefined,
       forfeit: true,
     });
   }
@@ -443,6 +455,7 @@ async function applyFinishedStats(match, matchId) {
 
   return {
     rpDelta: result.winner.rrDelta,
+    loserRpDelta: result.loser.rrDelta,
     mmrDelta: result.winner.mmrDelta,
     winnerRankChange: result.winner.rankChange,
     loserRankChange: result.loser.rankChange,

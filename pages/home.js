@@ -6715,6 +6715,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         const data = await r.json();
         if (r.ok) {
           if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+          if (typeof data.loserRpDelta === 'number') setMatchLoserRpDelta(data.loserRpDelta);
+          if (data.winnerRankChange) setMatchWinnerRankChange(data.winnerRankChange);
+          if (data.loserRankChange) setMatchLoserRankChange(data.loserRankChange);
           setBgMM(prev => prev ? { ...prev, status: 'finished', room: { ...prev.room, status: 'finished', result: data.result } } : prev);
         }
       } catch {}
@@ -6748,6 +6751,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const [reportError, setReportError]     = useState(null);
   const [reportStocks, setReportStocks]   = useState(1);
   const [matchRpDelta, setMatchRpDelta]   = useState(null);
+  const [matchLoserRpDelta, setMatchLoserRpDelta] = useState(null);
+  const [matchWinnerRankChange, setMatchWinnerRankChange] = useState(null);
+  const [matchLoserRankChange, setMatchLoserRankChange] = useState(null);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const [forfeitLoading, setForfeitLoading]         = useState(false);
 
@@ -6871,6 +6877,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         setReported(true);
       }
       if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+      if (typeof data.loserRpDelta === 'number') setMatchLoserRpDelta(data.loserRpDelta);
+      if (data.winnerRankChange) setMatchWinnerRankChange(data.winnerRankChange);
+      if (data.loserRankChange) setMatchLoserRankChange(data.loserRankChange);
       if (data.matchStatus === 'banning') {
         setReported(false);
         setReportStocks(1);
@@ -6902,6 +6911,9 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       const data = await r.json();
       if (!r.ok) { setReportError(data.error || 'Error al rendirse'); setShowForfeitConfirm(false); return; }
       if (typeof data.rpDelta === 'number') setMatchRpDelta(data.rpDelta);
+      if (typeof data.loserRpDelta === 'number') setMatchLoserRpDelta(data.loserRpDelta);
+      if (data.winnerRankChange) setMatchWinnerRankChange(data.winnerRankChange);
+      if (data.loserRankChange) setMatchLoserRankChange(data.loserRankChange);
       setBgMM(prev => prev ? {
         ...prev,
         room: { ...prev.room, status: 'finished', result: data.result },
@@ -6916,7 +6928,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     setBgMM(null);
     setChatMessages([]); setChatInput('');
     setReported(false); setReportError(null);
-    setReportStocks(1); setMatchRpDelta(null);
+    setReportStocks(1); setMatchRpDelta(null); setMatchLoserRpDelta(null);
+    setMatchWinnerRankChange(null); setMatchLoserRankChange(null);
     setShowForfeitConfirm(false); setForfeitLoading(false);
     setSearchPlat(null); setSearchChar(null);
     setMatchTypeMode('ranked');
@@ -7173,7 +7186,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
           {isCasualFinished && <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚔️ Partida Normal</p>}
           <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? (is2v2Finished ? '¡Ganaron!' : '¡Ganaste!') : (is2v2Finished ? 'Perdieron' : 'Perdiste')}</p>
-          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? 'Bien jugado ??' : 'La próxima será'}</p>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
           {stocks && (
             <div style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={charImgPath(winnerCharData.img)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
@@ -7187,7 +7200,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           )}
           {!isCasualFinished && !iWon && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>-10 RP</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>{matchLoserRpDelta != null ? matchLoserRpDelta : -10} RP</span>
             </div>
           )}
           {/* Bo3 Games Summary */}
@@ -7208,8 +7221,44 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             </div>
           )}
         </div>
+        {!isCasualFinished && !is2v2Finished && (() => {
+          const myRpDelta = iWon ? matchRpDelta : matchLoserRpDelta;
+          const myRankChange = iWon ? matchWinnerRankChange : matchLoserRankChange;
+          return (
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 16px', marginBottom: 12 }}>
+              <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resumen de puntos</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: stocks && iWon ? 6 : 0 }}>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{iWon ? 'RP ganados' : 'RP perdidos'}</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>
+                  {iWon ? '+' : ''}{myRpDelta != null ? myRpDelta : (iWon ? '?' : -10)} RP
+                </span>
+              </div>
+              {stocks && iWon && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Stocks de ventaja</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{stocks}</span>
+                </div>
+              )}
+              {myRankChange?.promoted && (
+                <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>🎉</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#34D399' }}>¡Ascendiste de rango!</span>
+                </div>
+              )}
+              {myRankChange?.demoted && (
+                <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>📉</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#EF4444' }}>Descendiste de rango</span>
+                </div>
+              )}
+              <p style={{ margin: '8px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.5 }}>
+                Los RP varían según stocks ganados y diferencia de MMR entre jugadores.
+              </p>
+            </div>
+          );
+        })()}
         <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-          Jugar otra vez
+          {isCasualFinished ? 'Jugar otra vez' : '🔍 Nueva búsqueda'}
         </button>
       </div>
     );
@@ -7422,8 +7471,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
               )}
               {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>? Confirmar</button>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>? Negar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>✅ Confirmar</button>
+                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>❌ Negar</button>
               </div>
             </div>
           )
@@ -7630,7 +7679,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                     )}
                     {isSel && isPickMode && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 32 }}>?</span>
+                        <span style={{ fontSize: 32 }}>✅</span>
                       </div>
                     )}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px 8px 6px' }}>
