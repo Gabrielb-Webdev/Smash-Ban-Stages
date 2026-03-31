@@ -1,4 +1,4 @@
-import { redis, crTournamentsKey } from '../../../lib/redis';
+import redis, { crTournamentsKey } from '../../../lib/redis';
 import { getPositionPoints, MIN_ATTENDEES } from '../../../lib/communityRanking';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';

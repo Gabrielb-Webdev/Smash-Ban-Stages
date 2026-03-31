@@ -1,4 +1,4 @@
-import { redis, crTournamentsKey } from '../../../lib/redis';
+import redis, { crTournamentsKey } from '../../../lib/redis';
 import { MIN_ATTENDEES } from '../../../lib/communityRanking';
 
 function checkAuth(req) {

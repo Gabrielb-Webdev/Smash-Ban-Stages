@@ -1,4 +1,4 @@
-import { redis, crTournamentsKey } from '../../../lib/redis';
+import redis, { crTournamentsKey } from '../../../lib/redis';
 
 function checkAuth(req) {
   const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
