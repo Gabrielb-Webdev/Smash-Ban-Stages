@@ -274,6 +274,31 @@ export default function AfkRankingAdmin() {
     setRefreshingChars(false);
   }
 
+  // Refresh nombres
+  const [refreshingNames, setRefreshingNames] = useState(false);
+  const [refreshNamesMsg, setRefreshNamesMsg] = useState(null);
+
+  async function handleRefreshNames() {
+    setRefreshingNames(true);
+    setRefreshNamesMsg(null);
+    const r = await fetch('/api/community-ranking/refresh-names', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ community, year }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      const msg = d.updatedStandings > 0
+        ? `✅ ${d.updatedStandings} nombre(s) actualizados en ${d.updatedTournaments} torneo(s)`
+        : '✅ Todos los nombres ya estaban actualizados';
+      setRefreshNamesMsg({ ok: true, text: msg });
+      loadData(community, year);
+    } else {
+      setRefreshNamesMsg({ ok: false, text: d.error || 'Error' });
+    }
+    setRefreshingNames(false);
+  }
+
   // Config comunidades visibles en home
   const [rankingComms,        setRankingComms]        = useState(['afk']);
   const [rankingCommsSaving,  setRankingCommsSaving]  = useState(false);
@@ -687,8 +712,16 @@ export default function AfkRankingAdmin() {
                 title="Consulta start.gg y rellena el personaje más usado de cada jugador">
                 {refreshingChars ? '⏳ Actualizando...' : '🎮 Actualizar personajes'}
               </button>
+              <button
+                onClick={handleRefreshNames}
+                disabled={refreshingNames || data.tournaments.length === 0}
+                style={{ ...S.btnOutline, fontSize: 12, gap: 6 }}
+                title="Consulta start.gg y actualiza los nombres de jugadores que hayan cambiado de nick">
+                {refreshingNames ? '⏳ Actualizando...' : '👤 Actualizar nombres'}
+              </button>
             </div>
             {refreshCharsMsg && <div style={{ ...refreshCharsMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshCharsMsg.text}</div>}
+            {refreshNamesMsg && <div style={{ ...refreshNamesMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshNamesMsg.text}</div>}
             {data.tournaments.length === 0 && !loadingData && (
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>No hay torneos para esta comunidad y año.</p>
             )}

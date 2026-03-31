@@ -1768,7 +1768,8 @@ function ConfigModal({ onClose, userId }) {
 }
 
 function CommPlayerRow({ position, player, onPlayerClick, onNoProfile }) {
-  const charId     = player.mainCharId || player.topChar || null;
+  // topChar = personaje más usado en los torneos del ranking (2025), tiene prioridad
+  const charId     = player.topChar || player.mainCharId || null;
   const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
   const charSrc    = player.mainCharAlt || (renderFile ? charRenderPath(renderFile) : null);
 

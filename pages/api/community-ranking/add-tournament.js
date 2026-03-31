@@ -24,7 +24,7 @@ query EventEntrants($slug: String!, $page: Int!, $perPage: Int!) {
       nodes {
         standing { placement }
         name
-        participants { player { gamerTag } }
+        participants { player { id gamerTag } }
       }
     }
   }
@@ -63,7 +63,7 @@ query PhaseGroupStandings($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
         placement
         entrant {
           name
-          participants { player { gamerTag } }
+          participants { player { id gamerTag } }
         }
       }
     }
@@ -388,12 +388,14 @@ export default async function handler(req, res) {
     }
 
     const standings = nodes.map(n => {
-      const playerName = n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || 'Desconocido';
+      const player = n.entrant?.participants?.[0]?.player;
+      const playerName = player?.gamerTag || n.entrant?.name || 'Desconocido';
       const basePoints = getPositionPoints(n.placement, type);
       return {
         placement: n.placement,
         playerName,
         entrantName: n.entrant?.name || playerName,
+        playerId: player?.id || null,
         basePoints,
         bonusPoints: 0,
         charId: charMap[playerName] || null,
