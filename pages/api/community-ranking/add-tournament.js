@@ -289,21 +289,34 @@ export default async function handler(req, res) {
     let numAttendees = 0;   // del evento padre (para validar MIN_ATTENDEES)
     let dupId = null;
     let eventSlug = parsed.eventSlug;
+    let mergeTarget = null; // torneo existente al que mergear (mismo evento, otro bracket)
 
     // ── Caso A: URL incluye phaseGroupId (/brackets/{phaseId}/{phaseGroupId}) ──
     if (parsed.phaseGroupId) {
-      dupId = `phaseGroup:${parsed.phaseGroupId}`;
-      if (existing.some(t => t.id === dupId))
+      const pgDupId = `phaseGroup:${parsed.phaseGroupId}`;
+      // Verificar que este bracket exacto no se haya cargado ya
+      if (existing.some(t => t.id === pgDupId || (t.loadedPhaseGroups || []).includes(parsed.phaseGroupId)))
         return res.status(409).json({ error: 'Este bracket ya fue cargado' });
 
       const { nodes: pgNodes, meta } = await fetchPhaseGroupStandings(token, parsed.phaseGroupId);
       nodes = pgNodes;
 
       const ev = meta?.phase?.event;
+      const evId = ev?.id ? `event:${ev.id}` : null;
       numAttendees = ev?.numEntrants || pgNodes.length;
-      tournamentName = nameOverride || `${ev?.tournament?.name || 'Torneo'} – ${meta.phase?.name || 'Phase'} ${meta.displayIdentifier || ''}`.trim();
       tournamentStartAt = ev?.tournament?.startAt || null;
       eventSlug = eventSlug || (ev?.tournament?.slug ? `tournament/${ev.tournament.slug}/event/${ev.name}` : null);
+
+      // Buscar si ya hay un torneo del mismo evento para mergear
+      if (evId) mergeTarget = existing.find(t => t.id === evId);
+
+      if (mergeTarget) {
+        dupId = mergeTarget.id;
+        tournamentName = mergeTarget.name;
+      } else {
+        dupId = evId || pgDupId;
+        tournamentName = nameOverride || ev?.tournament?.name || 'Torneo';
+      }
 
     // ── Caso B: URL de evento o torneo ──────────────────────────────────────
     } else {
@@ -388,6 +401,25 @@ export default async function handler(req, res) {
     });
 
     // Guardar el torneo
+    if (mergeTarget) {
+      // Mergear standings: combinar, deduplicar por playerName (mejor placement gana)
+      const mergedMap = {};
+      for (const s of mergeTarget.standings) {
+        mergedMap[s.playerName] = { ...s };
+      }
+      for (const s of standings) {
+        if (!mergedMap[s.playerName] || s.placement < mergedMap[s.playerName].placement) {
+          mergedMap[s.playerName] = { ...s, basePoints: getPositionPoints(s.placement, mergeTarget.type) };
+        }
+      }
+      mergeTarget.standings = Object.values(mergedMap).sort((a, b) => a.placement - b.placement);
+      mergeTarget.numAttendees = Math.max(mergeTarget.numAttendees || 0, numAttendees);
+      mergeTarget.loadedPhaseGroups = [...(mergeTarget.loadedPhaseGroups || []), parsed.phaseGroupId];
+
+      await redis.set(key, JSON.stringify(existing));
+      return res.status(200).json({ ok: true, tournament: mergeTarget });
+    }
+
     const newTournament = {
       id: dupId,
       slug: eventSlug || url,
@@ -397,6 +429,7 @@ export default async function handler(req, res) {
       numAttendees,
       addedAt: Date.now(),
       standings,
+      ...(parsed.phaseGroupId ? { loadedPhaseGroups: [parsed.phaseGroupId] } : {}),
     };
 
     existing.push(newTournament);
