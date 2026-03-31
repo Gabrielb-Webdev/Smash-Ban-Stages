@@ -1,25 +1,48 @@
 /**
  * POST /api/community-ranking/refresh-names
  * Recorre todos los torneos de una comunidad/año y actualiza el playerName
- * de cada standing consultando el gamerTag ACTUAL en start.gg.
+ * usando el gamerTag ACTUAL de start.gg, buscando por player.id (estable).
  *
- * Estrategia de matching (por prioridad):
- *  1. Por playerId (start.gg ID numérico) si fue guardado en el standing
- *  2. Por entrantName (nombre de registro en el bracket, clave estable)
+ * Estrategia:
+ *  1. Consulta phaseGroup.standings → entrant.name (nombre de registro/bracket)
+ *     + participants.player.id + gamerTag (nombre actual)
+ *  2. Construye idMap (playerId → currentGamerTag)
+ *     y regNameMap (nombreRegistro → { playerId, currentGamerTag })
+ *  3. Para standings con playerId → actualiza nombre por ID directamente
+ *  4. Para standings sin playerId → busca por entrantName/playerName en regNameMap
+ *     y asigna playerId para uso futuro
+ *
+ * La diferencia clave vs event.entrants: phaseGroup.standings devuelve el
+ * nombre de registro original del bracket (snapshot), mientras que
+ * event.entrants puede devolver el nombre actualizado al actual.
  */
 import redis, { crTournamentsKey } from '../../../lib/redis';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
-// Query para re-obtener entrants con nombre actual y playerId
-const Q_EVENT_ENTRANTS_REFRESH = `
-query EventEntrantsRefresh($slug: String!, $page: Int!, $perPage: Int!) {
+// Obtiene las phase groups de un evento
+const Q_EVENT_PHASE_GROUPS = `
+query EventPhaseGroups($slug: String!) {
   event(slug: $slug) {
-    entrants(query: { page: $page, perPage: $perPage }) {
-      pageInfo { total totalPages }
+    phases {
+      phaseGroups(query: { page: 1, perPage: 30 }) {
+        nodes { id }
+      }
+    }
+  }
+}`;
+
+// standings de una phaseGroup: preserva el nombre de registro original del bracket
+const Q_PHASE_GROUP_NAMES = `
+query PhaseGroupNames($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
+  phaseGroup(id: $phaseGroupId) {
+    standings(query: { page: $page, perPage: $perPage }) {
+      pageInfo { totalPages }
       nodes {
-        name
-        participants { player { id gamerTag } }
+        entrant {
+          name
+          participants { player { id gamerTag } }
+        }
       }
     }
   }
@@ -38,37 +61,56 @@ async function gqlQuery(token, query, variables) {
 }
 
 /**
- * Devuelve dos mapas para actualizar nombres:
- *  idMap:   playerId (string) → currentGamerTag
- *  nameMap: entrantName.toLowerCase() → currentGamerTag
+ * Construye los mapas de nombres para un torneo.
+ * Usa phaseGroup.standings (registro-time) para cada phase group del evento.
+ * Devuelve:
+ *  idMap:      playerId (string) → currentGamerTag
+ *  regNameMap: registrationName.toLowerCase() → { playerId, currentGamerTag }
  */
-async function fetchNameMaps(token, eventSlug) {
+async function buildNameMaps(token, phaseGroupIds) {
   const idMap = {};
-  const nameMap = {};
-  let page = 1;
-  let totalPages = 1;
-  const perPage = 64;
+  const regNameMap = {};
 
-  do {
-    try {
-      const data = await gqlQuery(token, Q_EVENT_ENTRANTS_REFRESH, { slug: eventSlug, page, perPage });
-      const entrants = data?.event?.entrants;
-      if (!entrants) break;
-      totalPages = entrants.pageInfo?.totalPages || 1;
-      for (const e of (entrants.nodes || [])) {
-        const player = e.participants?.[0]?.player;
-        const currentTag = player?.gamerTag;
-        const playerId = player?.id;
-        const entrantName = e.name;
-        if (!currentTag) continue;
-        if (playerId) idMap[String(playerId)] = currentTag;
-        if (entrantName) nameMap[entrantName.toLowerCase()] = currentTag;
-      }
-    } catch { break; }
-    page++;
-  } while (page <= totalPages && page <= 8);
+  for (const pgId of phaseGroupIds) {
+    let page = 1;
+    let totalPages = 1;
+    do {
+      try {
+        const data = await gqlQuery(token, Q_PHASE_GROUP_NAMES, { phaseGroupId: pgId, page, perPage: 64 });
+        const standings = data?.phaseGroup?.standings;
+        if (!standings) break;
+        totalPages = standings.pageInfo?.totalPages || 1;
+        for (const node of (standings.nodes || [])) {
+          const player = node.entrant?.participants?.[0]?.player;
+          const regName = node.entrant?.name; // nombre en el bracket (snapshot)
+          const currentTag = player?.gamerTag; // nombre actual
+          const playerId = player?.id ? String(player.id) : null;
+          if (!currentTag) continue;
+          if (playerId) {
+            idMap[playerId] = currentTag;
+          }
+          if (regName) {
+            regNameMap[regName.toLowerCase()] = { playerId, currentGamerTag: currentTag };
+          }
+        }
+      } catch { break; }
+      page++;
+    } while (page <= totalPages && page <= 5);
+  }
 
-  return { idMap, nameMap };
+  return { idMap, regNameMap };
+}
+
+/** Obtiene los IDs de todas las phase groups de un evento */
+async function getPhaseGroupIds(token, eventSlug) {
+  const data = await gqlQuery(token, Q_EVENT_PHASE_GROUPS, { slug: eventSlug });
+  const ids = [];
+  for (const phase of (data?.event?.phases || [])) {
+    for (const pg of (phase.phaseGroups?.nodes || [])) {
+      if (pg.id) ids.push(String(pg.id));
+    }
+  }
+  return ids;
 }
 
 export default async function handler(req, res) {
@@ -89,34 +131,62 @@ export default async function handler(req, res) {
 
   let updatedTournaments = 0;
   let updatedStandings = 0;
-  const changes = []; // { tournament, old, new } para debug
+  const changes = [];
 
   for (const t of tournaments) {
-    const slug = t.slug;
-    if (!slug || typeof slug !== 'string') continue;
-
-    // Limpiar slug
-    const cleanSlug = slug
-      .replace(/^https?:\/\/(www\.)?start\.gg\//, '')
-      .replace(/\/brackets(\/.*)?$/, '')
-      .replace(/\/(details|registration|results)(\/.*)?$/, '');
-    if (!cleanSlug.includes('/event/')) continue;
-
     try {
-      const { idMap, nameMap } = await fetchNameMaps(token, cleanSlug);
-      if (!Object.keys(idMap).length && !Object.keys(nameMap).length) continue;
+      // Obtener los IDs de phase groups para este torneo
+      let phaseGroupIds = [];
+
+      // Caso A: IDs ya almacenados (torneos cargados por bracket URL)
+      if (t.loadedPhaseGroups?.length) {
+        phaseGroupIds = t.loadedPhaseGroups.map(String);
+      }
+
+      // Caso B: tenemos event slug → consultar phases
+      if (!phaseGroupIds.length && t.slug) {
+        const cleanSlug = t.slug
+          .replace(/^https?:\/\/(www\.)?start\.gg\//, '')
+          .replace(/\/brackets(\/.*)?$/, '')
+          .replace(/\/(details|registration|results)(\/.*)?$/, '');
+        if (cleanSlug.includes('/event/')) {
+          try {
+            phaseGroupIds = await getPhaseGroupIds(token, cleanSlug);
+          } catch { /* continuar */ }
+        }
+      }
+
+      if (!phaseGroupIds.length) continue;
+
+      const { idMap, regNameMap } = await buildNameMaps(token, phaseGroupIds);
+      if (!Object.keys(idMap).length && !Object.keys(regNameMap).length) continue;
 
       let tChanged = false;
       for (const s of (t.standings || [])) {
-        // 1. Match por playerId
-        let currentTag = s.playerId ? idMap[String(s.playerId)] : null;
-        // 2. Fallback: match por entrantName
-        if (!currentTag && s.entrantName) {
-          currentTag = nameMap[s.entrantName.toLowerCase()];
+        let currentTag = null;
+
+        // 1. Búsqueda por playerId (más fiable, ID estable en start.gg)
+        if (s.playerId) {
+          currentTag = idMap[String(s.playerId)] || null;
         }
-        // 3. Fallback: match por playerName actual (por si entrantName no está guardado)
+
+        // 2. Búsqueda por nombre de registro del bracket (snapshot, puede diferir del actual)
+        if (!currentTag) {
+          const byEntrant = s.entrantName ? regNameMap[s.entrantName.toLowerCase()] : null;
+          if (byEntrant) {
+            currentTag = byEntrant.currentGamerTag;
+            // Aprovechar para guardar el playerId si no lo teníamos
+            if (!s.playerId && byEntrant.playerId) s.playerId = byEntrant.playerId;
+          }
+        }
+
+        // 3. Fallback: buscar por playerName actual en regNameMap
         if (!currentTag && s.playerName) {
-          currentTag = nameMap[s.playerName.toLowerCase()];
+          const byName = regNameMap[s.playerName.toLowerCase()];
+          if (byName) {
+            currentTag = byName.currentGamerTag;
+            if (!s.playerId && byName.playerId) s.playerId = byName.playerId;
+          }
         }
 
         if (currentTag && currentTag !== s.playerName) {
@@ -127,7 +197,7 @@ export default async function handler(req, res) {
         }
       }
       if (tChanged) updatedTournaments++;
-    } catch { /* continuar con el siguiente */ }
+    } catch { /* continuar con el siguiente torneo */ }
   }
 
   await redis.set(key, JSON.stringify(tournaments));
