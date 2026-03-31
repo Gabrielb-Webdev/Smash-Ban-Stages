@@ -14,19 +14,17 @@ query TournamentEvents($slug: String!) {
   }
 }`;
 
-const Q_EVENT_STANDINGS = `
-query EventStandings($slug: String!, $page: Int!, $perPage: Int!) {
+const Q_EVENT_ENTRANTS = `
+query EventEntrants($slug: String!, $page: Int!, $perPage: Int!) {
   event(slug: $slug) {
     id name numEntrants
     tournament { name slug numAttendees startAt }
-    standings(query: { page: $page, perPage: $perPage }) {
+    entrants(query: { page: $page, perPage: $perPage }) {
       pageInfo { total totalPages }
       nodes {
-        placement
-        entrant {
-          name
-          participants { player { gamerTag } }
-        }
+        standing { placement }
+        name
+        participants { player { gamerTag } }
       }
     }
   }
@@ -211,22 +209,29 @@ async function gqlQuery(token, query, variables) {
   return json.data;
 }
 
-// Obtiene todos los standings del evento páginando (máx 5 páginas de 64)
-async function fetchAllStandings(token, eventSlug) {
+// Obtiene todos los participantes del evento con su placement final (páginando hasta 500)
+async function fetchAllEntrantStandings(token, eventSlug) {
   const perPage = 64;
   let page = 1;
   let totalPages = 1;
   const nodes = [];
 
   do {
-    const data = await gqlQuery(token, Q_EVENT_STANDINGS, { slug: eventSlug, page, perPage });
+    const data = await gqlQuery(token, Q_EVENT_ENTRANTS, { slug: eventSlug, page, perPage });
     const ev = data?.event;
     if (!ev) throw new Error('Evento no encontrado en start.gg');
-    const { standings } = ev;
-    totalPages = standings.pageInfo.totalPages || 1;
-    nodes.push(...standings.nodes);
+    const { entrants } = ev;
+    totalPages = entrants.pageInfo.totalPages || 1;
+    // Normalizar al mismo formato que event.standings
+    for (const e of (entrants.nodes || [])) {
+      if (!e.standing?.placement) continue;
+      nodes.push({
+        placement: e.standing.placement,
+        entrant: { name: e.name, participants: e.participants },
+      });
+    }
     page++;
-  } while (page <= totalPages && page <= 5);
+  } while (page <= totalPages && page <= 8);
 
   return nodes;
 }
@@ -350,27 +355,14 @@ export default async function handler(req, res) {
         }
       }
 
-      // Fases válidas ordenadas: la fase con menos jugadores primero (Top 8 → Bracket).
-      // Así el placement del Top 8 tiene prioridad; los del Bracket se agregan sin repetir.
-      const validPhases = (evObj.phases || [])
-        .filter(p => classifyPhase(p.name) !== null)
-        .sort((a, b) => (a.numSeeds || Infinity) - (b.numSeeds || Infinity));
-
-      const seenPlayers = new Set();
-      nodes = [];
-      for (const phase of validPhases) {
-        for (const pg of (phase.phaseGroups?.nodes || [])) {
-          try {
-            const { nodes: pgNodes } = await fetchPhaseGroupStandings(token, pg.id);
-            for (const n of pgNodes) {
-              const pName = (n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || '').toLowerCase();
-              if (resurrectionPlayers.has(pName) || seenPlayers.has(pName)) continue;
-              seenPlayers.add(pName);
-              nodes.push(n);
-            }
-          } catch { /* ignorar */ }
-        }
-      }
+      // Traer TODOS los participantes con su placement final real vía event.entrants
+      const allNodes = await fetchAllEntrantStandings(token, eventSlug);
+      nodes = resurrectionPlayers.size > 0
+        ? allNodes.filter(n => {
+            const pName = (n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || '').toLowerCase();
+            return !resurrectionPlayers.has(pName);
+          })
+        : allNodes;
     }
 
     if (numAttendees < MIN_ATTENDEES)
