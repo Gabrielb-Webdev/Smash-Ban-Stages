@@ -350,14 +350,27 @@ export default async function handler(req, res) {
         }
       }
 
-      // Standings del evento completo, filtrando jugadores de resurrección
-      const allNodes = await fetchAllStandings(token, eventSlug);
-      nodes = resurrectionPlayers.size > 0
-        ? allNodes.filter(n => {
-            const pName = (n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || '').toLowerCase();
-            return !resurrectionPlayers.has(pName);
-          })
-        : allNodes;
+      // Fases válidas ordenadas: la fase con menos jugadores primero (Top 8 → Bracket).
+      // Así el placement del Top 8 tiene prioridad; los del Bracket se agregan sin repetir.
+      const validPhases = (evObj.phases || [])
+        .filter(p => classifyPhase(p.name) !== null)
+        .sort((a, b) => (a.numSeeds || Infinity) - (b.numSeeds || Infinity));
+
+      const seenPlayers = new Set();
+      nodes = [];
+      for (const phase of validPhases) {
+        for (const pg of (phase.phaseGroups?.nodes || [])) {
+          try {
+            const { nodes: pgNodes } = await fetchPhaseGroupStandings(token, pg.id);
+            for (const n of pgNodes) {
+              const pName = (n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || '').toLowerCase();
+              if (resurrectionPlayers.has(pName) || seenPlayers.has(pName)) continue;
+              seenPlayers.add(pName);
+              nodes.push(n);
+            }
+          } catch { /* ignorar */ }
+        }
+      }
     }
 
     if (numAttendees < MIN_ATTENDEES)
