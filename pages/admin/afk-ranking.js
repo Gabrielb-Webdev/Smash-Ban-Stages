@@ -252,6 +252,28 @@ export default function AfkRankingAdmin() {
   const [csvMsg,       setCsvMsg]       = useState(null);
   const csvFileRef = useRef(null);
 
+  // Refresh personajes
+  const [refreshingChars, setRefreshingChars] = useState(false);
+  const [refreshCharsMsg, setRefreshCharsMsg] = useState(null);
+
+  async function handleRefreshChars() {
+    setRefreshingChars(true);
+    setRefreshCharsMsg(null);
+    const r = await fetch('/api/community-ranking/refresh-chars', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ community, year }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      setRefreshCharsMsg({ ok: true, text: `✅ Personajes actualizados en ${d.updated} de ${d.total} torneos` });
+      loadData(community, year);
+    } else {
+      setRefreshCharsMsg({ ok: false, text: d.error || 'Error' });
+    }
+    setRefreshingChars(false);
+  }
+
   // Config comunidades visibles en home
   const [rankingComms,        setRankingComms]        = useState(['afk']);
   const [rankingCommsSaving,  setRankingCommsSaving]  = useState(false);
@@ -653,12 +675,20 @@ export default function AfkRankingAdmin() {
 
           {/* ── Torneos cargados ── */}
           <div style={S.section}>
-            <h2 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 800 }}>
-              Torneos cargados {loadingData && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>cargando...</span>}
-              <span style={{ marginLeft: 8, fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>
-                ({data.tournaments.length})
-              </span>
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, flex: 1 }}>
+                Torneos cargados {loadingData && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>cargando...</span>}
+                <span style={{ marginLeft: 8, fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>({data.tournaments.length})</span>
+              </h2>
+              <button
+                onClick={handleRefreshChars}
+                disabled={refreshingChars || data.tournaments.length === 0}
+                style={{ ...S.btnOutline, fontSize: 12, gap: 6 }}
+                title="Consulta start.gg y rellena el personaje más usado de cada jugador">
+                {refreshingChars ? '⏳ Actualizando...' : '🎮 Actualizar personajes'}
+              </button>
+            </div>
+            {refreshCharsMsg && <div style={{ ...refreshCharsMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshCharsMsg.text}</div>}
             {data.tournaments.length === 0 && !loadingData && (
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>No hay torneos para esta comunidad y año.</p>
             )}
