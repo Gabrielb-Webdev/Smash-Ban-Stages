@@ -4886,7 +4886,7 @@ function TabRankings({ user, setTab }) {
 
   // Community ranking (AFK, INC, etc.)
   const [commRanking, setCommRanking] = useState({ players: [], tournaments: [], loading: false, loaded: false });
-  const [commYear, setCommYear]       = useState('2025');
+  const [commYear, setCommYear]       = useState(String(new Date().getFullYear()));
   const [commPage, setCommPage]       = useState(1);
   const [enabledRankComms, setEnabledRankComms] = useState(['afk']);
 
@@ -5119,17 +5119,25 @@ function TabRankings({ user, setTab }) {
               {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
             </p>
             {/* Selector de año */}
-            <select
-              value={commYear}
-              onChange={e => setCommYear(e.target.value)}
-              style={{
-                padding: '5px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12,
-                border: '1px solid rgba(255,140,0,0.3)', cursor: 'pointer',
-                background: 'rgba(255,140,0,0.12)', color: '#FF8C00',
-                outline: 'none', appearance: 'none', WebkitAppearance: 'none',
-              }}>
-              {['2025', '2026'].map(y => <option key={y} value={y} style={{ background: '#12121E', color: '#fff' }}>{y}</option>)}
-            </select>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(() => {
+                const cur = new Date().getFullYear();
+                const years = [];
+                for (let y = cur; y >= 2025; y--) years.push(String(y));
+                return years.map(y => (
+                  <button key={y} onClick={() => setCommYear(y)} style={{
+                    padding: '6px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12,
+                    border: `1px solid ${commYear === y ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    background: commYear === y ? 'rgba(255,140,0,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: commYear === y ? '#FF8C00' : 'rgba(255,255,255,0.25)',
+                    boxShadow: commYear === y ? '0 2px 10px rgba(255,140,0,0.25)' : 'none',
+                  }}>
+                    {y}
+                  </button>
+                ));
+              })()}
+            </div>
           </div>
 
           {commRanking.loading && (
