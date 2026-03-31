@@ -1794,7 +1794,8 @@ function CommPlayerRow({ position, player, onPlayerClick, onNoProfile }) {
   // mainCharAlt NO se usa aquí porque es una skin alternativa, no el personaje base
   const charId     = player.topChar ? String(player.topChar) : (player.mainCharId ? String(player.mainCharId) : null);
   const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
-  const charSrc    = renderFile ? charRenderPath(renderFile) : null;
+  const charObj    = charId ? CHARACTERS.find(c => c.id === charId) : null;
+  const charSrc    = renderFile ? charRenderPath(renderFile) : (charObj ? charImgPath(charObj.img) : null);
 
   const isTop3 = position <= 3;
   const topColors = {

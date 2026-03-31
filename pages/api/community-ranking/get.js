@@ -41,6 +41,9 @@ export default async function handler(req, res) {
         const profile = await redis.get(playerKey(userId));
         if (!profile) return p;
 
+        // El override manual del admin tiene prioridad cuando no hay mainChar en el perfil
+        const manualOverride = overrides[normName] || null;
+
         let resolvedChar = profile.mainChar || null;
 
         // Si no tiene personaje seleccionado en el perfil, intentar usar el
@@ -60,6 +63,9 @@ export default async function handler(req, res) {
             }
           } catch { /* silent */ }
         }
+
+        // Fallback al override manual si todavía no hay personaje
+        if (!resolvedChar && manualOverride) resolvedChar = manualOverride;
 
         return {
           ...p,
