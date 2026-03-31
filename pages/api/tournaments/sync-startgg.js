@@ -330,6 +330,12 @@ export default async function handler(req, res) {
               }
             }
             if (communityFilter) data = data.filter(t => t.community === communityFilter);
+            // Filtrar torneos ocultos por el admin
+            try {
+              const hiddenSlugs = (await redis.get('tournaments:hidden')) || [];
+              const hidden = Array.isArray(hiddenSlugs) ? hiddenSlugs : [];
+              if (hidden.length > 0) data = data.filter(t => !hidden.includes(t.slug));
+            } catch {}
             return res.status(200).json({ tournaments: data, source: 'cache' });
           }
         }
@@ -405,8 +411,15 @@ export default async function handler(req, res) {
       } catch {}
 
       const filtered = communityFilter ? tournaments.filter(t => t.community === communityFilter) : tournaments;
+      // Filtrar torneos ocultos por el admin
+      let finalTournaments = filtered;
+      try {
+        const hiddenSlugs = (await redis.get('tournaments:hidden')) || [];
+        const hidden = Array.isArray(hiddenSlugs) ? hiddenSlugs : [];
+        if (hidden.length > 0) finalTournaments = filtered.filter(t => !hidden.includes(t.slug));
+      } catch {}
       const showDebug = req.query.debug === 'true';
-      const response = { tournaments: filtered, source: 'live' };
+      const response = { tournaments: finalTournaments, source: 'live' };
       if (showDebug) { response.ownerUserId = OWNER_USER_ID; response.ownerSlug = OWNER_SLUG; response.debug = debug; }
       return res.status(200).json(response);
     } catch (err) {

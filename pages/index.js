@@ -12,6 +12,8 @@ export default function Home() {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [featuredTours, setFeaturedTours]         = useState([]);
+  const [syncedTours, setSyncedTours]             = useState([]);
+  const [hiddenSlugs, setHiddenSlugs]             = useState([]);
   const [featuredLoading, setFeaturedLoading]     = useState(false);
   const [featuredInput, setFeaturedInput]         = useState('');
   const [featuredAdding, setFeaturedAdding]       = useState(false);
@@ -43,14 +45,22 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Cargar torneos destacados
+  // Cargar torneos destacados (modo admin: incluye ocultos) + auto-sincronizados
   useEffect(() => {
     setFeaturedLoading(true);
-    fetch('/api/tournaments/featured')
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d.featured)) setFeaturedTours(d.featured); })
-      .catch(() => {})
-      .finally(() => setFeaturedLoading(false));
+    Promise.all([
+      fetch('/api/tournaments/featured?admin=1').then(r => r.json()),
+      fetch('/api/tournaments/sync-startgg').then(r => r.json()).catch(() => ({ tournaments: [] })),
+    ]).then(([fd, sd]) => {
+      if (Array.isArray(fd.featured)) setFeaturedTours(fd.featured);
+      if (Array.isArray(fd.hiddenSlugs)) setHiddenSlugs(fd.hiddenSlugs);
+      if (Array.isArray(sd.tournaments)) {
+        // Solo mostrar los que NO sean ya featured (dedup por slug)
+        const featSlugs = new Set((fd.featured || []).map(t => t.slug));
+        setSyncedTours(sd.tournaments.filter(t => !featSlugs.has(t.slug)));
+      }
+    }).catch(() => {})
+    .finally(() => setFeaturedLoading(false));
   }, []);
 
   if (checking) {
@@ -186,6 +196,22 @@ export default function Home() {
       headers: { 'Authorization': 'Bearer afk-admin-2025' },
     }).catch(() => null);
     if (r?.ok) setFeaturedTours(prev => prev.filter(t => t.slug !== slug));
+  }
+
+  async function toggleHidden(slug, currentlyHidden) {
+    const action = currentlyHidden ? 'unhide' : 'hide';
+    const r = await fetch('/api/tournaments/featured', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+      body: JSON.stringify({ slug, action }),
+    }).catch(() => null);
+    if (!r?.ok) return;
+    const d = await r.json();
+    if (Array.isArray(d.hiddenSlugs)) {
+      setHiddenSlugs(d.hiddenSlugs);
+      // Actualizar marca _hidden en featured
+      setFeaturedTours(prev => prev.map(t => ({ ...t, _hidden: d.hiddenSlugs.includes(t.slug) })));
+    }
   }
 
   return (
@@ -387,89 +413,135 @@ export default function Home() {
         </div>
 
         {/* ── TORNEOS EN LA APP ── */}
-        <div style={{ marginTop: 32, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden', maxWidth: 640, margin: '32px auto 0' }}>
-          <button
-            onClick={() => setFeaturedOpen(p => !p)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
-              📌 Torneos en la app
-              {featuredTours.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,140,0,0.2)', color: '#FF8C00', padding: '2px 8px', borderRadius: 6 }}>{featuredTours.length}</span>}
-            </span>
-            <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }}>{featuredOpen ? '▾' : '▸'}</span>
-          </button>
+        {(() => {
+          const totalCount = featuredTours.length + syncedTours.length;
+          return (
+          <div style={{ marginTop: 32, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden', maxWidth: 640, margin: '32px auto 0' }}>
+            <button
+              onClick={() => setFeaturedOpen(p => !p)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                📌 Torneos en la app
+                {totalCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,140,0,0.2)', color: '#FF8C00', padding: '2px 8px', borderRadius: 6 }}>{totalCount}</span>}
+                {hiddenSlugs.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(100,100,100,0.2)', color: 'rgba(255,255,255,0.35)', padding: '2px 7px', borderRadius: 6 }}>{hiddenSlugs.length} oculto{hiddenSlugs.length !== 1 ? 's' : ''}</span>}
+              </span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }}>{featuredOpen ? '▾' : '▸'}</span>
+            </button>
 
-          {featuredOpen && (
-            <div style={{ padding: '0 22px 22px' }}>
-              <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-                Agregá torneos para que aparezcan en la pantalla de torneos de todos los jugadores. Al agregar se envía una notificación push automáticamente.
-              </p>
+            {featuredOpen && (
+              <div style={{ padding: '0 22px 22px' }}>
+                <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                  Agregá torneos manualmente o gestioná los que se sincronizan automáticamente. Podés ocultarlos para que no aparezcan en la app sin eliminarlos.
+                </p>
 
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                <input
-                  value={featuredInput}
-                  onChange={e => { setFeaturedInput(e.target.value); setFeaturedPreview(null); }}
-                  onKeyDown={e => { if (e.key === 'Enter' && featuredInput.trim()) addFeaturedFromIndex(); }}
-                  placeholder="star.gg/tournament/mi-torneo"
-                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                />
-                <button
-                  onClick={addFeaturedFromIndex}
-                  disabled={featuredAdding || !featuredInput.trim()}
-                  style={{ background: '#FF8C00', border: 'none', borderRadius: 12, padding: '10px 18px', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', flexShrink: 0, opacity: featuredAdding || !featuredInput.trim() ? 0.5 : 1 }}
-                >
-                  {featuredAdding ? '...' : '+ Agregar'}
-                </button>
-              </div>
-
-              {featuredPreviewLoading && (
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '8px 0' }}>Buscando torneo...</div>
-              )}
-              {featuredPreview && !featuredPreview._error && !featuredAdding && (
-                <div style={{ background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {featuredPreview.image && <img src={featuredPreview.image} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff' }}>{featuredPreview.name}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                      {featuredPreview.registrationOpen ? '✅ Inscripciones abiertas' : featuredPreview.stateLabel}
-                      {featuredPreview.attendees > 0 ? ` · 👥 ${featuredPreview.attendees}` : ''}
-                    </p>
-                  </div>
-                  <button onClick={confirmFeaturedFromIndex} style={{ background: '#FF8C00', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>✔️ Agregar y notificar</button>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <input
+                    value={featuredInput}
+                    onChange={e => { setFeaturedInput(e.target.value); setFeaturedPreview(null); }}
+                    onKeyDown={e => { if (e.key === 'Enter' && featuredInput.trim()) addFeaturedFromIndex(); }}
+                    placeholder="star.gg/tournament/mi-torneo"
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                  />
+                  <button
+                    onClick={addFeaturedFromIndex}
+                    disabled={featuredAdding || !featuredInput.trim()}
+                    style={{ background: '#FF8C00', border: 'none', borderRadius: 12, padding: '10px 18px', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', flexShrink: 0, opacity: featuredAdding || !featuredInput.trim() ? 0.5 : 1 }}
+                  >
+                    {featuredAdding ? '...' : '+ Agregar'}
+                  </button>
                 </div>
-              )}
-              {featuredPreview?._error && (
-                <div style={{ fontSize: 12, color: '#f87171', padding: '6px 0', marginBottom: 10 }}>⚠️ {featuredPreview._error}</div>
-              )}
 
-              {featuredLoading ? (
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '12px 0' }}>Cargando...</p>
-              ) : featuredTours.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0' }}>No hay torneos destacados todavía.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {featuredTours.map(t => (
-                    <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 13, padding: '11px 13px' }}>
-                      {t.image && <img src={t.image} alt="" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-                          {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
-                          {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
-                          {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => removeFeaturedFromIndex(t.slug)}
-                        style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
-                      >✕</button>
+                {featuredPreviewLoading && (
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '8px 0' }}>Buscando torneo...</div>
+                )}
+                {featuredPreview && !featuredPreview._error && !featuredAdding && (
+                  <div style={{ background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {featuredPreview.image && <img src={featuredPreview.image} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff' }}>{featuredPreview.name}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                        {featuredPreview.registrationOpen ? '✅ Inscripciones abiertas' : featuredPreview.stateLabel}
+                        {featuredPreview.attendees > 0 ? ` · 👥 ${featuredPreview.attendees}` : ''}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                    <button onClick={confirmFeaturedFromIndex} style={{ background: '#FF8C00', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>✔️ Agregar y notificar</button>
+                  </div>
+                )}
+                {featuredPreview?._error && (
+                  <div style={{ fontSize: 12, color: '#f87171', padding: '6px 0', marginBottom: 10 }}>⚠️ {featuredPreview._error}</div>
+                )}
+
+                {featuredLoading ? (
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '12px 0' }}>Cargando...</p>
+                ) : totalCount === 0 ? (
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0' }}>No hay torneos todavía.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* Torneos manuales (featured) */}
+                    {featuredTours.map(t => {
+                      const isHidden = t._hidden || hiddenSlugs.includes(t.slug);
+                      return (
+                        <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
+                          {t.image && <img src={t.image} alt="" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(255,140,0,0.15)', color: '#FF8C00', borderRadius: 4, flexShrink: 0 }}>Manual</span>
+                              {isHidden && <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(100,100,100,0.2)', color: 'rgba(255,255,255,0.4)', borderRadius: 4, flexShrink: 0 }}>Oculto</span>}
+                            </div>
+                            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                              {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                              {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
+                              {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => toggleHidden(t.slug, isHidden)}
+                            title={isHidden ? 'Mostrar en la app' : 'Ocultar de la app'}
+                            style={{ background: isHidden ? 'rgba(34,197,94,0.1)' : 'rgba(100,100,100,0.1)', border: `1px solid ${isHidden ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '5px 9px', color: isHidden ? '#4ade80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
+                          >{isHidden ? '👁' : '🙈'}</button>
+                          <button
+                            onClick={() => removeFeaturedFromIndex(t.slug)}
+                            title="Eliminar"
+                            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+                          >✕</button>
+                        </div>
+                      );
+                    })}
+                    {/* Torneos auto-sincronizados */}
+                    {syncedTours.map(t => {
+                      const isHidden = hiddenSlugs.includes(t.slug);
+                      return (
+                        <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
+                          {t.image && <img src={t.image} alt="" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(99,102,241,0.15)', color: '#818CF8', borderRadius: 4, flexShrink: 0 }}>Auto</span>
+                              {isHidden && <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(100,100,100,0.2)', color: 'rgba(255,255,255,0.4)', borderRadius: 4, flexShrink: 0 }}>Oculto</span>}
+                            </div>
+                            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                              {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                              {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
+                              {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => toggleHidden(t.slug, isHidden)}
+                            title={isHidden ? 'Mostrar en la app' : 'Ocultar de la app'}
+                            style={{ background: isHidden ? 'rgba(34,197,94,0.1)' : 'rgba(100,100,100,0.1)', border: `1px solid ${isHidden ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '5px 9px', color: isHidden ? '#4ade80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
+                          >{isHidden ? '👁' : '🙈'}</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          );
+        })()}
       </div>
     </div>
     </>

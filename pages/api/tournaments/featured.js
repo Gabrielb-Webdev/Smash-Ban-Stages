@@ -7,6 +7,7 @@ import { broadcastNotifsKey } from '../../../lib/redis';
 import { sendPushToAll } from '../../../lib/push';
 
 const FEATURED_KEY  = 'tournaments:featured';
+const HIDDEN_KEY    = 'tournaments:hidden';
 const AUTO_COMPLETE_PREFIX = 'startgg:auto_complete:';
 const STARTGG_API   = 'https://api.start.gg/gql/alpha';
 const STATE_LABELS  = { 1: 'CREATED', 2: 'ACTIVE', 3: 'COMPLETED', 4: 'CANCELLED' };
@@ -45,20 +46,30 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // ── GET: lista pública ──
+  // ── GET: lista pública (o admin con ?admin=1) ──
   if (req.method === 'GET') {
-    // Cache 60s: la lista de torneos no cambia cada segundo
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
+    const isAdmin = req.query.admin === '1';
+    if (!isAdmin) res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
     try {
       let list = (await redis.get(FEATURED_KEY)) || [];
       if (!Array.isArray(list)) list = [];
+      const hiddenSlugs = (await redis.get(HIDDEN_KEY)) || [];
+      const hidden = Array.isArray(hiddenSlugs) ? hiddenSlugs : [];
       // mget todos los slugs de auto-complete en 1 comando en vez de loop serial
       const toCheck = list.filter(t => t.state !== 3 && t.state !== 4);
       if (toCheck.length > 0) {
         const vals = await redis.mget(...toCheck.map(t => AUTO_COMPLETE_PREFIX + t.slug));
         toCheck.forEach((t, i) => { if (vals[i]) { t.state = 3; t.stateLabel = 'COMPLETED'; } });
       }
-      return res.status(200).json({ featured: list });
+      if (isAdmin) {
+        // Panel admin: incluir todos marcando los ocultos con _hidden: true
+        list = list.map(t => hidden.includes(t.slug) ? { ...t, _hidden: true } : t);
+        return res.status(200).json({ featured: list, hiddenSlugs: hidden });
+      } else {
+        // Vista pública: filtrar los ocultos
+        list = list.filter(t => !hidden.includes(t.slug));
+        return res.status(200).json({ featured: list });
+      }
     } catch (err) {
       return res.status(500).json({ error: 'Error al leer Redis', detail: err.message });
     }
@@ -160,10 +171,26 @@ export default async function handler(req, res) {
     return res.status(201).json({ success: true, tournament: tourData });
   }
 
-  // ── PATCH: cambiar estado manualmente ──
+  // ── PATCH: cambiar estado ó toggle ocultar ──
   if (req.method === 'PATCH') {
     if (!checkAuth(req)) return res.status(401).json({ error: 'No autorizado' });
-    const { slug, state } = req.body || {};
+    const { slug, state, action } = req.body || {};
+    if (!slug) return res.status(400).json({ error: 'slug requerido' });
+
+    // Ocultar / mostrar torneo (funciona para featured y auto-sync)
+    if (action === 'hide' || action === 'unhide') {
+      try {
+        const existing = (await redis.get(HIDDEN_KEY)) || [];
+        const arr = Array.isArray(existing) ? [...existing] : [];
+        if (action === 'hide' && !arr.includes(slug)) arr.push(slug);
+        if (action === 'unhide') { const i = arr.indexOf(slug); if (i !== -1) arr.splice(i, 1); }
+        await redis.set(HIDDEN_KEY, arr);
+        return res.status(200).json({ success: true, hiddenSlugs: arr });
+      } catch (err) {
+        return res.status(500).json({ error: 'Error en Redis', detail: err.message });
+      }
+    }
+
     if (!slug || ![1, 2, 3, 4].includes(state))
       return res.status(400).json({ error: 'slug y state (1-4) requeridos' });
     try {
