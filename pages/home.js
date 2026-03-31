@@ -1768,9 +1768,9 @@ function ConfigModal({ onClose, userId }) {
 }
 
 function CommPlayerRow({ position, player, onPlayerClick, onNoProfile }) {
-  // Solo mostrar el personaje más usado en los torneos importados (topChar)
-  // No usar datos del perfil del jugador (mainCharId/mainCharAlt)
-  const charId     = player.topChar ? String(player.topChar) : null;
+  // Prioridad: topChar (de torneos importados) → mainCharId (del perfil / auto-completado desde start.gg)
+  // mainCharAlt NO se usa aquí porque es una skin alternativa, no el personaje base
+  const charId     = player.topChar ? String(player.topChar) : (player.mainCharId ? String(player.mainCharId) : null);
   const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
   const charSrc    = renderFile ? charRenderPath(renderFile) : null;
 

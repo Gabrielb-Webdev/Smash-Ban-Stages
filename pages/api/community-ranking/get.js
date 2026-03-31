@@ -32,10 +32,31 @@ export default async function handler(req, res) {
       try {
         const profile = await redis.get(playerKey(userId));
         if (!profile) return p;
+
+        let resolvedChar = profile.mainChar || null;
+
+        // Si no tiene personaje seleccionado en el perfil, intentar usar el
+        // personaje más usado en su historial de start.gg (ya cacheado en Redis)
+        if (!resolvedChar && profile.slug) {
+          try {
+            const sgCache = await redis.get(`startgg:stats:v16:${profile.slug}`);
+            if (sgCache) {
+              const parsed = typeof sgCache === 'string' ? JSON.parse(sgCache) : sgCache;
+              const topLocalChar = parsed?.charUsage?.[0]?.localCharId || null;
+              if (topLocalChar) {
+                resolvedChar = topLocalChar;
+                // Guardar automáticamente en el perfil para usos futuros
+                profile.mainChar = topLocalChar;
+                await redis.set(playerKey(userId), profile).catch(() => {});
+              }
+            }
+          } catch { /* silent */ }
+        }
+
         return {
           ...p,
           userId,
-          mainCharId: profile.mainChar || null,
+          mainCharId: resolvedChar,
           mainCharAlt: profile.mainCharAlt || null,
           country: profile.country || null,
         };
