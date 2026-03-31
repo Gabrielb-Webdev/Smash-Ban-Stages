@@ -4022,7 +4022,7 @@ function TabPerfil({ user }) {
 
         {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} onBack={viewMatchDetail.onBack} onViewOpponent={(id, name) => { setViewMatchDetail(null); openProfile(id, name); }} />}
 
-        {/* --- MODAL PERFIL JUGADOR --- */
+        {/* --- MODAL PERFIL JUGADOR --- */}
         {viewProfile && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             {/* Sticky top bar */}
@@ -5106,7 +5106,7 @@ function TabRankings({ user, setTab }) {
       ) : mode !== 'char' ? (
         <>
           {/* Header con año y nombre de comunidad */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8, padding: '10px 18px' }}>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
               {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
             </p>
