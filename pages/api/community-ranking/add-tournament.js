@@ -1,5 +1,6 @@
 import redis, { crTournamentsKey } from '../../../lib/redis';
 import { getPositionPoints, MIN_ATTENDEES } from '../../../lib/communityRanking';
+import { findLocalCharId } from '../../../lib/characters';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
 
@@ -37,7 +38,7 @@ query PhaseGroupStandings($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
   phaseGroup(id: $phaseGroupId) {
     id displayIdentifier numRounds
     phase {
-      id name numEntrants
+      id name
       event {
         id name numEntrants
         tournament { name slug startAt numAttendees }
@@ -56,7 +57,88 @@ query PhaseGroupStandings($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
   }
 }`;
 
-// ── helpers ─────────────────────────────────────────────────────────────────
+// Query para personajes usados en un evento
+const Q_EVENT_CHARS = `
+query EventChars($slug: String!, $page: Int!, $perPage: Int!) {
+  event(slug: $slug) {
+    sets(page: $page, perPage: $perPage, filters: { state: 3 }) {
+      pageInfo { totalPages }
+      nodes {
+        games {
+          selections {
+            entrant { participants { player { gamerTag } } }
+            selectionType
+            selectionValue
+          }
+        }
+      }
+    }
+  }
+}`;
+
+// Mapa de IDs de start.gg a nombres de personajes SSBU (top usados, para fallback)
+const STARTGG_CHAR_NAMES = {
+  1: 'Mario', 2: 'Donkey Kong', 3: 'Link', 4: 'Samus', 5: 'Dark Samus',
+  6: 'Yoshi', 7: 'Kirby', 8: 'Fox', 9: 'Pikachu', 10: 'Luigi',
+  11: 'Ness', 12: 'Captain Falcon', 13: 'Jigglypuff', 14: 'Peach', 15: 'Daisy',
+  16: 'Bowser', 17: 'Ice Climbers', 18: 'Sheik', 19: 'Zelda', 20: 'Dr. Mario',
+  21: 'Pichu', 22: 'Falco', 23: 'Marth', 24: 'Lucina', 25: 'Young Link',
+  26: 'Ganondorf', 27: 'Mewtwo', 28: 'Roy', 29: 'Chrom', 30: 'Mr. Game & Watch',
+  31: 'Meta Knight', 32: 'Pit', 33: 'Dark Pit', 34: 'Zero Suit Samus', 35: 'Wario',
+  36: 'Snake', 37: 'Ike', 38: 'Pokemon Trainer', 39: 'Diddy Kong', 40: 'Lucas',
+  41: 'Sonic', 42: 'King Dedede', 43: 'Olimar', 44: 'Lucario', 45: 'R.O.B.',
+  46: 'Toon Link', 47: 'Wolf', 48: 'Villager', 49: 'Mega Man', 50: 'Wii Fit Trainer',
+  51: 'Rosalina & Luma', 52: 'Little Mac', 53: 'Greninja', 54: 'Mii Brawler',
+  55: 'Mii Swordfighter', 56: 'Mii Gunner', 57: 'Palutena', 58: 'Pac-Man',
+  59: 'Robin', 60: 'Shulk', 61: 'Bowser Jr.', 62: 'Duck Hunt', 63: 'Ryu',
+  64: 'Ken', 65: 'Cloud', 66: 'Corrin', 67: 'Bayonetta', 68: 'Inkling',
+  69: 'Ridley', 70: 'Simon', 71: 'Richter', 72: 'King K. Rool', 73: 'Isabelle',
+  74: 'Incineroar', 75: 'Piranha Plant', 76: 'Joker', 77: 'Hero', 78: 'Banjo & Kazooie',
+  79: 'Terry', 80: 'Byleth', 81: 'Min Min', 82: 'Steve', 83: 'Sephiroth',
+  84: 'Pyra/Mythra', 85: 'Kazuya', 86: 'Sora',
+};
+
+/** Obtiene el personaje más usado por cada gamer tag en los sets de un evento */
+async function fetchEventCharMap(token, eventSlug) {
+  const charCount = {}; // gamerTag → { charId → count }
+  let page = 1, totalPages = 1;
+  const perPage = 50;
+
+  do {
+    try {
+      const data = await gqlQuery(token, Q_EVENT_CHARS, { slug: eventSlug, page, perPage });
+      const sets = data?.event?.sets;
+      if (!sets) break;
+      totalPages = sets.pageInfo?.totalPages || 1;
+      for (const set of (sets.nodes || [])) {
+        for (const game of (set.games || [])) {
+          for (const sel of (game.selections || [])) {
+            if (sel.selectionType !== 'CHARACTER' && sel.selectionType !== 0) continue;
+            const tag = sel.entrant?.participants?.[0]?.player?.gamerTag;
+            const charId = sel.selectionValue;
+            if (!tag || !charId) continue;
+            if (!charCount[tag]) charCount[tag] = {};
+            charCount[tag][charId] = (charCount[tag][charId] || 0) + 1;
+          }
+        }
+      }
+    } catch { break; }
+    page++;
+  } while (page <= totalPages && page <= 4);
+
+  // Convertir charCount en topChar (charId más frecuente) → local charId
+  const result = {};
+  for (const [tag, counts] of Object.entries(charCount)) {
+    const topStartggId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (!topStartggId) continue;
+    const charName = STARTGG_CHAR_NAMES[Number(topStartggId)];
+    const localId = charName ? findLocalCharId(charName) : null;
+    if (localId) result[tag] = localId;
+  }
+  return result;
+}
+
+
 
 function checkAuth(req) {
   const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
@@ -236,6 +318,12 @@ export default async function handler(req, res) {
     if (numAttendees < MIN_ATTENDEES)
       return res.status(400).json({ error: `El torneo necesita al menos ${MIN_ATTENDEES} participantes (tiene ${numAttendees})` });
 
+    // Obtener personajes más usados por evento (best-effort, no bloquea si falla)
+    let charMap = {};
+    if (eventSlug) {
+      try { charMap = await fetchEventCharMap(token, eventSlug); } catch { /* ignorar */ }
+    }
+
     // Construir standings con puntos base
     const standings = nodes.map(n => {
       const playerName = n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || 'Desconocido';
@@ -246,6 +334,7 @@ export default async function handler(req, res) {
         entrantName: n.entrant?.name || playerName,
         basePoints,
         bonusPoints: 0,
+        charId: charMap[playerName] || null,
       };
     });
 

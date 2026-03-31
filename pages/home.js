@@ -1767,6 +1767,80 @@ function ConfigModal({ onClose, userId }) {
   );
 }
 
+function CommPlayerRow({ position, player, onPlayerClick, onNoProfile }) {
+  const charId     = player.mainCharId || player.topChar || null;
+  const renderFile = charId ? CHARACTER_RENDERS[charId] : null;
+  const charSrc    = player.mainCharAlt || (renderFile ? charRenderPath(renderFile) : null);
+
+  const isTop3 = position <= 3;
+  const topColors = {
+    1: { bg: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', text: '#000', posBg: 'rgba(255,255,255,0.25)', posColor: '#000' },
+    2: { bg: 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)', text: '#000', posBg: 'rgba(255,255,255,0.25)', posColor: '#000' },
+    3: { bg: 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)', text: '#000', posBg: 'rgba(255,255,255,0.25)', posColor: '#000' },
+  };
+  const tc = topColors[position] || null;
+  const hasProfile = !!player.userId;
+
+  function handleClick() {
+    if (hasProfile) { onPlayerClick && onPlayerClick(player.userId, player.name); }
+    else { onNoProfile && onNoProfile(player.name); }
+  }
+
+  return (
+    <div onClick={handleClick} style={{
+      display: 'flex', alignItems: 'center',
+      background: tc ? tc.bg : '#10101A',
+      border: tc ? 'none' : '1px solid rgba(255,255,255,0.05)',
+      borderRadius: 12, overflow: 'hidden',
+      cursor: 'pointer', position: 'relative', minHeight: isTop3 ? 72 : 56,
+    }}>
+      {/* Position badge */}
+      <div style={{
+        width: isTop3 ? 52 : 44, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: tc ? tc.posBg : 'rgba(124,58,237,0.15)',
+        alignSelf: 'stretch',
+      }}>
+        <span style={{ fontSize: isTop3 ? 24 : 18, fontWeight: 900, color: tc ? tc.posColor : '#A78BFA', fontFamily: "'Outfit', sans-serif" }}>
+          {position}
+        </span>
+      </div>
+
+      {/* Name + pts */}
+      <div style={{ flex: 1, padding: isTop3 ? '10px 12px' : '8px 10px', minWidth: 0 }}>
+        <p style={{
+          margin: 0, fontSize: isTop3 ? 17 : 14, fontWeight: 900,
+          color: tc ? tc.text : '#fff',
+          textTransform: 'uppercase', letterSpacing: '0.02em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          {player.country && <FlagImg cc={player.country} size={14} />}
+          {player.name}
+        </p>
+        <p style={{ margin: '2px 0 0', fontSize: isTop3 ? 16 : 13, fontWeight: 900, color: tc ? 'rgba(0,0,0,0.65)' : '#A78BFA' }}>
+          {player.total} <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.7 }}>pts</span>
+        </p>
+      </div>
+
+      {/* Character render */}
+      {charSrc && (
+        <img src={charSrc} alt="" style={{
+          height: isTop3 ? 88 : 68, objectFit: 'contain',
+          position: 'relative', zIndex: 1,
+          marginRight: 25, marginLeft: isTop3 ? -8 : -6,
+          filter: isTop3 ? 'none' : 'brightness(0.85)',
+          flexShrink: 0,
+        }} onError={e => { e.target.style.display = 'none'; }} />
+      )}
+      {/* Indicador sin perfil */}
+      {!hasProfile && !charSrc && (
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginRight: 14, flexShrink: 0 }}>sin perfil</span>
+      )}
+    </div>
+  );
+}
+
 function RankedPlayerRow({ position, player, onPlayerClick }) {
   const isSmasher   = player.rank === 'SMASHer';
   const rankObj     = RANKS.find(r => r.name === player.rank) || RANKS[0];
@@ -3948,6 +4022,18 @@ function TabPerfil({ user }) {
 
         {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} onBack={viewMatchDetail.onBack} onViewOpponent={(id, name) => { setViewMatchDetail(null); openProfile(id, name); }} />}
 
+        {/* --- MODAL SIN PERFIL --- */}
+        {noProfileModal && (
+          <div onClick={() => setNoProfileModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, backdropFilter: 'blur(4px)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: '#15151F', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '28px 24px', maxWidth: 320, width: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: 44, marginBottom: 12 }}>👤</div>
+              <p style={{ margin: '0 0 6px', fontWeight: 900, fontSize: 16, color: '#fff' }}>{noProfileModal}</p>
+              <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>Este jugador no tiene perfil en La App sin H</p>
+              <button onClick={() => setNoProfileModal(null)} style={{ background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 12, padding: '10px 28px', color: '#A78BFA', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Cerrar</button>
+            </div>
+          </div>
+        )}
+
         {/* --- MODAL PERFIL JUGADOR --- */}
         {viewProfile && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -4794,6 +4880,9 @@ function TabRankings({ user, setTab }) {
   const [profileStartggStats, setProfileStartggStats] = useState(null);
   const [viewMatchDetail, setViewMatchDetail] = useState(null);
   const [profileHistFilter, setProfileHistFilter] = useState('all');
+
+  // Modal "sin perfil" para jugadores del ranking comunitario
+  const [noProfileModal, setNoProfileModal] = useState(null); // null | playerName
   const [profileHistExpanded, setProfileHistExpanded] = useState(false);
   const [selectedCharRank, setSelectedCharRank]       = useState(null);
   const [showCharsModalRank, setShowCharsModalRank]   = useState(false);
@@ -5055,53 +5144,22 @@ function TabRankings({ user, setTab }) {
             const pageSlice  = commRanking.players.slice((commPage - 1) * PAGE_SIZE, commPage * PAGE_SIZE);
             return (
               <>
-                {/* Podio top 3 (solo pág 1) */}
-                {commPage === 1 && (
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-                    {commRanking.players.slice(0, 3).map((p, i) => {
-                      const medals = ['🥇', '🥈', '🥉'];
-                      const colors = ['#EAB308', 'rgba(255,255,255,0.4)', '#CD7F32'];
-                      return (
-                        <div key={p.name} style={{
-                          flex: '1 1 90px', background: '#10101A',
-                          border: `1px solid ${i === 0 ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                          borderRadius: 14, padding: '14px 10px', textAlign: 'center',
-                        }}>
-                          <div style={{ fontSize: 24, marginBottom: 4 }}>{medals[i]}</div>
-                          <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#fff', wordBreak: 'break-all' }}>{p.name}</p>
-                          <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: colors[i] }}>{p.total} pts</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
                 {/* Contador */}
                 <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
                   Mostrando {(commPage - 1) * PAGE_SIZE + 1} - {Math.min(commPage * PAGE_SIZE, commRanking.players.length)} de {commRanking.players.length}
                 </p>
 
-                {/* Tabla */}
-                <div style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden' }}>
-                  {pageSlice.map((p, i) => {
-                    const isTop1 = p.position === 1;
-                    const isTop3 = p.position <= 3;
-                    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
-                    const podiumColors = { 1: '#EAB308', 2: 'rgba(200,200,220,0.85)', 3: '#CD7F32' };
-                    return (
-                      <div key={p.name} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: isTop3 ? '14px 16px' : '11px 16px',
-                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                        background: isTop1 ? 'linear-gradient(90deg,rgba(234,179,8,0.12),transparent)' : isTop3 ? `linear-gradient(90deg,${podiumColors[p.position]}18,transparent)` : 'transparent',
-                      }}>
-                        <span style={{ width: 28, fontSize: isTop3 ? 18 : 12, textAlign: 'right', flexShrink: 0, color: isTop3 ? podiumColors[p.position] : 'rgba(255,255,255,0.25)', fontWeight: 700 }}>
-                          {isTop3 ? medals[p.position] : p.position}
-                        </span>
-                        <p style={{ margin: 0, flex: 1, fontSize: 13, fontWeight: isTop3 ? 800 : 700, color: isTop3 ? '#fff' : 'rgba(255,255,255,0.8)' }}>{p.name}</p>
-                        <span style={{ fontSize: isTop3 ? 16 : 14, fontWeight: 900, color: isTop3 ? podiumColors[p.position] : '#A78BFA' }}>{p.total} <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>pts</span></span>
-                      </div>
-                    );
-                  })}
+                {/* Lista estilo Ranked */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {pageSlice.map(p => (
+                    <CommPlayerRow
+                      key={p.name}
+                      position={p.position}
+                      player={p}
+                      onPlayerClick={openProfile}
+                      onNoProfile={name => setNoProfileModal(name)}
+                    />
+                  ))}
                 </div>
 
                 {/* Paginación */}
