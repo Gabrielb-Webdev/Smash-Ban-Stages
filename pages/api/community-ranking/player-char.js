@@ -1,11 +1,11 @@
-/**
+﻿/**
  * GET  /api/community-ranking/player-char?community=afk&year=2025
- *   → { overrides: { "zant": "bowser", ... } }
+ *   â†’ { overrides: { "zant": "bowser", ... } }
  *
  * PATCH /api/community-ranking/player-char
  *   body: { community, year, playerName, charId }
- *   charId = null / "" → elimina el override del jugador
- *   → { ok: true, overrides: { ... } }
+ *   charId = null / "" â†’ elimina el override del jugador
+ *   â†’ { ok: true, overrides: { ... } }
  */
 import redis, { crCharOverrideKey } from '../../../lib/redis';
 import { CHARACTERS } from '../../../lib/characters';
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     if (!playerName) return res.status(400).json({ error: 'playerName es requerido' });
 
     if (charId && !VALID_CHAR_IDS.has(charId)) {
-      return res.status(400).json({ error: `charId inválido: ${charId}` });
+      return res.status(400).json({ error: `charId invÃ¡lido: ${charId}` });
     }
 
     const raw = await redis.get(crCharOverrideKey(community, year)).catch(() => null);
@@ -53,4 +53,3 @@ export default async function handler(req, res) {
 
   return res.status(405).end();
 }
-https://docs.google.com/spreadsheets/d/1-4Rq6DGSXzqnvcICfvOeMOyGqnxQ4yfMBZoOphxPTlQ/edit?gid=1158758218#gid=1158758218
