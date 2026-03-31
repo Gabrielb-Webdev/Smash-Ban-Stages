@@ -446,6 +446,37 @@ export default function AfkRankingAdmin() {
     }
   }
 
+  const [autoDetecting, setAutoDetecting] = useState(false);
+  const [autoDetectMsg, setAutoDetectMsg] = useState(null);
+
+  async function handleAutoDetectChars() {
+    setAutoDetecting(true);
+    setAutoDetectMsg(null);
+    try {
+      const r = await fetch('/api/community-ranking/auto-chars', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+        body: JSON.stringify({ community, year }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setAutoDetectMsg({ ok: d.assigned?.length > 0, text: d.message });
+        if (d.assigned?.length > 0) {
+          loadCharOverrides(community, year);
+          loadData(community, year);
+        }
+        if (d.skipped?.length > 0) {
+          console.log('[auto-chars] skipped:', d.skipped);
+        }
+      } else {
+        setAutoDetectMsg({ ok: false, text: d.error || 'Error' });
+      }
+    } catch (e) {
+      setAutoDetectMsg({ ok: false, text: e.message });
+    }
+    setAutoDetecting(false);
+  }
+
   // Comunidades visibles
   const visibleComms = userIsAdmin
     ? ALL_COMMUNITIES
@@ -918,7 +949,18 @@ export default function AfkRankingAdmin() {
 
           {/* ── Personajes del ranking ── */}
           <div style={S.section}>
-            <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800 }}>🎮 Personajes del ranking</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, flex: 1 }}>🎮 Personajes del ranking</h2>
+              <button
+                onClick={handleAutoDetectChars}
+                disabled={autoDetecting || data.players.length === 0}
+                style={{ ...S.btnOutline, fontSize: 12, gap: 6 }}
+                title="Consulta Start.GG para detectar el personaje más usado por cada jugador sin personaje asignado"
+              >
+                {autoDetecting ? '⏳ Detectando...' : '🔍 Auto-detectar personajes'}
+              </button>
+            </div>
+            {autoDetectMsg && <div style={{ ...(autoDetectMsg.ok ? S.success : S.error), marginBottom: 10 }}>{autoDetectMsg.text}</div>}
             <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
               Asigná manualmente el personaje de jugadores sin perfil de app o sin datos en start.gg.
             </p>
