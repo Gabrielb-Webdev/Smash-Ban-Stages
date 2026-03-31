@@ -288,10 +288,25 @@ export default function AfkRankingAdmin() {
     });
     const d = await r.json();
     if (r.ok) {
-      const msg = d.updatedStandings > 0
-        ? `✅ ${d.updatedStandings} nombre(s) actualizados en ${d.updatedTournaments} torneo(s)`
-        : '✅ Todos los nombres ya estaban actualizados';
-      setRefreshNamesMsg({ ok: true, text: msg });
+      // Debug: mostrar en consola los resultados por torneo
+      if (d.tournamentResults) console.log('[refresh-names] results:', d.tournamentResults);
+      if (d.changes?.length) console.log('[refresh-names] changes:', d.changes);
+
+      const errors = (d.tournamentResults || []).filter(x => x.status === 'error');
+      const noSlug = (d.tournamentResults || []).filter(x => x.status === 'no-event-slug');
+
+      let msg;
+      if (d.updatedStandings > 0) {
+        const changesText = d.changes.map(c => `${c.old} → ${c.new}`).join(', ');
+        msg = `✅ ${d.updatedStandings} nombre(s) actualizados: ${changesText}`;
+      } else if (errors.length) {
+        msg = `⚠️ Sin cambios. ${errors.length} torneo(s) con error (ver consola). Primer error: "${errors[0].name}" → ${errors[0].error}`;
+      } else if (noSlug.length) {
+        msg = `⚠️ Sin cambios. ${noSlug.length} torneo(s) sin slug de evento válido (ver consola).`;
+      } else {
+        msg = '✅ Todos los nombres ya estaban actualizados';
+      }
+      setRefreshNamesMsg({ ok: d.updatedStandings > 0 || (!errors.length && !noSlug.length), text: msg });
       loadData(community, year);
     } else {
       setRefreshNamesMsg({ ok: false, text: d.error || 'Error' });
