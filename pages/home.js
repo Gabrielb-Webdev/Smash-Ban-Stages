@@ -206,19 +206,42 @@ export default function HomePage() {
     setIsAdmin(!!stored.isAdmin);
     setAdminCommunities(stored.adminCommunities || []);
     // Refrescar adminCommunities desde el servidor (para community admins añadidos después del login)
+    // También usamos el nombre fresco de start.gg (gamerTag) para guardar el perfil correctamente
     verifySession().then(data => {
-      if (!data) return;
+      if (!data) {
+        // Si verifySession falla, guardar de todos modos con lo que tenemos (priorizando gamerTag)
+        if (u.id) {
+          const safeName = u.player?.gamerTag || u.name;
+          fetch('/api/players/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: u.id, name: safeName, slug: u.slug, avatar: u.avatar }),
+          }).catch(() => {});
+        }
+        return;
+      }
       setIsAdmin(!!data.isAdmin);
       setAdminCommunities(data.adminCommunities || []);
-    }).catch(() => {});
-    // Guardar perfil del jugador en Redis
-    if (u.id) {
-      fetch('/api/players/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: u.id, name: u.name, slug: u.slug, avatar: u.avatar }),
-      }).catch(() => {});
-    }
+      // Guardar perfil con el nombre verificado (gamerTag) desde start.gg
+      const verifiedName = data.user?.name || u.player?.gamerTag || u.name;
+      if (u.id) {
+        fetch('/api/players/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: u.id, name: verifiedName, slug: u.slug, avatar: u.avatar }),
+        }).catch(() => {});
+      }
+    }).catch(() => {
+      // Fallback: guardar perfil con lo disponible en localStorage
+      if (u.id) {
+        const safeName = u.player?.gamerTag || u.name;
+        fetch('/api/players/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: u.id, name: safeName, slug: u.slug, avatar: u.avatar }),
+        }).catch(() => {});
+      }
+    });
   }, []);
 
   // Tour: mostrar en el primer uso
@@ -2597,6 +2620,13 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
 }
 /* --- TAB AMIGOS ------------------------------------------------ */
 function TabAmigos({ user }) {
+  const pageVisible = useRef(true);
+  useEffect(() => {
+    const onVis = () => { pageVisible.current = !document.hidden; };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   const [friendTab, setFriendTab]       = useState('list');
   const [friends, setFriends]           = useState([]);
   const [friendSearch, setFriendSearch] = useState('');
