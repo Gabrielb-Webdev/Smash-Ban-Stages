@@ -73,7 +73,8 @@ async function fetchCharMap(token, eventSlug) {
       for (const set of (sets.nodes || [])) {
         for (const game of (set.games || [])) {
           for (const sel of (game.selections || [])) {
-            if (sel.selectionType !== 'CHARACTER') continue;
+            // selectionType puede venir como string 'CHARACTER' o como 0 numérico
+            if (sel.selectionType !== 'CHARACTER' && sel.selectionType !== 0) continue;
             const tag = sel.entrant?.participants?.[0]?.player?.gamerTag;
             const charId = sel.selectionValue;
             if (!tag || !charId) continue;
@@ -105,7 +106,7 @@ export default async function handler(req, res) {
   if (auth !== (process.env.ADMIN_SECRET || 'afk-admin-2025'))
     return res.status(401).json({ error: 'No autorizado' });
 
-  const { community, year } = req.body || {};
+  const { community, year, force } = req.body || {};
   if (!community || !year) return res.status(400).json({ error: 'community y year requeridos' });
 
   const token = process.env.START_GG_API_TOKEN || process.env.START_GG_CLIENT_SECRET || '';
@@ -118,10 +119,8 @@ export default async function handler(req, res) {
   let updated = 0;
 
   for (const t of tournaments) {
-    // Extraer el event slug del campo slug guardado
     const slug = t.slug;
     if (!slug || typeof slug !== 'string') continue;
-    // El slug puede ser "tournament/.../event/..." o una URL completa
     const cleanSlug = slug
       .replace(/^https?:\/\/(www\.)?start\.gg\//, '')
       .replace(/\/brackets(\/.*)?$/, '')
@@ -134,7 +133,7 @@ export default async function handler(req, res) {
 
       let changed = false;
       for (const s of (t.standings || [])) {
-        if (s.charId) continue; // ya tiene, no sobreescribir
+        if (s.charId && !force) continue; // ya tiene, no sobreescribir (salvo force=true)
         const key2 = (s.playerName || '').toLowerCase();
         if (charMap[key2]) {
           s.charId = charMap[key2];

@@ -262,7 +262,7 @@ export default function AfkRankingAdmin() {
     const r = await fetch('/api/community-ranking/refresh-chars', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
-      body: JSON.stringify({ community, year }),
+      body: JSON.stringify({ community, year, force: true }),
     });
     const d = await r.json();
     if (r.ok) {
