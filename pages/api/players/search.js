@@ -21,8 +21,9 @@ export default async function handler(req, res) {
     const stats = await Promise.all(ids.map(id => redis.get(rankedStatsKey(id, plat))));
     for (const s of stats) {
       if (!s?.userName) continue;
-      if (s.userName.toLowerCase().includes(q) && !seenIds.has(s.userId)) {
-        seenIds.add(s.userId);
+      const sid = String(s.userId);
+      if (s.userName.toLowerCase().includes(q) && !seenIds.has(sid)) {
+        seenIds.add(sid);
         results.push({ userId: s.userId, userName: s.userName });
       }
     }
@@ -31,9 +32,9 @@ export default async function handler(req, res) {
   // Buscar en índice de jugadores registrados (incluye quienes nunca jugaron ranked)
   const playersIdx = (await redis.get(playersIndexKey)) || [];
   for (const p of playersIdx) {
-    if (!p.name || seenIds.has(p.id)) continue;
+    if (!p.name || seenIds.has(String(p.id))) continue;
     if (p.name.toLowerCase().includes(q)) {
-      seenIds.add(p.id);
+      seenIds.add(String(p.id));
       results.push({ userId: p.id, userName: p.name });
     }
     if (results.length >= 15) break;

@@ -74,15 +74,17 @@ export default async function handler(req, res) {
     });
 
     // Registrar en índice de jugadores (para búsqueda de amigos)
+    // Usamos String() para comparar ids independientemente del tipo (number vs string)
     const idx = (await redis.get(playersIndexKey)) || [];
-    if (!idx.find(p => p.id === cleanId)) {
+    const entry = idx.find(p => String(p.id) === cleanId);
+    if (!entry) {
       idx.push({ id: cleanId, name: name ? sanitize(name).slice(0, 80) : '' });
       await redis.set(playersIndexKey, idx.length > 5000 ? idx.slice(-5000) : idx);
     } else {
-      // Actualizar nombre si cambió
-      const entry = idx.find(p => p.id === cleanId);
+      // Normalizar id a string y actualizar nombre si cambió
+      entry.id = cleanId;
       const newName = name ? sanitize(name).slice(0, 80) : entry.name;
-      if (entry.name !== newName) {
+      if (entry.name !== newName || entry.id !== cleanId) {
         entry.name = newName;
         await redis.set(playersIndexKey, idx);
       }
