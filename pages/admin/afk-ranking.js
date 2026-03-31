@@ -55,29 +55,6 @@ function TournamentCard({ t, community, year, onRemove, onBonusUpdate }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bonusEdits, setBonusEdits] = useState({});
-  // Para torneos multi-fase: qué sección está abierta
-  const [openSection, setOpenSection] = useState(null); // null | 'bracket' | 'top8' | 'total'
-
-  const hasPhases = Array.isArray(t.phases) && t.phases.length > 0;
-  const bracketPhase = hasPhases ? t.phases.find(p => p.phaseType === 'bracket') : null;
-  const top8Phase   = hasPhases ? t.phases.find(p => p.phaseType === 'top8')    : null;
-
-  // Para la sección Total en multi-fase: combinar players
-  const totalMap = {};
-  if (hasPhases) {
-    for (const phase of t.phases) {
-      for (const s of (phase.standings || [])) {
-        if (!totalMap[s.playerName]) totalMap[s.playerName] = { playerName: s.playerName, bracket: 0, top8: 0, bonus: 0 };
-        if (phase.phaseType === 'bracket') totalMap[s.playerName].bracket += s.basePoints;
-        if (phase.phaseType === 'top8')    totalMap[s.playerName].top8    += s.basePoints;
-      }
-    }
-    // agregar bonos del merged standings
-    for (const s of (t.standings || [])) {
-      if (totalMap[s.playerName]) totalMap[s.playerName].bonus = s.bonusPoints || 0;
-    }
-  }
-  const totalRows = Object.values(totalMap).map(r => ({ ...r, total: r.bracket + r.top8 + r.bonus })).sort((a, b) => b.total - a.total);
 
   const topStandings = (t.standings || []).filter(s => s.placement >= 1 && s.placement <= 8);
 
@@ -95,49 +72,13 @@ function TournamentCard({ t, community, year, onRemove, onBonusUpdate }) {
     onBonusUpdate();
   }
 
-  function PhaseTable({ standings, showBonus = false }) {
-    return (
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'left' }}>
-              <th style={{ padding: '6px 8px', fontWeight: 600, whiteSpace: 'nowrap' }}>Pos</th>
-              <th style={{ padding: '6px 8px', fontWeight: 600 }}>Jugador</th>
-              <th style={{ padding: '6px 8px', fontWeight: 600, textAlign: 'right' }}>Pts</th>
-              {showBonus && <th style={{ padding: '6px 8px', fontWeight: 600, textAlign: 'center' }}>Bono</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map(s => {
-              const currentBonus = bonusEdits[s.playerName] !== undefined ? bonusEdits[s.playerName] : s.bonusPoints;
-              return (
-                <tr key={s.playerName} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{posLabel(s.placement)}</td>
-                  <td style={{ padding: '6px 8px', fontWeight: 600 }}>{s.playerName}</td>
-                  <td style={{ padding: '6px 8px', textAlign: 'right', color: '#A78BFA', fontWeight: 700 }}>{s.basePoints + (showBonus ? (typeof currentBonus === 'number' ? currentBonus : 0) : 0)}</td>
-                  {showBonus && (
-                    <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                      <input type="number" min="0" value={typeof currentBonus === 'number' ? currentBonus : 0}
-                        onChange={e => setBonusEdits(b => ({ ...b, [s.playerName]: parseInt(e.target.value, 10) || 0 }))}
-                        style={{ ...S.input, width: 70, padding: '4px 8px', textAlign: 'center' }} />
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
   return (
     <div style={{ background: '#0F0F1C', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, marginBottom: 12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', flexWrap: 'wrap' }}>
         <span style={S.tag(t.type === 'M' ? '#A78BFA' : '#60A5FA')}>{TYPE_LABELS[t.type]}</span>
         <div style={{ flex: 1, minWidth: 160 }}>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{t.name}</p>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{fmtDate(t.startAt)} · {t.numAttendees} jugadores · {t.standings?.length || 0} posiciones{hasPhases ? ` · ${t.phases.length} fases` : ''}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{fmtDate(t.startAt)} · {t.numAttendees} jugadores · {t.standings?.length || 0} posiciones</p>
         </div>
         <button style={S.btnOutline} onClick={() => setOpen(o => !o)}>
           {open ? '▲ Cerrar' : '▼ Ver standings'}
@@ -147,83 +88,13 @@ function TournamentCard({ t, community, year, onRemove, onBonusUpdate }) {
 
       {open && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '12px 16px 16px' }}>
-          {hasPhases ? (
-            // ── Vista multi-fase ────────────────────────────────────────────────
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Bracket */}
-              {bracketPhase && (
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
-                  <button onClick={() => setOpenSection(s => s === 'bracket' ? null : 'bracket')} style={{ width: '100%', background: 'none', border: 'none', color: '#fff', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                    <span>🏆 Bracket — {bracketPhase.numEntrants} jugadores</span>
-                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{openSection === 'bracket' ? '▲' : '▼'} {bracketPhase.standings?.length || 0} posiciones</span>
-                  </button>
-                  {openSection === 'bracket' && <PhaseTable standings={bracketPhase.standings || []} />}
-                </div>
-              )}
-              {/* Top 8 */}
-              {top8Phase && (
-                <div style={{ background: 'rgba(167,139,250,0.04)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 10, overflow: 'hidden' }}>
-                  <button onClick={() => setOpenSection(s => s === 'top8' ? null : 'top8')} style={{ width: '100%', background: 'none', border: 'none', color: '#A78BFA', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                    <span>⚡ Top 8 — {top8Phase.numEntrants} jugadores</span>
-                    <span style={{ color: 'rgba(167,139,250,0.5)', fontSize: 11 }}>{openSection === 'top8' ? '▲' : '▼'} con bonos editables</span>
-                  </button>
-                  {openSection === 'top8' && (
-                    <>
-                      <PhaseTable standings={top8Phase.standings || []} showBonus />
-                      {Object.keys(bonusEdits).length > 0 && (
-                        <div style={{ padding: '8px 14px', display: 'flex', justifyContent: 'flex-end' }}>
-                          <button style={S.btn} onClick={saveBonuses} disabled={saving}>{saving ? 'Guardando...' : '💾 Guardar bonos'}</button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-              {/* Total */}
-              <div style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 10, overflow: 'hidden' }}>
-                <button onClick={() => setOpenSection(s => s === 'total' ? null : 'total')} style={{ width: '100%', background: 'none', border: 'none', color: '#60A5FA', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                  <span>∑ Total acumulado</span>
-                  <span style={{ color: 'rgba(96,165,250,0.5)', fontSize: 11 }}>{openSection === 'total' ? '▲' : '▼'} bracket + top 8 + bono</span>
-                </button>
-                {openSection === 'total' && (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'left' }}>
-                          <th style={{ padding: '6px 8px' }}>#</th>
-                          <th style={{ padding: '6px 8px' }}>Jugador</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Bracket</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Top 8</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Bono</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {totalRows.map((r, i) => (
-                          <tr key={r.playerName} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                            <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>{i + 1}</td>
-                            <td style={{ padding: '6px 8px', fontWeight: 600 }}>{r.playerName}</td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.5)' }}>{r.bracket}</td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', color: '#A78BFA' }}>{r.top8 || '—'}</td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', color: '#F59E0B' }}>{r.bonus || '—'}</td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, color: '#60A5FA' }}>{r.total}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            // ── Vista clásica (torneo de una sola fase) ────────────────────────
-            <>
-              {topStandings.length > 0 && (
-                <p style={{ margin: '0 0 10px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                  Top 8: editá los bonos manualmente (por vencer a Top 8 ajenos al evento).
-                </p>
-              )}
-              <div style={{ overflowX: 'auto' }}>
+          <>
+            {topStandings.length > 0 && (
+              <p style={{ margin: '0 0 10px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                Top 8: editá los bonos manualmente (por vencer a Top 8 ajenos al evento).
+              </p>
+            )}
+            <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'left' }}>
@@ -261,15 +132,14 @@ function TournamentCard({ t, community, year, onRemove, onBonusUpdate }) {
                   </tbody>
                 </table>
               </div>
-              {Object.keys(bonusEdits).length > 0 && (
-                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                  <button style={S.btn} onClick={saveBonuses} disabled={saving}>
-                    {saving ? 'Guardando...' : '💾 Guardar bonos'}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+            {Object.keys(bonusEdits).length > 0 && (
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                <button style={S.btn} onClick={saveBonuses} disabled={saving}>
+                  {saving ? 'Guardando...' : '💾 Guardar bonos'}
+                </button>
+              </div>
+            )}
+          </>
         </div>
       )}
     </div>

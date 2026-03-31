@@ -73,15 +73,12 @@ query PhaseGroupStandings($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
 }`;
 
 /**
- * Clasifica una fase por nombre.
- * Retorna 'bracket' | 'top8' | null (null = ignorar)
+ * Retorna null si la fase debe ignorarse (resurrección / side event), 'valid' si cuenta.
  */
 function classifyPhase(name) {
-  const n = name.toLowerCase();
-  if (/resurrect|repechage|repesca/i.test(n)) return null;
-  if (/side[\s\-_]?event/i.test(n)) return null;
-  if (/top\s*8|top_8/i.test(n)) return 'top8';
-  return 'bracket';
+  if (/resurrect|repechage|repesca/i.test(name)) return null;
+  if (/side[\s\-_]?event/i.test(name)) return null;
+  return 'valid';
 }
 
 // Query para personajes usados en un evento
@@ -282,7 +279,6 @@ export default async function handler(req, res) {
     const existing = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
 
     let nodes = [];
-    let phasesData = null; // array de fases si el evento tiene multi-fase
     let tournamentName = null;
     let tournamentStartAt = null;
     let numAttendees = 0;   // del evento padre (para validar MIN_ATTENDEES)
@@ -325,15 +321,12 @@ export default async function handler(req, res) {
         eventSlug = `tournament/${t.slug}/event/${ssbuEvent.slug}`;
       }
 
-      // Si la URL tiene phaseId pero no phaseGroupId, usamos eventSlug+phaseId como ID
-      dupId = parsed.phaseId
-        ? `${eventSlug.replace(/\//g, ':')}:phase:${parsed.phaseId}`
-        : eventSlug.replace(/\//g, ':');
+      dupId = eventSlug.replace(/\//g, ':');
 
       if (existing.some(t => t.id === dupId))
         return res.status(409).json({ error: 'Este torneo ya fue cargado' });
 
-      // Intentar detectar fases (bracket + top 8, ignorar resurrection/side events)
+      // Detectar fases de Resurrección para excluir sus jugadores
       const evData = await gqlQuery(token, Q_EVENT_PHASES, { slug: eventSlug });
       const evObj = evData?.event;
       if (!evObj) throw new Error('Evento no encontrado en start.gg');
@@ -342,64 +335,29 @@ export default async function handler(req, res) {
       tournamentName = tournamentName || nameOverride || evObj.tournament?.name || eventSlug;
       tournamentStartAt = tournamentStartAt || evObj.tournament?.startAt || null;
 
-      const allPhases = (evObj.phases || []).map(p => ({
-        ...p, phaseType: classifyPhase(p.name),
-      })).filter(p => p.phaseType !== null);
-
-      if (allPhases.length >= 2) {
-        // ── Multi-fase: bracket + top 8 separados ─────────────────────────
-        phasesData = [];
-        for (const phase of allPhases) {
-          const phaseNodes = [];
-          for (const pg of (phase.phaseGroups?.nodes || [])) {
-            try {
-              const { nodes: pgNodes } = await fetchPhaseGroupStandings(token, pg.id);
-              phaseNodes.push(...pgNodes);
-            } catch { /* continuar */ }
-          }
-          const phaseStandings = phaseNodes.map(n => {
-            const playerName = n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || 'Desconocido';
-            return {
-              placement: n.placement,
-              playerName,
-              entrantName: n.entrant?.name || playerName,
-              basePoints: getPositionPoints(n.placement, type),
-              bonusPoints: 0,
-              charId: charMap[playerName] || null,
-            };
-          });
-          phasesData.push({
-            phaseId: String(phase.id),
-            phaseName: phase.name,
-            phaseType: phase.phaseType,
-            numEntrants: phase.numSeeds || phaseStandings.length,
-            standings: phaseStandings,
-          });
-        }
-
-        // Mergedstandings (suma de basePoints por jugador) para buildRanking y bonos
-        const mergedMap = {};
-        for (const phase of phasesData) {
-          for (const s of phase.standings) {
-            if (!mergedMap[s.playerName]) {
-              mergedMap[s.playerName] = {
-                placement: s.placement, playerName: s.playerName,
-                entrantName: s.entrantName, basePoints: 0, bonusPoints: 0,
-                charId: s.charId,
-              };
+      // Recolectar jugadores de fases excluidas (resurrección / side events)
+      const resurrectionPlayers = new Set();
+      for (const phase of (evObj.phases || [])) {
+        if (classifyPhase(phase.name) !== null) continue;
+        for (const pg of (phase.phaseGroups?.nodes || [])) {
+          try {
+            const { nodes: pgNodes } = await fetchPhaseGroupStandings(token, pg.id);
+            for (const n of pgNodes) {
+              const pName = n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name;
+              if (pName) resurrectionPlayers.add(pName.toLowerCase());
             }
-            mergedMap[s.playerName].basePoints += s.basePoints;
-            // El placement más bajo (mejor posición) gana
-            if (s.placement < mergedMap[s.playerName].placement) {
-              mergedMap[s.playerName].placement = s.placement;
-            }
-          }
+          } catch { /* ignorar */ }
         }
-        nodes = Object.values(mergedMap);
-      } else {
-        // ── Una sola fase: standings completos del evento ──────────────────
-        nodes = await fetchAllStandings(token, eventSlug);
       }
+
+      // Standings del evento completo, filtrando jugadores de resurrección
+      const allNodes = await fetchAllStandings(token, eventSlug);
+      nodes = resurrectionPlayers.size > 0
+        ? allNodes.filter(n => {
+            const pName = (n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || '').toLowerCase();
+            return !resurrectionPlayers.has(pName);
+          })
+        : allNodes;
     }
 
     if (numAttendees < MIN_ATTENDEES)
@@ -411,43 +369,18 @@ export default async function handler(req, res) {
       try { charMap = await fetchEventCharMap(token, eventSlug); } catch { /* ignorar */ }
     }
 
-    // Si phasesData ya está construido (multi-fase), asignar charId pendiente
-    // Si nodes viene de fallback, construir standings ahora
-    let standings;
-    if (phasesData) {
-      // charMap se aplica sobre los standings de cada fase
-      for (const phase of phasesData) {
-        for (const s of phase.standings) {
-          if (!s.charId && charMap[s.playerName]) s.charId = charMap[s.playerName];
-        }
-      }
-      // Reconstruir merged standings con charMap aplicado
-      const mergedMap = {};
-      for (const phase of phasesData) {
-        for (const s of phase.standings) {
-          if (!mergedMap[s.playerName]) {
-            mergedMap[s.playerName] = { placement: s.placement, playerName: s.playerName, entrantName: s.entrantName, basePoints: 0, bonusPoints: 0, charId: s.charId };
-          }
-          mergedMap[s.playerName].basePoints += s.basePoints;
-          if (s.placement < mergedMap[s.playerName].placement) mergedMap[s.playerName].placement = s.placement;
-          if (!mergedMap[s.playerName].charId && s.charId) mergedMap[s.playerName].charId = s.charId;
-        }
-      }
-      standings = Object.values(mergedMap);
-    } else {
-      standings = nodes.map(n => {
-        const playerName = n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || 'Desconocido';
-        const basePoints = getPositionPoints(n.placement, type);
-        return {
-          placement: n.placement,
-          playerName,
-          entrantName: n.entrant?.name || playerName,
-          basePoints,
-          bonusPoints: 0,
-          charId: charMap[playerName] || null,
-        };
-      });
-    }
+    const standings = nodes.map(n => {
+      const playerName = n.entrant?.participants?.[0]?.player?.gamerTag || n.entrant?.name || 'Desconocido';
+      const basePoints = getPositionPoints(n.placement, type);
+      return {
+        placement: n.placement,
+        playerName,
+        entrantName: n.entrant?.name || playerName,
+        basePoints,
+        bonusPoints: 0,
+        charId: charMap[playerName] || null,
+      };
+    });
 
     // Guardar el torneo
     const newTournament = {
@@ -459,7 +392,6 @@ export default async function handler(req, res) {
       numAttendees,
       addedAt: Date.now(),
       standings,
-      ...(phasesData ? { phases: phasesData } : {}),
     };
 
     existing.push(newTournament);
