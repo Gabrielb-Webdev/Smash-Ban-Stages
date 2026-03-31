@@ -5060,7 +5060,7 @@ function TabRankings({ user, setTab }) {
             })}
           </div>
         )}
-        <div style={{ height: 14 }} />
+        <div style={{ height: 25 }} />
       </div>
 
       <div style={{ padding: '0 18px' }}>
