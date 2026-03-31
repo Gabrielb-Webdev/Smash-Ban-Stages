@@ -101,12 +101,17 @@ async function fetchCharMap(token, eventSlug) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-  const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-  if (auth !== (process.env.ADMIN_SECRET || 'afk-admin-2025'))
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end();
+  const expected = process.env.ADMIN_SECRET || 'afk-admin-2025';
+  const authHeader = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  const authQuery  = (req.query.secret || '').trim();
+  if (authHeader !== expected && authQuery !== expected)
     return res.status(401).json({ error: 'No autorizado' });
 
-  const { community, year, force } = req.body || {};
+  // Soporta parámetros tanto por body (POST) como por query string (GET)
+  const community = req.body?.community || req.query.community;
+  const year       = req.body?.year      || req.query.year;
+  const force      = req.body?.force !== undefined ? req.body.force : true; // GET siempre force
   if (!community || !year) return res.status(400).json({ error: 'community y year requeridos' });
 
   const token = process.env.START_GG_API_TOKEN || process.env.START_GG_CLIENT_SECRET || '';
