@@ -310,7 +310,6 @@ export default function HomePage() {
         if (r.ok) {
           const d = await r.json();
           if (Array.isArray(d.notifs))  setNotifs(d.notifs);
-          if (Array.isArray(d.friends)) setFriends(d.friends);
           if (Array.isArray(d.inbox))   setChatInbox(d.inbox);
         }
       } catch {}
@@ -1183,7 +1182,7 @@ export default function HomePage() {
           {tab === 'torneos'  && <TabTorneos user={user} />}
           {tab === 'tips'     && <TabTips     />}
           {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} user={user} />}
-          {tab === 'amigos'   && <TabAmigos user={user} />}
+          {tab === 'amigos'   && <TabAmigos user={user} setNotifs={setNotifs} />}
           {tab === 'perfil'   && <TabPerfil user={user} />}
         </main>
 
@@ -2329,6 +2328,7 @@ const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoz
 const HIST_COMM_SHORT  = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
 const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '/images/SCC.webp', 'mendoza': '/images/Team_Anexo/team_anexo_logo_nwe.png', 'afk-multi': '/images/AFK.webp', 'afk': '/images/AFK.webp', 'warui': '/images/warui/logo.png', 'inc': '/images/inc.png' };
 function buildHistFilterTabs(hist) {
+  if (!Array.isArray(hist)) return [['all','Todos']];
   const hasCasual = hist.some(m => m.type === 'casual');
   const commIds = [...new Set(hist.filter(m => m.type === 'tournament' && m.community).map(m => m.community))];
   return [['all','Todos'],['ranked','Ranked'],...(hasCasual?[['casual','Normal']]:[]),...commIds.map(c=>[c,HIST_COMM_LABELS[c]||c])];
@@ -2351,7 +2351,7 @@ function groupHistByDate(matches) {
 }
 function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histExpanded, setHistExpanded, viewedUserId, setViewMatchDetail, rankStats }) {
   const [showAllModal, setShowAllModal] = useState(false);
-  if (!hist || hist.length === 0) return (
+  if (!Array.isArray(hist) || hist.length === 0) return (
     <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
       <p style={{ fontSize: 32, margin: '0 0 8px' }}>⚔️</p>
       <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aún</p>
@@ -2619,7 +2619,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
   );
 }
 /* --- TAB AMIGOS ------------------------------------------------ */
-function TabAmigos({ user }) {
+function TabAmigos({ user, setNotifs }) {
   const pageVisible = useRef(true);
   useEffect(() => {
     const onVis = () => { pageVisible.current = !document.hidden; };
