@@ -2,7 +2,7 @@
 // Devuelve el top de jugadores por puntos ranked para la plataforma pedida.
 // Smashers quedan primeros por tener los puntos más altos.
 
-import redis, { rankedStatsKey, rankedBoardKey, rankedDoubleStatsKey, rankedDoubleBoardKey, playerKey } from '../../../lib/redis';
+import redis, { rankedStatsKey, rankedBoardKey, rankedDoubleStatsKey, rankedDoubleBoardKey, playerKey, matchHistoryKey } from '../../../lib/redis';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -42,13 +42,42 @@ export default async function handler(req, res) {
     redis.mget(...playerIds.map(id => playerKey(id))),
   ]);
 
+  // Para jugadores sin charCounts (partidas previas al tracking), calcular desde historial
+  const needsHistory = playerIds.filter((id, i) => statsArray[i] && !statsArray[i].charCounts);
+  const historyMap = {};
+  if (needsHistory.length > 0) {
+    const histories = await Promise.all(
+      needsHistory.map(id => redis.lrange(matchHistoryKey(id), 0, 49).catch(() => []))
+    );
+    needsHistory.forEach((id, i) => { historyMap[id] = histories[i] || []; });
+  }
+
   const leaderboard = statsArray
     .map((s, i) => {
       if (!s) return null;
-      // Personaje más usado en ranked (calculado desde charCounts acumulado en cada partida)
-      const topRankedChar = s.charCounts
-        ? (Object.entries(s.charCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null)
-        : null;
+      let topRankedChar = null;
+
+      if (s.charCounts) {
+        // Datos nuevos: charCounts acumulado partida a partida
+        topRankedChar = Object.entries(s.charCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+      } else if (historyMap[playerIds[i]]) {
+        // Datos históricos: computar desde matchHistory filtrando por plataforma y ranked
+        const counts = {};
+        for (const entry of historyMap[playerIds[i]]) {
+          if (!entry || entry.platform !== platform) continue;
+          if (entry.rpDelta === undefined && entry.mmrDelta === undefined) continue; // solo ranked
+          const myId = String(playerIds[i]);
+          const charId = String(entry.winnerId) === myId ? entry.winnerCharId : entry.loserCharId;
+          if (charId) counts[String(charId)] = (counts[String(charId)] || 0) + 1;
+        }
+        topRankedChar = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+        // Guardar en stats para no volver a calcular (lazy backfill)
+        if (topRankedChar) {
+          s.charCounts = counts;
+          redis.set(statsKeyFn(playerIds[i], platform), s).catch(() => {});
+        }
+      }
+
       return {
         ...s,
         // Prioridad: mainChar del perfil (elegido explícitamente) > más usado en partidas ranked
