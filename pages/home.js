@@ -5119,15 +5119,17 @@ function TabRankings({ user, setTab }) {
               {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
             </p>
             {/* Selector de año */}
-            <div style={{ display: 'flex', gap: 4 }}>
-              {['2025'].map(y => (
-                <button key={y} onClick={() => setCommYear(y)} style={{
-                  padding: '4px 14px', borderRadius: 8, fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer',
-                  background: commYear === y ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)',
-                  color: commYear === y ? '#FF8C00' : 'rgba(255,255,255,0.3)',
-                }}>{y}</button>
-              ))}
-            </div>
+            <select
+              value={commYear}
+              onChange={e => setCommYear(e.target.value)}
+              style={{
+                padding: '5px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12,
+                border: '1px solid rgba(255,140,0,0.3)', cursor: 'pointer',
+                background: 'rgba(255,140,0,0.12)', color: '#FF8C00',
+                outline: 'none', appearance: 'none', WebkitAppearance: 'none',
+              }}>
+              {['2025', '2026'].map(y => <option key={y} value={y} style={{ background: '#12121E', color: '#fff' }}>{y}</option>)}
+            </select>
           </div>
 
           {commRanking.loading && (

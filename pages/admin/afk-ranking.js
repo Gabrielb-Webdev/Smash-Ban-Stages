@@ -314,6 +314,37 @@ export default function AfkRankingAdmin() {
     setRefreshingNames(false);
   }
 
+  // Renombrar jugador manualmente
+  const [renameOld, setRenameOld] = useState('');
+  const [renameNew, setRenameNew] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [renameMsg, setRenameMsg] = useState(null);
+
+  async function handleRename() {
+    if (!renameOld.trim() || !renameNew.trim()) return;
+    setRenaming(true);
+    setRenameMsg(null);
+    const r = await fetch('/api/community-ranking/rename-player', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ community, year, oldName: renameOld.trim(), newName: renameNew.trim() }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      if (d.updatedCount > 0) {
+        setRenameMsg({ ok: true, text: `✅ "${renameOld.trim()}" → "${renameNew.trim()}" en ${d.updatedCount} posicion(es)` });
+        setRenameOld('');
+        setRenameNew('');
+        loadData(community, year);
+      } else {
+        setRenameMsg({ ok: false, text: `No se encontró "${renameOld.trim()}" en ningún torneo` });
+      }
+    } else {
+      setRenameMsg({ ok: false, text: d.error || 'Error' });
+    }
+    setRenaming(false);
+  }
+
   // Config comunidades visibles en home
   const [rankingComms,        setRankingComms]        = useState(['afk']);
   const [rankingCommsSaving,  setRankingCommsSaving]  = useState(false);
@@ -737,6 +768,32 @@ export default function AfkRankingAdmin() {
             </div>
             {refreshCharsMsg && <div style={{ ...refreshCharsMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshCharsMsg.text}</div>}
             {refreshNamesMsg && <div style={{ ...refreshNamesMsg.ok ? S.success : S.error, marginBottom: 10 }}>{refreshNamesMsg.text}</div>}
+
+            {/* Renombrar jugador manualmente */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <input
+                style={{ ...S.input, flex: 1, minWidth: 140, maxWidth: 200, fontSize: 12 }}
+                placeholder="Nombre actual (ej: WACHIN...)"
+                value={renameOld}
+                onChange={e => setRenameOld(e.target.value)}
+              />
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>→</span>
+              <input
+                style={{ ...S.input, flex: 1, minWidth: 140, maxWidth: 200, fontSize: 12 }}
+                placeholder="Nombre nuevo (ej: Mayo)"
+                value={renameNew}
+                onChange={e => setRenameNew(e.target.value)}
+              />
+              <button
+                onClick={handleRename}
+                disabled={renaming || !renameOld.trim() || !renameNew.trim()}
+                style={{ ...S.btnOutline, fontSize: 12 }}
+                title="Renombra este jugador en todos los torneos de esta comunidad/año">
+                {renaming ? '⏳' : '✏️ Renombrar'}
+              </button>
+            </div>
+            {renameMsg && <div style={{ ...renameMsg.ok ? S.success : S.error, marginBottom: 10 }}>{renameMsg.text}</div>}
+
             {data.tournaments.length === 0 && !loadingData && (
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>No hay torneos para esta comunidad y año.</p>
             )}
