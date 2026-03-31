@@ -10,8 +10,10 @@ import redis, { playerKey, playersIndexKey } from '../../../lib/redis';
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end();
 
-  const auth = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-  if (auth !== (process.env.ADMIN_SECRET || 'afk-admin-2025'))
+  const expected = process.env.ADMIN_SECRET || 'afk-admin-2025';
+  const authHeader = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  const authQuery = (req.query.secret || '').trim();
+  if (authHeader !== expected && authQuery !== expected)
     return res.status(401).json({ error: 'No autorizado' });
 
   try {
