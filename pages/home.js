@@ -2324,7 +2324,7 @@ function groupHistByDate(matches) {
   }
   return groups;
 }
-function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histExpanded, setHistExpanded, viewedUserId, setViewMatchDetail }) {
+function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histExpanded, setHistExpanded, viewedUserId, setViewMatchDetail, rankStats }) {
   const [showAllModal, setShowAllModal] = useState(false);
   if (!hist || hist.length === 0) return (
     <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
@@ -2369,7 +2369,12 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                     const opponent = is2v2 ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`) : (isWin ? m.loserName : m.winnerName);
                     const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
                     const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
-                    const rankObj = myRankName ? RANKS.find(r => r.name === myRankName) : null;
+                    // Fallback: usar rango actual del perfil segun plataforma de la partida
+                    const fallbackRankName = (!myRankName && !isCasual && !is2v2 && !isTournament && rankStats)
+                      ? (rankStats[m.platform || m.plat || 'switch']?.rankName || null)
+                      : null;
+                    const resolvedRankName = myRankName || fallbackRankName;
+                    const rankObj = resolvedRankName ? RANKS.find(r => r.name === resolvedRankName) : null;
                     const tierIcon = rankObj ? TIER_ICONS[rankObj.tier] : null;
                     const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                     const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
@@ -3459,6 +3464,7 @@ function TabAmigos({ user }) {
                   setHistExpanded={setProfileHistExpanded}
                   viewedUserId={viewProfile.userId}
                   setViewMatchDetail={setViewMatchDetail}
+                  rankStats={profileData.stats}
                 />
               </div>
             </div>
@@ -4249,18 +4255,19 @@ function TabPerfil({ user }) {
                     <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
                     <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>📋 Historial</p>
                   </div>
-                  <ProfileHistorySection
-                    history={profileData.history || []}
-                    histFilter={profileHistFilter}
-                    setHistFilter={setProfileHistFilter}
-                    histExpanded={profileHistExpanded}
-                    setHistExpanded={setProfileHistExpanded}
-                    viewedUserId={viewProfile.userId}
-                    setViewMatchDetail={setViewMatchDetail}
-                  />
-                </div>
+                <ProfileHistorySection
+                  history={profileData.history || []}
+                  histFilter={profileHistFilter}
+                  setHistFilter={setProfileHistFilter}
+                  histExpanded={profileHistExpanded}
+                  setHistExpanded={setProfileHistExpanded}
+                  viewedUserId={viewProfile.userId}
+                  setViewMatchDetail={setViewMatchDetail}
+                  rankStats={profileData.stats}
+                />
               </div>
-            ) : (
+            </div>
+          ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>No se pudo cargar el perfil</p>
               </div>
@@ -5616,6 +5623,7 @@ function TabRankings({ user, setTab }) {
                   setHistExpanded={setProfileHistExpanded}
                   viewedUserId={viewProfile.userId}
                   setViewMatchDetail={setViewMatchDetail}
+                  rankStats={profileData.stats}
                 />
               </div>
             </div>
