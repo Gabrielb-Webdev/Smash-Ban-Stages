@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { getStoredUser, verifySession } from '../../src/utils/auth';
+import { CHARACTERS } from '../../lib/characters';
 
 const ADMIN_SECRET = 'afk-admin-2025';
 const ALL_COMMUNITIES = [
@@ -159,19 +160,27 @@ function RankingPreview({ players }) {
           <tr style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'left' }}>
             <th style={{ padding: '6px 10px', fontWeight: 600, width: 40 }}>#</th>
             <th style={{ padding: '6px 10px', fontWeight: 600 }}>Jugador</th>
+            <th style={{ padding: '6px 10px', fontWeight: 600 }}>Personaje</th>
             <th style={{ padding: '6px 10px', fontWeight: 600, textAlign: 'right' }}>Puntos</th>
           </tr>
         </thead>
         <tbody>
-          {players.map(p => (
-            <tr key={p.name} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-              <td style={{ padding: '8px 10px', color: p.position <= 3 ? '#EAB308' : 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-                {p.position}
-              </td>
-              <td style={{ padding: '8px 10px', fontWeight: 600 }}>{p.name}</td>
-              <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: '#A78BFA' }}>{p.total}</td>
-            </tr>
-          ))}
+          {players.map(p => {
+            const charId = p.mainCharId || p.topChar || null;
+            const char = charId ? CHARACTERS.find(c => c.id === charId) : null;
+            return (
+              <tr key={p.name} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                <td style={{ padding: '8px 10px', color: p.position <= 3 ? '#EAB308' : 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
+                  {p.position}
+                </td>
+                <td style={{ padding: '8px 10px', fontWeight: 600 }}>{p.name}</td>
+                <td style={{ padding: '8px 10px', color: char ? '#A78BFA' : 'rgba(255,255,255,0.2)' }}>
+                  {char ? char.name : '—'}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: '#A78BFA' }}>{p.total}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -377,6 +386,66 @@ export default function AfkRankingAdmin() {
   const [rankingCommsSaving,  setRankingCommsSaving]  = useState(false);
   const [rankingCommsMsg,     setRankingCommsMsg]     = useState(null);
 
+  // Overrides de personaje
+  const [charOverrides, setCharOverrides] = useState({});
+  const [charAssignPlayer, setCharAssignPlayer] = useState('');
+  const [charAssignId, setCharAssignId] = useState('');
+  const [assigningChar, setAssigningChar] = useState(false);
+  const [assignCharMsg, setAssignCharMsg] = useState(null);
+
+  async function loadCharOverrides(c, y) {
+    try {
+      const r = await fetch(`/api/community-ranking/player-char?community=${c}&year=${y}`, {
+        headers: { Authorization: `Bearer ${ADMIN_SECRET}` },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setCharOverrides(d.overrides || {});
+      }
+    } catch { /* silent */ }
+  }
+
+  async function handleAssignChar() {
+    if (!charAssignPlayer.trim()) return;
+    setAssigningChar(true);
+    setAssignCharMsg(null);
+    const r = await fetch('/api/community-ranking/player-char', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ community, year, playerName: charAssignPlayer.trim(), charId: charAssignId || null }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      setCharOverrides(d.overrides || {});
+      const char = CHARACTERS.find(c => c.id === charAssignId);
+      setAssignCharMsg({
+        ok: true,
+        text: charAssignId
+          ? `✅ ${charAssignPlayer.trim()} → ${char?.name || charAssignId}`
+          : `✅ Override eliminado para ${charAssignPlayer.trim()}`,
+      });
+      setCharAssignPlayer('');
+      setCharAssignId('');
+      loadData(community, year);
+    } else {
+      setAssignCharMsg({ ok: false, text: d.error || 'Error' });
+    }
+    setAssigningChar(false);
+  }
+
+  async function handleRemoveCharOverride(playerName) {
+    const r = await fetch('/api/community-ranking/player-char', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ADMIN_SECRET}` },
+      body: JSON.stringify({ community, year, playerName, charId: null }),
+    });
+    if (r.ok) {
+      const d = await r.json();
+      setCharOverrides(d.overrides || {});
+      loadData(community, year);
+    }
+  }
+
   // Comunidades visibles
   const visibleComms = userIsAdmin
     ? ALL_COMMUNITIES
@@ -449,7 +518,10 @@ export default function AfkRankingAdmin() {
   }
 
   useEffect(() => {
-    if (!checking) loadData(community, year);
+    if (!checking) {
+      loadData(community, year);
+      loadCharOverrides(community, year);
+    }
   }, [community, year, checking]);
 
   // ── agregar año ──
@@ -842,6 +914,68 @@ export default function AfkRankingAdmin() {
                 onBonusUpdate={() => loadData(community, year)}
               />
             ))}
+          </div>
+
+          {/* ── Personajes del ranking ── */}
+          <div style={S.section}>
+            <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800 }}>🎮 Personajes del ranking</h2>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+              Asigná manualmente el personaje de jugadores sin perfil de app o sin datos en start.gg.
+            </p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+              <select
+                value={charAssignPlayer}
+                onChange={e => setCharAssignPlayer(e.target.value)}
+                style={{ ...S.select, flex: 1, minWidth: 140 }}
+              >
+                <option value="">Jugador...</option>
+                {data.players.map(p => (
+                  <option key={p.name} value={p.name}>{p.position}. {p.name}</option>
+                ))}
+              </select>
+              <select
+                value={charAssignId}
+                onChange={e => setCharAssignId(e.target.value)}
+                style={{ ...S.select, flex: 1, minWidth: 160 }}
+              >
+                <option value="">Sin personaje (limpiar)</option>
+                {CHARACTERS.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleAssignChar}
+                disabled={assigningChar || !charAssignPlayer.trim()}
+                style={S.btn}
+              >
+                {assigningChar ? '⏳' : '💾 Guardar'}
+              </button>
+            </div>
+            {assignCharMsg && <div style={{ ...(assignCharMsg.ok ? S.success : S.error), marginBottom: 10 }}>{assignCharMsg.text}</div>}
+            {Object.keys(charOverrides).length > 0 && (
+              <div>
+                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Asignaciones actuales</p>
+                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+                  <tbody>
+                    {Object.entries(charOverrides).map(([name, cId]) => {
+                      const char = CHARACTERS.find(c => c.id === cId);
+                      return (
+                        <tr key={name} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '6px 8px', fontWeight: 600, textTransform: 'capitalize' }}>{name}</td>
+                          <td style={{ padding: '6px 8px', color: '#A78BFA' }}>{char?.name || cId}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleRemoveCharOverride(name)}
+                              style={{ ...S.btnRed, padding: '4px 8px', fontSize: 11 }}
+                            >✕ Quitar</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* ── Preview del ranking ── */}

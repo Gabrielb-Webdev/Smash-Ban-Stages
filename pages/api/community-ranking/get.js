@@ -1,4 +1,4 @@
-import redis, { crTournamentsKey, playerKey, playersIndexKey } from '../../../lib/redis';
+import redis, { crTournamentsKey, crCharOverrideKey, playerKey, playersIndexKey } from '../../../lib/redis';
 import { buildRanking } from '../../../lib/communityRanking';
 
 export default async function handler(req, res) {
@@ -8,10 +8,15 @@ export default async function handler(req, res) {
   if (!community || !year) return res.status(400).json({ error: 'community y year son requeridos' });
 
   try {
-    const [raw, idx] = await Promise.all([
+    const [raw, idx, rawOverrides] = await Promise.all([
       redis.get(crTournamentsKey(community, year)),
       redis.get(playersIndexKey).catch(() => []),
+      redis.get(crCharOverrideKey(community, year)).catch(() => null),
     ]);
+
+    const overrides = rawOverrides
+      ? (typeof rawOverrides === 'string' ? JSON.parse(rawOverrides) : rawOverrides)
+      : {};
 
     const tournaments = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
     const players = buildRanking(tournaments);
@@ -28,7 +33,10 @@ export default async function handler(req, res) {
     const enriched = await Promise.all(players.map(async p => {
       const normName = p.name.toLowerCase().trim();
       const userId = nameToId[normName] || null;
-      if (!userId) return p;
+      if (!userId) {
+        const override = overrides[normName];
+        return override ? { ...p, topChar: override } : p;
+      }
       try {
         const profile = await redis.get(playerKey(userId));
         if (!profile) return p;
