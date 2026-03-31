@@ -5280,7 +5280,7 @@ function TabRankings({ user, setTab }) {
                 <button onClick={() => setCharSel(null)} style={{
                   background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 10, padding: '7px 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 13,
-                }}>? Volver</button>
+                }}>← Volver</button>
                 {(() => { const c = CHARACTERS.find(x => x.id === charSel); return c ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                     <img src={charImgPath(c.img)} alt={c.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }} />
@@ -5793,7 +5793,7 @@ function TabTorneos({ user }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                       <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                      {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>📌 DEST.</span>}
+                      {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>DEST.</span>}
                     </div>
                     <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
                   </div>
@@ -5809,7 +5809,7 @@ function TabTorneos({ user }) {
                       </span>
                     );
                     if (t.registrationOpen) return (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>? Inscripciones abiertas</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', padding: '3px 8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 8 }}>✅ Inscripciones abiertas</span>
                     );
                     return null;
                   })()}
@@ -5824,7 +5824,7 @@ function TabTorneos({ user }) {
                     <div key={e.id} style={{ marginTop: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '10px 12px' }}>
                       <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{e.name}</p>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento ?</a>
+                        <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento ↗</a>
                         {checked && enrolled ? (
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#818CF8', padding: '6px 14px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 10 }}>🎟️ Inscrito</span>
                         ) : !_isStarted && !_isFinished && t.registrationOpen ? (
@@ -7643,11 +7643,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             {/* Confirm button */}
             {isPickMode ? (
               <button onClick={() => selectedBans.length === 1 && pickStage(selectedBans[0])} disabled={selectedBans.length !== 1 || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === 1 ? 'linear-gradient(135deg,#22C55E,#16A34A)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === 1 ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === 1 ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-                {banLoading ? '? Confirmando…' : `⚔️ Jugar en ${selectedBans[0] || '...'}`}
+                {banLoading ? '⏳ Confirmando…' : `⚔️ Jugar en ${selectedBans[0] || '...'}`}
               </button>
             ) : (
               <button onClick={() => submitBans()} disabled={selectedBans.length !== maxSelect || banLoading} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: selectedBans.length === maxSelect ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'rgba(255,255,255,0.08)', color: selectedBans.length === maxSelect ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 15, cursor: selectedBans.length === maxSelect ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-                {banLoading ? '? Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/${maxSelect})`}
+                {banLoading ? '⏳ Enviando…' : `🚫 Confirmar baneos (${selectedBans.length}/${maxSelect})`}
               </button>
             )}
           </>
