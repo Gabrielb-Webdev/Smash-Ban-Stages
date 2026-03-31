@@ -447,17 +447,18 @@ export default function AfkRankingAdmin() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ ...S.title, fontSize: 17, margin: 0 }}>Ranking Comunitario</h1>
             <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-              {visibleComms.find(c => c.id === community)?.label || ''} — {year}
+              {visibleComms.find(c => c.id === community)?.label || ''}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
             {availableYears.map(y => (
               <button key={y} onClick={() => setYear(y)} style={{
-                padding: '6px 14px', borderRadius: 20, border: y === year ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                padding: '6px 16px', borderRadius: 20, border: y === year ? 'none' : '1px solid rgba(255,255,255,0.12)',
                 background: y === year ? '#7C3AED' : 'rgba(255,255,255,0.04)',
-                color: y === year ? '#fff' : 'rgba(255,255,255,0.5)',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'background 0.15s',
-              }}>{y}</button>
+                color: y === year ? '#fff' : 'rgba(255,255,255,0.4)',
+                fontSize: 14, fontWeight: y === year ? 900 : 500, cursor: 'pointer', transition: 'all 0.15s',
+                boxShadow: y === year ? '0 2px 12px rgba(124,58,237,0.5)' : 'none',
+              }}>{y === year ? `✓ ${y}` : y}</button>
             ))}
             <form onSubmit={handleAddYear} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <input

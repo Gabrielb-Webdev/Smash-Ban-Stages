@@ -7649,7 +7649,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ position: 'sticky', top: 0, background: '#0F0F1A', padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#fff' }}>📖 Cómo jugar</p>
-              <button onClick={() => setShowHowToPlay(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>?</button>
+              <button onClick={() => setShowHowToPlay(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '20px 20px 0' }}>
               {[
@@ -7658,7 +7658,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                 { icon: '🔄', title: 'Fase de baneo — Games 2 y 3', desc: 'El ganador del game anterior banea 3 escenarios. El perdedor elige dónde jugar el siguiente game.' },
                 { icon: '👥', title: '2v2 — Capitanes', desc: 'En partidas 2v2, el creador de la sala es el capitán del equipo. Solo los capitanes pueden banear y elegir escenarios.' },
                 { icon: '📊', title: 'Reportar resultado', desc: 'Al terminar cada game, ambos jugadores reportan quién ganó y con cuántos stocks de ventaja. Si hay discrepancia, se abre una disputa.' },
-                { icon: '?', title: 'AFK / Tiempo límite', desc: 'Tenés 25 segundos por turno en la fase de baneo. Si no actuás, el sistema elige automáticamente. Si tu rival no aparece al chat en 15 minutos, podés reclamar victoria.' },
+                { icon: '⏱️', title: 'AFK / Tiempo límite', desc: 'Tenés 25 segundos por turno en la fase de baneo. Si no actuás, el sistema elige automáticamente. Si tu rival no aparece al chat en 15 minutos, podés reclamar victoria.' },
                 { icon: '📈', title: 'Ranking y RP', desc: 'Cada victoria suma RP y cada derrota resta 10 RP. Los primeros 5 juegos son de posicionamiento y definen tu rango inicial.' },
                 { icon: '🎯', title: 'Modos', desc: '• Ranked: afecta tu rango y RP.\n• Normal: partidas casuales sin efecto en el rango.' },
               ].map(({ icon, title, desc }) => (
@@ -7884,7 +7884,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                   fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
                 }}
                 style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-              >{parsecRole === 'host' ? '? ' : ''}Host</button>
+              >{parsecRole === 'host' ? '✅ ' : ''}Host</button>
               <button
                 onClick={() => {
                   const nr = parsecRole === 'nohost' ? null : 'nohost';
@@ -7893,7 +7893,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
                   fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
                 }}
                 style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-              >{parsecRole === 'nohost' ? '? ' : ''}No Host</button>
+              >{parsecRole === 'nohost' ? '✅ ' : ''}No Host</button>
             </div>
             <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indicá si podés hostear Parsec. Evita que te emparejen con otro No Host.</p>
           </div>
@@ -7977,7 +7977,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
       <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
         {matchTypeMode === 'casual' ? (
-          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola Normal'],['?','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['??','A jugar','Partida casual, sin efecto en el rango']].map(([icon,t,d])=>(
+          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola Normal'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['🎮','A jugar','Partida casual, sin efecto en el rango']].map(([icon,t,d])=>(
             <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
               <div>
@@ -7987,7 +7987,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName }) {
             </div>
           ))
         ) : matchMode === '1v1' ? (
-          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola'],['?','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['??','Coordiná en el chat','Decidan quién crea la sala/hostea'],['??','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
+          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['💬','Coordiná en el chat','Decidan quién crea la sala/hostea'],['⚔️','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
             <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
               <div>
