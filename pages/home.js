@@ -4022,19 +4022,7 @@ function TabPerfil({ user }) {
 
         {viewMatchDetail && <MatchDetail match={viewMatchDetail.match} viewingId={viewMatchDetail.viewingId} onClose={() => setViewMatchDetail(null)} onBack={viewMatchDetail.onBack} onViewOpponent={(id, name) => { setViewMatchDetail(null); openProfile(id, name); }} />}
 
-        {/* --- MODAL SIN PERFIL --- */}
-        {noProfileModal && (
-          <div onClick={() => setNoProfileModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, backdropFilter: 'blur(4px)' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: '#15151F', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '28px 24px', maxWidth: 320, width: '100%', textAlign: 'center' }}>
-              <div style={{ fontSize: 44, marginBottom: 12 }}>👤</div>
-              <p style={{ margin: '0 0 6px', fontWeight: 900, fontSize: 16, color: '#fff' }}>{noProfileModal}</p>
-              <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>Este jugador no tiene perfil en La App sin H</p>
-              <button onClick={() => setNoProfileModal(null)} style={{ background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 12, padding: '10px 28px', color: '#A78BFA', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Cerrar</button>
-            </div>
-          </div>
-        )}
-
-        {/* --- MODAL PERFIL JUGADOR --- */}
+        {/* --- MODAL PERFIL JUGADOR --- */
         {viewProfile && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             {/* Sticky top bar */}
@@ -5017,6 +5005,17 @@ function TabRankings({ user, setTab }) {
 
   return (
     <div>
+      {/* --- MODAL SIN PERFIL --- */}
+      {noProfileModal && (
+        <div onClick={() => setNoProfileModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, backdropFilter: 'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#15151F', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '28px 24px', maxWidth: 320, width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>👤</div>
+            <p style={{ margin: '0 0 6px', fontWeight: 900, fontSize: 16, color: '#fff' }}>{noProfileModal}</p>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>Este jugador no tiene perfil en La App sin H</p>
+            <button onClick={() => setNoProfileModal(null)} style={{ background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 12, padding: '10px 28px', color: '#A78BFA', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Cerrar</button>
+          </div>
+        </div>
+      )}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0D0D15', padding: '20px 18px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Rankings</h1>
         <p style={{ margin: '0 0 14px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
