@@ -389,6 +389,8 @@ export default function AfkRankingAdmin() {
   // Overrides de personaje
   const [charOverrides, setCharOverrides] = useState({});
   const [charAssignPlayer, setCharAssignPlayer] = useState('');
+  const [charAssignSearch, setCharAssignSearch] = useState('');
+  const [charAssignOpen, setCharAssignOpenDropdown] = useState(false);
   const [charAssignId, setCharAssignId] = useState('');
   const [assigningChar, setAssigningChar] = useState(false);
   const [assignCharMsg, setAssignCharMsg] = useState(null);
@@ -425,6 +427,7 @@ export default function AfkRankingAdmin() {
           : `✅ Override eliminado para ${charAssignPlayer.trim()}`,
       });
       setCharAssignPlayer('');
+      setCharAssignSearch('');
       setCharAssignId('');
       loadData(community, year);
     } else {
@@ -965,16 +968,37 @@ export default function AfkRankingAdmin() {
               Asigná manualmente el personaje de jugadores sin perfil de app o sin datos en start.gg.
             </p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-              <select
-                value={charAssignPlayer}
-                onChange={e => setCharAssignPlayer(e.target.value)}
-                style={{ ...S.select, flex: 1, minWidth: 140 }}
-              >
-                <option value="">Jugador...</option>
-                {data.players.map(p => (
-                  <option key={p.name} value={p.name}>{p.position}. {p.name}</option>
-                ))}
-              </select>
+              <div style={{ flex: 1, minWidth: 140, position: 'relative' }}>
+                <input
+                  value={charAssignSearch}
+                  onChange={e => { setCharAssignSearch(e.target.value); setCharAssignOpenDropdown(true); }}
+                  onFocus={() => setCharAssignOpenDropdown(true)}
+                  onBlur={() => setTimeout(() => setCharAssignOpenDropdown(false), 150)}
+                  placeholder={charAssignPlayer || 'Buscar jugador...'}
+                  style={{ ...S.input, width: '100%' }}
+                />
+                {charAssignOpen && (() => {
+                  const filtered = data.players.filter(p =>
+                    p.name.toLowerCase().includes(charAssignSearch.toLowerCase())
+                  );
+                  return filtered.length > 0 ? (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#14141F', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, marginTop: 4, maxHeight: 220, overflowY: 'auto' }}>
+                      {filtered.map(p => (
+                        <div
+                          key={p.name}
+                          onMouseDown={() => { setCharAssignPlayer(p.name); setCharAssignSearch(''); setCharAssignOpenDropdown(false); }}
+                          style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, display: 'flex', gap: 8 }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.2)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.35)', minWidth: 28 }}>{p.position}.</span>
+                          <span>{p.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
               <select
                 value={charAssignId}
                 onChange={e => setCharAssignId(e.target.value)}
