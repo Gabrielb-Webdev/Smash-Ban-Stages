@@ -13,141 +13,217 @@ body {
   position:relative; font-family:'DM Sans',sans-serif;
 }
 
-/* ── Banner container ── */
-.banner {
-  position:absolute; top:0; left:0; right:0; height:185px;
-  overflow:visible;
-}
-.banner-img {
-  position:absolute; top:0; left:0; width:100%; height:100%;
-  object-fit:fill; pointer-events:none; user-select:none;
-}
-.banner > *:not(.banner-img) { position:absolute; }
+/* ═══════════════════════════════════════════════
+   SCOREBOARD — True Combo · CSS-only banner
+   Inspirado en TrueBanner2.png
+   ═══════════════════════════════════════════════ */
 
-/* ── Score numbers (outer tabs) ── */
-.snum {
+.scoreboard {
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  width:1160px; height:120px;
+}
+
+/* ── Franja negra (background layer) ── */
+.black-band {
+  position:absolute; top:30px; left:0; right:0; height:90px;
+  background:linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 40%, #0a0a0a 100%);
+  border-radius:4px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.9), 0 0 0 1px rgba(60,40,0,0.3);
+}
+
+/* ── Franjas doradas (naranja→amarillo) sobre la franja negra ── */
+.gold-bar {
+  position:absolute; top:30px; height:52px;
+  background:linear-gradient(180deg, #f5c542 0%, #e8a317 35%, #d4900c 70%, #c07808 100%);
+  border-radius:3px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,225,100,0.5), inset 0 -1px 0 rgba(120,50,0,0.4);
+}
+.gold-bar.left  { left:0;    right:calc(50% + 145px); }
+.gold-bar.right { right:0;   left:calc(50% + 145px); }
+
+/* Borde interior decorativo de la franja dorada */
+.gold-bar::before {
+  content:'';
+  position:absolute; inset:3px;
+  border:1px solid rgba(40,20,0,0.15);
+  border-radius:2px;
+}
+
+/* ── Score badges (cuadrados con score grande) ── */
+.score-badge {
+  position:absolute; top:16px; width:72px; height:72px;
+  display:flex; align-items:center; justify-content:center;
+  z-index:10;
+  background:linear-gradient(135deg, #1a1306 0%, #0d0a04 100%);
+  border:3px solid #d4900c;
+  border-radius:8px;
+  box-shadow:0 0 18px rgba(200,130,0,0.35), inset 0 0 12px rgba(0,0,0,0.6);
+}
+.score-badge.left  { left:18px; }
+.score-badge.right { right:18px; }
+.score-badge .snum {
   font-family:'Anton', sans-serif;
-  font-size:74px; line-height:1;
-  text-align:center;
-  width:88px; top:22px;
+  font-size:52px; line-height:1;
   color:#f0a418;
   text-shadow:
-    -2px -2px 0 #7a2800, 2px -2px 0 #7a2800,
-    -2px  2px 0 #7a2800, 2px  2px 0 #7a2800,
-    0 0 30px rgba(180,80,0,0.55);
+    0 0 20px rgba(240,164,24,0.5),
+    -1px -1px 0 #7a2800, 1px -1px 0 #7a2800,
+    -1px  1px 0 #7a2800, 1px  1px 0 #7a2800;
   transition:color .25s, text-shadow .25s;
 }
-#s1 { left:0; }
-#s2 { right:0; }
-.snum.lead {
+.score-badge .snum.lead {
   color:#ffe040;
   text-shadow:
-    -2px -2px 0 #883000, 2px -2px 0 #883000,
-    -2px  2px 0 #883000, 2px  2px 0 #883000,
-    0 0 50px rgba(255,195,0,0.95);
+    0 0 30px rgba(255,195,0,0.8),
+    -1px -1px 0 #883000, 1px -1px 0 #883000,
+    -1px  1px 0 #883000, 1px  1px 0 #883000;
 }
 
-/* ── Player areas (sobre las franjas naranjas) ── */
-.p1-area {
-  left:92px; top:15px; width:348px;
-  display:flex; align-items:flex-start; gap:10px;
+/* ── Player areas (sobre las franjas doradas) ── */
+.p-area {
+  position:absolute; top:30px; height:52px;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  z-index:5; padding:0 12px;
+  overflow:hidden;
 }
-.p2-area {
-  right:92px; top:15px; width:348px;
-  display:flex; align-items:flex-start; gap:10px;
-  flex-direction:row-reverse;
-}
-.char-ico {
-  width:50px; height:50px; border-radius:50%; object-fit:cover;
-  border:2.5px solid rgba(40,15,0,0.5);
-  background:rgba(0,0,0,0.25);
-  flex-shrink:0; display:none;
-  box-shadow:0 2px 8px rgba(0,0,0,0.5);
-  margin-top:4px;
-}
+.p-area.left  { left:100px; right:calc(50% + 150px); }
+.p-area.right { right:100px; left:calc(50% + 150px); flex-direction:row-reverse; }
+
 .player-info { min-width:0; overflow:hidden; flex:1; }
-.player-info.right { text-align:right; }
+.player-info.r { text-align:right; }
 .ptag {
   font-family:'Anton', sans-serif;
-  font-size:30px; letter-spacing:1px;
-  color:#1c0800; text-transform:uppercase; line-height:1.1;
+  font-size:28px; letter-spacing:1.5px;
+  color:#1a0800; text-transform:uppercase; line-height:1;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  text-shadow:0 1px 0 rgba(255,200,80,0.35);
-}
-.pchar {
-  font-size:11px; letter-spacing:1px; text-transform:uppercase;
-  color:rgba(35,10,0,0.7); font-weight:700; line-height:1.3;
-  margin-top:2px;
-}
-.pips { display:flex; gap:5px; margin-top:6px; }
-.pips.right { justify-content:flex-end; }
-.pip {
-  width:14px; height:14px; border-radius:50%;
-  border:2px solid rgba(50,18,0,0.45);
-  background:rgba(0,0,0,0.18);
-  transition:background .2s, box-shadow .2s;
-}
-.pip.fill {
-  background:#1c0800;
-  border-color:#1c0800;
-  box-shadow:0 0 4px rgba(0,0,0,0.45);
+  text-shadow:0 1px 0 rgba(255,210,80,0.3);
 }
 
-/* ── Info strip (franja negra inferior, cada lado) ── */
-.info-left {
-  left:96px; bottom:16px;
-  font-family:'Anton', sans-serif;
-  font-size:13px; letter-spacing:2px; text-transform:uppercase;
-  color:rgba(255,218,80,0.92); white-space:nowrap;
+/* ── Centro: Logo TRUE COMBO con starburst ── */
+.center-logo {
+  position:absolute;
+  top:-4px; left:50%; transform:translateX(-50%);
+  width:290px; height:128px;
+  z-index:20;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
 }
-.info-right {
-  right:96px; bottom:16px;
+/* Starburst (polygon negro) */
+.starburst {
+  position:absolute; inset:-6px;
+  background:#0d0d0d;
+  clip-path:polygon(
+    50% 0%, 61% 8%, 72% 1%, 78% 12%, 90% 8%, 92% 22%,
+    100% 24%, 97% 37%, 100% 50%, 97% 63%, 100% 76%,
+    92% 78%, 90% 92%, 78% 88%, 72% 99%, 61% 92%, 50% 100%,
+    39% 92%, 28% 99%, 22% 88%, 10% 92%, 8% 78%, 0% 76%,
+    3% 63%, 0% 50%, 3% 37%, 0% 24%, 8% 22%, 10% 8%,
+    22% 12%, 28% 1%, 39% 8%
+  );
+  box-shadow:0 0 20px rgba(0,0,0,0.9);
+}
+/* Glow around starburst */
+.starburst::before {
+  content:'';
+  position:absolute; inset:-3px;
+  background:rgba(80,60,20,0.2);
+  clip-path:inherit;
+  z-index:-1;
+  filter:blur(4px);
+}
+.logo-text {
+  position:relative; z-index:2;
+  text-align:center; line-height:1;
+}
+.logo-text .line1 {
   font-family:'Anton', sans-serif;
-  font-size:13px; letter-spacing:2px; text-transform:uppercase;
-  color:rgba(255,218,80,0.92); white-space:nowrap;
-  text-align:right;
+  font-size:42px; letter-spacing:3px;
+  color:#f0b020;
+  text-shadow:
+    -2px -2px 0 #8b1a00, 2px -2px 0 #8b1a00,
+    -2px  2px 0 #8b1a00, 2px  2px 0 #8b1a00,
+    0 3px 0 #6e1500,
+    0 0 20px rgba(240,176,32,0.4);
+}
+.logo-text .line2 {
+  font-family:'Anton', sans-serif;
+  font-size:42px; letter-spacing:3px;
+  color:#f0b020;
+  text-shadow:
+    -2px -2px 0 #8b1a00, 2px -2px 0 #8b1a00,
+    -2px  2px 0 #8b1a00, 2px  2px 0 #8b1a00,
+    0 3px 0 #6e1500,
+    0 0 20px rgba(240,176,32,0.4);
+  margin-top:-4px;
+}
+
+/* ── Info strip (franja negra inferior) ── */
+.info-strip {
+  position:absolute; top:82px; left:0; right:0;
+  height:38px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 28px;
+  z-index:3;
+}
+.info-left, .info-right {
+  font-family:'Anton', sans-serif;
+  font-size:14px; letter-spacing:2.5px; text-transform:uppercase;
+  color:rgba(240,180,50,0.9);
+  white-space:nowrap;
 }
 </style>
 </head>
 <body>
 
-<div class="banner">
-  <!-- Imagen base del banner -->
-  <img class="banner-img" src="../TrueBanner2.png" alt="">
+<div class="scoreboard">
+  <!-- Background: franja negra -->
+  <div class="black-band"></div>
 
-  <!-- Score P1 (tab izquierdo) -->
-  <div class="snum" id="s1">0</div>
+  <!-- Franjas doradas -->
+  <div class="gold-bar left"></div>
+  <div class="gold-bar right"></div>
 
-  <!-- Área jugador 1 (franja naranja izquierda) -->
-  <div class="p1-area">
-    <img class="char-ico" id="p1-ico" src="" alt="">
+  <!-- Score P1 -->
+  <div class="score-badge left">
+    <div class="snum" id="s1">0</div>
+  </div>
+
+  <!-- Área jugador 1 -->
+  <div class="p-area left">
     <div class="player-info">
       <div class="ptag" id="p1-tag">PLAYER 1</div>
-      <div class="pchar" id="p1-char"></div>
-      <div class="pips" id="p1-pips"></div>
     </div>
   </div>
 
-  <!-- Área jugador 2 (franja naranja derecha) -->
-  <div class="p2-area">
-    <img class="char-ico" id="p2-ico" src="" alt="">
-    <div class="player-info right">
+  <!-- Centro: TRUE COMBO logo -->
+  <div class="center-logo">
+    <div class="starburst"></div>
+    <div class="logo-text">
+      <div class="line1">TRUE</div>
+      <div class="line2">COMBO</div>
+    </div>
+  </div>
+
+  <!-- Área jugador 2 -->
+  <div class="p-area right">
+    <div class="player-info r">
       <div class="ptag" id="p2-tag">PLAYER 2</div>
-      <div class="pchar" id="p2-char"></div>
-      <div class="pips right" id="p2-pips"></div>
     </div>
   </div>
 
-  <!-- Score P2 (tab derecho) -->
-  <div class="snum" id="s2">0</div>
+  <!-- Score P2 -->
+  <div class="score-badge right">
+    <div class="snum" id="s2">0</div>
+  </div>
 
-  <!-- Franja negra inferior: Round izquierda · Game+Formato derecha -->
-  <div class="info-left" id="round-el"></div>
-  <div class="info-right" id="game-lbl">GAME 1 · Bo3</div>
+  <!-- Info strip (dentro de la franja negra) -->
+  <div class="info-strip">
+    <div class="info-left" id="round-el"></div>
+    <div class="info-right" id="game-lbl">GAME 1 · Bo3</div>
+  </div>
 </div>
 
 <script>
-/* Escalar body al tamaño de ventana (OBS) */
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
 const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
@@ -166,8 +242,6 @@ async function load() {
 
     document.getElementById('p1-tag').textContent = (d.p1tag||'PLAYER 1').toUpperCase();
     document.getElementById('p2-tag').textContent = (d.p2tag||'PLAYER 2').toUpperCase();
-    document.getElementById('p1-char').textContent = d.p1char||'';
-    document.getElementById('p2-char').textContent = d.p2char||'';
 
     const s1 = document.getElementById('s1'), s2 = document.getElementById('s2');
     s1.textContent = p1s; s2.textContent = p2s;
@@ -178,20 +252,6 @@ async function load() {
     const fmt = d.format||3;
     const g = Math.min(p1s + p2s + 1, fmt);
     document.getElementById('game-lbl').textContent = 'GAME\u00a0'+g+'\u00a0\u00b7\u00a0Bo'+fmt;
-
-    ['p1','p2'].forEach(p => {
-      const score = p === 'p1' ? p1s : p2s;
-      const pip = document.getElementById(p+'-pips');
-      pip.innerHTML = '';
-      for (let i = 0; i < needed; i++) {
-        const el = document.createElement('div');
-        el.className = 'pip' + (i < score ? ' fill' : '');
-        pip.appendChild(el);
-      }
-      const ico = document.getElementById(p+'-ico');
-      const url = p === 'p1' ? d.p1charIcon : d.p2charIcon;
-      ico.src = url||''; ico.style.display = url ? 'inline-block' : 'none';
-    });
   } catch(e) {}
 }
 load(); setInterval(load, 500); window.addEventListener('storage', load);
