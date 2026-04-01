@@ -105,6 +105,8 @@ export default async function handler(req, res) {
         match.bans = {};
         match.banPhase = 'winner_ban';
         match.pendingResult = null;
+        match.interGameCharPick  = {};
+        match.interGameCharReady = false;
         const roomCode = await redis.get(`mm:user:room:${cleanReporter}`);
         if (roomCode) {
           const room = await redis.get(`mm:room:${roomCode}`);
@@ -116,7 +118,9 @@ export default async function handler(req, res) {
             room.bans = {};
             room.banPhase = 'winner_ban';
             room.stage = null;
-            room.banTurnStartedAt = new Date().toISOString(); // reset para evitar auto-ban inmediato
+            room.banTurnStartedAt = null; // no empieza hasta que ambos elijan personaje
+            room.interGameCharPick  = {};
+            room.interGameCharReady = false;
             await redis.set(`mm:room:${roomCode}`, room);
           }
         }
@@ -449,9 +453,35 @@ async function applyFinishedStats(match, matchId) {
     }
   }
 
-  // ── Limpiar sala de ambos jugadores ──
-  await cleanupUserRoom(String(winnerId));
-  await cleanupUserRoom(String(loserId));
+  // ── Guardar RP en match.result para que el polling lo entregue al no-reporter ──
+  if (match.result) {
+    match.result.rpDelta      = result.winner.rrDelta;
+    match.result.loserRpDelta = result.loser.rrDelta;
+    match.result.winnerRankChange = result.winner.rankChange;
+    match.result.loserRankChange  = result.loser.rankChange;
+    await redis.set(mmMatchKey(matchId), match);
+  }
+
+  // ── Mantener room viva 5 min para que el no-reporter vea el resultado ──
+  const RESULT_TTL = 300; // 5 minutos
+  for (const playerId of [String(winnerId), String(loserId)]) {
+    const roomCode = await redis.get(`mm:user:room:${playerId}`);
+    if (roomCode) {
+      const roomObj = await redis.get(`mm:room:${roomCode}`);
+      if (roomObj) {
+        // Actualizar result en la room con datos de RP
+        if (roomObj.result) {
+          roomObj.result.rpDelta          = result.winner.rrDelta;
+          roomObj.result.loserRpDelta     = result.loser.rrDelta;
+          roomObj.result.winnerRankChange = result.winner.rankChange;
+          roomObj.result.loserRankChange  = result.loser.rankChange;
+        }
+        await redis.set(`mm:room:${roomCode}`, roomObj, { ex: RESULT_TTL });
+      }
+      // El user→room key expira en 5 min (no se borra inmediato)
+      await redis.expire(`mm:user:room:${playerId}`, RESULT_TTL);
+    }
+  }
 
   return {
     rpDelta: result.winner.rrDelta,

@@ -112,7 +112,8 @@ export default async function handler(req, res) {
     }
 
     // ── Lazy-init banTurnStartedAt ──────────────────────────
-    if (room.status === 'banning' && !room.banTurnStartedAt) {
+    // Solo si ya se eligieron los personajes entre games (o es game 1)
+    if (room.status === 'banning' && !room.banTurnStartedAt && room.interGameCharReady !== false) {
       room.banTurnStartedAt = new Date().toISOString();
       await redis.set(roomKey(code), room);
     }
@@ -201,7 +202,15 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ status: room.status, code, room, autoConfirmSignal });
+    // Sanitizar nextGameChars: no revelar elección del rival hasta que ambos confirmen
+    const sanitizedRoom = { ...room };
+    if (room.interGameCharPick && !room.interGameCharReady) {
+      sanitizedRoom.interGameCharPick = room.interGameCharPick[cleanId]
+        ? { [cleanId]: room.interGameCharPick[cleanId] }
+        : {};
+    }
+
+    return res.status(200).json({ status: room.status, code, room: sanitizedRoom, autoConfirmSignal });
     } catch (err) {
       console.error('[room GET] Error:', err);
       return res.status(500).json({ error: err?.message || 'Error interno', type: err?.name });
@@ -517,6 +526,60 @@ export default async function handler(req, res) {
       if (match) { match.stage = pickedStage; match.status = 'active'; match.games = room.games; await redis.set(mmMatchKey(room.matchId), match); }
       await redis.set(roomKey(code), room);
       return res.status(200).json({ status: room.status, code, room });
+    }
+
+    // ─── pick_inter_game_char: elección secreta de personaje entre games ──
+    if (action === 'pick_inter_game_char') {
+      const { charId: pickedCharId, charAlt: pickedCharAlt } = req.body || {};
+      const found = await getUserRoom(cleanUserId);
+      if (!found) return res.status(400).json({ error: 'No estás en ninguna sala' });
+      const { code, room } = found;
+
+      if (room.status !== 'banning') return res.status(400).json({ error: 'No estás en fase de baneo' });
+      if ((room.currentGame || 1) <= 1) return res.status(400).json({ error: 'Solo disponible desde el game 2' });
+      if (room.type === 'casual') return res.status(400).json({ error: 'No disponible en partidas casuales' });
+
+      const cleanChar   = sanitize(pickedCharId || '');
+      const cleanAlt    = Math.min(8, Math.max(1, parseInt(pickedCharAlt) || 1));
+
+      room.interGameCharPick = room.interGameCharPick || {};
+      room.interGameCharPick[cleanUserId] = { charId: cleanChar, charAlt: cleanAlt };
+
+      // Verificar si ambos jugadores ya eligieron
+      const j1Id = room.host?.userId;
+      const j2Id = room.guest?.userId;
+      const bothPicked = j1Id && j2Id
+        && room.interGameCharPick[j1Id]
+        && room.interGameCharPick[j2Id];
+
+      if (bothPicked) {
+        // Aplicar nuevos personajes a host/guest
+        room.host.charId  = room.interGameCharPick[j1Id].charId  || room.host.charId;
+        room.host.charAlt = room.interGameCharPick[j1Id].charAlt || room.host.charAlt;
+        room.guest.charId  = room.interGameCharPick[j2Id].charId  || room.guest.charId;
+        room.guest.charAlt = room.interGameCharPick[j2Id].charAlt || room.guest.charAlt;
+        room.interGameCharReady = true;
+        // Iniciar timer de ban ahora que ambos confirmaron
+        room.banTurnStartedAt = new Date().toISOString();
+        // Actualizar también el match record con los nuevos charIds
+        const matchRec = await redis.get(mmMatchKey(room.matchId));
+        if (matchRec) {
+          if (matchRec.player1?.userId === j1Id) { matchRec.player1.charId = room.host.charId; matchRec.player1.charAlt = room.host.charAlt; }
+          if (matchRec.player1?.userId === j2Id) { matchRec.player1.charId = room.guest.charId; matchRec.player1.charAlt = room.guest.charAlt; }
+          if (matchRec.player2?.userId === j1Id) { matchRec.player2.charId = room.host.charId; matchRec.player2.charAlt = room.host.charAlt; }
+          if (matchRec.player2?.userId === j2Id) { matchRec.player2.charId = room.guest.charId; matchRec.player2.charAlt = room.guest.charAlt; }
+          await redis.set(mmMatchKey(room.matchId), matchRec);
+        }
+      }
+
+      await redis.set(roomKey(code), room);
+
+      // Respuesta: no revelar elección del rival hasta que ambos confirmen
+      const responseRoom = { ...room };
+      if (!room.interGameCharReady) {
+        responseRoom.interGameCharPick = { [cleanUserId]: room.interGameCharPick[cleanUserId] };
+      }
+      return res.status(200).json({ status: room.status, code, room: responseRoom, bothPicked: !!bothPicked });
     }
 
     return res.status(400).json({ error: 'Acción inválida' });

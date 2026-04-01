@@ -6618,6 +6618,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Reset inter-game char picker cuando cambia el game
+  useEffect(() => {
+    setInterGameCharConfirmed(false);
+    setInterGameCharId(null);
+    setInterGameCharAlt(1);
+  }, [matchData?.matchId, matchData?.currentGame]);
+
   // Timers AFK / ban / confirm
   const [banTimeLeft, setBanTimeLeft]         = useState(null);
   const [confirmTimeLeft, setConfirmTimeLeft] = useState(null);
@@ -6758,6 +6765,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const [matchLoserRankChange, setMatchLoserRankChange] = useState(null);
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
   const [forfeitLoading, setForfeitLoading]         = useState(false);
+  // Inter-game char picker
+  const [interGameCharId, setInterGameCharId]               = useState(null);
+  const [interGameCharAlt, setInterGameCharAlt]             = useState(1);
+  const [interGameCharConfirmed, setInterGameCharConfirmed] = useState(false);
+  const [interGameCharLoading, setInterGameCharLoading]     = useState(false);
 
   // Estado de búsqueda
   const [searchPlat, setSearchPlat]   = useState(null);
@@ -6933,10 +6945,30 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     setReportStocks(1); setMatchRpDelta(null); setMatchLoserRpDelta(null);
     setMatchWinnerRankChange(null); setMatchLoserRankChange(null);
     setShowForfeitConfirm(false); setForfeitLoading(false);
+    setInterGameCharId(null); setInterGameCharAlt(1);
+    setInterGameCharConfirmed(false); setInterGameCharLoading(false);
     setSearchPlat(null); setSearchChar(null);
     setMatchTypeMode('ranked');
     setCasualMode('1v1'); setCasualParty(null); setJoinCodeInput('');
     setRankedParty(null); setRankedJoinCodeInput('');
+  };
+
+  const confirmNextGameChar = async () => {
+    if (!interGameCharId || interGameCharLoading) return;
+    setInterGameCharLoading(true);
+    try {
+      const r = await fetch('/api/matchmaking/room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pick_inter_game_char', userId: uid, userName: uName, charId: interGameCharId, charAlt: interGameCharAlt }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        setInterGameCharConfirmed(true);
+        if (data.room) setBgMM(prev => prev ? { ...prev, room: data.room } : prev);
+      }
+    } catch {}
+    finally { setInterGameCharLoading(false); }
   };
 
   const startSearch = async (platform) => {
@@ -7178,7 +7210,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       : matchData.result.winnerId === uid;
     const stocks = matchData.result.stocksWon;
     const isCasualFinished = matchData.type === 'casual';
-    const winnerCharData = (() => { const wd = matchData.result.winnerId === matchData.host?.userId ? matchData.host : matchData.guest; return CHARACTERS.find(c => c.id === wd?.charId); })();
+    const finalRpDelta          = matchRpDelta          ?? matchData?.result?.rpDelta          ?? null;
+    const finalLoserRpDelta     = matchLoserRpDelta     ?? matchData?.result?.loserRpDelta     ?? null;
+    const finalWinnerRankChange = matchWinnerRankChange ?? matchData?.result?.winnerRankChange ?? null;
+    const finalLoserRankChange  = matchLoserRankChange  ?? matchData?.result?.loserRankChange  ?? null;
+    const winnerPlayerData = matchData.result.winnerId === matchData.host?.userId ? matchData.host : matchData.guest;
+    const winnerCharData = CHARACTERS.find(c => c.id === winnerPlayerData?.charId);
+    const winnerCharAlt  = winnerPlayerData?.charAlt || 1;
     return (
       <div style={{ padding: '24px 18px' }}>
         <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
@@ -7191,18 +7229,18 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
           {stocks && (
             <div style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={charImgPath(winnerCharData.img)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={stockIconPath(winnerCharData, winnerCharAlt)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>{stocks} stock{stocks > 1 ? 's' : ''} de ventaja</span>
             </div>
           )}
-          {!isCasualFinished && iWon && matchRpDelta != null && (
+          {!isCasualFinished && iWon && finalRpDelta != null && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)' }}>
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#34D399' }}>+{matchRpDelta} RP</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#34D399' }}>+{finalRpDelta} RP</span>
             </div>
           )}
           {!isCasualFinished && !iWon && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>{matchLoserRpDelta != null ? matchLoserRpDelta : -10} RP</span>
+              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>{finalLoserRpDelta != null ? finalLoserRpDelta : -10} RP</span>
             </div>
           )}
           {/* Bo3 Games Summary */}
@@ -7224,8 +7262,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           )}
         </div>
         {!isCasualFinished && !is2v2Finished && (() => {
-          const myRpDelta = iWon ? matchRpDelta : matchLoserRpDelta;
-          const myRankChange = iWon ? matchWinnerRankChange : matchLoserRankChange;
+          const myRpDelta = iWon ? finalRpDelta : finalLoserRpDelta;
+          const myRankChange = iWon ? finalWinnerRankChange : finalLoserRankChange;
           return (
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 16px', marginBottom: 12 }}>
               <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resumen de puntos</p>
@@ -7259,9 +7297,20 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             </div>
           );
         })()}
-        <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-          {isCasualFinished ? 'Jugar otra vez' : '🔍 Nueva búsqueda'}
-        </button>
+        {isCasualFinished ? (
+          <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            Jugar otra vez
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={resetAll} style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+              🔍 Nueva búsqueda
+            </button>
+            <button onClick={resetAll} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              👤 Cambiar personaje
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -7305,7 +7354,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         {!is2v2 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '12px 16px' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
-              {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(52,211,153,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              {myChar && <img src={stockIconPath(myChar, myData?.charAlt || 1)} alt={myChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(52,211,153,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
               <div>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Vos</p>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#34D399' }}>{myChar?.name || myData?.charId || '—'}</p>
@@ -7317,7 +7366,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Rival</p>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
               </div>
-              {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              {oppChar && <img src={stockIconPath(oppChar, opponent?.charAlt || 1)} alt={oppChar.name} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 10, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
             </div>
           </div>
         )}
@@ -7460,7 +7509,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                     {[1,2,3].map(n => (
                       <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, maxWidth: 100, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                        {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+                        {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={stockIconPath(myChar, myData?.charAlt || 1)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
                       </button>
                     ))}
                   </div>
@@ -7485,7 +7534,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {[1,2,3].map(n => (
                 <button key={n} onClick={() => setReportStocks(n)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: '1px solid ' + (reportStocks === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: reportStocks === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={charImgPath(myChar.img)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
+                  {Array.from({ length: n }, (_, i) => myChar ? <img key={i} src={stockIconPath(myChar, myData?.charAlt || 1)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
                 </button>
               ))}
             </div>
@@ -7601,6 +7650,88 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       });
     };
 
+    // ── Inter-game char picker (ranked Bo3, game 2+) ──────────────────────
+    const needsInterGamePick = !is2v2 && gameNum > 1 && matchData.type !== 'casual' && matchData.format === 'bo3' && matchData.interGameCharReady === false;
+    if (needsInterGamePick) {
+      const effectiveCharId  = interGameCharId  ?? myData?.charId;
+      const effectiveCharAlt = interGameCharId  ? interGameCharAlt : (myData?.charAlt || 1);
+      const effectiveChar    = CHARACTERS.find(c => c.id === effectiveCharId);
+      return (
+        <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: p ? 'linear-gradient(135deg,' + p.from + ',' + p.to + ')' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{p?.icon || '??'}</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: '0 0 2px', fontWeight: 900, fontSize: 17, color: '#fff' }}>⚔️ Game {gameNum} de 3</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>vs {opponentLabel}</p>
+            </div>
+            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '6px 12px' }}>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>
+                <span style={{ color: '#22C55E' }}>{myScore}</span>
+                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 4px' }}>—</span>
+                <span style={{ color: '#EF4444' }}>{oppScore}</span>
+              </p>
+            </div>
+          </div>
+
+          {interGameCharConfirmed ? (
+            /* Esperando a rival */
+            <div style={{ textAlign: 'center', padding: '40px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
+              {effectiveChar && <img src={stockIconPath(effectiveChar, effectiveCharAlt)} alt={effectiveChar.name} style={{ width: 48, height: 48, objectFit: 'contain', display: 'block', margin: '0 auto 10px' }} />}
+              <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>¡Personaje confirmado!</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Esperando que tu rival elija su personaje…</p>
+            </div>
+          ) : (
+            /* Picker */
+            <>
+              <div style={{ background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.2)', borderRadius: 14, padding: '10px 14px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#FF8C00' }}>Elegí tu personaje para el Game {gameNum}</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Tu elección es secreta hasta que ambos confirmen</p>
+              </div>
+
+              {/* Grilla de personajes */}
+              <div style={{ maxHeight: 260, overflowY: 'auto', borderRadius: 14, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', padding: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 4 }}>
+                  {CHARACTERS.map(c => {
+                    const alt = effectiveCharId === c.id ? effectiveCharAlt : 1;
+                    const selected = effectiveCharId === c.id;
+                    return (
+                      <button key={c.id} onClick={() => { setInterGameCharId(c.id); if (!interGameCharId) setInterGameCharAlt(1); }}
+                        style={{ padding: 4, borderRadius: 8, border: '1px solid ' + (selected ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.06)'), background: selected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <img src={stockIconPath(c, alt)} alt={c.name} style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                        <span style={{ fontSize: 8, color: selected ? '#FF8C00' : 'rgba(255,255,255,0.4)', fontWeight: selected ? 800 : 400, lineHeight: 1.2, textAlign: 'center', maxWidth: 40, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selector de skin */}
+              {effectiveChar && (
+                <div>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Skin ({effectiveChar.name})</p>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {Array.from({ length: 8 }, (_, i) => i + 1).map(n => (
+                      <button key={n} onClick={() => setInterGameCharAlt(n)}
+                        style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid ' + (effectiveCharAlt === n ? 'rgba(255,140,0,0.6)' : 'rgba(255,255,255,0.1)'), background: effectiveCharAlt === n ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={stockIconPath(effectiveChar, n)} alt={n} style={{ width: 26, height: 26, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button onClick={confirmNextGameChar} disabled={!effectiveCharId || interGameCharLoading}
+                style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: effectiveCharId ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'rgba(255,255,255,0.08)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: effectiveCharId ? 'pointer' : 'not-allowed', opacity: !effectiveCharId || interGameCharLoading ? 0.6 : 1 }}>
+                {interGameCharLoading ? 'Confirmando...' : '✅ Confirmar personaje'}
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Header */}
@@ -7623,13 +7754,13 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         {(myChar || oppChar) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '10px 14px' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {myChar && <img src={charImgPath(myChar.img)} alt={myChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(34,197,94,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              {myChar && <img src={stockIconPath(myChar, myData?.charAlt || 1)} alt={myChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(34,197,94,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
               <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#34D399' }}>{myChar?.name || '—'}</p>
             </div>
             <span style={{ fontSize: 13, fontWeight: 900, color: 'rgba(255,255,255,0.15)' }}>VS</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
               <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#EF4444' }}>{oppChar?.name || opponent?.charId || '—'}</p>
-              {oppChar && <img src={charImgPath(oppChar.img)} alt={oppChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+              {oppChar && <img src={stockIconPath(oppChar, opponent?.charAlt || 1)} alt={oppChar.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
             </div>
           </div>
         )}
