@@ -1408,6 +1408,7 @@ export default function TestAdminPage() {
           round: set.fullRoundText || set.round || '',
           format: parseInt(format) || 3,
           needed: Math.ceil((parseInt(format) || 3) / 2),
+          tournamentName: tournament?.name || '',
         }),
       }).catch(() => {});
     }
