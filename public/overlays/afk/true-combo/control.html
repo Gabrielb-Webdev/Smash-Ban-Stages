@@ -390,6 +390,7 @@ const CHARS = [
 ];
 
 const ICON_OVERRIDE = {'rob':'Rob','pac-man':'Pac Man'};
+const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
 
 function stockIcon(id, skin) {
   const c = CHARS.find(x => x[0] === id);
@@ -417,7 +418,7 @@ let pickerTarget = null, filtered = CHARS;
 function save() {
   const c1 = CHARS.find(x=>x[0]===S.p1charId);
   const c2 = CHARS.find(x=>x[0]===S.p2charId);
-  localStorage.setItem('smashafk_score', JSON.stringify({
+  const payload = {
     p1tag:S.p1tag, p2tag:S.p2tag,
     p1score:S.p1score, p2score:S.p2score,
     p1char:c1?c1[1]:'', p2char:c2?c2[1]:'',
@@ -426,15 +427,26 @@ function save() {
     round:S.round, stage:S.stage,
     format:S.format, needed:Math.ceil(S.format/2),
     p1seed:S.p1seed, p2seed:S.p2seed,
-  }));
+  };
+  localStorage.setItem('smashafk_score', JSON.stringify(payload));
   localStorage.setItem('smashafk_ctrl', JSON.stringify({p1charId:S.p1charId,p1skin:S.p1skin,p2charId:S.p2charId,p2skin:S.p2skin}));
+  fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}).catch(()=>{});
   render();
 }
 
-function loadFromStorage() {
+async function loadFromStorage() {
+  try {
+    const r = await fetch(API);
+    if (r.ok) {
+      const d = await r.json();
+      if (d && (d.p1tag !== undefined || d.p2tag !== undefined)) {
+        Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||''});
+      }
+    }
+  } catch(e) {}
   try {
     const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
-    Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||''});
+    if (!S.p1tag && !S.p2tag) Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||''});
   } catch(e) {}
   try {
     const c = JSON.parse(localStorage.getItem('smashafk_ctrl')||'{}');
@@ -506,15 +518,29 @@ function render() {
   });
 }
 
-loadFromStorage();
-document.getElementById('p1-name').value=S.p1tag;
-document.getElementById('p2-name').value=S.p2tag;
-document.getElementById('round-inp').value=S.round;
-document.getElementById('stage-inp').value=S.stage;
-document.getElementById('p1-seed').value=S.p1seed;
-document.getElementById('p2-seed').value=S.p2seed;
-document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===S.format));
-render();
+loadFromStorage().then(() => {
+  document.getElementById('p1-name').value=S.p1tag;
+  document.getElementById('p2-name').value=S.p2tag;
+  document.getElementById('round-inp').value=S.round;
+  document.getElementById('stage-inp').value=S.stage;
+  document.getElementById('p1-seed').value=S.p1seed;
+  document.getElementById('p2-seed').value=S.p2seed;
+  document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===S.format));
+  render();
+});
+
+// Auto-fill player names from stream session
+(function pollStream() {
+  fetch('/api/session/afk-multi-stream').then(r=>r.ok?r.json():null).then(data=>{
+    if (!data || !data.session) return;
+    const players = data.session.players || [];
+    const n1 = players[0]||'', n2 = players[1]||'';
+    if (n1 && n1 !== S.p1tag) { S.p1tag=n1; document.getElementById('p1-name').value=n1; }
+    if (n2 && n2 !== S.p2tag) { S.p2tag=n2; document.getElementById('p2-name').value=n2; }
+  }).catch(()=>{});
+  setTimeout(pollStream, 4000);
+})();
+
 document.getElementById('char-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closePicker();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePicker();});
 </script>

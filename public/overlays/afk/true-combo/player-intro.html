@@ -165,15 +165,24 @@ body {
 </div>
 
 <div class="tc-banner">
-  <img src="./img/banner.png" alt="True Combo" onerror="this.style.opacity='0'">
+  <img src="./img/banner.png" alt="True Combo" onerror="this.closest('.tc-banner').style.display='none'">
 </div>
 
 <script>
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
-function load() {
+const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
+
+async function load() {
+  let d = {};
   try {
-    const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
+    const r = await fetch(API);
+    if (r.ok) { const j = await r.json(); if (j && (j.p1tag !== undefined || j.p2tag !== undefined)) d = j; }
+  } catch {}
+  if (!d.p1tag && !d.p2tag) {
+    try { d = JSON.parse(localStorage.getItem('smashafk_score')||'{}'); } catch {}
+  }
+  try {
     document.getElementById('p1-name').textContent = (d.p1tag||'PLAYER 1').toUpperCase();
     document.getElementById('p2-name').textContent = (d.p2tag||'PLAYER 2').toUpperCase();
     document.getElementById('p1-char').textContent = d.p1char||'';
@@ -190,7 +199,7 @@ function load() {
     });
   } catch(e) {}
 }
-load(); setInterval(load, 300); window.addEventListener('storage', load);
+load(); setInterval(load, 500); window.addEventListener('storage', load);
 </script>
 </body>
 </html>

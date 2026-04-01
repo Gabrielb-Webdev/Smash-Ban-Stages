@@ -1386,6 +1386,22 @@ export default function TestAdminPage() {
         }),
       }).catch(() => {});
     }
+    // Para torneos AFk Multi: sincronizar con overlay control
+    if (community === 'afk-multi' && isStreamSetup) {
+      fetch('/api/afk/score-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p1tag: players[0] || 'Jugador 1',
+          p2tag: players[1] || 'Jugador 2',
+          p1score: 0,
+          p2score: 0,
+          round: set.fullRoundText || set.round || '',
+          format: parseInt(format) || 3,
+          needed: Math.ceil((parseInt(format) || 3) / 2),
+        }),
+      }).catch(() => {});
+    }
 
     // Guardar sessionId + datos startgg + timestamp en el state
     setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, banUrl1, banUrl2, startggSetId, startggEntrant1Id, startggEntrant2Id, timerStartedAt: Date.now() } }));
