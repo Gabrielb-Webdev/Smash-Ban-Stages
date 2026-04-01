@@ -1353,7 +1353,7 @@ export default function TestAdminPage() {
           player2: players[1] || 'Jugador 2',
           format,
           round: set.fullRoundText || set.round || '',
-          tournamentName: customTournamentName || tournament?.name || ''
+          tournamentName: customTournamentName || tournament?.name || '',
           forceReset: true,
         }),
       });
