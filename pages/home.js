@@ -1650,9 +1650,7 @@ function RankBadge({ rankName }) {
   const icon    = TIER_ICONS[rankObj.tier] || '??';
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '3px 9px', borderRadius: 20,
-      background: rankObj.bg, border: `1px solid ${rankObj.border}`,
+      display: 'inline-flex', alignItems: 'center', gap: 3,
       fontSize: 11, fontWeight: 800, color: rankObj.color, whiteSpace: 'nowrap',
     }}>
       {icon} {rankObj.name}
@@ -1888,6 +1886,9 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
     3: { bg: 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)', text: '#000', posBg: '#fff', posColor: '#000' },
   };
   const tc = topColors[position] || null;
+  const winPillBg  = tc ? 'rgba(0,0,0,0.4)' : (winPct >= 60 ? 'rgba(52,211,153,0.2)' : winPct >= 40 ? 'rgba(255,200,0,0.18)' : 'rgba(255,80,80,0.18)');
+  const winPillBdr = tc ? '1px solid rgba(0,0,0,0.2)' : `1px solid ${winPct >= 60 ? 'rgba(52,211,153,0.4)' : winPct >= 40 ? 'rgba(255,200,0,0.35)' : 'rgba(255,80,80,0.35)'}`;
+  const winPillClr = winPct >= 60 ? '#34D399' : winPct >= 40 ? '#FBBF24' : '#F87171';
 
   return (
     <div onClick={() => onPlayerClick && onPlayerClick(player.userId, player.userName)} style={{
@@ -1928,8 +1929,8 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
             <RankBadge rankName={player.rank} />
             {isSmasher && <span style={{ fontSize: 10, color: tc ? 'rgba(0,0,0,0.6)' : '#FF8C00', fontWeight: 700 }}>{player.rankPoints || 0} RP</span>}
-            <div style={{ background: winPct >= 60 ? 'rgba(52,211,153,0.15)' : winPct >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winPct >= 60 ? 'rgba(52,211,153,0.3)' : winPct >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '2px 7px' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: winPct >= 60 ? '#34D399' : winPct >= 40 ? '#FBBF24' : '#F87171' }}>{winPct}%</span>
+            <div style={{ background: winPillBg, border: winPillBdr, borderRadius: 8, padding: '2px 7px' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: winPillClr }}>{winPct}%</span>
             </div>
           </div>
         )}
@@ -1939,8 +1940,8 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
               {wins}W · {losses}L
             </p>
             {total > 0 && (
-              <div style={{ background: winPct >= 60 ? 'rgba(52,211,153,0.15)' : winPct >= 40 ? 'rgba(255,200,0,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${winPct >= 60 ? 'rgba(52,211,153,0.3)' : winPct >= 40 ? 'rgba(255,200,0,0.25)' : 'rgba(255,80,80,0.25)'}`, borderRadius: 8, padding: '2px 7px' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: winPct >= 60 ? '#34D399' : winPct >= 40 ? '#FBBF24' : '#F87171' }}>{winPct}%</span>
+              <div style={{ background: winPillBg, border: winPillBdr, borderRadius: 8, padding: '2px 7px' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: winPillClr }}>{winPct}%</span>
               </div>
             )}
           </div>
@@ -2441,16 +2442,16 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                 <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                               ) : isTournament ? (
                                 HIST_COMM_LOGOS[m.community] ? (
-                                  <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                                  <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
                                 ) : (
                                   <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
                                 )
                               ) : is2v2 ? (
                                 <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                               ) : rankObj ? (
-                                <div style={{ padding: '2px 4px', borderRadius: 5, background: rankObj.bg, border: `1px solid ${rankObj.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                                  <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
-                                  <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                                  <span style={{ fontSize: 20, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
+                                  <span style={{ fontSize: 8, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                                 </div>
                               ) : isMyPlacement ? (
                                 <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
@@ -2566,16 +2567,16 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                                   ) : isTournament ? (
                                     HIST_COMM_LOGOS[m.community] ? (
-                                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
                                     ) : (
                                       <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
                                     )
                                   ) : is2v2 ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                                   ) : rankObj ? (
-                                    <div style={{ padding: '2px 4px', borderRadius: 5, background: rankObj.bg, border: `1px solid ${rankObj.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                                      <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
-                                      <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                                      <span style={{ fontSize: 20, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
+                                      <span style={{ fontSize: 8, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                                     </div>
                                   ) : isMyPlacement ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
@@ -4544,16 +4545,16 @@ function TabPerfil({ user }) {
                             <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                           ) : isTournament ? (
                             HIST_COMM_LOGOS[m.community] ? (
-                              <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                              <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
                             ) : (
                               <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
                             )
                           ) : is2v2 ? (
                             <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                           ) : rankObj ? (
-                            <div style={{ padding: '2px 4px', borderRadius: 5, background: rankObj.bg, border: `1px solid ${rankObj.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                              <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
-                              <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                              <span style={{ fontSize: 20, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
+                              <span style={{ fontSize: 8, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                             </div>
                           ) : isMyPlacement ? (
                             <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
@@ -4687,16 +4688,16 @@ function TabPerfil({ user }) {
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#A78BFA', padding: '1px 3px', borderRadius: 3, background: 'rgba(139,92,246,0.15)' }}>NRM</span>
                                   ) : isTournament ? (
                                     HIST_COMM_LOGOS[m.community] ? (
-                                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
+                                      <img src={HIST_COMM_LOGOS[m.community]} alt="" style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} onError={e => { e.target.style.display='none'; }} />
                                     ) : (
                                       <span style={{ fontSize: 8, fontWeight: 800, color: '#F59E0B', padding: '1px 3px', borderRadius: 3, background: 'rgba(245,158,11,0.15)' }}>&nbsp;</span>
                                     )
                                   ) : is2v2 ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#60A5FA', padding: '1px 3px', borderRadius: 3, background: 'rgba(96,165,250,0.15)' }}>2v2</span>
                                   ) : rankObj ? (
-                                    <div style={{ padding: '2px 4px', borderRadius: 5, background: rankObj.bg, border: `1px solid ${rankObj.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                                      <span style={{ fontSize: 12, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
-                                      <span style={{ fontSize: 6.5, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                                      <span style={{ fontSize: 20, lineHeight: 1.1 }}>{TIER_ICONS[rankObj.tier]}</span>
+                                      <span style={{ fontSize: 8, fontWeight: 900, color: rankObj.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{['I','II','III','IV'][(rankObj.subdivision||1)-1]}</span>
                                     </div>
                                   ) : isMyPlacement ? (
                                     <span style={{ fontSize: 8, fontWeight: 800, color: '#FBBF24', padding: '1px 3px', borderRadius: 3, background: 'rgba(251,191,36,0.15)' }}>POS</span>
