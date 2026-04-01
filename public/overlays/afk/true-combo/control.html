@@ -468,7 +468,7 @@ function renderGrid() {
   const sel=pickerTarget?S[pickerTarget+'charId']:null;
   document.getElementById('char-grid').innerHTML=filtered.map(c=>
     `<div class="char-item${c[0]===sel?' sel':''}" onclick="selectChar('${c[0]}')">
-      <img src="/images/characters/${encodeURIComponent(c[2])}" alt="${c[1]}" onerror="this.style.opacity='.15'">
+      <img src="${stockIcon(c[0],1)}" alt="${c[1]}" onerror="this.style.opacity='.15'">
       <span>${c[1]}</span></div>`
   ).join('');
 }

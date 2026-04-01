@@ -3,530 +3,518 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AFK · Control de Overlay</title>
+<title>AFK SMASH · Control</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0d1117; --surface: #161b22; --surface2: #1c2230;
-  --border: rgba(255,255,255,0.08); --text: #e6edf3;
-  --dim: rgba(198,209,222,0.45); --accent: #74acdf;
-  --red: #e85c5c; --blue: #5c9de8; --yellow: #f0c040; --green: #5cd87a;
+  --bg:     #0a0700;
+  --surf:   #130e02;
+  --surf2:  #1c1503;
+  --border: rgba(240,164,24,0.1);
+  --text:   #f5e8c0;
+  --dim:    rgba(200,170,80,0.45);
+  --gold:   #f0a418;
+  --red:    #cc2200;
+  --green:  #78d860;
+  --yellow: #ffd060;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
+html,body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
 
 /* ── Header ── */
 header {
   display:flex; align-items:center; gap:12px;
-  padding:12px 20px; background:var(--surface);
-  border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10;
+  padding:11px 20px;
+  background:var(--surf); border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:10;
 }
-header h1 { font-family:'Anton',sans-serif; font-size:18px; letter-spacing:2px; }
-.live-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; }
-.live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
-.live-lbl { font-size:10px; letter-spacing:2px; color:var(--green); text-transform:uppercase; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+header .logo { display:flex; flex-direction:column; }
+header h1 { font-family:'Anton',sans-serif; font-size:18px; letter-spacing:4px; color:var(--gold); }
+header .sub { font-size:8px; letter-spacing:3px; color:var(--dim); text-transform:uppercase; }
+.live-row { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 7px var(--green); animation:pulse 2s infinite; }
+.live-lbl { font-size:9px; letter-spacing:2px; color:var(--green); text-transform:uppercase; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
 
-/* ── Main grid ── */
+/* ── Grid ── */
 .grid {
-  display:grid; grid-template-columns:1fr 260px 1fr;
-  min-height:calc(100vh - 56px - 60px);
-  border-bottom:1px solid var(--border);
+  display:grid; grid-template-columns:1fr 270px 1fr;
+  gap:1px; background:var(--border);
+  min-height:calc(100vh - 50px - 52px);
 }
-.panel { padding:18px; border-right:1px solid var(--border); }
-.panel:last-child { border-right:none; border-left:1px solid var(--border); }
-.center-panel { padding:18px; }
+.panel { background:var(--bg); padding:16px 14px; display:flex; flex-direction:column; gap:11px; }
+.center { background:var(--surf); padding:16px 14px; display:flex; flex-direction:column; gap:11px; }
+.plbl { font-size:8px; letter-spacing:3px; text-transform:uppercase; color:var(--dim); }
+.plbl.p1 { color:rgba(220,80,40,.6); }
+.plbl.p2 { color:rgba(80,160,230,.6); text-align:right; }
 
-/* ── Labels ── */
-.panel-lbl { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--dim); margin-bottom:14px; }
-.p1-lbl { color:rgba(232,92,92,.6); }
-.p2-lbl { color:rgba(92,157,232,.6); text-align:right; }
+/* ── Inputs ── */
+label { display:block; font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
+input[type=text] {
+  width:100%; background:var(--surf); border:1px solid var(--border);
+  color:var(--text); padding:7px 11px; border-radius:5px;
+  font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:border-color .15s;
+}
+input[type=text]:focus { border-color:var(--gold); }
 
 /* ── Preview card ── */
 .preview-card {
-  display:flex; align-items:center; gap:10px;
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:10px; padding:10px 12px; margin-bottom:14px;
+  background:var(--surf); border:1px solid var(--border); border-radius:8px;
+  padding:10px 12px; display:flex; align-items:center; gap:10px;
 }
-.preview-card.right { flex-direction:row-reverse; }
-.preview-card img.render { width:46px; height:46px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 2px 8px rgba(0,0,0,.8)); }
-.preview-card .pname { font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.preview-card .pchar { font-size:11px; color:var(--accent); margin-top:1px; }
-.preview-card .pscore { font-family:'Anton',sans-serif; font-size:30px; color:var(--yellow); line-height:1; }
-
-/* ── Fields ── */
-.field { margin-bottom:10px; }
-.field label { display:block; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
-.field input, .field select {
-  width:100%; background:var(--surface); border:1px solid var(--border);
-  color:var(--text); padding:7px 11px; border-radius:6px;
-  font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:border-color .15s;
-}
-.field input:focus, .field select:focus { border-color:var(--accent); }
+.preview-card.p2 { flex-direction:row-reverse; }
+.pname { font-family:'Anton',sans-serif; font-size:18px; letter-spacing:2px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pname.right { text-align:right; }
+.pscore { font-family:'Anton',sans-serif; font-size:38px; color:var(--gold); line-height:1; }
+.preview-ico { width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid rgba(240,164,24,.35); background:rgba(0,0,0,.5); display:none; }
 
 /* ── Char button ── */
 .char-btn {
-  width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px;
-  padding:9px 11px; cursor:pointer; color:var(--text); font-family:'DM Sans',sans-serif;
-  font-size:12px; display:flex; align-items:center; gap:8px;
-  transition:border-color .15s; margin-bottom:8px; text-align:left;
+  width:100%; background:var(--surf); border:1px solid var(--border);
+  border-radius:7px; padding:8px 11px; cursor:pointer; color:var(--text);
+  font-family:'DM Sans',sans-serif; font-size:12px;
+  display:flex; align-items:center; gap:8px; transition:border-color .15s; text-align:left;
 }
-.char-btn:hover { border-color:var(--accent); }
-.char-btn img.cprev { width:32px; height:32px; border-radius:50%; object-fit:cover; border:1.5px solid rgba(116,172,223,.35); flex-shrink:0; display:none; }
-.char-btn .cname { font-weight:600; flex:1; }
-.char-btn .cph { color:var(--dim); flex:1; }
-.clear-x { font-size:10px; color:var(--red); background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:4px; }
-.clear-x:hover { background:rgba(232,92,92,.1); }
+.char-btn:hover { border-color:var(--gold); }
+.char-btn .btn-ico { width:28px; height:28px; border-radius:50%; object-fit:cover; border:1.5px solid rgba(240,164,24,.35); background:rgba(0,0,0,.5); display:none; }
+.btn-lbl { flex:1; }
+.dim { color:var(--dim); }
+.clear-x { font-size:10px; color:var(--dim); background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:3px; }
+.clear-x:hover { color:var(--red); }
 
 /* ── Skin row ── */
-.skin-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; min-height:34px; }
-.skin-btn { width:32px; height:32px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:2px; background:none; opacity:.55; transition:all .12s; }
+.skin-row { display:flex; gap:5px; flex-wrap:wrap; min-height:26px; }
+.skin-btn { width:28px; height:28px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:2px; background:none; opacity:.55; transition:transform .1s,border-color .1s,opacity .1s; }
 .skin-btn img { width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
-.skin-btn:hover { opacity:1; transform:scale(1.08); }
+.skin-btn:hover { opacity:1; transform:scale(1.12); }
 .skin-btn.active { border-color:var(--yellow); opacity:1; }
 
-/* ── Center score ── */
-.score-big { display:flex; align-items:center; justify-content:center; gap:14px; margin:18px 0 14px; }
-.score-big .sn { font-family:'Anton',sans-serif; font-size:64px; line-height:1; color:var(--dim); min-width:44px; text-align:center; }
-.score-big .sn.lead { color:var(--yellow); }
-.score-big .dash { font-size:28px; color:rgba(255,255,255,.1); font-family:'DM Sans'; font-weight:300; }
-.sc-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:12px; }
-.scb { padding:9px 4px; border-radius:8px; cursor:pointer; font-family:'Anton',sans-serif; font-size:15px; letter-spacing:1px; border:1px solid var(--border); background:var(--surface); color:var(--text); transition:all .1s; text-align:center; }
-.scb:hover { background:var(--surface2); }
-.scb:active { transform:scale(.95); }
-.scb.add { color:var(--green); border-color:rgba(92,216,122,.25); }
-.scb.sub { color:var(--red); border-color:rgba(232,92,92,.2); }
+/* ── Score ── */
+.score-nums { font-family:'Anton',sans-serif; font-size:72px; display:flex; align-items:center; justify-content:center; gap:10px; line-height:1; }
+.sn { min-width:44px; text-align:center; color:var(--dim); transition:color .2s; }
+.sn.lead { color:var(--yellow); }
+.sdash { font-size:26px; color:rgba(240,164,24,.15); }
+.score-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; }
+.sbtn {
+  padding:9px 4px; border-radius:6px; cursor:pointer;
+  font-family:'Anton',sans-serif; font-size:15px; letter-spacing:.5px;
+  border:1px solid var(--border); background:var(--surf); color:var(--text);
+  transition:background .1s, transform .1s; text-align:center;
+}
+.sbtn:hover { background:var(--surf2); }
+.sbtn:active { transform:scale(.94); }
+.sbtn.add { color:var(--green); border-color:rgba(120,216,96,.2); }
+.sbtn.sub { color:var(--red); border-color:rgba(200,34,0,.2); }
 
-/* ── Format buttons ── */
-.fmt-row { display:flex; gap:6px; margin-top:5px; }
-.fmt-btn { flex:1; padding:7px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--dim); font-family:'Anton',sans-serif; font-size:13px; letter-spacing:1px; cursor:pointer; text-align:center; transition:all .15s; }
-.fmt-btn.active, .fmt-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(116,172,223,.08); }
+/* ── Format ── */
+.fmt-row { display:flex; gap:4px; }
+.fmt-btn {
+  flex:1; padding:6px 2px; border-radius:5px; border:1px solid var(--border);
+  background:var(--bg); color:var(--dim); font-family:'Anton',sans-serif;
+  font-size:12px; letter-spacing:1px; cursor:pointer; text-align:center; transition:all .15s;
+}
+.fmt-btn:hover,.fmt-btn.active { border-color:var(--gold); color:var(--gold); background:rgba(240,164,24,.07); }
 
-/* ── Game info chip ── */
-.game-chip { text-align:center; padding:10px; background:var(--bg); border-radius:8px; border:1px solid var(--border); margin-bottom:10px; }
-.game-chip .gl { font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
-.game-chip .gv { font-family:'Anton',sans-serif; font-size:20px; color:var(--accent); letter-spacing:2px; }
+/* ── Game chip ── */
+.game-chip {
+  text-align:center; padding:9px; background:var(--bg); border-radius:7px;
+  border:1px solid var(--border);
+}
+.game-chip .glbl { font-size:7px; letter-spacing:2px; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
+.game-chip .gval { font-family:'Anton',sans-serif; font-size:19px; color:var(--gold); letter-spacing:2px; }
 
-/* ── Buttons ── */
-.btn-full { width:100%; padding:9px; border-radius:8px; border:1px solid rgba(116,172,223,.2); background:rgba(116,172,223,.05); color:var(--accent); cursor:pointer; font-family:'DM Sans'; font-size:13px; font-weight:600; margin-bottom:8px; transition:all .15s; }
-.btn-full:hover { background:rgba(116,172,223,.12); }
+/* ── Reset btn ── */
+.btn-reset {
+  padding:8px; border-radius:6px; border:1px solid rgba(240,164,24,.18);
+  background:rgba(240,164,24,.04); color:var(--gold);
+  font-family:'DM Sans',sans-serif; font-size:11px; font-weight:600;
+  cursor:pointer; width:100%; transition:background .15s;
+}
+.btn-reset:hover { background:rgba(240,164,24,.1); }
 
 /* ── Footer ── */
-footer { background:var(--surface); border-top:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-footer .flbl { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--dim); }
-footer a { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:var(--bg); color:var(--text); text-decoration:none; font-size:12px; font-weight:500; transition:all .15s; }
-footer a:hover { border-color:var(--accent); color:var(--accent); }
-.reset-all { margin-left:auto; padding:5px 14px; border-radius:20px; border:1px solid rgba(232,92,92,.3); background:rgba(232,92,92,.08); color:var(--red); font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
-.reset-all:hover { background:rgba(232,92,92,.18); }
+footer {
+  background:var(--surf); border-top:1px solid var(--border);
+  padding:11px 20px; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+}
+footer .flbl { font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim); margin-right:2px; }
+footer a {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:5px 12px; border-radius:18px; border:1px solid var(--border);
+  background:var(--bg); color:var(--text); text-decoration:none;
+  font-size:11px; font-weight:500; transition:all .15s; white-space:nowrap;
+}
+footer a:hover { border-color:var(--gold); color:var(--gold); }
+footer a.sub { opacity:.55; font-size:10px; }
+footer a.sub:hover { opacity:1; }
+.btn-reset-all {
+  margin-left:auto; padding:5px 14px; border-radius:18px;
+  border:1px solid rgba(200,34,0,.3); background:rgba(200,34,0,.07);
+  color:var(--red); font-size:10px; font-weight:600; cursor:pointer; transition:all .15s;
+}
+.btn-reset-all:hover { background:rgba(200,34,0,.18); }
 
 /* ── Modal ── */
-.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.82); backdrop-filter:blur(6px); z-index:100; display:none; align-items:center; justify-content:center; }
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(7px); z-index:100; display:none; align-items:center; justify-content:center; }
 .modal-bg.open { display:flex; }
-.modal-box { background:var(--surface); border:1px solid rgba(116,172,223,.3); border-radius:14px; padding:18px; width:min(560px,94vw); max-height:82vh; display:flex; flex-direction:column; }
-.modal-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-.modal-title { font-family:'Anton',sans-serif; font-size:16px; letter-spacing:2px; flex:1; }
-.modal-close { width:28px; height:28px; border-radius:50%; border:1px solid var(--border); background:none; color:var(--dim); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; }
-.modal-search { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; margin-bottom:10px; }
-.modal-search:focus { border-color:var(--accent); }
-.char-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; overflow-y:auto; flex:1; padding-right:3px; }
+.modal-box { background:var(--surf); border:1px solid rgba(240,164,24,.25); border-radius:12px; padding:16px; width:min(540px,93vw); max-height:82vh; display:flex; flex-direction:column; gap:9px; }
+.modal-head { display:flex; align-items:center; gap:9px; }
+.modal-title { font-family:'Anton',sans-serif; font-size:16px; letter-spacing:2px; color:var(--gold); flex:1; }
+.modal-close { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:none; color:var(--dim); cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+.modal-search { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:7px 11px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:12px; outline:none; }
+.modal-search:focus { border-color:var(--gold); }
+.char-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; overflow-y:auto; flex:1; padding-right:3px; }
 .char-grid::-webkit-scrollbar { width:3px; }
-.char-grid::-webkit-scrollbar-thumb { background:rgba(116,172,223,.2); border-radius:2px; }
-.ci { display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 4px; border-radius:8px; cursor:pointer; border:1px solid transparent; transition:all .1s; background:var(--bg); }
-.ci:hover { border-color:rgba(116,172,223,.4); background:var(--surface2); }
-.ci.sel { border-color:var(--yellow); background:rgba(240,192,64,.1); }
-.ci img { width:48px; height:48px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,.6)); }
-.ci span { font-size:7.5px; text-align:center; color:var(--dim); line-height:1.2; }
+.char-grid::-webkit-scrollbar-thumb { background:rgba(240,164,24,.2); border-radius:2px; }
+.char-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 3px; border-radius:7px; cursor:pointer; border:1px solid transparent; transition:all .1s; background:var(--bg); }
+.char-item:hover { border-color:rgba(240,164,24,.3); background:var(--surf2); }
+.char-item.sel { border-color:var(--yellow); background:rgba(240,164,24,.07); }
+.char-item img { width:46px; height:46px; object-fit:contain; filter:drop-shadow(0 2px 4px #000a); }
+.char-item span { font-size:7px; text-align:center; color:var(--dim); line-height:1.2; }
 </style>
 </head>
 <body>
 
 <header>
-  <img src="/images/AFK.webp" alt="AFK" style="height:28px;object-fit:contain;" onerror="this.style.display='none'">
-  <h1>OVERLAY CONTROL</h1>
-  <div class="live-wrap">
-    <span class="live-lbl">LIVE</span>
+  <div class="logo">
+    <h1>AFK SMASH</h1>
+    <div class="sub">Overlay Control</div>
+  </div>
+  <div class="live-row">
+    <span class="live-lbl">En vivo</span>
     <div class="live-dot"></div>
   </div>
 </header>
 
 <div class="grid">
-
-  <!-- ══ P1 ══ -->
+  <!-- ═══ P1 ═══ -->
   <div class="panel">
-    <div class="panel-lbl p1-lbl">◀ JUGADOR 1</div>
-    <div class="preview-card" id="p1-preview">
-      <img class="render" id="p1-render" src="" alt="" onerror="this.style.display='none'" style="display:none">
-      <div style="flex:1;min-width:0">
-        <div class="pname" id="p1-pname">—</div>
-        <div class="pchar" id="p1-pchar">Sin personaje</div>
-      </div>
-      <div class="pscore" id="p1-pscore">0</div>
+    <div class="plbl p1">◀ JUGADOR 1</div>
+    <div class="preview-card">
+      <img class="preview-ico" id="p1-prev-ico" src="" alt="">
+      <div class="pname" id="p1-prev-name">—</div>
+      <div class="pscore" id="p1-prev-score">0</div>
     </div>
-    <div class="field">
-      <label>Nombre / Tag</label>
-      <input type="text" id="p1-name" placeholder="Ej: Luii2204" oninput="st.p1tag=this.value;save()">
+    <div>
+      <label>Nombre</label>
+      <input type="text" id="p1-name" placeholder="Ej: Luii2204" oninput="S.p1tag=this.value;save()">
     </div>
-    <button class="char-btn" id="p1-cbt" onclick="openPicker('p1')">
-      <img class="cprev" id="p1-cprev" src="" alt="">
-      <span id="p1-ctext" class="cph">Seleccionar personaje...</span>
-      <button class="clear-x" id="p1-cx" onclick="clearChar(event,'p1')" style="display:none">✕</button>
-    </button>
-    <div class="skin-row" id="p1-skins"></div>
-    <div class="field">
-      <label>Seed (opcional)</label>
-      <input type="text" id="p1-seed" placeholder="Ej: #1" oninput="st.p1seed=this.value;save()">
+    <div>
+      <button class="char-btn" onclick="openPicker('p1')">
+        <img class="btn-ico" id="p1-btn-ico" src="" alt="">
+        <span class="btn-lbl" id="p1-btn-lbl"><span class="dim">Seleccionar personaje...</span></span>
+        <button class="clear-x" id="p1-clr" onclick="clearChar(event,'p1')" style="display:none">✕</button>
+      </button>
+      <div class="skin-row" id="p1-skins"></div>
+    </div>
+    <div>
+      <label>Seed</label>
+      <input type="text" id="p1-seed" placeholder="Ej: #3" oninput="S.p1seed=this.value;save()">
     </div>
   </div>
 
-  <!-- ══ Centro ══ -->
-  <div class="center-panel">
-    <div class="panel-lbl" style="text-align:center">MATCH</div>
-
-    <div class="field">
+  <!-- ═══ CENTER ═══ -->
+  <div class="center">
+    <div class="plbl" style="text-align:center">MATCH</div>
+    <div>
       <label>Ronda</label>
-      <input type="text" id="round-in" placeholder="Winners Finals" oninput="st.round=this.value;save()">
+      <input type="text" id="round-inp" placeholder="Winners Finals" oninput="S.round=this.value;save()">
     </div>
-    <div class="field">
-      <label>Stage actual</label>
-      <input type="text" id="stage-in" placeholder="Battlefield" oninput="st.stage=this.value;save()">
+    <div>
+      <label>Stage</label>
+      <input type="text" id="stage-inp" placeholder="Final Destination" oninput="S.stage=this.value;save()">
     </div>
-    <div class="field">
+    <div>
       <label>Formato</label>
       <div class="fmt-row">
-        <button class="fmt-btn" data-f="3" onclick="setFmt(3)">Bo3</button>
-        <button class="fmt-btn active" data-f="5" onclick="setFmt(5)">Bo5</button>
-        <button class="fmt-btn" data-f="7" onclick="setFmt(7)">Bo7</button>
+        <button class="fmt-btn" data-f="3" onclick="setFormat(3)">Bo3</button>
+        <button class="fmt-btn active" data-f="5" onclick="setFormat(5)">Bo5</button>
+        <button class="fmt-btn" data-f="7" onclick="setFormat(7)">Bo7</button>
       </div>
     </div>
-
-    <div class="score-big">
+    <div class="score-nums">
       <div class="sn" id="sc1">0</div>
-      <div class="dash">—</div>
+      <div class="sdash">—</div>
       <div class="sn" id="sc2">0</div>
     </div>
-
-    <div class="sc-grid">
-      <button class="scb add" onclick="addSc('p1')">P1 +1</button>
-      <button class="scb sub" onclick="subSc('p1')">P1 −1</button>
-      <button class="scb sub" onclick="subSc('p2')">P2 −1</button>
-      <button class="scb add" onclick="addSc('p2')">P2 +1</button>
+    <div class="score-grid">
+      <button class="sbtn add" onclick="addScore('p1')">P1 +1</button>
+      <button class="sbtn sub" onclick="subScore('p1')">P1 −1</button>
+      <button class="sbtn sub" onclick="subScore('p2')">P2 −1</button>
+      <button class="sbtn add" onclick="addScore('p2')">P2 +1</button>
     </div>
-
     <div class="game-chip">
-      <div class="gl">Juego actual</div>
-      <div class="gv" id="game-val">Game 1 · Bo5</div>
+      <div class="glbl">Juego actual</div>
+      <div class="gval" id="gval">Game 1 · Bo5</div>
     </div>
-
-    <button class="btn-full" onclick="resetScores()">↺ Resetear scores</button>
-    <button class="btn-full" onclick="resetAll()" style="border-color:rgba(232,92,92,.2);background:rgba(232,92,92,.05);color:var(--red)">⚠ Reset todo</button>
+    <button class="btn-reset" onclick="resetScores()">↺ Resetear scores</button>
   </div>
 
-  <!-- ══ P2 ══ -->
+  <!-- ═══ P2 ═══ -->
   <div class="panel">
-    <div class="panel-lbl p2-lbl">JUGADOR 2 ▶</div>
-    <div class="preview-card right" id="p2-preview">
-      <img class="render" id="p2-render" src="" alt="" onerror="this.style.display='none'" style="display:none">
-      <div style="flex:1;min-width:0;text-align:right">
-        <div class="pname" id="p2-pname">—</div>
-        <div class="pchar" id="p2-pchar">Sin personaje</div>
-      </div>
-      <div class="pscore" id="p2-pscore">0</div>
+    <div class="plbl p2">JUGADOR 2 ▶</div>
+    <div class="preview-card p2">
+      <img class="preview-ico" id="p2-prev-ico" src="" alt="">
+      <div class="pname right" id="p2-prev-name">—</div>
+      <div class="pscore" id="p2-prev-score">0</div>
     </div>
-    <div class="field">
-      <label>Nombre / Tag</label>
-      <input type="text" id="p2-name" placeholder="Ej: Gabriel Sin II" oninput="st.p2tag=this.value;save()">
+    <div>
+      <label>Nombre</label>
+      <input type="text" id="p2-name" placeholder="Ej: GabrielSinII" oninput="S.p2tag=this.value;save()">
     </div>
-    <button class="char-btn" id="p2-cbt" onclick="openPicker('p2')">
-      <img class="cprev" id="p2-cprev" src="" alt="">
-      <span id="p2-ctext" class="cph">Seleccionar personaje...</span>
-      <button class="clear-x" id="p2-cx" onclick="clearChar(event,'p2')" style="display:none">✕</button>
-    </button>
-    <div class="skin-row" id="p2-skins"></div>
-    <div class="field">
-      <label>Seed (opcional)</label>
-      <input type="text" id="p2-seed" placeholder="Ej: #2" oninput="st.p2seed=this.value;save()">
+    <div>
+      <button class="char-btn" onclick="openPicker('p2')">
+        <img class="btn-ico" id="p2-btn-ico" src="" alt="">
+        <span class="btn-lbl" id="p2-btn-lbl"><span class="dim">Seleccionar personaje...</span></span>
+        <button class="clear-x" id="p2-clr" onclick="clearChar(event,'p2')" style="display:none">✕</button>
+      </button>
+      <div class="skin-row" id="p2-skins"></div>
+    </div>
+    <div>
+      <label>Seed</label>
+      <input type="text" id="p2-seed" placeholder="Ej: #5" oninput="S.p2seed=this.value;save()">
     </div>
   </div>
-
 </div>
 
 <footer>
-  <span class="flbl">Overlays:</span>
-  <a href="overlay-1-minimal.html" target="_blank">① Minimal</a>
-  <a href="overlay-2-broadcast.html" target="_blank">② Broadcast</a>
-  <a href="overlay-3-corners.html" target="_blank">③ Corners</a>
-  <a href="overlay-4-sidebar.html" target="_blank">④ Sidebar</a>
-  <a href="overlay-5-glass-pill.html" target="_blank">⑤ Glass Pill</a>
-  <button class="reset-all" onclick="resetAll()">⚠ Reset todo</button>
+  <span class="flbl">True Combo:</span>
+  <a href="true-combo/scoreboard.html" target="_blank">Scoreboard</a>
+  <a href="true-combo/player-intro.html" target="_blank">Intro</a>
+  <a href="true-combo/lowerthird.html" target="_blank">Lower Third</a>
+  <a href="true-combo/winner.html" target="_blank">Ganador</a>
+  <a href="true-combo/control.html" target="_blank" class="sub">↗ Control True Combo</a>
+  <button class="btn-reset-all" onclick="resetAll()">⚠ Reset todo</button>
 </footer>
 
-<!-- ══ Modal personaje ══ -->
+<!-- Modal picker -->
 <div class="modal-bg" id="char-modal">
   <div class="modal-box">
     <div class="modal-head">
-      <div class="modal-title" id="modal-ttl">SELECCIONAR PERSONAJE</div>
+      <div class="modal-title" id="modal-ttl">PERSONAJE</div>
       <button class="modal-close" onclick="closePicker()">✕</button>
     </div>
-    <input type="text" class="modal-search" id="msearch" placeholder="Buscar..." oninput="filterChars(this.value)">
-    <div class="char-grid" id="cgrid"></div>
+    <input type="text" class="modal-search" id="modal-q" placeholder="Buscar..." oninput="filterChars(this.value)">
+    <div class="char-grid" id="char-grid"></div>
   </div>
 </div>
 
 <script>
-// ── Character data ─────────────────────────────────────────────────────────
-// [id, displayName, imgFilename, skinCount(default 8)]
 const CHARS = [
-  ['banjo-kazooie','Banjo & Kazooie','Banjo Kazooie.png'],
-  ['bayonetta','Bayonetta','Bayonetta.png'],
-  ['bowser','Bowser','Bowser.png'],
-  ['bowser-jr','Bowser Jr.','Bowser Jr.png'],
-  ['byleth','Byleth','Byleth.png'],
-  ['captain-falcon','Captain Falcon','Captain Falcon.png'],
-  ['chrom','Chrom','Chrom.png'],
-  ['cloud','Cloud','Cloud.png'],
-  ['corrin','Corrin','Corrin.png'],
-  ['daisy','Daisy','Daisy.png'],
-  ['dark-pit','Dark Pit','Dark Pit.png'],
-  ['dark-samus','Dark Samus','Dark Samus.png'],
-  ['diddy-kong','Diddy Kong','Diddy Kong.png'],
-  ['donkey-kong','Donkey Kong','Donkey Kong.png'],
-  ['dr-mario','Dr. Mario','Dr. Mario.png'],
-  ['duck-hunt','Duck Hunt','Duck Hunt.png'],
-  ['falco','Falco','Falco.png'],
-  ['fox','Fox','Fox.png'],
-  ['ganondorf','Ganondorf','Ganondorf.png'],
-  ['greninja','Greninja','Greninja.png'],
-  ['hero','Hero','Hero.png'],
-  ['ice-climbers','Ice Climbers','Ice Climbers.png'],
-  ['ike','Ike','Ike.png'],
-  ['incineroar','Incineroar','Incineroar.png'],
-  ['inkling','Inkling','Inkling.png'],
-  ['isabelle','Isabelle','Isabelle.png'],
-  ['jigglypuff','Jigglypuff','Jigglypuff.png'],
-  ['joker','Joker','Joker.png'],
-  ['kazuya','Kazuya','Kazuya.png'],
-  ['ken','Ken','Ken.png'],
-  ['king-dedede','King Dedede','King Dedede.png'],
-  ['king-k-rool','King K. Rool','King K. Rool.png'],
-  ['kirby','Kirby','Kirby.png'],
-  ['link','Link','Link.png'],
-  ['little-mac','Little Mac','Little Mac.png'],
-  ['lucario','Lucario','Lucario.png'],
-  ['lucas','Lucas','Lucas.png'],
-  ['lucina','Lucina','Lucina.png'],
-  ['luigi','Luigi','Luigi.png'],
-  ['mario','Mario','Mario.png'],
-  ['marth','Marth','Marth.png'],
-  ['mega-man','Mega Man','Mega Man.png'],
-  ['meta-knight','Meta Knight','Meta Knight.png'],
-  ['mewtwo','Mewtwo','Mewtwo.png'],
-  ['mii-brawler','Mii Brawler','Mii Brawler.png',1],
-  ['mii-gunner','Mii Gunner','Mii Gunner.png',1],
-  ['mii-swordfighter','Mii Swordfighter','Mii Swordfighter.png',1],
-  ['min-min','Min Min','Min Min.png'],
-  ['mr-game-and-watch','Mr. Game & Watch','Mr. Game & Watch.png'],
-  ['ness','Ness','Ness.png'],
-  ['olimar','Olimar','Olimar.png'],
-  ['pac-man','Pac-Man','Pac-Man.png'],
-  ['palutena','Palutena','Palutena.png'],
-  ['peach','Peach','Peach.png'],
-  ['pichu','Pichu','Pichu.png'],
-  ['pikachu','Pikachu','Pikachu.png'],
-  ['piranha-plant','Piranha Plant','Piranha Plant.png'],
-  ['pit','Pit','Pit.png'],
-  ['pokemon-trainer','Pokémon Trainer','Pokemon Trainer.png'],
-  ['pyra-mythra','Pyra/Mythra','Pyra Mythra.png'],
-  ['rob','R.O.B.','R.O.B.png'],
-  ['richter','Richter','Richter.png'],
-  ['ridley','Ridley','Ridley.png'],
-  ['robin','Robin','Robin.png'],
-  ['rosalina','Rosalina & Luma','Rosalina & Luma.png'],
-  ['roy','Roy','Roy.png'],
-  ['ryu','Ryu','Ryu.png'],
-  ['samus','Samus','Samus.png'],
-  ['sephiroth','Sephiroth','Sephiroth.png'],
-  ['sheik','Sheik','Sheik.png'],
-  ['shulk','Shulk','Shulk.png'],
-  ['simon','Simon','Simon.png'],
-  ['snake','Snake','Snake.png'],
-  ['sonic','Sonic','Sonic.png'],
-  ['sora','Sora','Sora.png'],
-  ['steve','Steve','Steve.png'],
-  ['terry','Terry','Terry.png'],
-  ['toon-link','Toon Link','Toon Link.png'],
-  ['villager','Villager','Villager.png'],
-  ['wario','Wario','Wario.png'],
-  ['wii-fit-trainer','Wii Fit Trainer','Wii Fit Trainer.png'],
-  ['wolf','Wolf','Wolf.png'],
-  ['yoshi','Yoshi','Yoshi.png'],
-  ['young-link','Young Link','Young Link.png'],
-  ['zelda','Zelda','Zelda.png'],
-  ['zero-suit-samus','Zero Suit Samus','Zero Suit Samus.png'],
+  ['banjo-kazooie','Banjo & Kazooie'],
+  ['bayonetta','Bayonetta'],
+  ['bowser','Bowser'],
+  ['bowser-jr','Bowser Jr.'],
+  ['byleth','Byleth'],
+  ['captain-falcon','Captain Falcon'],
+  ['chrom','Chrom'],
+  ['cloud','Cloud'],
+  ['corrin','Corrin'],
+  ['daisy','Daisy'],
+  ['dark-pit','Dark Pit'],
+  ['dark-samus','Dark Samus'],
+  ['diddy-kong','Diddy Kong'],
+  ['donkey-kong','Donkey Kong'],
+  ['dr-mario','Dr. Mario'],
+  ['duck-hunt','Duck Hunt'],
+  ['falco','Falco'],
+  ['fox','Fox'],
+  ['ganondorf','Ganondorf'],
+  ['greninja','Greninja'],
+  ['hero','Hero'],
+  ['ice-climbers','Ice Climbers'],
+  ['ike','Ike'],
+  ['incineroar','Incineroar'],
+  ['inkling','Inkling'],
+  ['isabelle','Isabelle'],
+  ['jigglypuff','Jigglypuff'],
+  ['joker','Joker'],
+  ['kazuya','Kazuya'],
+  ['ken','Ken'],
+  ['king-dedede','King Dedede'],
+  ['king-k-rool','King K. Rool'],
+  ['kirby','Kirby'],
+  ['link','Link'],
+  ['little-mac','Little Mac'],
+  ['lucario','Lucario'],
+  ['lucas','Lucas'],
+  ['lucina','Lucina'],
+  ['luigi','Luigi'],
+  ['mario','Mario'],
+  ['marth','Marth'],
+  ['mega-man','Mega Man'],
+  ['meta-knight','Meta Knight'],
+  ['mewtwo','Mewtwo'],
+  ['mii-brawler','Mii Brawler',1],
+  ['mii-gunner','Mii Gunner',1],
+  ['mii-swordfighter','Mii Swordfighter',1],
+  ['min-min','Min Min'],
+  ['mr-game-and-watch','Mr. Game & Watch'],
+  ['ness','Ness'],
+  ['olimar','Olimar'],
+  ['pac-man','Pac-Man'],
+  ['palutena','Palutena'],
+  ['peach','Peach'],
+  ['pichu','Pichu'],
+  ['pikachu','Pikachu'],
+  ['piranha-plant','Piranha Plant'],
+  ['pit','Pit'],
+  ['pokemon-trainer','Pokémon Trainer'],
+  ['pyra-mythra','Pyra/Mythra'],
+  ['richter','Richter'],
+  ['ridley','Ridley'],
+  ['rob','R.O.B.'],
+  ['robin','Robin'],
+  ['rosalina','Rosalina & Luma'],
+  ['roy','Roy'],
+  ['ryu','Ryu'],
+  ['samus','Samus'],
+  ['sephiroth','Sephiroth'],
+  ['sheik','Sheik'],
+  ['shulk','Shulk'],
+  ['simon','Simon'],
+  ['snake','Snake'],
+  ['sonic','Sonic'],
+  ['sora','Sora'],
+  ['steve','Steve'],
+  ['terry','Terry'],
+  ['toon-link','Toon Link'],
+  ['villager','Villager'],
+  ['wario','Wario'],
+  ['wii-fit-trainer','Wii Fit Trainer'],
+  ['wolf','Wolf'],
+  ['yoshi','Yoshi'],
+  ['young-link','Young Link'],
+  ['zelda','Zelda'],
+  ['zero-suit-samus','Zero Suit Samus'],
 ];
 
-const OVERRIDES = {'rob':'Rob','pac-man':'Pac Man'};
+const ICON_OVERRIDE = {'rob':'Rob','pac-man':'Pac Man'};
 
-function charById(id) { return CHARS.find(c => c[0] === id); }
-
-function stockIcon(charId, skin) {
-  const c = charById(charId); if (!c) return '';
-  const folder = OVERRIDES[charId] || c[1]
+function stockIcon(id, skin) {
+  const c = CHARS.find(x => x[0] === id);
+  if (!c) return '';
+  const folder = ICON_OVERRIDE[id] || c[1]
     .replace(/\./g,'').replace(/\//g,' & ')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const max = c[3] || 8;
+  const max = c[2]||8;
   const idx = Math.max(1, Math.min(parseInt(skin)||1, max));
   return '/images/Stock%20Icons%20V2/'+encodeURIComponent(folder)+'/'+idx+'.png';
 }
 
-function renderPath(c) { return '/images/characters/'+encodeURIComponent(c[2].replace(/\.png$/,''))+'.png'; }
+let S = {
+  p1tag:'', p2tag:'',
+  p1score:0, p2score:0,
+  p1charId:null, p1skin:1,
+  p2charId:null, p2skin:1,
+  p1seed:'', p2seed:'',
+  round:'', stage:'', format:5
+};
+let pickerTarget = null, filtered = CHARS;
 
-// ── State ─────────────────────────────────────────────────────────────────
-let st = { p1tag:'', p2tag:'', p1score:0, p2score:0,
-           p1charId:null, p1skin:1, p2charId:null, p2skin:1,
-           p1seed:'', p2seed:'', round:'', stage:'', format:5 };
-let picker = null;
-let filtered = CHARS.slice();
-
-// ── Load from localStorage ─────────────────────────────────────────────────
-(function load() {
-  try {
-    const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
-    if (d.p1tag) st.p1tag = d.p1tag;
-    if (d.p2tag) st.p2tag = d.p2tag;
-    if (d.round) st.round = d.round;
-    if (d.stage) st.stage = d.stage;
-    if (d.format) st.format = d.format;
-    if (d.p1seed) st.p1seed = d.p1seed;
-    if (d.p2seed) st.p2seed = d.p2seed;
-    st.p1score = d.p1score||0; st.p2score = d.p2score||0;
-  } catch(e){}
-  try {
-    const c = JSON.parse(localStorage.getItem('smashafk_ctrl')||'{}');
-    if (c.p1charId) { st.p1charId=c.p1charId; st.p1skin=c.p1skin||1; }
-    if (c.p2charId) { st.p2charId=c.p2charId; st.p2skin=c.p2skin||1; }
-  } catch(e){}
-})();
-
-// ── Save ──────────────────────────────────────────────────────────────────
 function save() {
-  const c1 = charById(st.p1charId), c2 = charById(st.p2charId);
-  const d = {
-    p1tag:st.p1tag, p2tag:st.p2tag,
-    p1score:st.p1score, p2score:st.p2score,
-    p1char: c1?c1[1]:'', p2char: c2?c2[1]:'',
-    p1charIcon: st.p1charId ? stockIcon(st.p1charId,st.p1skin) : '',
-    p2charIcon: st.p2charId ? stockIcon(st.p2charId,st.p2skin) : '',
-    round:st.round, stage:st.stage, format:st.format,
-    needed:Math.ceil(st.format/2),
-    p1seed:st.p1seed, p2seed:st.p2seed
-  };
-  localStorage.setItem('smashafk_score', JSON.stringify(d));
-  localStorage.setItem('smashafk_ctrl', JSON.stringify({p1charId:st.p1charId,p1skin:st.p1skin,p2charId:st.p2charId,p2skin:st.p2skin}));
+  const c1 = CHARS.find(x=>x[0]===S.p1charId);
+  const c2 = CHARS.find(x=>x[0]===S.p2charId);
+  localStorage.setItem('smashafk_score', JSON.stringify({
+    p1tag:S.p1tag, p2tag:S.p2tag,
+    p1score:S.p1score, p2score:S.p2score,
+    p1char:c1?c1[1]:'', p2char:c2?c2[1]:'',
+    p1charIcon:S.p1charId?stockIcon(S.p1charId,S.p1skin):'',
+    p2charIcon:S.p2charId?stockIcon(S.p2charId,S.p2skin):'',
+    round:S.round, stage:S.stage,
+    format:S.format, needed:Math.ceil(S.format/2),
+    p1seed:S.p1seed, p2seed:S.p2seed,
+  }));
+  localStorage.setItem('smashafk_ctrl', JSON.stringify({p1charId:S.p1charId,p1skin:S.p1skin,p2charId:S.p2charId,p2skin:S.p2skin}));
   render();
 }
 
-// ── Render ────────────────────────────────────────────────────────────────
-function render() {
-  const p1s=st.p1score, p2s=st.p2score;
-  // Scores
-  const sc1=document.getElementById('sc1'), sc2=document.getElementById('sc2');
-  sc1.textContent=p1s; sc2.textContent=p2s;
-  sc1.className='sn'+(p1s>p2s?' lead':'');
-  sc2.className='sn'+(p2s>p1s?' lead':'');
-  // Game
-  const game=Math.min(p1s+p2s+1,st.format);
-  document.getElementById('game-val').textContent='Game '+game+' · Bo'+st.format;
-  // Per player
-  ['p1','p2'].forEach(p=>{
-    const c=charById(st[p+'charId']), sk=st[p+'skin']||1;
-    document.getElementById(p+'-pname').textContent=st[p+'tag']||'—';
-    document.getElementById(p+'-pchar').textContent=c?c[1]:'Sin personaje';
-    document.getElementById(p+'-pscore').textContent=st[p+'score']||0;
-    // Render img in preview
-    const rEl=document.getElementById(p+'-render');
-    if(c){rEl.src='/images/characters/'+encodeURIComponent(c[2]);rEl.style.display='block';}
-    else{rEl.src='';rEl.style.display='none';}
-    // Char button
-    const cprev=document.getElementById(p+'-cprev');
-    const ctext=document.getElementById(p+'-ctext');
-    const cx=document.getElementById(p+'-cx');
-    if(c){
-      cprev.src=stockIcon(c[0],sk); cprev.style.display='block';
-      ctext.textContent=c[1]+' · Skin '+sk; ctext.className='cname';
-      cx.style.display='inline';
-    } else {
-      cprev.style.display='none'; ctext.textContent='Seleccionar personaje...';
-      ctext.className='cph'; cx.style.display='none';
-    }
-    // Skins
-    const sr=document.getElementById(p+'-skins');
-    if(!c){sr.innerHTML='';return;}
-    const count=c[3]||8; const cur=sk;
-    let h='';
-    for(let i=1;i<=count;i++){
-      const url=stockIcon(c[0],i);
-      h+=`<button class="skin-btn${i===cur?' active':''}" onclick="setSkin('${p}',${i})" title="Skin ${i}"><img src="${url}" alt="" onerror="this.style.opacity='.2'"></button>`;
-    }
-    sr.innerHTML=h;
-  });
-  // format buttons
-  document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===st.format));
+function loadFromStorage() {
+  try {
+    const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
+    Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||''});
+  } catch(e) {}
+  try {
+    const c = JSON.parse(localStorage.getItem('smashafk_ctrl')||'{}');
+    if (c.p1charId) { S.p1charId=c.p1charId; S.p1skin=c.p1skin||1; }
+    if (c.p2charId) { S.p2charId=c.p2charId; S.p2skin=c.p2skin||1; }
+  } catch(e) {}
 }
 
-// ── Actions ───────────────────────────────────────────────────────────────
-function setFmt(n){st.format=n;save();}
-function addSc(p){const max=Math.ceil(st.format/2);st[p+'score']=Math.min(st[p+'score']+1,max);save();}
-function subSc(p){st[p+'score']=Math.max(0,st[p+'score']-1);save();}
-function resetScores(){st.p1score=0;st.p2score=0;save();}
-function setSkin(p,s){st[p+'skin']=s;save();}
-function clearChar(e,p){e.stopPropagation();st[p+'charId']=null;st[p+'skin']=1;save();}
-function resetAll(){
-  if(!confirm('¿Resetear todo?'))return;
-  st={p1tag:'',p2tag:'',p1score:0,p2score:0,p1charId:null,p1skin:1,p2charId:null,p2skin:1,p1seed:'',p2seed:'',round:'',stage:'',format:5};
+function addScore(p) { S[p+'score']=Math.min(S[p+'score']+1,Math.ceil(S.format/2)); save(); }
+function subScore(p) { S[p+'score']=Math.max(0,S[p+'score']-1); save(); }
+function resetScores() { S.p1score=0; S.p2score=0; save(); }
+function setFormat(n) { S.format=n; document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===n)); save(); }
+
+function resetAll() {
+  if (!confirm('¿Resetear todo?')) return;
+  S={p1tag:'',p2tag:'',p1score:0,p2score:0,p1charId:null,p1skin:1,p2charId:null,p2skin:1,p1seed:'',p2seed:'',round:'',stage:'',format:5};
   localStorage.removeItem('smashafk_score'); localStorage.removeItem('smashafk_ctrl');
-  ['p1-name','p2-name','round-in','stage-in','p1-seed','p2-seed'].forEach(id=>document.getElementById(id).value='');
-  save();
+  ['p1-name','p2-name','round-inp','stage-inp','p1-seed','p2-seed'].forEach(id=>{document.getElementById(id).value='';});
+  document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',b.dataset.f==='5'));
+  render();
 }
 
-// ── Char picker ───────────────────────────────────────────────────────────
-function openPicker(p){
-  picker=p; filtered=CHARS.slice();
-  document.getElementById('char-modal').classList.add('open');
+function openPicker(p) {
+  pickerTarget=p; filtered=CHARS;
   document.getElementById('modal-ttl').textContent=(p==='p1'?'J1':'J2')+' · PERSONAJE';
-  document.getElementById('msearch').value='';
-  renderGrid();
-  document.getElementById('msearch').focus();
+  document.getElementById('modal-q').value='';
+  document.getElementById('char-modal').classList.add('open');
+  renderGrid(); document.getElementById('modal-q').focus();
 }
-function closePicker(){document.getElementById('char-modal').classList.remove('open');picker=null;}
-function filterChars(q){
-  filtered=q?CHARS.filter(c=>c[1].toLowerCase().includes(q.toLowerCase())):CHARS.slice();
-  renderGrid();
+function closePicker() { document.getElementById('char-modal').classList.remove('open'); pickerTarget=null; }
+function filterChars(q) { filtered=q?CHARS.filter(c=>c[1].toLowerCase().includes(q.toLowerCase())):CHARS; renderGrid(); }
+function renderGrid() {
+  const sel=pickerTarget?S[pickerTarget+'charId']:null;
+  document.getElementById('char-grid').innerHTML=filtered.map(c=>
+    `<div class="char-item${c[0]===sel?' sel':''}" onclick="selectChar('${c[0]}')">
+      <img src="${stockIcon(c[0],1)}" alt="${c[1]}" onerror="this.style.opacity='.15'">
+      <span>${c[1]}</span></div>`
+  ).join('');
 }
-function renderGrid(){
-  const sel=picker?st[picker+'charId']:null;
-  document.getElementById('cgrid').innerHTML=filtered.map(c=>`
-    <div class="ci${c[0]===sel?' sel':''}" onclick="selectChar('${c[0]}')">
-      <img src="/images/characters/${encodeURIComponent(c[2])}" alt="${c[1]}" onerror="this.style.opacity='.2'">
-      <span>${c[1]}</span>
-    </div>`).join('');
-}
-function selectChar(id){
-  if(!picker)return;
-  st[picker+'charId']=id; st[picker+'skin']=1;
-  save(); closePicker();
+function selectChar(id) { if(!pickerTarget)return; S[pickerTarget+'charId']=id; S[pickerTarget+'skin']=1; save(); closePicker(); }
+function clearChar(e,p) { e.stopPropagation(); S[p+'charId']=null; S[p+'skin']=1; save(); }
+function selectSkin(p,skin) { S[p+'skin']=skin; save(); }
+
+function renderSkins(p) {
+  const el=document.getElementById(p+'-skins'), id=S[p+'charId'];
+  if(!id){el.innerHTML='';return;}
+  const c=CHARS.find(x=>x[0]===id); if(!c){el.innerHTML='';return;}
+  const count=c[2]||8, cur=S[p+'skin']||1;
+  el.innerHTML=Array.from({length:count},(_,i)=>{const n=i+1;return `<button class="skin-btn${n===cur?' active':''}" onclick="selectSkin('${p}',${n})" title="Skin ${n}"><img src="${stockIcon(id,n)}" alt="" onerror="this.style.opacity='.15'"></button>`;}).join('');
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────
-document.getElementById('p1-name').value=st.p1tag;
-document.getElementById('p2-name').value=st.p2tag;
-document.getElementById('round-in').value=st.round;
-document.getElementById('stage-in').value=st.stage;
-document.getElementById('p1-seed').value=st.p1seed;
-document.getElementById('p2-seed').value=st.p2seed;
+function render() {
+  const p1s=S.p1score, p2s=S.p2score;
+  const sc1=document.getElementById('sc1'), sc2=document.getElementById('sc2');
+  sc1.textContent=p1s; sc1.className='sn'+(p1s>p2s?' lead':'');
+  sc2.textContent=p2s; sc2.className='sn'+(p2s>p1s?' lead':'');
+  const g=Math.min(p1s+p2s+1,S.format);
+  document.getElementById('gval').textContent='Game '+g+' · Bo'+S.format;
+  ['p1','p2'].forEach(p=>{
+    const c=CHARS.find(x=>x[0]===S[p+'charId']), skin=S[p+'skin']||1, ps=S[p+'score'];
+    document.getElementById(p+'-prev-name').textContent=S[p+'tag']||'—';
+    document.getElementById(p+'-prev-score').textContent=ps;
+    const pico=document.getElementById(p+'-prev-ico');
+    if(c){pico.src=stockIcon(c[0],skin);pico.style.display='inline-block';}else{pico.src='';pico.style.display='none';}
+    const bico=document.getElementById(p+'-btn-ico'), blbl=document.getElementById(p+'-btn-lbl'), clr=document.getElementById(p+'-clr');
+    if(c){bico.src=stockIcon(c[0],skin);bico.style.display='block';blbl.innerHTML=`<strong>${c[1]}</strong> <span style="color:var(--dim);font-size:10px;">skin ${skin}</span>`;clr.style.display='inline';}
+    else{bico.style.display='none';blbl.innerHTML='<span class="dim">Seleccionar personaje...</span>';clr.style.display='none';}
+    renderSkins(p);
+  });
+}
+
+loadFromStorage();
+document.getElementById('p1-name').value=S.p1tag;
+document.getElementById('p2-name').value=S.p2tag;
+document.getElementById('round-inp').value=S.round;
+document.getElementById('stage-inp').value=S.stage;
+document.getElementById('p1-seed').value=S.p1seed;
+document.getElementById('p2-seed').value=S.p2seed;
+document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===S.format));
 render();
-
-document.getElementById('char-modal').addEventListener('click',function(e){if(e.target===this)closePicker();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closePicker();});
+document.getElementById('char-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closePicker();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePicker();});
 </script>
 </body>
 </html>
