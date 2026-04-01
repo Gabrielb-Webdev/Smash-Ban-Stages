@@ -1352,7 +1352,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
           </div>
         )}
 
-        {/* ── Modal: Confirmación de acción ── */}}
+        {/* ── Modal: Confirmación de acción ── */}
         {pendingAction && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full">
