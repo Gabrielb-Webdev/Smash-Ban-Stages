@@ -399,7 +399,9 @@ function stockIcon(id, skin) {
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const max = c[2]||8;
   const idx = Math.max(1, Math.min(parseInt(skin)||1, max));
-  return '/images/Stock%20Icons%20V2/'+encodeURIComponent(folder)+'/'+idx+'.png';
+  // Detecta si se sirve desde Live Server (/public/ prefix) o Next.js/Vercel (sin prefix)
+  const pfx = location.pathname.startsWith('/public/') ? '/public' : '';
+  return pfx+'/images/Stock%20Icons%20V2/'+encodeURIComponent(folder)+'/'+idx+'.png';
 }
 
 let S = {
