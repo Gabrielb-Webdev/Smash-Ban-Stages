@@ -528,6 +528,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: room.status, code, room });
     }
 
+    // ─── dismiss_result: usuario descarta su pantalla de resultado ────────
+    if (action === 'dismiss_result') {
+      // Solo elimina el vínculo user→room de este usuario.
+      // El room y el vínculo del rival se mantienen intactos.
+      const found = await getUserRoom(cleanUserId);
+      if (found && found.room.status === 'finished') {
+        await redis.del(userRoomKey(cleanUserId));
+      }
+      return res.status(200).json({ status: 'ok' });
+    }
+
     // ─── pick_inter_game_char: elección secreta de personaje entre games ──
     if (action === 'pick_inter_game_char') {
       const { charId: pickedCharId, charAlt: pickedCharAlt } = req.body || {};

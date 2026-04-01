@@ -6953,6 +6953,20 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     setRankedParty(null); setRankedJoinCodeInput('');
   };
 
+  // Descartar pantalla de resultado e ir a buscar nueva partida
+  const dismissResult = async () => {
+    // Notifica al backend que este usuario ya vio el resultado.
+    // Solo borra el vínculo user→room de este usuario; el oponente conserva el suyo.
+    try {
+      await fetch('/api/matchmaking/room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss_result', userId: uid, userName: uName }),
+      });
+    } catch {}
+    resetAll();
+  };
+
   const confirmNextGameChar = async () => {
     if (!interGameCharId || interGameCharLoading) return;
     setInterGameCharLoading(true);
@@ -7219,7 +7233,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     const winnerCharAlt  = winnerPlayerData?.charAlt || 1;
     return (
       <div style={{ padding: '24px 18px' }}>
-        <button onClick={resetAll} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
+        <button onClick={dismissResult} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
           <Svg size={18} sw={2}>{ICO.back}</Svg> Nueva partida
         </button>
         <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: '1px solid ' + (iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'), borderRadius: 24, marginBottom: 16 }}>
@@ -7298,15 +7312,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           );
         })()}
         {isCasualFinished ? (
-          <button onClick={resetAll} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+          <button onClick={dismissResult} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
             Jugar otra vez
           </button>
         ) : (
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={resetAll} style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
               🔍 Nueva búsqueda
             </button>
-            <button onClick={resetAll} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               👤 Cambiar personaje
             </button>
           </div>
