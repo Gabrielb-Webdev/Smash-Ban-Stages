@@ -8,92 +8,99 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 html { overflow:hidden; background:transparent; }
 body {
-  width:1280px; height:720px;
+  width:1920px; height:1080px;
   overflow:hidden; background:transparent;
   position:relative; font-family:'DM Sans',sans-serif;
 }
 
+/* ── Scoreboard row (arriba, centrado) ── */
+.sb-row {
+  position:absolute; top:32px;
+  left:50%; transform:translateX(-50%);
+  display:flex; align-items:stretch;
+  width:1380px;
+}
+
 /* ── Player cards ── */
 .pcard {
-  position:absolute; bottom:110px;
-  display:flex; flex-direction:column; gap:6px;
+  flex:1;
+  display:flex; flex-direction:column; gap:8px;
   background:linear-gradient(160deg, rgba(10,7,2,0.93) 0%, rgba(24,14,2,0.88) 100%);
-  border:1.5px solid rgba(200,140,16,0.55);
-  box-shadow:0 6px 28px rgba(0,0,0,0.8), inset 0 1px 0 rgba(240,168,24,0.1);
-  padding:14px 18px; border-radius:5px;
-  width:316px;
+  border:2px solid rgba(200,140,16,0.55);
+  box-shadow:0 8px 36px rgba(0,0,0,0.8), inset 0 1px 0 rgba(240,168,24,0.1);
+  padding:18px 24px; border-radius:6px;
 }
-.pcard.p1 { left:20px; border-left:3px solid #f0a418; }
-.pcard.p2 { right:20px; text-align:right; border-right:3px solid #f0a418; }
+.pcard.p1 { border-left:4px solid #f0a418; }
+.pcard.p2 { text-align:right; border-right:4px solid #f0a418; }
 
 .pcard .seed-lbl {
-  font-size:8px; letter-spacing:2px; text-transform:uppercase;
-  color:rgba(240,164,24,0.45); min-height:11px;
+  font-size:11px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(240,164,24,0.45); min-height:15px;
 }
 .pcard .ptag {
-  font-family:'Anton',sans-serif; font-size:26px; letter-spacing:2px;
+  font-family:'Anton',sans-serif; font-size:38px; letter-spacing:2px;
   color:#f5e8a0; text-transform:uppercase; line-height:1.1;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .pcard .char-row {
-  display:flex; align-items:center; gap:7px; min-height:22px;
+  display:flex; align-items:center; gap:9px; min-height:32px;
 }
 .pcard.p2 .char-row { flex-direction:row-reverse; }
 .pcard .char-ico {
-  width:24px; height:24px; border-radius:50%; object-fit:cover;
-  border:1.5px solid rgba(240,164,24,0.4); background:rgba(0,0,0,0.5);
+  width:36px; height:36px; border-radius:50%; object-fit:cover;
+  border:2px solid rgba(240,164,24,0.4); background:rgba(0,0,0,0.5);
   display:none; flex-shrink:0;
 }
 .pcard .pchar {
-  font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+  font-size:15px; letter-spacing:1.5px; text-transform:uppercase;
   color:rgba(240,164,24,0.65);
 }
-.pcard .pips { display:flex; gap:5px; margin-top:4px; }
+.pcard .pips { display:flex; gap:7px; margin-top:5px; }
 .pcard.p2 .pips { justify-content:flex-end; }
 .pip {
-  width:12px; height:12px; border-radius:50%;
-  border:1.5px solid rgba(240,164,24,0.4); transition:background .2s, box-shadow .2s;
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid rgba(240,164,24,0.4); transition:background .2s, box-shadow .2s;
 }
-.pip.fill { background:#f0a418; box-shadow:0 0 7px rgba(240,164,24,0.8); border-color:#f0a418; }
+.pip.fill { background:#f0a418; box-shadow:0 0 10px rgba(240,164,24,0.8); border-color:#f0a418; }
 
 /* ── Center score ── */
 .center-score {
-  position:absolute; bottom:120px;
-  left:50%; transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:4px;
+  width:300px; flex-shrink:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; padding:14px 8px;
   pointer-events:none;
 }
 .round-lbl {
-  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  font-size:12px; letter-spacing:3px; text-transform:uppercase;
   color:rgba(240,164,24,0.75);
-  background:rgba(0,0,0,0.65); padding:3px 14px; border-radius:3px;
+  background:rgba(0,0,0,0.65); padding:4px 18px; border-radius:3px;
   white-space:nowrap;
 }
-.score-row { display:flex; align-items:center; gap:10px; }
+.score-row { display:flex; align-items:center; gap:14px; }
 .snum {
-  font-family:'Anton',sans-serif; font-size:72px; line-height:1;
-  color:#f0a418; min-width:54px; text-align:center;
-  text-shadow: -2px -2px 0 #7a2800, 2px -2px 0 #7a2800,
-               -2px  2px 0 #7a2800, 2px  2px 0 #7a2800,
-               0 0 30px rgba(180,80,0,0.5);
+  font-family:'Anton',sans-serif; font-size:108px; line-height:1;
+  color:#f0a418; min-width:78px; text-align:center;
+  text-shadow: -3px -3px 0 #7a2800, 3px -3px 0 #7a2800,
+               -3px  3px 0 #7a2800, 3px  3px 0 #7a2800,
+               0 0 45px rgba(180,80,0,0.5);
   transition:color .2s, text-shadow .2s;
 }
 .snum.lead {
   color:#ffd060;
-  text-shadow: -2px -2px 0 #883000, 2px -2px 0 #883000,
-               -2px  2px 0 #883000, 2px  2px 0 #883000,
-               0 0 45px rgba(255,190,0,0.85);
+  text-shadow: -3px -3px 0 #883000, 3px -3px 0 #883000,
+               -3px  3px 0 #883000, 3px  3px 0 #883000,
+               0 0 65px rgba(255,190,0,0.85);
 }
-.sdot { font-family:'Anton',sans-serif; font-size:30px; color:rgba(240,164,24,0.25); }
+.sdot { font-family:'Anton',sans-serif; font-size:44px; color:rgba(240,164,24,0.25); }
 .game-lbl {
-  font-size:8px; letter-spacing:2px; text-transform:uppercase;
+  font-size:12px; letter-spacing:2px; text-transform:uppercase;
   color:rgba(240,164,24,0.45);
 }
 
 /* ── Banner image ── */
 .tc-banner {
   position:absolute; bottom:0; left:0; right:0;
-  height:205px; overflow:hidden;
+  height:308px; overflow:hidden;
 }
 .tc-banner img {
   width:100%; height:100%;
@@ -116,37 +123,42 @@ body {
 </head>
 <body>
 
-<!-- P1 card -->
-<div class="pcard p1">
-  <div class="seed-lbl" id="p1-seed-lbl"></div>
-  <div class="ptag" id="p1-tag">PLAYER 1</div>
-  <div class="char-row">
-    <img class="char-ico" id="p1-ico" src="" alt="">
-    <div class="pchar" id="p1-char"></div>
-  </div>
-  <div class="pips" id="p1-pips"></div>
-</div>
+<!-- Scoreboard row: arriba, centrado -->
+<div class="sb-row">
 
-<!-- Center score -->
-<div class="center-score">
-  <div class="round-lbl" id="round-el">Winners Finals</div>
-  <div class="score-row">
-    <div class="snum" id="s1">0</div>
-    <div class="sdot">:</div>
-    <div class="snum" id="s2">0</div>
+  <!-- P1 card -->
+  <div class="pcard p1">
+    <div class="seed-lbl" id="p1-seed-lbl"></div>
+    <div class="ptag" id="p1-tag">PLAYER 1</div>
+    <div class="char-row">
+      <img class="char-ico" id="p1-ico" src="" alt="">
+      <div class="pchar" id="p1-char"></div>
+    </div>
+    <div class="pips" id="p1-pips"></div>
   </div>
-  <div class="game-lbl" id="game-lbl">GAME 1 · Bo5</div>
-</div>
 
-<!-- P2 card -->
-<div class="pcard p2">
-  <div class="seed-lbl" id="p2-seed-lbl"></div>
-  <div class="ptag" id="p2-tag">PLAYER 2</div>
-  <div class="char-row">
-    <img class="char-ico" id="p2-ico" src="" alt="">
-    <div class="pchar" id="p2-char"></div>
+  <!-- Center score -->
+  <div class="center-score">
+    <div class="round-lbl" id="round-el">Winners Finals</div>
+    <div class="score-row">
+      <div class="snum" id="s1">0</div>
+      <div class="sdot">:</div>
+      <div class="snum" id="s2">0</div>
+    </div>
+    <div class="game-lbl" id="game-lbl">GAME 1 · Bo5</div>
   </div>
-  <div class="pips" id="p2-pips"></div>
+
+  <!-- P2 card -->
+  <div class="pcard p2">
+    <div class="seed-lbl" id="p2-seed-lbl"></div>
+    <div class="ptag" id="p2-tag">PLAYER 2</div>
+    <div class="char-row">
+      <img class="char-ico" id="p2-ico" src="" alt="">
+      <div class="pchar" id="p2-char"></div>
+    </div>
+    <div class="pips" id="p2-pips"></div>
+  </div>
+
 </div>
 
 <!-- True Combo banner image -->
@@ -155,7 +167,7 @@ body {
 </div>
 
 <script>
-!function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+!function(){function s(){var r=Math.min(window.innerWidth/1920,window.innerHeight/1080);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
 function load() {
   try {
