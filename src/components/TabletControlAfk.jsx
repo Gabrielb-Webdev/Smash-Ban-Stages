@@ -418,10 +418,10 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const filteredCharacters = CHARACTERS.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
+    <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh', overflowX: 'hidden' }}>
 
       {/* ── Header sticky ── */}
-      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl">
+      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl overflow-hidden">
           <div className="flex justify-between items-center gap-2">
 
             {/* Jugadores */}
