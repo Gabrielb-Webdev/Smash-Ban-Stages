@@ -10,7 +10,7 @@ const ALLOWED_FIELDS = [
   'p1tag','p2tag','p1score','p2score',
   'p1char','p2char','p1charIcon','p2charIcon',
   'round','stage','format','needed',
-  'p1seed','p2seed',
+  'p1seed','p2seed','tournamentName',
 ];
 
 function sanitize(v) {

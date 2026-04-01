@@ -186,11 +186,18 @@ body {
   padding:0 28px;
   z-index:3;
 }
-.info-left, .info-right {
+.info-left {
+  font-family:'Anton', sans-serif;
+  font-size:13px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(240,180,50,0.85);
+  white-space:nowrap;
+}
+.info-right {
   font-family:'Anton', sans-serif;
   font-size:14px; letter-spacing:2.5px; text-transform:uppercase;
   color:rgba(240,180,50,0.9);
   white-space:nowrap;
+  display:flex; gap:16px; align-items:center;
 }
 </style>
 </head>
@@ -245,8 +252,11 @@ body {
 
   <!-- Info strip (dentro de la franja negra) -->
   <div class="info-strip">
-    <div class="info-left" id="round-el"></div>
-    <div class="info-right" id="game-lbl">GAME 1 · Bo3</div>
+    <div class="info-left" id="tournament-el"></div>
+    <div class="info-right">
+      <span id="round-el"></span>
+      <span id="game-lbl">GAME 1 · Bo3</span>
+    </div>
   </div>
 </div>
 
@@ -275,6 +285,7 @@ async function load() {
     s1.className = 'snum'+(p1s > p2s ? ' lead' : '');
     s2.className = 'snum'+(p2s > p1s ? ' lead' : '');
 
+    document.getElementById('tournament-el').textContent = d.tournamentName||'';
     document.getElementById('round-el').textContent = d.round||'';
     const fmt = d.format||3;
     const g = Math.min(p1s + p2s + 1, fmt);

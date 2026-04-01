@@ -411,7 +411,8 @@ let S = {
   p1charId:null, p1skin:1,
   p2charId:null, p2skin:1,
   p1seed:'', p2seed:'',
-  round:'', stage:'', format:5
+  round:'', stage:'', format:5,
+  tournamentName:'',
 };
 let pickerTarget = null, filtered = CHARS;
 
@@ -427,6 +428,7 @@ function save() {
     round:S.round, stage:S.stage,
     format:S.format, needed:Math.ceil(S.format/2),
     p1seed:S.p1seed, p2seed:S.p2seed,
+    tournamentName:S.tournamentName,
   };
   localStorage.setItem('smashafk_score', JSON.stringify(payload));
   localStorage.setItem('smashafk_ctrl', JSON.stringify({p1charId:S.p1charId,p1skin:S.p1skin,p2charId:S.p2charId,p2skin:S.p2skin}));
@@ -440,13 +442,13 @@ async function loadFromStorage() {
     if (r.ok) {
       const d = await r.json();
       if (d && (d.p1tag !== undefined || d.p2tag !== undefined)) {
-        Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||''});
+        Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||'',tournamentName:d.tournamentName||''});
       }
     }
   } catch(e) {}
   try {
     const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
-    if (!S.p1tag && !S.p2tag) Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||''});
+    if (!S.p1tag && !S.p2tag) Object.assign(S, {p1tag:d.p1tag||'',p2tag:d.p2tag||'',p1score:d.p1score||0,p2score:d.p2score||0,round:d.round||'',stage:d.stage||'',format:d.format||5,p1seed:d.p1seed||'',p2seed:d.p2seed||'',tournamentName:d.tournamentName||''});
   } catch(e) {}
   try {
     const c = JSON.parse(localStorage.getItem('smashafk_ctrl')||'{}');
@@ -462,7 +464,7 @@ function setFormat(n) { S.format=n; document.querySelectorAll('.fmt-btn').forEac
 
 function resetAll() {
   if (!confirm('¿Resetear todo?')) return;
-  S={p1tag:'',p2tag:'',p1score:0,p2score:0,p1charId:null,p1skin:1,p2charId:null,p2skin:1,p1seed:'',p2seed:'',round:'',stage:'',format:5};
+  S={p1tag:'',p2tag:'',p1score:0,p2score:0,p1charId:null,p1skin:1,p2charId:null,p2skin:1,p1seed:'',p2seed:'',round:'',stage:'',format:5,tournamentName:''};
   localStorage.removeItem('smashafk_score'); localStorage.removeItem('smashafk_ctrl');
   ['p1-name','p2-name','round-inp','stage-inp','p1-seed','p2-seed'].forEach(id=>{document.getElementById(id).value='';});
   document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',b.dataset.f==='5'));
