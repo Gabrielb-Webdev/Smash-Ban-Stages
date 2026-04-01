@@ -43,38 +43,38 @@ body {
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .pcard .char-row {
-  display:flex; align-items:center; gap:7px; min-height:22px;
+  display:flex; align-items:center; gap:10px; min-height:48px;
 }
 .pcard.p2 .char-row { flex-direction:row-reverse; }
 .pcard .char-ico {
-  width:24px; height:24px; border-radius:50%; object-fit:cover;
-  border:1.5px solid rgba(240,164,24,0.4); background:rgba(0,0,0,0.5);
-  display:none; flex-shrink:0;
+  width:46px; height:46px; border-radius:50%; object-fit:cover;
+  border:2px solid rgba(240,164,24,0.6); background:rgba(0,0,0,0.5);
+  display:none; flex-shrink:0; box-shadow:0 0 10px rgba(240,164,24,0.2);
 }
 .pcard .pchar {
-  font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
-  color:rgba(240,164,24,0.65);
+  font-size:13px; letter-spacing:1px; text-transform:uppercase;
+  color:rgba(240,164,24,0.9); font-weight:600;
 }
 .pcard .pips { display:flex; gap:5px; margin-top:4px; }
 .pcard.p2 .pips { justify-content:flex-end; }
 .pip {
-  width:12px; height:12px; border-radius:50%;
+  width:14px; height:14px; border-radius:50%;
   border:1.5px solid rgba(240,164,24,0.4); transition:background .2s, box-shadow .2s;
 }
 .pip.fill { background:#f0a418; box-shadow:0 0 7px rgba(240,164,24,0.8); border-color:#f0a418; }
 
 /* ── Center score ── */
 .center-score {
-  width:200px; flex-shrink:0;
+  width:215px; flex-shrink:0;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:4px; padding:10px 8px;
+  gap:6px; padding:10px 8px;
   pointer-events:none;
 }
 .round-lbl {
-  font-size:9px; letter-spacing:3px; text-transform:uppercase;
-  color:rgba(240,164,24,0.75);
-  background:rgba(0,0,0,0.65); padding:3px 14px; border-radius:3px;
-  white-space:nowrap;
+  font-size:14px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(240,164,24,0.95);
+  background:rgba(0,0,0,0.65); padding:4px 16px; border-radius:3px;
+  white-space:nowrap; font-weight:600;
 }
 .score-row { display:flex; align-items:center; gap:10px; }
 .snum {
@@ -93,8 +93,8 @@ body {
 }
 .sdot { font-family:'Anton',sans-serif; font-size:30px; color:rgba(240,164,24,0.25); }
 .game-lbl {
-  font-size:8px; letter-spacing:2px; text-transform:uppercase;
-  color:rgba(240,164,24,0.45);
+  font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
+  color:rgba(240,164,24,0.8); font-weight:600;
 }
 
 /* ── Banner image ── */

@@ -421,11 +421,11 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     <div style={{ background: '#000000', fontFamily: 'Anton, sans-serif', minHeight: '100dvh', overflowX: 'hidden' }}>
 
       {/* ── Header sticky ── */}
-      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 border-b border-white/20 shadow-xl overflow-hidden">
-          <div className="flex justify-between items-center gap-2">
+      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-3 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-2 border-b border-white/20 shadow-xl overflow-hidden">
+          <div className="flex flex-col gap-2">
 
-            {/* Jugadores */}
-            <div className="flex items-center gap-2 flex-1">
+            {/* Fila 1: Jugadores */}
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 bg-gradient-to-br from-smash-red/50 to-red-900/30 rounded-xl px-2 py-1.5 flex-1 min-w-0 border border-smash-red/40">
                 {session.player1.character && session.player1.character !== 'random' ? (
                   <img src={getStockIconPath(session.player1.character, session.player1.skin || 1)} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 border-2 border-white/20 shadow-lg" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -459,17 +459,23 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
               </div>
             </div>
 
-            {/* Game y Formato */}
-            <div className="flex gap-1.5 sm:gap-2 items-center">
-              {/* Logo AFK */}
-              <img src="/images/AFK.webp" alt="AFK" className="h-10 sm:h-14 w-auto object-contain flex-shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
-              <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
-                <p className="text-white/70 text-[10px] leading-none">Game</p>
-                <p className="text-smash-yellow text-lg sm:text-xl font-bold leading-tight" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.currentGame}</p>
-              </div>
-              <div className="text-center bg-white/10 rounded-lg px-2 py-1 min-w-[45px]">
-                <p className="text-white/70 text-[10px] leading-none">Formato</p>
-                <p className="text-smash-yellow text-sm sm:text-base font-bold leading-tight">{session.format}</p>
+            {/* Fila 2: Ronda + Game + Formato */}
+            <div className="flex items-center justify-between gap-2">
+              <img src="/images/AFK.webp" alt="AFK" className="h-7 sm:h-9 w-auto object-contain flex-shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
+              {session.round ? (
+                <span className="text-white/55 text-[11px] sm:text-xs uppercase tracking-wider font-bold truncate flex-1 text-center px-2">{session.round}</span>
+              ) : (
+                <span className="flex-1" />
+              )}
+              <div className="flex items-center gap-2">
+                <div className="text-center bg-amber-400/15 border border-amber-400/35 rounded-lg px-3 py-1.5">
+                  <p className="text-white/50 text-[9px] leading-none uppercase tracking-wide mb-0.5">Juego</p>
+                  <p className="text-amber-300 text-2xl font-black leading-none" style={{ textShadow: '0 0 12px rgba(251,191,36,0.5)' }}>{session.currentGame}</p>
+                </div>
+                <div className="text-center bg-white/10 border border-white/20 rounded-lg px-3 py-1.5">
+                  <p className="text-white/50 text-[9px] leading-none uppercase tracking-wide mb-0.5">Formato</p>
+                  <p className="text-amber-300 text-lg font-black leading-none">{session.format}</p>
+                </div>
               </div>
             </div>
           </div>
