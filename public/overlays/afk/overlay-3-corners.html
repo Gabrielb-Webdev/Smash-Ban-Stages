@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Overlay 3 · Corner Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { overflow: hidden; background: transparent; }
+  body {
+    width: 1280px; height: 720px;
+    background: #0e1520;
+    overflow: hidden;
+  }
+
+  /* VS central arriba */
+  #vs-center {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(4,8,18,0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    width: 120px;
+    padding: 8px 10px 6px;
+    text-align: center;
+  }
+
+  .vs-score {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .vs-num {
+    font-family: 'Teko', sans-serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1;
+    color: rgba(160,200,230,0.65);
+  }
+  .vs-num.lead { color: rgba(100,180,230,1); }
+
+  .vs-sep {
+    font-family: 'Teko', sans-serif;
+    font-size: 20px;
+    font-weight: 300;
+    color: rgba(50,90,130,0.4);
+  }
+
+  .vs-round {
+    font-family: 'Barlow', sans-serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: rgba(74,163,217,0.4);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Tarjeta jugador - esquina superior izquierda */
+  .p-card {
+    position: absolute;
+    top: 0;
+    width: 260px;
+    background: rgba(5,10,22,0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    overflow: hidden;
+  }
+
+  .p-card.left { left: 0; border-right: 1px solid rgba(255,255,255,0.04); }
+  .p-card.right { right: 0; border-left: 1px solid rgba(255,255,255,0.04); }
+
+  /* acento color borde inferior izquierdo/derecho */
+  .p-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    left: 0; right: 0;
+    background: linear-gradient(90deg, #74acdf 0%, rgba(116,172,223,0) 80%);
+  }
+  .p-card.right::after {
+    background: linear-gradient(270deg, #74acdf 0%, rgba(116,172,223,0) 80%);
+  }
+
+  .card-inner {
+    padding: 10px 14px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .p-card.right .card-inner { flex-direction: row-reverse; }
+
+  /* mini flag círculo */
+  .flag-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid rgba(116,172,223,0.2);
+    display: flex;
+    flex-direction: column;
+  }
+  .fc-stripe { flex: 1; }
+  .fc-sky { background: #74acdf; }
+  .fc-white { background: #d0e8f5; }
+
+  .card-info { flex: 1; min-width: 0; }
+  .p-card.right .card-info { text-align: right; }
+
+  .c-tag {
+    font-family: 'Teko', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: #d8eaf8;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .c-sub {
+    font-family: 'Barlow', sans-serif;
+    font-size: 10px;
+    color: rgba(80,130,170,0.6);
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* pips debajo de la tarjeta */
+  .pips-row {
+    display: flex;
+    gap: 4px;
+    padding: 5px 14px 5px;
+    border-top: 1px solid rgba(255,255,255,0.03);
+    background: rgba(3,6,14,0.6);
+  }
+  .p-card.right .pips-row { justify-content: flex-end; }
+
+  .pip { width: 22px; height: 3px; background: rgba(74,163,217,0.45); border-radius: 1px; }
+  .pip.e { background: rgba(255,255,255,0.05); }
+
+  /* Stage - abajo centro */
+  #stage-bar {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(4,8,18,0.75);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    padding: 6px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .sb-txt {
+    font-family: 'Barlow', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(74,163,217,0.35);
+    text-transform: uppercase;
+  }
+  .sb-sep { width: 1px; height: 8px; background: rgba(255,255,255,0.06); }
+
+  .char-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid rgba(116,172,223,0.3);
+    flex-shrink: 0;
+    display: none;
+    background: rgba(0,0,10,0.5);
+  }
+</style>
+</head>
+<body>
+
+<!-- Tarjeta P1 izquierda -->
+<div class="p-card left">
+  <div class="card-inner">
+    <div class="flag-circle" id="p1-flag">
+      <div class="fc-stripe fc-sky"></div>
+      <div class="fc-stripe fc-white"></div>
+      <div class="fc-stripe fc-sky"></div>
+    </div>
+    <img class="char-icon" id="p1-icon" src="" alt="">
+    <div class="card-info">
+      <div class="c-tag" id="p1-tag">PLAYER1</div>
+      <div class="c-sub" id="p1-sub">Personaje</div>
+    </div>
+  </div>
+  <div class="pips-row" id="p1-pips"></div>
+</div>
+
+<!-- VS central -->
+<div id="vs-center">
+  <div class="vs-score">
+    <div class="vs-num" id="s1">0</div>
+    <div class="vs-sep">:</div>
+    <div class="vs-num" id="s2">0</div>
+  </div>
+  <div class="vs-round" id="round-el">Winners Finals</div>
+</div>
+
+<!-- Tarjeta P2 derecha -->
+<div class="p-card right">
+  <div class="card-inner">
+    <div class="flag-circle" id="p2-flag">
+      <div class="fc-stripe fc-sky"></div>
+      <div class="fc-stripe fc-white"></div>
+      <div class="fc-stripe fc-sky"></div>
+    </div>
+    <img class="char-icon" id="p2-icon" src="" alt="">
+    <div class="card-info">
+      <div class="c-tag" id="p2-tag">PLAYER2</div>
+      <div class="c-sub" id="p2-sub">Personaje</div>
+    </div>
+  </div>
+  <div class="pips-row" id="p2-pips"></div>
+</div>
+
+<!-- Stage bar inferior -->
+<div id="stage-bar">
+  <div class="sb-txt">Smash AFK</div>
+  <div class="sb-sep"></div>
+  <div class="sb-txt" id="stage-el">Final Destination</div>
+  <div class="sb-sep"></div>
+  <div class="sb-txt" id="game-el">Game 1 · Bo5</div>
+</div>
+
+<script>
+  !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
+      const p1s=d.p1score||0, p2s=d.p2score||0, needed=d.needed||3;
+      document.getElementById('p1-tag').textContent=(d.p1tag||'PLAYER1').toUpperCase();
+      document.getElementById('p2-tag').textContent=(d.p2tag||'PLAYER2').toUpperCase();
+      document.getElementById('p1-sub').textContent=d.p1char||'';
+      document.getElementById('p2-sub').textContent=d.p2char||'';
+      document.getElementById('s1').textContent=p1s;
+      document.getElementById('s2').textContent=p2s;
+      document.getElementById('s1').className='vs-num'+(p1s>p2s?' lead':'');
+      document.getElementById('s2').className='vs-num'+(p2s>p1s?' lead':'');
+      document.getElementById('round-el').textContent=d.round||'WF';
+      document.getElementById('stage-el').textContent=d.stage||'Final Destination';
+      document.getElementById('game-el').textContent='Game '+(Math.min(p1s+p2s+1,d.format||5))+' · Bo'+(d.format||5);
+      function pips(id,score){
+        const el=document.getElementById(id); el.innerHTML='';
+        for(let i=0;i<needed;i++){const p=document.createElement('div'); p.className='pip'+(i<score?'':' e'); el.appendChild(p);}
+      }
+      pips('p1-pips',p1s); pips('p2-pips',p2s);
+      function setIcon(iconId, flagId, url) {
+        const ic=document.getElementById(iconId), fl=document.getElementById(flagId);
+        ic.src=url||''; ic.style.display=url?'block':'none';
+        fl.style.display=url?'none':'flex';
+      }
+      setIcon('p1-icon','p1-flag',d.p1charIcon); setIcon('p2-icon','p2-flag',d.p2charIcon);
+    }catch(e){}
+  }
+  load(); setInterval(load,300); window.addEventListener('storage',load);
+</script>
+</body>
+</html>

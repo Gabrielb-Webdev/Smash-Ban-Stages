@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Overlay 1 · Minimal</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { overflow: hidden; background: transparent; }
+  body {
+    width: 1280px; height: 720px;
+    background: #1a1a2e;
+    overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  #sb {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 580px;
+  }
+
+  .bar {
+    display: flex;
+    align-items: stretch;
+    height: 52px;
+    background: rgba(8,8,18,0.88);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .side {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .side::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .side.left { flex-direction: row-reverse; }
+  .side.left::before { left: 0; background: #74acdf; }
+  .side.right::before { right: 0; background: #74acdf; }
+
+  .p-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: #e8f0f8;
+  }
+
+  .p-char {
+    font-size: 10px;
+    color: rgba(100,150,190,0.6);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .mid {
+    width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4,4,12,0.9);
+    flex-shrink: 0;
+    gap: 0;
+  }
+
+  .score-pair {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .sn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: #c8dff0;
+    line-height: 1;
+    min-width: 18px;
+    text-align: center;
+  }
+  .sn.lead { color: #74acdf; }
+
+  .sdot {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: rgba(80,120,160,0.4);
+    line-height: 1;
+  }
+
+  .sub-bar {
+    height: 22px;
+    background: rgba(5,5,14,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .sub-txt {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(74,163,217,0.45);
+    text-transform: uppercase;
+  }
+
+  .sub-sep { width: 1px; height: 8px; background: rgba(255,255,255,0.06); }
+
+  /* pips */
+  .pip-row { display: flex; gap: 3px; }
+  .pip { width: 5px; height: 2px; border-radius: 1px; background: rgba(74,163,217,0.6); }
+  .pip.e { background: rgba(255,255,255,0.07); }
+
+  .char-icon {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid rgba(116,172,223,0.35);
+    flex-shrink: 0;
+    display: none;
+    background: rgba(0,0,10,0.5);
+  }
+</style>
+</head>
+<body>
+<div id="sb">
+  <div class="bar">
+    <div class="side left">
+      <div>
+        <div class="p-tag" id="p1-tag">PLAYER1</div>
+        <div class="p-char" id="p1-char">Personaje</div>
+      </div>
+      <img class="char-icon" id="p1-icon" src="" alt="">
+      <div class="pip-row" id="p1-pips"></div>
+    </div>
+    <div class="mid">
+      <div class="score-pair">
+        <div class="sn" id="s1">0</div>
+        <div class="sdot">·</div>
+        <div class="sn" id="s2">0</div>
+      </div>
+    </div>
+    <div class="side right">
+      <div class="pip-row" id="p2-pips"></div>
+      <img class="char-icon" id="p2-icon" src="" alt="">
+      <div>
+        <div class="p-tag" id="p2-tag">PLAYER2</div>
+        <div class="p-char" id="p2-char">Personaje</div>
+      </div>
+    </div>
+  </div>
+  <div class="sub-bar">
+    <div class="sub-txt" id="round-el">Winners Finals</div>
+    <div class="sub-sep"></div>
+    <div class="sub-txt" id="stage-el">Final Destination</div>
+    <div class="sub-sep"></div>
+    <div class="sub-txt" id="game-el">Game 1 · Bo5</div>
+  </div>
+</div>
+
+<script>
+  // Scale to viewport (OBS 1920x1080 → scale 1.5x)
+  !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem('smashafk_score') || '{}');
+      const p1s = d.p1score || 0, p2s = d.p2score || 0, needed = d.needed || 3;
+      document.getElementById('p1-tag').textContent = (d.p1tag || 'PLAYER1').toUpperCase();
+      document.getElementById('p2-tag').textContent = (d.p2tag || 'PLAYER2').toUpperCase();
+      document.getElementById('p1-char').textContent = d.p1char || '';
+      document.getElementById('p2-char').textContent = d.p2char || '';
+      document.getElementById('s1').textContent = p1s;
+      document.getElementById('s2').textContent = p2s;
+      document.getElementById('s1').className = 'sn' + (p1s > p2s ? ' lead' : '');
+      document.getElementById('s2').className = 'sn' + (p2s > p1s ? ' lead' : '');
+      document.getElementById('round-el').textContent = d.round || 'Winners Finals';
+      document.getElementById('stage-el').textContent = d.stage || 'Final Destination';
+      document.getElementById('game-el').textContent = 'Game ' + Math.min(p1s+p2s+1, d.format||5) + ' · Bo' + (d.format||5);
+      function pips(id, score) {
+        const el = document.getElementById(id); el.innerHTML = '';
+        for (let i=0;i<needed;i++) { const d=document.createElement('div'); d.className='pip'+(i<score?' ':' e'); el.appendChild(d); }
+      }
+      pips('p1-pips', p1s); pips('p2-pips', p2s);
+      // Character icons
+      function setIcon(id, url) {
+        const el = document.getElementById(id);
+        el.src = url || ''; el.style.display = url ? 'block' : 'none';
+      }
+      setIcon('p1-icon', d.p1charIcon); setIcon('p2-icon', d.p2charIcon);
+    } catch(e) {}
+  }
+  load(); setInterval(load, 300);
+  window.addEventListener('storage', load);
+</script>
+</body>
+</html>
