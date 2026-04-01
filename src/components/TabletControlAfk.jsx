@@ -144,6 +144,22 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
 
+  // Sincronizar scores con Redis cuando el WebSocket los actualiza (ej: al marcar ganador de game)
+  const prevScoreRef = useRef({ p1: null, p2: null });
+  useEffect(() => {
+    if (!session || session.phase === 'IDLE' || session.phase === 'CHECKIN') return;
+    const p1s = session.player1?.score ?? 0;
+    const p2s = session.player2?.score ?? 0;
+    const prev = prevScoreRef.current;
+    if (prev.p1 === p1s && prev.p2 === p2s) return;
+    prevScoreRef.current = { p1: p1s, p2: p2s };
+    fetch('/api/afk/score-state', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p1score: p1s, p2score: p2s }),
+    }).catch(() => {});
+  }, [session?.player1?.score, session?.player2?.score, session?.phase]);
+
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
     if (!session) return;
