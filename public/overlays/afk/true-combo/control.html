@@ -529,14 +529,24 @@ loadFromStorage().then(() => {
   render();
 });
 
-// Auto-fill player names from stream session
+// Polling del estado Redis: detecta nuevo match y resetea personajes
+let _lastP1 = S.p1tag, _lastP2 = S.p2tag;
 (function pollStream() {
-  fetch('/api/session/afk-multi-stream').then(r=>r.ok?r.json():null).then(data=>{
-    if (!data || !data.session) return;
-    const players = data.session.players || [];
-    const n1 = players[0]||'', n2 = players[1]||'';
-    if (n1 && n1 !== S.p1tag) { S.p1tag=n1; document.getElementById('p1-name').value=n1; }
-    if (n2 && n2 !== S.p2tag) { S.p2tag=n2; document.getElementById('p2-name').value=n2; }
+  fetch(API).then(r=>r.ok?r.json():null).then(data=>{
+    if (!data) return;
+    const n1 = data.p1tag||'', n2 = data.p2tag||'';
+    if (!n1 && !n2) return;
+    const changed = (n1 && n1 !== _lastP1) || (n2 && n2 !== _lastP2);
+    if (changed) {
+      if (n1) { S.p1tag=n1; _lastP1=n1; document.getElementById('p1-name').value=n1; }
+      if (n2) { S.p2tag=n2; _lastP2=n2; document.getElementById('p2-name').value=n2; }
+      if (data.round !== undefined) { S.round=data.round||''; document.getElementById('round-inp').value=data.round||''; }
+      if (data.format) { S.format=data.format; document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===data.format)); }
+      // Resetear personajes: los jugadores los eligen desde el celular
+      S.p1charId=null; S.p1skin=1; S.p2charId=null; S.p2skin=1;
+      localStorage.removeItem('smashafk_ctrl');
+      render();
+    }
   }).catch(()=>{});
   setTimeout(pollStream, 4000);
 })();

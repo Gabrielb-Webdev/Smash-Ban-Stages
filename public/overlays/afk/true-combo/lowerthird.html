@@ -16,10 +16,7 @@ body {
 .tc-banner {
   position:absolute; bottom:0; left:0; right:0;
   height:198px; overflow:hidden;
-}
-.tc-banner img {
-  width:100%; height:100%;
-  object-fit:cover; object-position:center 38%; display:block;
+  background-image:url('./img/banner.png'); background-size:cover; background-position:center 38%;
 }
 
 /* ── Text overlaid on banner ── */
@@ -105,9 +102,7 @@ body {
   <div class="pchar-lbl" id="p2-char"></div>
 </div>
 
-<div class="tc-banner">
-  <img src="./img/banner.png" alt="True Combo" onerror="this.closest('.tc-banner').style.display='none'">
-</div>
+<div class="tc-banner"></div>
 
 <script>
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();

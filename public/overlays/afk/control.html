@@ -542,29 +542,28 @@ loadFromStorage().then(()=>{
   document.getElementById('p2-seed').value=S.p2seed;
   document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===S.format));
   render();
-});
-// Polling de la sesión stream AFk para auto-rellenar nombres cuando llega un nuevo match
-(function pollStream() {
-  setInterval(async () => {
-    try {
-      const r = await fetch('/api/session/afk-multi-stream');
-      if (!r.ok) return;
-      const data = await r.json();
-      const sess = data.session;
-      if (!sess) return;
-      const n1 = sess.player1?.name||''; const n2 = sess.player2?.name||'';
+  // Polling del estado Redis: detecta nuevo match y resetea personajes
+  let _lastP1 = S.p1tag, _lastP2 = S.p2tag;
+  (function pollStream() {
+    fetch(API).then(r=>r.ok?r.json():null).then(data=>{
+      if (!data) return;
+      const n1 = data.p1tag||'', n2 = data.p2tag||'';
       if (!n1 && !n2) return;
-      const inp1 = document.getElementById('p1-name');
-      const inp2 = document.getElementById('p2-name');
-      // Solo auto-rellenar si los campos están vacíos o son diferentes (match nuevo)
-      if (inp1.value !== n1 || inp2.value !== n2) {
-        inp1.value = n1; S.p1tag = n1;
-        inp2.value = n2; S.p2tag = n2;
+      const changed = (n1 && n1 !== _lastP1) || (n2 && n2 !== _lastP2);
+      if (changed) {
+        if (n1) { S.p1tag=n1; _lastP1=n1; document.getElementById('p1-name').value=n1; }
+        if (n2) { S.p2tag=n2; _lastP2=n2; document.getElementById('p2-name').value=n2; }
+        if (data.round !== undefined) { S.round=data.round||''; document.getElementById('round-inp').value=data.round||''; }
+        if (data.format) { S.format=data.format; document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.f)===data.format)); }
+        // Resetear personajes: los jugadores los eligen desde el celular
+        S.p1charId=null; S.p1skin=1; S.p2charId=null; S.p2skin=1;
+        localStorage.removeItem('smashafk_ctrl');
         render();
       }
-    } catch(e) {}
-  }, 4000);
-})();
+    }).catch(()=>{});
+    setTimeout(pollStream, 4000);
+  })();
+});
 
 document.getElementById('char-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closePicker();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePicker();});
