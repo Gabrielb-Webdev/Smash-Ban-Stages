@@ -133,24 +133,18 @@ export default function StreamOverlayInc({ sessionId }) {
     return outcomes[Math.floor(Math.random() * outcomes.length)];
   };
 
-  if (!sessionId) {
-    return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-pulse text-6xl mb-4">🎮</div>
-          <p className="text-white text-xl">Inicializando...</p>
-        </div>
-      </div>
-    );
-  }
+  if (!sessionId) return null;
 
-  const wsActive = session && session.phase !== 'IDLE' && session.player1?.name;
-  const hasMatch = wsActive || (incRedis && !incRedis.empty);
+  // Mostrar footer siempre que WebSocket esté conectado o haya datos en Redis.
+  // En OBS el footer rojo es la confirmación visual de que el overlay está cargado.
+  // Entre matches: barra vacía. Durante match: se llena con jugadores/personajes/stages.
+  const wsHasMatch = session && session.phase !== 'IDLE' && session.player1?.name;
+  const redisHasMatch = incRedis && !incRedis.empty;
+  const hasMatch = wsHasMatch || redisHasMatch;
 
-  if (!hasMatch) {
-    return (
-      <div className="min-h-screen bg-transparent" />
-    );
+  // Si ni el WebSocket ni Redis tienen datos y no estamos conectados → invisible
+  if (!connected && !hasMatch) {
+    return <div className="min-h-screen bg-transparent" />;
   }
 
   // Nombres efectivos: WebSocket primero, Redis como fallback
@@ -173,6 +167,22 @@ export default function StreamOverlayInc({ sessionId }) {
         }}
       >
         {/* Logo INC de fondo — eliminado */}
+
+        {/* Estado standby: conectado pero sin match activo */}
+        {!hasMatch && connected && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none',
+          }}>
+            <span style={{
+              fontFamily: 'Anton', fontSize: '18px', letterSpacing: '4px',
+              color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase',
+            }}>
+              INC · EN ESPERA
+            </span>
+          </div>
+        )}
 
         {/* Nombres cuando no hay personajes aún (Redis fallback o fase inicial) */}
         {!session?.player1?.character && !session?.player2?.character && (effP1Name || effP2Name) && (
