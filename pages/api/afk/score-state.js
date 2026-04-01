@@ -20,7 +20,7 @@ function sanitize(v) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -49,6 +49,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     } catch (e) {
       return res.status(500).json({ error: 'Error guardando estado' });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    const body = req.body;
+    if (typeof body !== 'object' || body === null) {
+      return res.status(400).json({ error: 'Datos inválidos' });
+    }
+    try {
+      const raw = await redis.get(STATE_KEY);
+      const existing = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
+      for (const f of ALLOWED_FIELDS) {
+        if (body[f] !== undefined) existing[f] = sanitize(body[f]);
+      }
+      await redis.setex(STATE_KEY, TTL, JSON.stringify(existing));
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      return res.status(500).json({ error: 'Error actualizando estado' });
     }
   }
 

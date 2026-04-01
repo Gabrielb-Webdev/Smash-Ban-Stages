@@ -391,7 +391,20 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
-      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin || null, session?.matchToken); break;
+      case 'character':
+        selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin || null, session?.matchToken);
+        // Sincronizar con overlay control.html via Redis
+        if (pendingAction.characterId && pendingAction.characterId !== 'random' && !pendingAction.isRandom) {
+          const pKey = pendingAction.player === 'player1' ? 'p1' : 'p2';
+          const _charName = CHARACTERS.find(c => c.id === pendingAction.characterId)?.name || '';
+          const _iconPath = getStockIconPath(pendingAction.characterId, pendingAction.skin || 1) || '';
+          fetch('/api/afk/score-state', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [`${pKey}char`]: _charName, [`${pKey}charIcon`]: _iconPath }),
+          }).catch(() => {});
+        }
+        break;
       case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer, session?.matchToken); break;
     }
     setPendingAction(null);

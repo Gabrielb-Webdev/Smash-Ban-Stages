@@ -11,6 +11,21 @@ export default function StreamOverlayInc({ sessionId }) {
   const { session, connected } = useWebSocket(sessionId);
   const error = !connected ? 'Desconectado del servidor' : null;
 
+  // Fallback: leer estado de Redis cuando no hay sesión WebSocket activa
+  const [incRedis, setIncRedis] = useState(null);
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/inc/stream-state');
+        const d = await r.json();
+        setIncRedis(!d.empty ? d : null);
+      } catch {}
+    };
+    poll();
+    const id = setInterval(poll, 3000);
+    return () => clearInterval(id);
+  }, []);
+
   const [rpsWinner, setRpsWinner] = useState(null);
   const [showRpsAnimation, setShowRpsAnimation] = useState(false);
   const [bannedStage, setBannedStage] = useState(null);
@@ -129,11 +144,18 @@ export default function StreamOverlayInc({ sessionId }) {
     );
   }
 
-  if (!session || session.phase === 'IDLE' || !session.player1?.name) {
+  const wsActive = session && session.phase !== 'IDLE' && session.player1?.name;
+  const hasMatch = wsActive || (incRedis && !incRedis.empty);
+
+  if (!hasMatch) {
     return (
       <div className="min-h-screen bg-transparent" />
     );
   }
+
+  // Nombres efectivos: WebSocket primero, Redis como fallback
+  const effP1Name = session?.player1?.name || incRedis?.player1?.name || '';
+  const effP2Name = session?.player2?.name || incRedis?.player2?.name || '';
 
   const rpsOutcome = getRandomRPSOutcome();
   const winnerIsPlayer1 = rpsWinner === 'player1';
@@ -152,8 +174,20 @@ export default function StreamOverlayInc({ sessionId }) {
       >
         {/* Logo INC de fondo — eliminado */}
 
+        {/* Nombres cuando no hay personajes aún (Redis fallback o fase inicial) */}
+        {!session?.player1?.character && !session?.player2?.character && (effP1Name || effP2Name) && (
+          <>
+            <div style={{ fontFamily: 'Anton', fontSize: '26px', letterSpacing: '2px', color: '#fff', textShadow: '2px 2px 0 rgba(0,0,0,0.8)', zIndex: 10 }}>
+              {effP1Name.toUpperCase()}
+            </div>
+            <div style={{ fontFamily: 'Anton', fontSize: '26px', letterSpacing: '2px', color: '#fff', textShadow: '2px 2px 0 rgba(0,0,0,0.8)', zIndex: 10, textAlign: 'right' }}>
+              {effP2Name.toUpperCase()}
+            </div>
+          </>
+        )}
+
         {/* Personajes - entran girando cuando ambos seleccionaron */}
-        {session.player1.character && session.player2.character && (
+        {session?.player1?.character && session?.player2?.character && (
           <>
             {/* Jugador 1 - Izquierda */}
             <motion.div
@@ -202,7 +236,7 @@ export default function StreamOverlayInc({ sessionId }) {
         )}
 
         {/* Texto "STAGE BANS" en el centro */}
-        {session.player1.character && session.player2.character && (
+        {session?.player1?.character && session?.player2?.character && (
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{ zIndex: 20 }}
@@ -228,19 +262,19 @@ export default function StreamOverlayInc({ sessionId }) {
         )}
 
         {/* Imágenes de los stages */}
-        {session.player1.character && session.player2.character && (
+        {session?.player1?.character && session?.player2?.character && (
           <div
             className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none px-44 ${
-              session.currentGame === 1 ? 'gap-3' : 'gap-4'
+              (session?.currentGame ?? 1) === 1 ? 'gap-3' : 'gap-4'
             }`}
             style={{ zIndex: 15 }}
           >
-            {getStagesForTournament(sessionId, session.currentGame).map((stage, index) => {
-              const isBanned = session.bannedStages?.includes(stage.id);
-              const isSelected = session.selectedStage === stage.id;
+            {getStagesForTournament(sessionId, session?.currentGame ?? 1).map((stage, index) => {
+              const isBanned = session?.bannedStages?.includes(stage.id);
+              const isSelected = session?.selectedStage === stage.id;
               const showBanOverlay = isBanned && (bannedStage?.id === stage.id ? showBanOnCard : true);
               const showSelectOverlay = isSelected && (selectedStage?.id === stage.id ? showSelectOnCard : true);
-              const isGame1 = session.currentGame === 1;
+              const isGame1 = (session?.currentGame ?? 1) === 1;
               const imageClass = isGame1 ? 'w-48 h-28' : 'w-32 h-20';
               const borderRadius = isGame1 ? 'rounded-xl' : 'rounded-lg';
               const iconSize = isGame1 ? 'text-7xl' : 'text-5xl';
