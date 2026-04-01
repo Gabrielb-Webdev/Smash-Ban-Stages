@@ -117,6 +117,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   const [clickedItemId, setClickedItemId] = useState(null);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const [skinModal, setSkinModal] = useState(null); // { characterId, characterName, characterImage, player }
+  const [finishedDismissed, setFinishedDismissed] = useState(false);
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -221,11 +222,18 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
     }
   }, [turnModal]);
 
+  // Auto-cerrar pantalla FINISHED después de 5 segundos
+  useEffect(() => {
+    if (!session || session.phase !== 'FINISHED') { setFinishedDismissed(false); return; }
+    const t = setTimeout(() => setFinishedDismissed(true), 5000);
+    return () => clearTimeout(t);
+  }, [session?.phase]);
+
   const handleRepeatCharacter = (player, repeat) => {
     setShowRepeatModal({ player1: false, player2: false });
     const charToRepeat = previousCharacters[player] || session?.lastCharacters?.[player];
     if (repeat && charToRepeat) {
-      selectCharacter(sessionId, charToRepeat, player);
+      selectCharacter(sessionId, charToRepeat, player, null, session?.matchToken);
     }
   };
 
@@ -277,7 +285,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
 
   const handleRpsPick = (pick, playerKey) => {
     if (!playerKey) return;
-    rpsPick(sessionId, pick, playerKey);
+    rpsPick(sessionId, pick, playerKey, session?.matchToken);
   };
 
   const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
@@ -343,10 +351,10 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
     if (!pendingAction || !sessionId) return;
     switch (pendingAction.type) {
       case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
-      case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player); break;
-      case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player); break;
-      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin); break;
-      case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer); break;
+      case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
+      case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
+      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin, session?.matchToken); break;
+      case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer, session?.matchToken); break;
     }
     setPendingAction(null);
     setClickedItemId(null);
@@ -997,7 +1005,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => setGameWinner(sessionId, session.winnerProposal.winner)}
+                      onClick={() => setGameWinner(sessionId, session.winnerProposal.winner, session?.matchToken)}
                       className="py-4 rounded-xl border-2 border-green-400/60 font-black text-sm active:scale-95 touch-manipulation transition-all"
                       style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.25))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
                     >
@@ -1052,7 +1060,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
         )}
 
         {/* ── Finished Phase ── */}
-        {session.phase === 'FINISHED' && (
+        {session.phase === 'FINISHED' && !finishedDismissed && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
             <div className="text-7xl mb-4 animate-bounce">🏆</div>
             <h3 className="text-4xl font-bold text-white mb-4">¡Serie Finalizada!</h3>
@@ -1066,8 +1074,15 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
               Score Final: <span className="text-smash-red">{session.player1.score}</span> - <span className="text-smash-red">{session.player2.score}</span>
             </p>
             <div className="bg-smash-red/20 rounded-lg p-4 border border-smash-red/50">
-              <p className="text-white/90 text-base">✨ El administrador configurará la próxima serie</p>
+              <p className="text-white/90 text-base">⏳ Esta pantalla se cerrará en 5 segundos...</p>
             </div>
+          </div>
+        )}
+        {session.phase === 'FINISHED' && finishedDismissed && (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
+            <div className="text-5xl mb-4">⏳</div>
+            <p className="text-white text-xl font-bold">Esperando próxima partida...</p>
+            <p className="text-white/50 text-sm mt-2">El administrador configurará la próxima serie</p>
           </div>
         )}
 

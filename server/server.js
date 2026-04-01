@@ -805,6 +805,7 @@ io.on('connection', (socket) => {
       session.player2.name = data.player2;
       session.format = data.format;
       session.community = community; // Actualizar comunidad
+      session.matchToken = Date.now().toString(36); // token único por match
       // Reiniciar todo lo demás
       session.player1.score = 0;
       session.player1.character = null;
@@ -831,6 +832,7 @@ io.on('connection', (socket) => {
         sessionId,
         community, // Guardar la comunidad
         createdAt: Date.now(),
+        matchToken: Date.now().toString(36), // token único por match — cambia con cada nueva sesión
         player1: {
           name: data.player1,
           score: 0,
@@ -1162,9 +1164,10 @@ io.on('connection', (socket) => {
   });
 
   // RPS real — cada jugador elige piedra, papel o tijeras; el servidor determina el ganador
-  socket.on('rps-pick', ({ sessionId, pick, pickedBy }) => {
+  socket.on('rps-pick', ({ sessionId, pick, pickedBy, matchToken }) => {
     const session = sessions.get(sessionId);
     if (!session || session.phase !== 'RPS') return;
+    if (matchToken && session.matchToken && matchToken !== session.matchToken) return;
 
     const validPicks = ['rock', 'paper', 'scissors'];
     if (!validPicks.includes(pick)) return;
@@ -1257,10 +1260,11 @@ io.on('connection', (socket) => {
   });
 
   // Banear un stage
-  socket.on('ban-stage', ({ sessionId, stage, player }) => {
+  socket.on('ban-stage', ({ sessionId, stage, player, matchToken }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'STAGE_BAN') {
-      if (session.currentTurn !== player) return; // solo el jugador con turno puede banear
+      if (session.currentTurn !== player) return;
+      if (matchToken && session.matchToken && matchToken !== session.matchToken) return; // token inválido: acción rechazada
       // Agregar al historial
       session.banHistory.push({
         game: session.currentGame,
@@ -1300,10 +1304,11 @@ io.on('connection', (socket) => {
   });
 
   // Seleccionar stage
-  socket.on('select-stage', ({ sessionId, stage, player }) => {
+  socket.on('select-stage', ({ sessionId, stage, player, matchToken }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'STAGE_SELECT') {
-      if (session.currentTurn !== player) return; // solo el jugador con turno puede seleccionar
+      if (session.currentTurn !== player) return;
+      if (matchToken && session.matchToken && matchToken !== session.matchToken) return;
       session.selectedStage = stage;
       // Ir directo a PLAYING ya que los personajes ya están seleccionados
       session.phase = 'PLAYING';
@@ -1380,10 +1385,11 @@ io.on('connection', (socket) => {
   });
 
   // Seleccionar personaje
-  socket.on('select-character', ({ sessionId, character, player, skin }) => {
+  socket.on('select-character', ({ sessionId, character, player, skin, matchToken }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'CHARACTER_SELECT') {
-      if (session.currentTurn !== player) return; // solo el jugador con turno puede seleccionar
+      if (session.currentTurn !== player) return;
+      if (matchToken && session.matchToken && matchToken !== session.matchToken) return;
       // Guardar en historial por nombre de jugador
       recordCharacterPick(session[player].name, character);
       session[player].character = character;
@@ -1519,9 +1525,10 @@ io.on('connection', (socket) => {
     }
   }
 
-  socket.on('propose-game-winner', ({ sessionId, winner, proposedBy }) => {
+  socket.on('propose-game-winner', ({ sessionId, winner, proposedBy, matchToken }) => {
     const session = sessions.get(sessionId);
     if (session && session.phase === 'PLAYING') {
+      if (matchToken && session.matchToken && matchToken !== session.matchToken) return;
       // En modo 1 dispositivo: aplicar el resultado directo sin confirmación del rival
       if (session.singleDeviceMode) {
         applyGameWinner(sessionId, winner);
@@ -1546,7 +1553,9 @@ io.on('connection', (socket) => {
   });
 
   // Registrar ganador del game (confirmado por el otro jugador)
-  socket.on('game-winner', ({ sessionId, winner }) => {
+  socket.on('game-winner', ({ sessionId, winner, matchToken }) => {
+    const session = sessions.get(sessionId);
+    if (matchToken && session?.matchToken && matchToken !== session.matchToken) return;
     applyGameWinner(sessionId, winner);
   });
 

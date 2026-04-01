@@ -167,39 +167,39 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
-  const rpsPick = (sessionId, pick, pickedBy) => {
+  const rpsPick = (sessionId, pick, pickedBy, matchToken) => {
     if (socket) {
-      socket.emit('rps-pick', { sessionId, pick, pickedBy });
+      socket.emit('rps-pick', { sessionId, pick, pickedBy, matchToken });
     }
   };
 
-  const banStage = (sessionId, stage, player) => {
+  const banStage = (sessionId, stage, player, matchToken) => {
     if (socket) {
-      socket.emit('ban-stage', { sessionId, stage, player });
+      socket.emit('ban-stage', { sessionId, stage, player, matchToken });
     }
   };
 
-  const selectStage = (sessionId, stage, player) => {
+  const selectStage = (sessionId, stage, player, matchToken) => {
     if (socket) {
-      socket.emit('select-stage', { sessionId, stage, player });
+      socket.emit('select-stage', { sessionId, stage, player, matchToken });
     }
   };
 
-  const selectCharacter = (sessionId, character, player, skin) => {
+  const selectCharacter = (sessionId, character, player, skin, matchToken) => {
     if (socket) {
-      socket.emit('select-character', { sessionId, character, player, ...(skin ? { skin } : {}) });
+      socket.emit('select-character', { sessionId, character, player, ...(skin ? { skin } : {}), matchToken });
     }
   };
 
-  const setGameWinner = (sessionId, winner) => {
+  const setGameWinner = (sessionId, winner, matchToken) => {
     if (socket) {
-      socket.emit('game-winner', { sessionId, winner });
+      socket.emit('game-winner', { sessionId, winner, matchToken });
     }
   };
 
-  const proposeGameWinner = (sessionId, winner, proposedBy) => {
+  const proposeGameWinner = (sessionId, winner, proposedBy, matchToken) => {
     if (socket) {
-      socket.emit('propose-game-winner', { sessionId, winner, proposedBy });
+      socket.emit('propose-game-winner', { sessionId, winner, proposedBy, matchToken });
     }
   };
 

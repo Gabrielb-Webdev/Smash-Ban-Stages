@@ -74,6 +74,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const [turnModal, setTurnModal] = useState(null);
   const [skinModal, setSkinModal] = useState(null); // { characterId, characterName, player }
+  const [finishedDismissed, setFinishedDismissed] = useState(false);
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -235,13 +236,20 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
     }
   }, [turnModal]);
 
+  // Auto-cerrar pantalla FINISHED después de 5 segundos
+  useEffect(() => {
+    if (!session || session.phase !== 'FINISHED') { setFinishedDismissed(false); return; }
+    const t = setTimeout(() => setFinishedDismissed(true), 5000);
+    return () => clearTimeout(t);
+  }, [session?.phase]);
+
   const handleRepeatCharacter = (player, repeat) => {
     console.log(`Player ${player} ${repeat ? 'repitió' : 'no repitió'} personaje`);
     setShowRepeatModal({ player1: false, player2: false });
     const charToRepeat = previousCharacters[player] || session?.lastCharacters?.[player];
     if (repeat && charToRepeat) {
       // Seleccionar automáticamente el personaje anterior
-      selectCharacter(sessionId, charToRepeat, player);
+      selectCharacter(sessionId, charToRepeat, player, null, session?.matchToken);
     }
     // Si no repite, simplemente cierra el modal y permite selección manual
   };
@@ -359,7 +367,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
 
   const handleRpsPick = (pick, playerKey) => {
     if (!playerKey) return;
-    rpsPick(sessionId, pick, playerKey);
+    rpsPick(sessionId, pick, playerKey, session?.matchToken);
   };
 
   const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
@@ -441,13 +449,13 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy);
         break;
       case 'ban':
-        banStage(sessionId, pendingAction.stageId, pendingAction.player);
+        banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken);
         break;
       case 'select':
-        selectStage(sessionId, pendingAction.stageId, pendingAction.player);
+        selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken);
         break;
       case 'character':
-        selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin);
+        selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin, session?.matchToken);
         setConfirmedChar({
           characterId: pendingAction.characterId,
           characterName: pendingAction.characterName,
@@ -466,7 +474,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         }
         break;
       case 'winner':
-        proposeGameWinner(sessionId, pendingAction.winner, myPlayer);
+        proposeGameWinner(sessionId, pendingAction.winner, myPlayer, session?.matchToken);
         break;
       default:
         break;
@@ -2281,7 +2289,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <button
-                        onClick={() => setGameWinner(sessionId, session.winnerProposal.winner)}
+                        onClick={() => setGameWinner(sessionId, session.winnerProposal.winner, session?.matchToken)}
                         style={{ padding: '14px 8px', borderRadius: 14, border: '2px solid rgba(34,197,94,0.6)', background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.2))', color: '#fff', fontFamily: 'Anton', fontSize: 15, cursor: 'pointer', letterSpacing: 1 }}
                       >✅ CONFIRMAR</button>
                       <button
@@ -2458,7 +2466,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={() => setGameWinner(sessionId, session.winnerProposal.winner)}
+                        onClick={() => setGameWinner(sessionId, session.winnerProposal.winner, session?.matchToken)}
                         className="py-4 rounded-xl border-2 border-green-400/60 font-black text-sm active:scale-95 touch-manipulation transition-all"
                         style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.35), rgba(22,163,74,0.25))', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
                       >
@@ -2515,7 +2523,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
         )}
 
         {/* Finished Phase */}
-        {session.phase === 'FINISHED' && (
+        {session.phase === 'FINISHED' && !finishedDismissed && (
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
             <div className="text-7xl mb-4 animate-bounce">🏆</div>
             <h3 className="text-4xl font-bold text-white mb-4">¡Serie Finalizada!</h3>
@@ -2530,7 +2538,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             </p>
             <div className="bg-smash-purple/20 rounded-lg p-4 border border-smash-purple/50">
               <p className="text-white/90 text-base">
-                ✨ El administrador configurará la próxima serie
+                ⏳ Esta pantalla se cerrará en 5 segundos...
               </p>
             </div>
             <button
@@ -2540,6 +2548,13 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
             >
               🏠 Volver al Home
             </button>
+          </div>
+        )}
+        {session.phase === 'FINISHED' && finishedDismissed && (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex-1 flex flex-col justify-center">
+            <div className="text-5xl mb-4">⏳</div>
+            <p className="text-white text-xl font-bold">Esperando próxima partida...</p>
+            <p className="text-white/50 text-sm mt-2">El administrador configurará la próxima serie</p>
           </div>
         )}
 
