@@ -806,6 +806,7 @@ io.on('connection', (socket) => {
       session.format = data.format;
       session.community = community; // Actualizar comunidad
       session.matchToken = Date.now().toString(36); // token único por match
+      if (data.tournamentName !== undefined) session.tournamentName = data.tournamentName;
       // Reiniciar todo lo demás
       session.player1.score = 0;
       session.player1.character = null;
@@ -864,6 +865,7 @@ io.on('connection', (socket) => {
         startggSetId: null,
         startggEntrant1Id: null,
         startggEntrant2Id: null,
+        tournamentName: data.tournamentName || '',
       };
     }
 

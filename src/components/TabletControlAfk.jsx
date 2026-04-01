@@ -112,16 +112,32 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const error = session ? null : 'Conectando...';
 
   const [manualIdentity, setManualIdentity] = useState(null);
-  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
-    ? (() => {
-        const uLow = playerName.toLowerCase().trim();
-        const p1Low = (session.player1?.name || '').toLowerCase().trim();
-        const p2Low = (session.player2?.name || '').toLowerCase().trim();
-        if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
-        if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
-        return null;
-      })()
-    : null);
+  const _rawIdentity = (() => {
+    // 1. Identidad por parámetro de URL (?p=player1|player2)
+    //    Verificar que el nombre del usuario logueado coincide con el jugador reclamado.
+    //    Así evitamos que alguien con ?p=player2 de un match anterior actúe en el nuevo match.
+    if (playerIndex && session) {
+      const claimedName = (session[playerIndex]?.name || '').toLowerCase().trim();
+      const uLow = (playerName || '').toLowerCase().trim();
+      // Si hay sesión activa y nombre logueado y NO coincide → rechazar identidad por URL
+      if (uLow && claimedName && !claimedName.includes(uLow) && !uLow.includes(claimedName)) {
+        // nombre no coincide — no otorgar identidad por parámetro de URL
+      } else {
+        return playerIndex;
+      }
+    }
+    // 2. Identidad manual (selección en pantalla)
+    if (manualIdentity) return manualIdentity;
+    // 3. Fuzzy match por nombre logueado
+    if (session && playerName) {
+      const uLow = playerName.toLowerCase().trim();
+      const p1Low = (session.player1?.name || '').toLowerCase().trim();
+      const p2Low = (session.player2?.name || '').toLowerCase().trim();
+      if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
+      if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
+    }
+    return null;
+  })();
   const myPlayer = _rawIdentity;
   const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
@@ -145,9 +161,11 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const prevTurnRef = useRef(null);
 
   // Sincronizar scores y tournamentName con Redis cuando el WebSocket los actualiza
+  // Solo el setup de stream (afk-stream) envía datos al overlay True Combo
   const prevScoreRef = useRef({ p1: null, p2: null, tournament: null });
   useEffect(() => {
     if (!session || session.phase === 'IDLE' || session.phase === 'CHECKIN') return;
+    if (sessionId !== 'afk-stream') return;
     const p1s = session.player1?.score ?? 0;
     const p2s = session.player2?.score ?? 0;
     const tName = session.tournamentName || '';
@@ -410,8 +428,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'character':
         selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin || null, session?.matchToken);
-        // Sincronizar con overlay control.html via Redis
-        if (pendingAction.characterId && pendingAction.characterId !== 'random' && !pendingAction.isRandom) {
+        // Sincronizar con overlay control.html via Redis (solo setup de stream)
+        if (sessionId === 'afk-stream' && pendingAction.characterId && pendingAction.characterId !== 'random' && !pendingAction.isRandom) {
           const pKey = pendingAction.player === 'player1' ? 'p1' : 'p2';
           const _charName = CHARACTERS.find(c => c.id === pendingAction.characterId)?.name || '';
           const _iconPath = getStockIconPath(pendingAction.characterId, pendingAction.skin || 1) || '';
@@ -621,38 +639,25 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 );
               })()
             ) : (
-              /* Vista admin: muestra ambos jugadores */
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
-                  {[{ key: 'player1', name: session.player1?.name }, { key: 'player2', name: session.player2?.name }].map(({ key, name }) => {
-                    const checked = (session.checkIns || []).includes(name);
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => !checked && playerCheckin(sessionId, name)}
-                        disabled={checked}
-                        style={{
-                          width: '100%', padding: '18px 20px', borderRadius: 16,
-                          border: checked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.25)',
-                          background: checked ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.08)',
-                          color: checked ? '#4ADE80' : '#fff', fontSize: 18, fontWeight: 900,
-                          cursor: checked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', gap: 12, transition: 'all 0.2s',
-                          boxShadow: checked ? '0 0 20px rgba(34,197,94,0.3)' : '0 4px 16px rgba(0,0,0,0.3)',
-                          fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
-                        }}
-                      >
-                        <span style={{ fontSize: 22 }}>{checked ? '✅' : '⏳'}</span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                        {checked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', opacity: 0.8, marginLeft: 'auto' }}>Confirmado</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                {(session.checkIns || []).length === 1 && (
-                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Esperando que el otro jugador confirme...</p>
-                )}
-              </>
+              /* El usuario no es ninguno de los dos jugadores → no puede hacer check-in */
+              <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+                <div style={{ fontSize: 56, marginBottom: 14, lineHeight: 1 }}>🚫</div>
+                <p style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>Este match no es tuyo</p>
+                <p style={{ margin: '0 0 28px', fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                  Solo <strong style={{ color: '#E8A000' }}>{session.player1?.name}</strong> y <strong style={{ color: '#E8A000' }}>{session.player2?.name}</strong> pueden hacer check-in aquí.
+                </p>
+                <a
+                  href="/home"
+                  style={{
+                    display: 'inline-block', padding: '13px 28px', borderRadius: 14,
+                    background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.2)',
+                    color: '#fff', fontSize: 15, fontWeight: 700, textDecoration: 'none',
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  ← Ir al inicio
+                </a>
+              </div>
             )}
           </div>
         )}

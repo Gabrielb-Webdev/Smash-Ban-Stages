@@ -69,6 +69,7 @@ export default function TestAdminPage() {
   const [user, setUser]               = useState(null);
   const [checking, setChecking]       = useState(true);
   const [tournament, setTournament]   = useState(null);
+  const [customTournamentName, setCustomTournamentName] = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('customTournamentName', c))) || ''; } catch { return ''; } });
   const [bracketSets, setBracketSets] = useState([]);
   const [phaseName, setPhaseName]     = useState('');
   const [bracketLoading, setBracketLoading] = useState(false);
@@ -665,6 +666,8 @@ export default function TestAdminPage() {
             setTournament(d);
             setLastRefresh(new Date());
             if (d.events?.[0]?.id) setSelectedEventId(prev => prev || String(d.events[0].id));
+            // Auto-poblar nombre del torneo solo si el campo está vacío
+            setCustomTournamentName(prev => prev || d.name || prev);
           }
         });
     }
@@ -1350,7 +1353,7 @@ export default function TestAdminPage() {
           player2: players[1] || 'Jugador 2',
           format,
           round: set.fullRoundText || set.round || '',
-          tournamentName: tournament?.name || '',
+          tournamentName: customTournamentName || tournament?.name || ''
           forceReset: true,
         }),
       });
@@ -1712,12 +1715,27 @@ export default function TestAdminPage() {
 
             {/* ── SETUPS GRID ── */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <p style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>Setups · arrastrá un match del bracket</p>
             {!tournamentStarted && bracketSets.length > 0 && (
               <span style={{ fontSize: 9, fontWeight: 800, color: '#F59E0B', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 99, padding: '2px 8px' }}>⚠ Iniciá el torneo para poder arrastrar matches</span>
             )}
           </div>
+              {/* Campo nombre del torneo — se envía automáticamente al llamar un match */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', flexShrink: 0, whiteSpace: 'nowrap' }}>🏆 Nombre torneo</span>
+                <input
+                  type="text"
+                  value={customTournamentName}
+                  onChange={e => { setCustomTournamentName(e.target.value); try { localStorage.setItem(lsk('customTournamentName', community), e.target.value); } catch {} }}
+                  placeholder={tournament?.name || 'Ej: True Combo Weeklies #64'}
+                  style={{
+                    flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8, padding: '5px 10px', color: '#fff', fontSize: 11,
+                    fontFamily: "'Outfit', sans-serif", outline: 'none',
+                  }}
+                />
+              </div>
           <div className="setups-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {SETUPS.map(setup => {
               const assigned = assignedSets[setup.id];

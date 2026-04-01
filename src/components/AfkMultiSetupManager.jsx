@@ -32,6 +32,7 @@ let socket = null;
 export default function AfkMultiSetupManager() {
   const [sessions, setSessions] = useState({}); // { sessionId: sessionData }
   const [connected, setConnected] = useState(false);
+  const [tournamentName, setTournamentName] = useState(''); // Nombre del torneo para el overlay
 
   // Formulario de nuevo match (por setup)
   const [forms, setForms] = useState(
@@ -102,6 +103,7 @@ export default function AfkMultiSetupManager() {
       player1: form.player1.trim(),
       player2: form.player2.trim(),
       format: form.format,
+      tournamentName: tournamentName.trim(),
     });
     setShowForm(null);
   };
@@ -116,6 +118,7 @@ export default function AfkMultiSetupManager() {
       player1: session.player1.name,
       player2: session.player2.name,
       format: session.format,
+      tournamentName: tournamentName.trim(),
     });
     setConfirmReset(null);
   };
@@ -138,7 +141,19 @@ export default function AfkMultiSetupManager() {
           </h1>
           <p className="text-white/50 text-sm mt-1">6 setups simultáneos · 1 stream + 5 offline</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Campo nombre del torneo */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-white/40 whitespace-nowrap">🏆 Torneo</span>
+            <input
+              type="text"
+              value={tournamentName}
+              onChange={e => setTournamentName(e.target.value)}
+              placeholder="Nombre del torneo..."
+              className="px-3 py-1.5 rounded-lg text-sm text-white placeholder-white/25 focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', width: 200 }}
+            />
+          </div>
           <span
             className="text-xs font-bold px-3 py-1 rounded-full"
             style={{
