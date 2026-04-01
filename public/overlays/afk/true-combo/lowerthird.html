@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>True Combo · Lower Third</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { overflow:hidden; background:transparent; }
+body {
+  width:1280px; height:720px;
+  overflow:hidden; background:transparent; position:relative;
+}
+
+/* ── Banner area ── */
+.tc-banner {
+  position:absolute; bottom:0; left:0; right:0;
+  height:198px; overflow:hidden;
+}
+.tc-banner img {
+  width:100%; height:100%;
+  object-fit:cover; object-position:center 38%; display:block;
+}
+
+/* ── Text overlaid on banner ── */
+.p1-info {
+  position:absolute; bottom:72px; left:26px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.p2-info {
+  position:absolute; bottom:72px; right:26px;
+  display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+}
+
+.ptag {
+  font-family:'Anton',sans-serif; font-size:30px; letter-spacing:2px;
+  color:#f5e8a0; text-transform:uppercase;
+  text-shadow:
+    1px 1px 0 #000, -1px -1px 0 #000,
+    1px -1px 0 #000, -1px 1px 0 #000,
+    0 0 12px rgba(0,0,0,0.9);
+  display:flex; align-items:center; gap:7px;
+}
+.pchar-lbl {
+  font-size:10px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(240,164,24,0.9);
+  text-shadow:0 1px 4px rgba(0,0,0,0.95);
+  min-height:13px;
+}
+.char-ico {
+  width:30px; height:30px; border-radius:50%; object-fit:cover;
+  border:1.5px solid rgba(240,164,24,0.6); background:rgba(0,0,0,0.7);
+  display:none; flex-shrink:0;
+}
+
+/* ── Score center ── */
+.score-center {
+  position:absolute; bottom:75px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  pointer-events:none;
+}
+.score-nums {
+  font-family:'Anton',sans-serif; font-size:54px; line-height:1;
+  display:flex; align-items:center; gap:8px;
+  color:#f0a418;
+  text-shadow:
+    -2px -2px 0 #7a1800, 2px -2px 0 #7a1800,
+    -2px  2px 0 #7a1800, 2px  2px 0 #7a1800,
+    0 0 20px rgba(0,0,0,0.9);
+}
+.snum.lead { color:#ffd060; }
+.sdot { color:rgba(240,164,24,0.25); font-size:28px; font-family:'Anton',sans-serif; }
+.round-mini {
+  font-size:8px; letter-spacing:2.5px; text-transform:uppercase;
+  color:rgba(240,164,24,0.7);
+  text-shadow:0 1px 4px rgba(0,0,0,0.9);
+  white-space:nowrap;
+}
+</style>
+</head>
+<body>
+
+<div class="p1-info">
+  <div class="ptag">
+    <img class="char-ico" id="p1-ico" src="" alt="">
+    <span id="p1-tag">PLAYER 1</span>
+  </div>
+  <div class="pchar-lbl" id="p1-char"></div>
+</div>
+
+<div class="score-center">
+  <div class="score-nums">
+    <span class="snum" id="s1">0</span>
+    <span class="sdot">:</span>
+    <span class="snum" id="s2">0</span>
+  </div>
+  <div class="round-mini" id="round-el">Winners Finals · Bo5</div>
+</div>
+
+<div class="p2-info">
+  <div class="ptag">
+    <span id="p2-tag">PLAYER 2</span>
+    <img class="char-ico" id="p2-ico" src="" alt="" style="margin-left:0">
+  </div>
+  <div class="pchar-lbl" id="p2-char"></div>
+</div>
+
+<div class="tc-banner">
+  <img src="./img/banner.png" alt="True Combo" onerror="this.style.opacity='0'">
+</div>
+
+<script>
+!function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
+    const p1s = d.p1score||0, p2s = d.p2score||0;
+    document.getElementById('p1-tag').textContent = (d.p1tag||'PLAYER 1').toUpperCase();
+    document.getElementById('p2-tag').textContent = (d.p2tag||'PLAYER 2').toUpperCase();
+    document.getElementById('p1-char').textContent = d.p1char||'';
+    document.getElementById('p2-char').textContent = d.p2char||'';
+    const s1 = document.getElementById('s1'), s2 = document.getElementById('s2');
+    s1.textContent = p1s; s2.textContent = p2s;
+    s1.className = 'snum'+(p1s > p2s ? ' lead' : '');
+    s2.className = 'snum'+(p2s > p1s ? ' lead' : '');
+    document.getElementById('round-el').textContent = (d.round||'Winners Finals')+' · Bo'+(d.format||5);
+    ['p1','p2'].forEach(p => {
+      const ico = document.getElementById(p+'-ico');
+      const url = p==='p1' ? d.p1charIcon : d.p2charIcon;
+      ico.src = url||''; ico.style.display = url ? 'inline-block' : 'none';
+    });
+  } catch(e) {}
+}
+load(); setInterval(load, 300); window.addEventListener('storage', load);
+</script>
+</body>
+</html>

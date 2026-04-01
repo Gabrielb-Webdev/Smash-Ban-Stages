@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>True Combo · Winner Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { overflow:hidden; background:transparent; }
+body {
+  width:1280px; height:720px;
+  overflow:hidden; background:rgba(4,2,0,0.97);
+  position:relative; font-family:'DM Sans',sans-serif;
+}
+
+/* particle lines */
+.bg-texture {
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(
+    -52deg, transparent 0, transparent 26px,
+    rgba(240,164,24,0.025) 26px, rgba(240,164,24,0.025) 28px
+  );
+}
+
+/* radial glow behind winner name */
+.center-glow {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:700px; height:400px;
+  background:radial-gradient(ellipse at center,
+    rgba(240,164,24,0.12) 0%,
+    rgba(200,100,0,0.06) 45%,
+    transparent 75%
+  );
+  pointer-events:none;
+}
+
+/* winner label */
+.winner-label {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.wins-txt {
+  font-size:11px; letter-spacing:6px; text-transform:uppercase;
+  color:rgba(240,164,24,0.6); font-weight:700;
+}
+.winner-name {
+  font-family:'Anton',sans-serif; font-size:88px; letter-spacing:5px;
+  color:#f5e8a0; text-transform:uppercase; text-align:center; line-height:0.95;
+  text-shadow:
+    -3px -3px 0 #5a2800, 3px -3px 0 #5a2800,
+    -3px  3px 0 #5a2800, 3px  3px 0 #5a2800,
+    0 0 60px rgba(240,164,24,0.5);
+}
+.char-row {
+  display:flex; align-items:center; gap:10px; margin-top:4px;
+}
+.char-ico {
+  width:46px; height:46px; border-radius:50%; object-fit:cover;
+  border:2px solid rgba(240,164,24,0.55); background:rgba(0,0,0,0.7);
+  box-shadow:0 0 16px rgba(240,164,24,0.35); display:none;
+}
+.char-ico.show { display:block; }
+.char-name {
+  font-size:13px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(240,164,24,0.7);
+}
+.score-badge {
+  margin-top:8px; display:flex; gap:6px; align-items:center;
+  background:rgba(0,0,0,0.55); border:1px solid rgba(240,164,24,0.2);
+  border-radius:5px; padding:5px 18px;
+}
+.score-badge .sset {
+  font-family:'Anton',sans-serif; font-size:26px; color:#f0a418; letter-spacing:3px;
+}
+.score-badge .slabel {
+  font-size:8px; letter-spacing:2px; color:rgba(240,164,24,0.45); text-transform:uppercase; align-self:flex-end; padding-bottom:2px;
+}
+
+/* TC banner */
+.tc-banner {
+  position:absolute; bottom:0; left:0; right:0;
+  height:190px; overflow:hidden;
+}
+.tc-banner img {
+  width:100%; height:100%;
+  object-fit:cover; object-position:center 38%; display:block;
+}
+.tc-banner::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(4,2,0,0.9) 0%, transparent 35%);
+  pointer-events:none; z-index:1;
+}
+</style>
+</head>
+<body>
+
+<div class="bg-texture"></div>
+<div class="center-glow"></div>
+
+<div class="winner-label">
+  <div class="wins-txt">¡GANADOR DEL SET!</div>
+  <div class="winner-name" id="winner-name">PLAYER</div>
+  <div class="char-row">
+    <img class="char-ico" id="winner-ico" src="" alt="">
+    <div class="char-name" id="winner-char"></div>
+  </div>
+  <div class="score-badge">
+    <div class="sset" id="score-txt">0 - 0</div>
+    <div class="slabel" id="round-lbl">Winners Finals</div>
+  </div>
+</div>
+
+<div class="tc-banner">
+  <img src="./img/banner.png" alt="True Combo" onerror="this.style.opacity='0'">
+</div>
+
+<script>
+!function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('smashafk_score')||'{}');
+    const p1s = d.p1score||0, p2s = d.p2score||0;
+    const needed = d.needed||3;
+    let winner = '', winChar = '', winIco = '';
+    if (p1s >= needed) { winner = d.p1tag||'PLAYER 1'; winChar = d.p1char||''; winIco = d.p1charIcon||''; }
+    else if (p2s >= needed) { winner = d.p2tag||'PLAYER 2'; winChar = d.p2char||''; winIco = d.p2charIcon||''; }
+    else { winner = p1s > p2s ? (d.p1tag||'PLAYER 1') : (d.p2tag||'PLAYER 2'); winChar = p1s > p2s ? (d.p1char||'') : (d.p2char||''); winIco = p1s > p2s ? (d.p1charIcon||'') : (d.p2charIcon||''); }
+
+    document.getElementById('winner-name').textContent = winner.toUpperCase();
+    document.getElementById('winner-char').textContent = winChar;
+    const ico = document.getElementById('winner-ico');
+    ico.src = winIco||''; ico.className = 'char-ico'+(winIco?' show':'');
+    document.getElementById('score-txt').textContent = p1s+' - '+p2s;
+    document.getElementById('round-lbl').textContent = d.round||'';
+  } catch(e) {}
+}
+load(); setInterval(load, 300); window.addEventListener('storage', load);
+</script>
+</body>
+</html>
