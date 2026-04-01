@@ -49,6 +49,20 @@ body {
   border-radius:2px;
 }
 
+/* ── Character icons (extremos) ── */
+.char-ico {
+  position:absolute; top:20px;
+  width:62px; height:62px;
+  border-radius:50%; object-fit:cover;
+  border:3px solid #d4900c;
+  background:rgba(10,8,2,0.9);
+  box-shadow:0 0 16px rgba(200,130,0,0.3), inset 0 0 8px rgba(0,0,0,0.5);
+  z-index:12; display:none;
+  transition:opacity .3s;
+}
+.char-ico.left  { left:0; }
+.char-ico.right { right:0; }
+
 /* ── Score badges (cuadrados con score grande) ── */
 .score-badge {
   position:absolute; top:16px; width:72px; height:72px;
@@ -58,9 +72,13 @@ body {
   border:3px solid #d4900c;
   border-radius:8px;
   box-shadow:0 0 18px rgba(200,130,0,0.35), inset 0 0 12px rgba(0,0,0,0.6);
+  transition:left .3s, right .3s;
 }
 .score-badge.left  { left:18px; }
 .score-badge.right { right:18px; }
+/* When char icon is visible, shift badges inward */
+.score-badge.left.has-char  { left:70px; }
+.score-badge.right.has-char { right:70px; }
 .score-badge .snum {
   font-family:'Anton', sans-serif;
   font-size:52px; line-height:1;
@@ -85,9 +103,12 @@ body {
   display:flex; align-items:center; justify-content:center; gap:10px;
   z-index:5; padding:0 12px;
   overflow:hidden;
+  transition:left .3s, right .3s;
 }
 .p-area.left  { left:100px; right:calc(50% + 150px); }
 .p-area.right { right:100px; left:calc(50% + 150px); flex-direction:row-reverse; }
+.p-area.left.has-char  { left:150px; }
+.p-area.right.has-char { right:150px; }
 
 .player-info { min-width:0; overflow:hidden; flex:1; }
 .player-info.r { text-align:right; }
@@ -183,13 +204,16 @@ body {
   <div class="gold-bar left"></div>
   <div class="gold-bar right"></div>
 
+  <!-- P1 Character icon -->
+  <img class="char-ico left" id="p1-ico" src="" alt="">
+
   <!-- Score P1 -->
-  <div class="score-badge left">
+  <div class="score-badge left" id="sb1">
     <div class="snum" id="s1">0</div>
   </div>
 
   <!-- Área jugador 1 -->
-  <div class="p-area left">
+  <div class="p-area left" id="pa1">
     <div class="player-info">
       <div class="ptag" id="p1-tag">PLAYER 1</div>
     </div>
@@ -205,16 +229,19 @@ body {
   </div>
 
   <!-- Área jugador 2 -->
-  <div class="p-area right">
+  <div class="p-area right" id="pa2">
     <div class="player-info r">
       <div class="ptag" id="p2-tag">PLAYER 2</div>
     </div>
   </div>
 
   <!-- Score P2 -->
-  <div class="score-badge right">
+  <div class="score-badge right" id="sb2">
     <div class="snum" id="s2">0</div>
   </div>
+
+  <!-- P2 Character icon -->
+  <img class="char-ico right" id="p2-ico" src="" alt="">
 
   <!-- Info strip (dentro de la franja negra) -->
   <div class="info-strip">
@@ -252,6 +279,18 @@ async function load() {
     const fmt = d.format||3;
     const g = Math.min(p1s + p2s + 1, fmt);
     document.getElementById('game-lbl').textContent = 'GAME\u00a0'+g+'\u00a0\u00b7\u00a0Bo'+fmt;
+
+    // Character icons
+    ['p1','p2'].forEach(p => {
+      const ico = document.getElementById(p+'-ico');
+      const url = p === 'p1' ? d.p1charIcon : d.p2charIcon;
+      const hasChar = !!url;
+      ico.src = url||''; ico.style.display = hasChar ? 'block' : 'none';
+      // Shift score badge and name area when char visible
+      const side = p === 'p1' ? 'left' : 'right';
+      document.getElementById(p === 'p1' ? 'sb1' : 'sb2').classList.toggle('has-char', hasChar);
+      document.getElementById(p === 'p1' ? 'pa1' : 'pa2').classList.toggle('has-char', hasChar);
+    });
   } catch(e) {}
 }
 load(); setInterval(load, 500); window.addEventListener('storage', load);
