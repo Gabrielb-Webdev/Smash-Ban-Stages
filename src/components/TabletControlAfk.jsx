@@ -249,7 +249,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   // Auto-cerrar pantalla FINISHED después de 5 segundos
   useEffect(() => {
     if (!session || session.phase !== 'FINISHED') { setFinishedDismissed(false); return; }
-    const t = setTimeout(() => setFinishedDismissed(true), 5000);
+    const t = setTimeout(() => { if (typeof window !== 'undefined') window.location.href = '/home'; }, 5000);
     return () => clearTimeout(t);
   }, [session?.phase]);
 
@@ -1166,13 +1166,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
             </div>
           </div>
         )}
-        {session.phase === 'FINISHED' && finishedDismissed && (
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/20 text-center flex flex-col justify-center">
-            <div className="text-5xl mb-4">⏳</div>
-            <p className="text-white text-xl font-bold">Esperando próxima partida...</p>
-            <p className="text-white/50 text-sm mt-2">El administrador configurará la próxima serie</p>
-          </div>
-        )}
+
 
         {/* ── Modal: Repetir personaje - Player 1 ── */}
         {showRepeatModal.player1 && (previousCharacters.player1 || session?.lastCharacters?.player1) && (!effectivePlayer || effectivePlayer === 'player1') && (
