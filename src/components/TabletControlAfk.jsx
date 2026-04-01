@@ -899,8 +899,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
             <p className="text-white/50 text-xs uppercase tracking-widest font-semibold">¡Ambos eligieron!</p>
             <div className="flex items-center gap-6 sm:gap-14">
               <div className="text-center" style={{ animation: 'vsSlideLeft 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
-                <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto">
-                  <img src={getCharacterData(session.player1.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.style.display='none'; }} />
+                <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto rounded-full overflow-hidden border-4 border-white/10" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1)} alt="" className="w-full h-full object-contain drop-shadow-2xl" style={{ imageRendering: 'crisp-edges' }} onError={(e) => { e.target.style.display='none'; }} />
                 </div>
                 <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player1.name}</p>
                 <p className="text-white/50 text-xs">{getCharacterData(session.player1.character)?.name}</p>
@@ -909,8 +909,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 <span style={{ fontFamily: 'Anton', fontSize: 'clamp(3rem, 10vw, 5rem)', color: '#F59E0B', textShadow: '0 0 40px rgba(245,158,11,0.9), 3px 3px 0 #000' }}>VS</span>
               </div>
               <div className="text-center" style={{ animation: 'vsSlideRight 0.45s cubic-bezier(.22,.68,0,1.2) forwards' }}>
-                <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto" style={{ transform: 'scaleX(-1)' }}>
-                  <img src={getCharacterData(session.player2.character)?.image} alt="" className="w-full h-full object-contain drop-shadow-2xl" onError={(e) => { e.target.style.display='none'; }} />
+                <div className="w-32 h-32 sm:w-44 sm:h-44 mx-auto rounded-full overflow-hidden border-4 border-white/10" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1)} alt="" className="w-full h-full object-contain drop-shadow-2xl" style={{ imageRendering: 'crisp-edges' }} onError={(e) => { e.target.style.display='none'; }} />
                 </div>
                 <div>
                   <p className="text-white font-black text-sm mt-2 truncate max-w-[130px]" style={{ fontFamily: 'Anton' }}>{session.player2.name}</p>

@@ -33,81 +33,15 @@ export const useWebSocket = (sessionId) => {
   const [sessionError, setSessionError] = useState(null);
 
   useEffect(() => {
-    // Si ya hay un socket conectado, no crear uno nuevo
-    if (socket && socket.connected) {
-      console.log('🔄 Usando conexión WebSocket existente');
-      if (sessionId) {
-        socket.emit('join-session', sessionId);
-      }
-      return;
-    }
-
-    // Limpiar socket anterior si existe
-    if (socket) {
-      socket.disconnect();
-    }
-
-    const connectSocket = async () => {
-      // Conectar al servidor WebSocket
-      // IMPORTANTE: Actualiza NEXT_PUBLIC_SOCKET_URL en Vercel con tu URL de Render o Fly.io
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-      
-      console.log('🔌 Conectando WebSocket a:', socketUrl);
-        
-      socket = io(socketUrl, {
-        transports: ['polling', 'websocket'],
-        reconnection: true,
-        reconnectionDelay: 3000,
-        reconnectionDelayMax: 30000,
-        reconnectionAttempts: Infinity,  // nunca desistir
-        randomizationFactor: 0.5,        // jitter para evitar thundering herd con varios dispositivos
-        timeout: 20000,
-        forceNew: false
-      });
-
-      socket.on('connect', () => {
-        console.log('✅ Conectado al servidor WebSocket');
-        setConnected(true);
-
-        // Si hay un sessionId, unirse a la sesión
-        if (sessionId) {
-          socket.emit('join-session', sessionId);
-        }
-        // Re-registrar presencia si ya estaba registrada (reconexiones)
-        if (socket._pendingPresence) {
-          socket.emit('register-presence', socket._pendingPresence);
-        }
-        // Notificar a home.js para que re-sincronice estados de amigos
-        if (_onSocketReconnect) _onSocketReconnect();
-      });
-
-      socket.on('connect_error', (error) => {
-        console.error('❌ Error de conexión WebSocket:', error.message);
-        setConnected(false);
-      });
-
-      socket.on('disconnect', (reason) => {
-        console.log('🔌 Desconectado del servidor WebSocket:', reason);
-        setConnected(false);
-      });
-    };
-
-    connectSocket();
-
-    socket.on('session-created', (data) => {
-      setSession(data.session);
-    });
-
-
-
-    socket.on('session-updated', (data) => {
-      setSession(data.session);
-    });
-
-    socket.on('session-error', (data) => {
+    // Handlers con referencia nombrada para poder removerlos en cleanup
+    const handleSessionCreated  = (data) => setSession(data.session);
+    const handleSessionUpdated  = (data) => setSession(data.session);
+    const handleSessionJoined   = (data) => { setSession(data.session); setSessionError(null); };
+    const handleSeriesFinished  = (data) => { console.log('Serie finalizada. Ganador:', data.winner); setSession(data.session); };
+    const handleMatchCancelled  = ()     => setSession(prev => prev ? { ...prev, phase: 'CANCELLED' } : prev);
+    const handleSessionError    = (data) => {
       console.error('Error de sesión:', data.message);
       setSessionError(data.message);
-      // En lugar de alert, reintentar join-session cada 5s
       if (sessionId && data.message === 'Sesión no encontrada') {
         clearTimeout(socket._retryTimer);
         socket._retryTimer = setTimeout(() => {
@@ -117,42 +51,114 @@ export const useWebSocket = (sessionId) => {
           }
         }, 5000);
       }
-    });
+    };
+    const handleRpsConflict     = (data) => console.warn('⚠️ RPS conflicto:', data.message);
+    const handleFriendStatus    = (data) => { if (_onFriendStatusChanged) _onFriendStatusChanged(data); };
+    const handleNewNotification = (data) => { if (_onNewNotification) _onNewNotification(data); };
+    const handlePlayerHistory   = (data) => { socket._playerHistoryHandler && socket._playerHistoryHandler(data); };
 
-    socket.on('session-joined', (data) => {
-      setSession(data.session);
-      setSessionError(null);
-    });
+    if (socket && socket.connected) {
+      // Reusar socket existente — solo unirse a la sesión nueva
+      console.log('🔄 Usando conexión WebSocket existente');
+      if (sessionId) {
+        socket.emit('join-session', sessionId);
+      }
+      // NO early return: registrar handlers abajo para que este componente reciba actualizaciones
+    } else {
+      // Limpiar socket anterior si existe
+      if (socket) {
+        socket.disconnect();
+      }
 
-    socket.on('series-finished', (data) => {
-      console.log('Serie finalizada. Ganador:', data.winner);
-      setSession(data.session);
-    });
+      const connectSocket = async () => {
+        // Conectar al servidor WebSocket
+        // IMPORTANTE: Actualiza NEXT_PUBLIC_SOCKET_URL en Vercel con tu URL de Render o Fly.io
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
-    socket.on('match-cancelled', () => {
-      // El admin canceló el match: marcar la sesión como FINISHED localmente
-      setSession(prev => prev ? { ...prev, phase: 'CANCELLED' } : prev);
-    });
+        console.log('🔌 Conectando WebSocket a:', socketUrl);
 
-    socket.on('rps-conflict', (data) => {
-      console.warn('⚠️ RPS conflicto:', data.message);
-    });
-    socket.on('friend-status-changed', (data) => {
-      if (_onFriendStatusChanged) _onFriendStatusChanged(data);
-    });
+        // Wake-up: ping al servidor para despertarlo si está en cold start (Render free tier)
+        fetch(`${socketUrl}/health`).catch(() => {});
 
-    socket.on('new-notification', (data) => {
-      if (_onNewNotification) _onNewNotification(data);
-    });
-    socket.on('player-history', (data) => {
-      // Dispatched to listeners registered via getPlayerHistory
-      socket._playerHistoryHandler && socket._playerHistoryHandler(data);
-    });
+        socket = io(socketUrl, {
+          transports: ['polling', 'websocket'],
+          reconnection: true,
+          reconnectionDelay: 3000,
+          reconnectionDelayMax: 30000,
+          reconnectionAttempts: Infinity,  // nunca desistir
+          randomizationFactor: 0.5,        // jitter para evitar thundering herd con varios dispositivos
+          timeout: 30000,                  // más tiempo para cold start de Render (~30s)
+          forceNew: false
+        });
+
+        socket.on('connect', () => {
+          console.log('✅ Conectado al servidor WebSocket');
+          setConnected(true);
+
+          // Si hay un sessionId, unirse a la sesión
+          if (sessionId) {
+            socket.emit('join-session', sessionId);
+          }
+          // Re-registrar presencia si ya estaba registrada (reconexiones)
+          if (socket._pendingPresence) {
+            socket.emit('register-presence', socket._pendingPresence);
+          }
+          // Notificar a home.js para que re-sincronice estados de amigos
+          if (_onSocketReconnect) _onSocketReconnect();
+        });
+
+        socket.on('connect_error', (error) => {
+          console.error('❌ Error de conexión WebSocket:', error.message);
+          setConnected(false);
+        });
+
+        socket.on('disconnect', (reason) => {
+          console.log('🔌 Desconectado del servidor WebSocket:', reason);
+          setConnected(false);
+        });
+      };
+
+      connectSocket();
+    }
+
+    // Registrar handlers de sesión (siempre, para que este componente reciba updates)
+    socket.on('session-created',      handleSessionCreated);
+    socket.on('session-updated',      handleSessionUpdated);
+    socket.on('session-joined',       handleSessionJoined);
+    socket.on('series-finished',      handleSeriesFinished);
+    socket.on('match-cancelled',      handleMatchCancelled);
+    socket.on('session-error',        handleSessionError);
+    socket.on('rps-conflict',         handleRpsConflict);
+    socket.on('friend-status-changed',handleFriendStatus);
+    socket.on('new-notification',     handleNewNotification);
+    socket.on('player-history',       handlePlayerHistory);
 
     return () => {
-      // NO desconectar el socket aquí para evitar múltiples desconexiones
+      // Remover solo los handlers de este componente (evita memory leaks y closures obsoletas)
+      socket.off('session-created',      handleSessionCreated);
+      socket.off('session-updated',      handleSessionUpdated);
+      socket.off('session-joined',       handleSessionJoined);
+      socket.off('series-finished',      handleSeriesFinished);
+      socket.off('match-cancelled',      handleMatchCancelled);
+      socket.off('session-error',        handleSessionError);
+      socket.off('rps-conflict',         handleRpsConflict);
+      socket.off('friend-status-changed',handleFriendStatus);
+      socket.off('new-notification',     handleNewNotification);
+      socket.off('player-history',       handlePlayerHistory);
       console.log('🧹 Limpieza del hook useWebSocket');
     };
+  }, [sessionId]);
+
+  // Sync periódico de estado cada 10s — safety net para eventos session-updated perdidos
+  // en móvil (cambio de transporte polling→websocket, conexión inestable, etc.)
+  useEffect(() => {
+    if (!sessionId) return;
+    const periodicSync = setInterval(() => {
+      if (socket && socket.connected) {
+        socket.emit('join-session', sessionId);
+      }
+    }, 10000);
+    return () => clearInterval(periodicSync);
   }, [sessionId]);
 
   const createSession = (player1, player2, format) => {

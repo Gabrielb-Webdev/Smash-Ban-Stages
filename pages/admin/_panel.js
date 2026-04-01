@@ -545,11 +545,16 @@ export default function TestAdminPage() {
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const comm = _communitySync();
+    // Wake-up: ping HTTP al servidor para despertarlo si está en cold start (Render free tier)
+    fetch(`${socketUrl}/health`).catch(() => {});
+
     const socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'], // polling primero: más robusto durante cold start
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionDelayMax: 10000,
+      reconnectionAttempts: Infinity,
+      timeout: 30000, // más tiempo para cold start de Render (~30s)
     });
     panelSocketRef.current = socket;
 
