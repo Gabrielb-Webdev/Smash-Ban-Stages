@@ -5,7 +5,7 @@
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament } from '../utils/constants';
+import { CHARACTERS, getStageData, getCharacterData, getStagesForTournament, getSkinCount, getStockIconPath } from '../utils/constants';
 
 // ── Card de espera cuando no es tu turno ───────────────────
 function WaitingTurnCard({ icon, turnPlayerName, action }) {
@@ -139,6 +139,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
   const [hasAskedRepeatStage, setHasAskedRepeatStage] = useState(false);
   const [playerPickHistory, setPlayerPickHistory] = useState([]);
   const [finishedDismissed, setFinishedDismissed] = useState(false);
+  const [skinModal, setSkinModal] = useState(null);
   const isFirstRender = useRef(true);
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
@@ -356,8 +357,20 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     if (session.currentTurn) {
       setClickedItemId(characterId);
       const character = CHARACTERS.find(c => c.id === characterId);
-      setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn });
+      const skinCount = getSkinCount(characterId);
+      if (skinCount <= 1) {
+        setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: character.image, player: session.currentTurn, skin: 1 });
+      } else {
+        setSkinModal({ characterId, characterName: character.name, player: session.currentTurn });
+      }
     }
+  };
+
+  const handleConfirmSkin = (skin) => {
+    if (!skinModal) return;
+    const { characterId, characterName, player } = skinModal;
+    setSkinModal(null);
+    setPendingAction({ type: 'character', characterId, characterName, characterImage: getStockIconPath(characterId, skin), player, skin });
   };
 
   const handleRandomCharacter = () => {
@@ -378,7 +391,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
       case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
-      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, null, session?.matchToken); break;
+      case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin || null, session?.matchToken); break;
       case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer, session?.matchToken); break;
     }
     setPendingAction(null);
@@ -400,16 +413,36 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
 
             {/* Jugadores */}
             <div className="flex items-center gap-2 flex-1">
-              <div className="bg-smash-red/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
-                <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 1</p>
-                <p className="text-white font-bold text-xs sm:text-sm truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.name}</p>
-                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player1.score}</p>
+              <div className="flex items-center gap-1.5 bg-gradient-to-br from-smash-red/50 to-red-900/30 rounded-xl px-2 py-1.5 flex-1 min-w-0 border border-smash-red/40">
+                {session.player1.character && session.player1.character !== 'random' ? (
+                  <img src={getStockIconPath(session.player1.character, session.player1.skin || 1)} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 border-2 border-white/20 shadow-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+                ) : (
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 bg-white/10 border-2 border-white/20 flex items-center justify-center">
+                    <span className="text-white/40 text-[10px] font-bold">P1</span>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-smash-red/80 text-[9px] sm:text-[10px] leading-none uppercase tracking-wide font-bold">Jugador 1</p>
+                  <p className="text-white font-black text-xs sm:text-sm truncate">{session.player1.name}</p>
+                  <p className="text-smash-yellow text-lg sm:text-2xl font-black leading-none">{session.player1.score}</p>
+                </div>
               </div>
-              <div className="text-white text-sm sm:text-lg font-bold px-1" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>VS</div>
-              <div className="bg-smash-blue/30 rounded-lg px-2 py-1.5 flex-1 min-w-0">
-                <p className="text-white/70 text-[10px] sm:text-xs leading-none">Jugador 2</p>
-                <p className="text-white font-bold text-xs sm:text-sm truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.name}</p>
-                <p className="text-smash-yellow text-base sm:text-lg font-bold leading-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{session.player2.score}</p>
+              <div className="flex items-center px-1">
+                <span className="text-white text-sm sm:text-base font-black" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>VS</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-gradient-to-bl from-smash-blue/50 to-blue-900/30 rounded-xl px-2 py-1.5 flex-1 min-w-0 border border-smash-blue/40">
+                {session.player2.character && session.player2.character !== 'random' ? (
+                  <img src={getStockIconPath(session.player2.character, session.player2.skin || 1)} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 border-2 border-white/20 shadow-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+                ) : (
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 bg-white/10 border-2 border-white/20 flex items-center justify-center">
+                    <span className="text-white/40 text-[10px] font-bold">P2</span>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-smash-blue/80 text-[9px] sm:text-[10px] leading-none uppercase tracking-wide font-bold">Jugador 2</p>
+                  <p className="text-white font-black text-xs sm:text-sm truncate">{session.player2.name}</p>
+                  <p className="text-smash-yellow text-lg sm:text-2xl font-black leading-none">{session.player2.score}</p>
+                </div>
               </div>
             </div>
 
@@ -954,52 +987,80 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
 
         {/* ── Playing Phase ── */}
         {session.phase === 'PLAYING' && (
-          <div className="bg-white/10 rounded-xl p-2 sm:p-4 border-2 border-white/30 flex flex-col justify-center">
-            <div className="text-center mb-2 sm:mb-4">
-              <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2">¡EN COMBATE!</h3>
-              <p className="text-white/80 text-sm sm:text-lg font-semibold">Game {session.currentGame}</p>
+          <div className="rounded-2xl overflow-hidden border border-white/20 shadow-2xl" style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 100%)' }}>
+            {/* Header */}
+            <div className="text-center py-3 bg-white/5 border-b border-white/10">
+              <h3 className="text-2xl sm:text-3xl font-black text-white" style={{ textShadow: '0 0 30px rgba(255,255,255,0.3), 2px 2px 0 rgba(0,0,0,0.8)' }}>¡EN COMBATE!</h3>
+              <p className="text-white/50 text-xs uppercase tracking-widest font-semibold">Game {session.currentGame}</p>
             </div>
-            <div className="rounded-xl sm:rounded-2xl p-2 sm:p-4 border-2 border-white/30 bg-white/10">
-              <div className="grid grid-cols-3 gap-2 sm:gap-3 items-center">
-                <div className="text-center space-y-1 sm:space-y-2">
-                  <div className="rounded-lg sm:rounded-xl p-1.5 sm:p-3 border-2 shadow-lg bg-smash-red/40 border-smash-red/80">
-                    <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 1</p>
-                    <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate">{session.player1.name}</p>
-                    <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
-                      <p className="text-smash-yellow text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Personaje</p>
-                      <p className="text-white text-xs sm:text-sm font-bold truncate">{getCharacterData(session.player1.character)?.name || 'N/A'}</p>
-                    </div>
-                  </div>
-                  <div className="rounded-md sm:rounded-lg p-1 sm:p-2 border-2 bg-smash-yellow/20 border-smash-yellow/50">
-                    <p className="text-white/70 text-[10px] sm:text-xs font-semibold">Score</p>
-                    <p className="text-smash-yellow text-xl sm:text-2xl font-black">{session.player1.score}</p>
+            {/* 3 col: P1 | Stage | P2 */}
+            <div className="grid grid-cols-3">
+              {/* Player 1 */}
+              <div className="flex flex-col items-center p-3 border-r border-white/10" style={{ background: 'linear-gradient(160deg, rgba(185,28,28,0.35) 0%, rgba(0,0,0,0) 100%)' }}>
+                <div className="w-full flex items-center justify-between mb-1">
+                  <span className="text-[9px] text-smash-red font-black uppercase tracking-widest">J1</span>
+                  {session.player1.character && session.player1.character !== 'random' && (
+                    <img src={getStockIconPath(session.player1.character, session.player1.skin || 1)} alt="" className="w-6 h-6 rounded-full border border-white/30 shadow-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+                  )}
+                </div>
+                <div className="w-full flex-1 flex items-center justify-center min-h-[80px] sm:min-h-[110px]">
+                  {session.player1.character ? (
+                    session.player1.character === 'random' ? (
+                      <span className="text-5xl sm:text-6xl">❓</span>
+                    ) : (
+                      <img src={getCharacterData(session.player1.character)?.image} alt="" className="w-full max-h-[90px] sm:max-h-[120px] object-contain drop-shadow-2xl" onError={(e) => { e.target.style.display = 'none'; }} />
+                    )
+                  ) : <span className="text-white/20 text-4xl">?</span>}
+                </div>
+                <div className="text-center w-full mt-2">
+                  <p className="text-white font-black text-xs sm:text-sm truncate">{session.player1.name}</p>
+                  <p className="text-white/50 text-[10px] truncate mb-2">{getCharacterData(session.player1.character)?.name || '—'}</p>
+                  <div className="bg-smash-yellow/20 border border-smash-yellow/40 rounded-lg py-1 px-1">
+                    <p className="text-smash-yellow text-2xl sm:text-3xl font-black leading-none">{session.player1.score}</p>
                   </div>
                 </div>
-                <div className="flex flex-col items-center justify-center">
-                  <div className="bg-white/20 rounded-full p-2 sm:p-3 border-2 sm:border-4 border-white/30">
-                    <p className="text-white text-lg sm:text-2xl font-black">VS</p>
-                  </div>
-                  <div className="mt-1 sm:mt-2 bg-white/10 rounded-md sm:rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 border border-white/20">
-                    <p className="text-white text-[10px] sm:text-sm font-semibold truncate">{getStageData(session.selectedStage)?.name || 'Stage'}</p>
-                  </div>
-                </div>
-                <div className="text-center space-y-1 sm:space-y-2">
-                  <div className="rounded-lg sm:rounded-xl p-1.5 sm:p-3 border-2 shadow-lg bg-smash-blue/40 border-smash-blue/80">
-                    <p className="text-white/70 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-semibold">Jugador 2</p>
-                    <p className="text-white font-black text-sm sm:text-xl mb-1 sm:mb-2 truncate">{session.player2.name}</p>
-                    <div className="bg-black/30 rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/20">
-                      <p className="text-smash-yellow text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Personaje</p>
-                      <p className="text-white text-xs sm:text-sm font-bold truncate">{getCharacterData(session.player2.character)?.name || 'N/A'}</p>
+              </div>
+              {/* Center: Stage */}
+              <div className="flex flex-col items-center justify-center p-2 gap-2">
+                {session.selectedStage ? (
+                  <>
+                    <div className="w-full rounded-xl overflow-hidden border-2 border-green-400/60 shadow-lg shadow-green-500/20">
+                      <img src={getStageData(session.selectedStage)?.image} alt="" className="w-full object-cover" style={{ aspectRatio: '16/9' }} onError={(e) => { e.target.style.display = 'none'; }} />
                     </div>
-                  </div>
-                  <div className="rounded-md sm:rounded-lg p-1 sm:p-2 border-2 bg-smash-yellow/20 border-smash-yellow/50">
-                    <p className="text-white/70 text-[10px] sm:text-xs font-semibold">Score</p>
-                    <p className="text-smash-yellow text-xl sm:text-2xl font-black">{session.player2.score}</p>
+                    <p className="text-white/80 text-[10px] sm:text-xs font-black text-center uppercase tracking-wide leading-tight">{getStageData(session.selectedStage)?.name}</p>
+                  </>
+                ) : null}
+                <div className="bg-white/20 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center border-2 sm:border-4 border-white/30">
+                  <span className="text-white font-black text-sm sm:text-lg">VS</span>
+                </div>
+              </div>
+              {/* Player 2 */}
+              <div className="flex flex-col items-center p-3 border-l border-white/10" style={{ background: 'linear-gradient(200deg, rgba(29,78,216,0.35) 0%, rgba(0,0,0,0) 100%)' }}>
+                <div className="w-full flex items-center justify-between mb-1">
+                  {session.player2.character && session.player2.character !== 'random' && (
+                    <img src={getStockIconPath(session.player2.character, session.player2.skin || 1)} alt="" className="w-6 h-6 rounded-full border border-white/30 shadow-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+                  )}
+                  <span className="text-[9px] text-smash-blue font-black uppercase tracking-widest ml-auto">J2</span>
+                </div>
+                <div className="w-full flex-1 flex items-center justify-center min-h-[80px] sm:min-h-[110px]" style={{ transform: 'scaleX(-1)' }}>
+                  {session.player2.character ? (
+                    session.player2.character === 'random' ? (
+                      <span className="text-5xl sm:text-6xl" style={{ transform: 'scaleX(-1)' }}>❓</span>
+                    ) : (
+                      <img src={getCharacterData(session.player2.character)?.image} alt="" className="w-full max-h-[90px] sm:max-h-[120px] object-contain drop-shadow-2xl" onError={(e) => { e.target.style.display = 'none'; }} />
+                    )
+                  ) : <span className="text-white/20 text-4xl" style={{ transform: 'scaleX(-1)' }}>?</span>}
+                </div>
+                <div className="text-center w-full mt-2">
+                  <p className="text-white font-black text-xs sm:text-sm truncate">{session.player2.name}</p>
+                  <p className="text-white/50 text-[10px] truncate mb-2">{getCharacterData(session.player2.character)?.name || '—'}</p>
+                  <div className="bg-smash-yellow/20 border border-smash-yellow/40 rounded-lg py-1 px-1">
+                    <p className="text-smash-yellow text-2xl sm:text-3xl font-black leading-none">{session.player2.score}</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-3">
+            <div className="p-3 border-t border-white/10 bg-white/5">
               <p className="text-white/60 text-xs text-center mb-2 font-semibold uppercase tracking-wider">🏆 ¿Quién ganó el Game {session.currentGame}?</p>
               {/* Si hay propuesta pendiente y soy el otro jugador: confirmar/rechazar */
               session.winnerProposal && myPlayer && session.winnerProposal.proposedBy !== myPlayer ? (
@@ -1262,7 +1323,42 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
           </div>
         )}
 
-        {/* ── Modal: Confirmación de acción ── */}
+        {/* ── Skin Picker Modal ── */}
+        {skinModal && (
+          <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
+            <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl border-4 border-smash-yellow max-w-xs w-full p-4">
+              <div className="text-center mb-4">
+                <img src={getStockIconPath(skinModal.characterId, 1)} alt="" className="w-16 h-16 mx-auto mb-2 rounded-full border-2 border-smash-yellow" onError={(e) => { e.target.style.display = 'none'; }} />
+                <h3 className="text-white font-black text-xl">🎨 Elegir skin</h3>
+                <p className="text-smash-yellow font-bold text-sm">{skinModal.characterName}</p>
+              </div>
+              <div className={`grid gap-2 mb-4 ${getSkinCount(skinModal.characterId) <= 4 ? 'grid-cols-2' : getSkinCount(skinModal.characterId) <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                {Array.from({ length: getSkinCount(skinModal.characterId) }, (_, i) => i + 1).map(skin => {
+                  const otherPlayer = skinModal.player === 'player1' ? 'player2' : 'player1';
+                  const isTaken = session[otherPlayer]?.character === skinModal.characterId && parseInt(session[otherPlayer]?.skin) === skin;
+                  return (
+                    <button
+                      key={skin}
+                      onClick={() => !isTaken && handleConfirmSkin(skin)}
+                      disabled={isTaken}
+                      className={`relative rounded-xl p-1 border-2 touch-manipulation transition-all ${isTaken ? 'border-red-500/50 opacity-40 cursor-not-allowed' : 'border-white/30 active:scale-95 hover:border-smash-yellow'}`}
+                    >
+                      <img src={getStockIconPath(skinModal.characterId, skin)} alt={`Skin ${skin}`} className="w-full aspect-square object-cover rounded-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+                      {isTaken && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-900/60">
+                          <span className="text-red-400 text-2xl">🚫</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => { setSkinModal(null); setClickedItemId(null); }} className="w-full py-3 rounded-xl border border-white/20 text-white/60 font-bold text-sm active:scale-95 touch-manipulation" style={{ background: 'rgba(255,255,255,0.05)', fontFamily: 'inherit' }}>❌ Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Confirmación de acción ── */}}
         {pendingAction && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-4 shadow-2xl border-4 border-smash-yellow max-w-sm w-full">
@@ -1273,8 +1369,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                       <span className="text-white font-black text-3xl" style={{ fontFamily: 'Anton' }}>?</span>
                     </div>
                   ) : pendingAction.type === 'character' && pendingAction.characterImage ? (
-                    <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-yellow p-1 flex items-center justify-center">
-                      <img src={pendingAction.characterImage} alt={pendingAction.characterName} className="w-full h-full object-contain rounded-full" />
+                    <div className="w-16 h-16 bg-white/10 rounded-full border-4 border-smash-yellow overflow-hidden flex items-center justify-center">
+                      <img src={pendingAction.characterImage} alt={pendingAction.characterName} className="w-full h-full object-cover" />
                     </div>
                   ) : (
                     <div className="text-4xl">

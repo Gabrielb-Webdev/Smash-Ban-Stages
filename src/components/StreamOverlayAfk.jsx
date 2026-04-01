@@ -308,6 +308,15 @@ export default function StreamOverlayAfk({ sessionId }) {
                       filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
                     }}
                   />
+                  {/* Stage name label */}
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none ${borderRadius.replace('rounded', 'rounded-b')}`}
+                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)' }}
+                  >
+                    <p style={{ fontFamily: 'Anton', fontSize: isGame1 ? '0.72vw' : '0.58vw', color: '#ffffff', textAlign: 'center', padding: isGame1 ? '0.3vw 0.2vw' : '0.2vw 0.1vw', letterSpacing: '0.02em', textShadow: '1px 1px 2px rgba(0,0,0,0.9)', lineHeight: 1.1 }}>
+                      {stage.name}
+                    </p>
+                  </div>
                   {showBanOverlay && (
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
