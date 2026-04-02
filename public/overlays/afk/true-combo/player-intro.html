@@ -4,29 +4,44 @@
 <meta charset="UTF-8">
 <title>True Combo · Player Intro</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-html { overflow:hidden; background:rgba(6,4,1,0.95); }
+html { overflow:hidden; background:#0a0500; }
 body {
   width:1280px; height:720px;
-  overflow:hidden; background:rgba(6,4,1,0.95);
+  overflow:hidden; background:#0a0500;
   position:relative; font-family:'DM Sans',sans-serif;
+}
+
+/* Stage full-screen background */
+#stage-bg {
+  position:absolute; inset:0; z-index:0;
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  transition:background-image 0.4s;
+}
+#stage-overlay {
+  position:absolute; inset:0; z-index:1;
+  background:rgba(6,4,1,0.52);
+  pointer-events:none;
 }
 
 /* diagonal lines bg */
 .bg-texture {
-  position:absolute; inset:0;
+  position:absolute; inset:0; z-index:2;
   background:repeating-linear-gradient(
     -52deg,
     transparent 0, transparent 26px,
     rgba(240,164,24,0.03) 26px, rgba(240,164,24,0.03) 28px
   );
+  pointer-events:none;
 }
 
 /* corner brackets */
 .corner {
   position:absolute; width:60px; height:60px;
   border-color:rgba(240,164,24,0.45); border-style:solid;
+  z-index:10;
 }
 .tl { top:18px; left:18px; border-width:2px 0 0 2px; }
 .tr { top:18px; right:18px; border-width:2px 2px 0 0; }
@@ -37,6 +52,7 @@ body {
 .match-info {
   position:absolute; top:22px; left:50%; transform:translateX(-50%);
   text-align:center; display:flex; flex-direction:column; gap:3px;
+  z-index:10; white-space:nowrap;
 }
 .match-round {
   font-family:'Anton',sans-serif; font-size:15px; letter-spacing:5px;
@@ -53,6 +69,7 @@ body {
   transform:translate(-50%, -52%);
   display:flex; align-items:center;
   width:1140px; gap:0;
+  z-index:10;
 }
 .player-section {
   flex:1; display:flex; flex-direction:column; align-items:center;
@@ -111,6 +128,7 @@ body {
   display:flex; align-items:center; justify-content:center;
   box-shadow:0 0 40px rgba(240,164,24,0.55), inset 0 0 20px rgba(0,0,0,0.5);
   animation:vspulse 2.2s ease-in-out infinite;
+  z-index:5;
 }
 .vs-txt {
   font-family:'Anton',sans-serif; font-size:36px; letter-spacing:4px;
@@ -125,9 +143,21 @@ body {
 .divider {
   position:absolute; top:50%; width:320px; height:1px;
   background:linear-gradient(90deg, transparent, rgba(240,164,24,0.4), transparent);
+  z-index:5;
 }
 .divider.left  { right:calc(50% + 60px); }
 .divider.right { left:calc(50% + 60px); }
+
+/* Screenshot toast */
+#snap-toast {
+  position:absolute; bottom:28px; right:32px; z-index:100;
+  font-family:'Anton',sans-serif; font-size:11px; letter-spacing:2px;
+  color:rgba(240,164,24,0.95); text-transform:uppercase;
+  background:rgba(6,3,0,0.88); padding:7px 16px; border-radius:5px;
+  border:1px solid rgba(240,164,24,0.35);
+  opacity:0; transition:opacity 0.35s; pointer-events:none;
+}
+#snap-toast.show { opacity:1; }
 
 /* TC banner at bottom */
 .tc-banner {
@@ -144,6 +174,8 @@ body {
 </head>
 <body>
 
+<div id="stage-bg"></div>
+<div id="stage-overlay"></div>
 <div class="bg-texture"></div>
 <div class="corner tl"></div>
 <div class="corner tr"></div>
@@ -175,12 +207,31 @@ body {
   </div>
 </div>
 
-<!-- <div class="tc-banner"></div> -->
+<div id="snap-toast"></div>
 
 <script>
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
 const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
+
+// Stage ID / nombre → archivo en /images/stages/
+const STAGE_BG = {
+  'battlefield':          'Battlefield.png',
+  'final-destination':    'Final Destination.png',
+  'final destination':    'Final Destination.png',
+  'hollow-bastion':       'Hollow Bastion.png',
+  'hollow bastion':       'Hollow Bastion.png',
+  'kalos':                'Kalos.png',
+  'kalos-pokemon-league': 'Kalos.png',
+  'kalos pokemon league': 'Kalos.png',
+  'pokemon-stadium-2':    'Pokemon Stadium 2.png',
+  'pokemon stadium 2':    'Pokemon Stadium 2.png',
+  'small-battlefield':    'Small Battlefield.png',
+  'small battlefield':    'Small Battlefield.png',
+  'smashville':           'Smashville.png',
+  'town-and-city':        'Town and City.png',
+  'town and city':        'Town and City.png',
+};
 
 // Render base (skin 1) por nombre de personaje
 const RENDERS = {
@@ -242,6 +293,58 @@ const RENDER_ALT_FOLDERS = {
   'Young Link':'young_link','Zelda':'zelda','Zero Suit Samus':'zero_suit_samus',
 };
 
+// ── Screenshot ──────────────────────────────────────────────────────────────
+let _lastSig = '', _capScheduled = false;
+
+function showToast(msg, ms) {
+  const t = document.getElementById('snap-toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), ms || 3500);
+}
+
+function buildLabel(d) {
+  const clean = s => (s || '').replace(/[\/\\:*?"<>|#%&{}~]/g, '').replace(/\s+/g, ' ').trim();
+  const torneo  = clean(d.tournamentName || 'True Combo');
+  const j1      = clean(d.p1tag || 'J1');
+  const j2      = clean(d.p2tag || 'J2');
+  const char1   = clean(d.p1char || '');
+  const char2   = clean(d.p2char || '');
+  const ronda   = clean(d.round || '');
+  const fmtMap  = { 3:'Best of 3', 5:'Best of 5', 7:'Best of 7' };
+  const formato = fmtMap[d.format] || ('Best of ' + (d.format || 5));
+  const matchup = (char1 && char2)
+    ? `${j1} (${char1}) vs ${j2} (${char2})`
+    : `${j1} vs ${j2}`;
+  const rondaFmt = ronda ? `${ronda} ${formato}` : formato;
+  return `${torneo} - ${matchup} - ${rondaFmt} - Super Smash Bros Ultimate`;
+}
+
+async function doCapture(label) {
+  if (typeof html2canvas === 'undefined') { showToast('⚠️  html2canvas no cargó'); return; }
+  showToast('📸 Capturando...', 12000);
+  try {
+    const canvas = await html2canvas(document.body, {
+      useCORS: true, allowTaint: false,
+      width: 1280, height: 720,
+      windowWidth: 1280, windowHeight: 720,
+      scale: 1, logging: false,
+    });
+    const filename = (label || 'TC_Intro').slice(0, 220) + '.png';
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showToast('✓ ' + filename);
+  } catch(e) { showToast('⚠️  Error al capturar'); console.error(e); }
+}
+
+// Tecla S = captura manual
+document.addEventListener('keydown', e => {
+  if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    fetch(API).then(r => r.ok ? r.json() : {}).then(d => doCapture(buildLabel(d))).catch(() => doCapture('TC_Intro_manual'));
+  }
+});
+
 // Construye la URL del render con la skin correcta
 // charIconUrl es como "/images/Stock Icons V2/Pikachu/3.png" → skin 3
 function getRenderUrl(charName, charIconUrl, pfx) {
@@ -278,6 +381,19 @@ async function load() {
     const fmtMap = {3:'Best of 3',5:'Best of 5',7:'Best of 7'};
     document.getElementById('format-el').textContent = fmtMap[d.format] || ('Best of '+(d.format||5));
     const pfx = location.pathname.startsWith('/public/') ? '/public' : '';
+
+    // Stage como fondo
+    const stageBgEl = document.getElementById('stage-bg');
+    const stageKey  = (d.stage || '').toLowerCase().trim();
+    const stageFile = STAGE_BG[stageKey] || null;
+    const newBg = stageFile
+      ? `url('${pfx}/images/stages/${encodeURIComponent(stageFile)}')`
+      : '';
+    if (stageBgEl.getAttribute('data-bg') !== newBg) {
+      stageBgEl.setAttribute('data-bg', newBg);
+      stageBgEl.style.backgroundImage = newBg;
+    }
+
     ['p1','p2'].forEach(p => {
       const charName  = p === 'p1' ? d.p1char    : d.p2char;
       const iconUrl   = p === 'p1' ? d.p1charIcon : d.p2charIcon;
@@ -290,14 +406,29 @@ async function load() {
           if (baseFile) renderEl.src = pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
           renderEl.onerror = null;
         };
-        renderEl.src = renderUrl;
+        if (renderEl.getAttribute('data-src') !== renderUrl) {
+          renderEl.setAttribute('data-src', renderUrl);
+          renderEl.src = renderUrl;
+        }
         renderEl.className = 'char-render show';
       } else if (renderEl) {
+        renderEl.removeAttribute('data-src');
         renderEl.src = ''; renderEl.className = 'char-render';
       }
       const seed = d[p+'seed']||'';
       document.getElementById(p+'-seed').textContent = seed ? 'Seed '+seed : '';
     });
+
+    // Auto-captura: game 1, personajes y stage completos, scores en 0-0
+    const sig = [d.tournamentName,d.p1tag,d.p2tag,d.p1char,d.p2char,d.stage,d.round].join('|');
+    const hasAll  = d.p1char && d.p2char && d.stage;
+    const isGame1 = (d.p1score || 0) === 0 && (d.p2score || 0) === 0;
+    if (hasAll && isGame1 && sig !== _lastSig && !_capScheduled) {
+      _lastSig = sig;
+      _capScheduled = true;
+      // 1.5s para que las imágenes terminen de cargar antes de capturar
+      setTimeout(() => { _capScheduled = false; doCapture(buildLabel(d)); }, 1500);
+    }
   } catch(e) {}
 }
 load(); setInterval(load, 500); window.addEventListener('storage', load);

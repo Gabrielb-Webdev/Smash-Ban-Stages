@@ -179,6 +179,19 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
     }).catch(() => {});
   }, [session?.player1?.score, session?.player2?.score, session?.tournamentName, session?.phase]);
 
+  // Sincronizar stage seleccionado con overlay player-intro (solo afk-stream)
+  useEffect(() => {
+    if (!session || sessionId !== 'afk-stream') return;
+    if (!session.selectedStage) return;
+    const stageInfo = getStageData(session.selectedStage);
+    if (!stageInfo?.name) return;
+    fetch('/api/afk/score-state', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage: stageInfo.name }),
+    }).catch(() => {});
+  }, [session?.selectedStage, sessionId]);
+
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
     if (!session) return;
