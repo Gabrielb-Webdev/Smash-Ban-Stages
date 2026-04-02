@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -212,7 +212,8 @@ body {
 <script>
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
-const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
+const API        = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
+const UPLOAD_API = 'https://smash-ban-stages.vercel.app/api/afk/upload-screenshot';
 
 // Stage ID / nombre → archivo en /images/stages/
 const STAGE_BG = {
@@ -334,7 +335,7 @@ async function doCapture(label, stateData) {
     const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
     const tournamentName = (stateData && stateData.tournamentName) ? stateData.tournamentName : '';
     try {
-      const resp = await fetch('/api/afk/upload-screenshot', {
+      const resp = await fetch(UPLOAD_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64, filename, tournamentName }),
