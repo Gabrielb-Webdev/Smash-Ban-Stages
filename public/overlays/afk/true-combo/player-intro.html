@@ -64,9 +64,9 @@ body {
   position:absolute;
   top:50%;
   transform:translateY(-50%);
-  height:380px;
+  height:560px;
   object-fit:contain;
-  opacity:0.9;
+  opacity:0.92;
   pointer-events:none;
   display:none;
   filter:drop-shadow(0 0 30px rgba(0,0,0,0.65));
@@ -80,7 +80,7 @@ body {
 
 /* Logo del torneo bajo la info del match */
 .tc-logo {
-  height:46px; width:auto; margin-top:9px; opacity:0.88; object-fit:contain;
+  height:300px; width:auto; margin-top:-75px; opacity:0.92; object-fit:contain;
 }
 
 .player-name {
@@ -175,12 +175,14 @@ body {
   </div>
 </div>
 
-<div class="tc-banner"></div>
+<!-- <div class="tc-banner"></div> -->
 
 <script>
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
 const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
+
+// Render base (skin 1) por nombre de personaje
 const RENDERS = {
   'Banjo & Kazooie':'Banjo Render SSBU.png','Bayonetta':'Bayonetta.png',
   'Bowser':'Bowser.png','Bowser Jr.':'Bowser Jr..png','Byleth':'Byleth.png',
@@ -212,6 +214,54 @@ const RENDERS = {
   'Zelda':'Zelda.png','Zero Suit Samus':'Zero Suit Samus.png',
 };
 
+// Carpeta de alts por nombre de personaje (para skins 2-8)
+const RENDER_ALT_FOLDERS = {
+  'Banjo & Kazooie':'banjo_and_kazooie','Bayonetta':'bayonetta',
+  'Bowser':'bowser','Bowser Jr.':'bowser_jr','Byleth':'byleth',
+  'Captain Falcon':'captain_falcon','Chrom':'chrom','Cloud':'cloud',
+  'Corrin':'corrin','Daisy':'daisy','Dark Pit':'dark_pit','Dark Samus':'dark_samus',
+  'Diddy Kong':'diddy_kong','Donkey Kong':'donkey_kong','Dr. Mario':'dr_mario',
+  'Duck Hunt':'duck_hunt','Falco':'falco','Fox':'fox','Ganondorf':'ganondorf',
+  'Greninja':'greninja','Hero':'dq_hero','Ice Climbers':'ice_climbers','Ike':'ike',
+  'Incineroar':'incineroar','Inkling':'inkling','Isabelle':'isabelle',
+  'Jigglypuff':'jigglypuff','Joker':'joker','Kazuya':'kazuya','Ken':'ken',
+  'King Dedede':'king_dedede','King K. Rool':'king_k_rool','Kirby':'kirby',
+  'Link':'link','Little Mac':'little_mac','Lucario':'lucario','Lucas':'lucas',
+  'Lucina':'lucina','Luigi':'luigi','Mario':'mario','Marth':'marth',
+  'Mega Man':'mega_man','Meta Knight':'meta_knight','Mewtwo':'mewtwo',
+  'Min Min':'minmin','Mr. Game & Watch':'mr_game_and_watch','Ness':'ness',
+  'Olimar':'olimar','Pac-Man':'pac_man','Palutena':'palutena','Peach':'peach',
+  'Pichu':'pichu','Pikachu':'pikachu','Piranha Plant':'piranha_plant','Pit':'pit',
+  'Pok\u00e9mon Trainer':'pokemon_trainer','Pyra/Mythra':'pyra',
+  'Richter':'richter','Ridley':'ridley','R.O.B.':'rob','Robin':'robin',
+  'Rosalina & Luma':'rosalina_and_luma','Roy':'roy','Ryu':'ryu','Samus':'samus',
+  'Sephiroth':'sephiroth','Sheik':'sheik','Shulk':'shulk','Simon':'simon',
+  'Snake':'snake','Sonic':'sonic','Sora':'sora','Steve':'steve','Terry':'terry',
+  'Toon Link':'toon_link','Villager':'villager','Wario':'wario',
+  'Wii Fit Trainer':'wii_fit_trainer','Wolf':'wolf','Yoshi':'yoshi',
+  'Young Link':'young_link','Zelda':'zelda','Zero Suit Samus':'zero_suit_samus',
+};
+
+// Construye la URL del render con la skin correcta
+// charIconUrl es como "/images/Stock Icons V2/Pikachu/3.png" → skin 3
+function getRenderUrl(charName, charIconUrl, pfx) {
+  if (!charName) return null;
+  const baseFile = RENDERS[charName];
+  if (!baseFile) return null;
+  let skin = 1;
+  if (charIconUrl) {
+    const m = charIconUrl.match(/\/([1-8])\.png/);
+    if (m) skin = parseInt(m[1]) || 1;
+  }
+  if (skin <= 1) {
+    return pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
+  }
+  const folder = RENDER_ALT_FOLDERS[charName];
+  if (!folder) return pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
+  const altFile = folder+'_alt0'+skin+'.png';
+  return pfx+'/images/Render%20SSBU/alts/'+folder+'/'+encodeURIComponent(altFile);
+}
+
 async function load() {
   let d = {};
   try {
@@ -229,11 +279,18 @@ async function load() {
     document.getElementById('format-el').textContent = fmtMap[d.format] || ('Best of '+(d.format||5));
     const pfx = location.pathname.startsWith('/public/') ? '/public' : '';
     ['p1','p2'].forEach(p => {
-      const charName = p === 'p1' ? d.p1char : d.p2char;
-      const renderFile = charName ? RENDERS[charName] : null;
-      const renderEl = document.getElementById(p+'-render');
-      if (renderFile && renderEl) {
-        renderEl.src = pfx+'/images/Render%20SSBU/'+encodeURIComponent(renderFile);
+      const charName  = p === 'p1' ? d.p1char    : d.p2char;
+      const iconUrl   = p === 'p1' ? d.p1charIcon : d.p2charIcon;
+      const renderUrl = getRenderUrl(charName, iconUrl, pfx);
+      const renderEl  = document.getElementById(p+'-render');
+      if (renderUrl && renderEl) {
+        // Fallback a la skin 1 (render base) si el alt no existe
+        renderEl.onerror = () => {
+          const baseFile = RENDERS[charName];
+          if (baseFile) renderEl.src = pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
+          renderEl.onerror = null;
+        };
+        renderEl.src = renderUrl;
         renderEl.className = 'char-render show';
       } else if (renderEl) {
         renderEl.src = ''; renderEl.className = 'char-render';
