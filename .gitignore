@@ -37,6 +37,11 @@ yarn-error.log*
 /google-services.json
 # Firebase Admin SDK keys (NUNCA subir al repo)
 afk-smash-firebase-adminsdk-*.json
+# Google Cloud / Service Account keys
+*-firebase-adminsdk-*.json
+apollo-list-*.json
+*service-account*.json
+*service_account*.json
 
 # TypeScript
 *.tsbuildinfo

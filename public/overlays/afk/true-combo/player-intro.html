@@ -319,9 +319,9 @@ function buildLabel(d) {
   return `${torneo} - ${matchup} - ${rondaFmt} - Super Smash Bros Ultimate`;
 }
 
-async function doCapture(label) {
+async function doCapture(label, stateData) {
   if (typeof html2canvas === 'undefined') { showToast('⚠️  html2canvas no cargó'); return; }
-  showToast('📸 Capturando...', 12000);
+  showToast('📸 Capturando...', 15000);
   try {
     const canvas = await html2canvas(document.body, {
       useCORS: true, allowTaint: false,
@@ -330,18 +330,34 @@ async function doCapture(label) {
       scale: 1, logging: false,
     });
     const filename = (label || 'TC_Intro').slice(0, 220) + '.png';
+    // Intentar subir a Google Drive
+    const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
+    const tournamentName = (stateData && stateData.tournamentName) ? stateData.tournamentName : '';
+    try {
+      const resp = await fetch('/api/afk/upload-screenshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, filename, tournamentName }),
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        showToast('☁️ Drive: ' + (json.name || filename));
+        return;
+      }
+    } catch (_) { /* fallback a descarga local */ }
+    // Fallback: descarga local si Drive falla
     const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
+    a.href = 'data:image/png;base64,' + base64;
     a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    showToast('✓ ' + filename);
+    showToast('💾 ' + filename);
   } catch(e) { showToast('⚠️  Error al capturar'); console.error(e); }
 }
 
 // Tecla S = captura manual
 document.addEventListener('keydown', e => {
   if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    fetch(API).then(r => r.ok ? r.json() : {}).then(d => doCapture(buildLabel(d))).catch(() => doCapture('TC_Intro_manual'));
+    fetch(API).then(r => r.ok ? r.json() : {}).then(d => doCapture(buildLabel(d), d)).catch(() => doCapture('TC_Intro_manual', {}));
   }
 });
 
@@ -427,7 +443,7 @@ async function load() {
       _lastSig = sig;
       _capScheduled = true;
       // 1.5s para que las imágenes terminen de cargar antes de capturar
-      setTimeout(() => { _capScheduled = false; doCapture(buildLabel(d)); }, 1500);
+      setTimeout(() => { _capScheduled = false; doCapture(buildLabel(d), d); }, 1500);
     }
   } catch(e) {}
 }

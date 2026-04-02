@@ -12,6 +12,7 @@
     "@g-loot/react-tournament-brackets": "^1.0.31-rc",
     "@upstash/redis": "^1.37.0",
     "framer-motion": "^10.16.0",
+    "googleapis": "^171.4.0",
     "next": "^14.0.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
