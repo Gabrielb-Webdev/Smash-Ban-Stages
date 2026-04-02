@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>True Combo · Player Intro</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 html { overflow:hidden; background:#0a0500; }
@@ -148,17 +147,6 @@ body {
 .divider.left  { right:calc(50% + 60px); }
 .divider.right { left:calc(50% + 60px); }
 
-/* Screenshot toast */
-#snap-toast {
-  position:absolute; bottom:28px; right:32px; z-index:100;
-  font-family:'Anton',sans-serif; font-size:11px; letter-spacing:2px;
-  color:rgba(240,164,24,0.95); text-transform:uppercase;
-  background:rgba(6,3,0,0.88); padding:7px 16px; border-radius:5px;
-  border:1px solid rgba(240,164,24,0.35);
-  opacity:0; transition:opacity 0.35s; pointer-events:none;
-}
-#snap-toast.show { opacity:1; }
-
 /* TC banner at bottom */
 .tc-banner {
   position:absolute; bottom:0; left:0; right:0;
@@ -207,13 +195,10 @@ body {
   </div>
 </div>
 
-<div id="snap-toast"></div>
-
 <script>
 !function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
 
-const API        = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
-const UPLOAD_API = 'https://smash-ban-stages.vercel.app/api/afk/upload-screenshot';
+const API = 'https://smash-ban-stages.vercel.app/api/afk/score-state';
 
 // Stage ID / nombre → archivo en /images/stages/
 const STAGE_BG = {
@@ -294,74 +279,6 @@ const RENDER_ALT_FOLDERS = {
   'Young Link':'young_link','Zelda':'zelda','Zero Suit Samus':'zero_suit_samus',
 };
 
-// ── Screenshot ──────────────────────────────────────────────────────────────
-let _lastSig = '', _capScheduled = false;
-
-function showToast(msg, ms) {
-  const t = document.getElementById('snap-toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), ms || 3500);
-}
-
-function buildLabel(d) {
-  const clean = s => (s || '').replace(/[\/\\:*?"<>|#%&{}~]/g, '').replace(/\s+/g, ' ').trim();
-  const torneo  = clean(d.tournamentName || 'True Combo');
-  const j1      = clean(d.p1tag || 'J1');
-  const j2      = clean(d.p2tag || 'J2');
-  const char1   = clean(d.p1char || '');
-  const char2   = clean(d.p2char || '');
-  const ronda   = clean(d.round || '');
-  const fmtMap  = { 3:'Best of 3', 5:'Best of 5', 7:'Best of 7' };
-  const formato = fmtMap[d.format] || ('Best of ' + (d.format || 5));
-  const matchup = (char1 && char2)
-    ? `${j1} (${char1}) vs ${j2} (${char2})`
-    : `${j1} vs ${j2}`;
-  const rondaFmt = ronda ? `${ronda} ${formato}` : formato;
-  return `${torneo} - ${matchup} - ${rondaFmt} - Super Smash Bros Ultimate`;
-}
-
-async function doCapture(label, stateData) {
-  if (typeof html2canvas === 'undefined') { showToast('⚠️  html2canvas no cargó'); return; }
-  showToast('📸 Capturando...', 15000);
-  try {
-    const canvas = await html2canvas(document.body, {
-      useCORS: true, allowTaint: false,
-      width: 1280, height: 720,
-      windowWidth: 1280, windowHeight: 720,
-      scale: 1, logging: false,
-    });
-    const filename = (label || 'TC_Intro').slice(0, 220) + '.png';
-    // Intentar subir a Google Drive
-    const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
-    const tournamentName = (stateData && stateData.tournamentName) ? stateData.tournamentName : '';
-    try {
-      const resp = await fetch(UPLOAD_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, filename, tournamentName }),
-      });
-      if (resp.ok) {
-        const json = await resp.json();
-        showToast('☁️ Drive: ' + (json.name || filename));
-        return;
-      }
-    } catch (_) { /* fallback a descarga local */ }
-    // Fallback: descarga local si Drive falla
-    const a = document.createElement('a');
-    a.href = 'data:image/png;base64,' + base64;
-    a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    showToast('💾 ' + filename);
-  } catch(e) { showToast('⚠️  Error al capturar'); console.error(e); }
-}
-
-// Tecla S = captura manual
-document.addEventListener('keydown', e => {
-  if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    fetch(API).then(r => r.ok ? r.json() : {}).then(d => doCapture(buildLabel(d), d)).catch(() => doCapture('TC_Intro_manual', {}));
-  }
-});
-
 // Construye la URL del render con la skin correcta
 // charIconUrl es como "/images/Stock Icons V2/Pikachu/3.png" → skin 3
 function getRenderUrl(charName, charIconUrl, pfx) {
@@ -435,17 +352,6 @@ async function load() {
       const seed = d[p+'seed']||'';
       document.getElementById(p+'-seed').textContent = seed ? 'Seed '+seed : '';
     });
-
-    // Auto-captura: game 1, personajes y stage completos, scores en 0-0
-    const sig = [d.tournamentName,d.p1tag,d.p2tag,d.p1char,d.p2char,d.stage,d.round].join('|');
-    const hasAll  = d.p1char && d.p2char && d.stage;
-    const isGame1 = (d.p1score || 0) === 0 && (d.p2score || 0) === 0;
-    if (hasAll && isGame1 && sig !== _lastSig && !_capScheduled) {
-      _lastSig = sig;
-      _capScheduled = true;
-      // 1.5s para que las imágenes terminen de cargar antes de capturar
-      setTimeout(() => { _capScheduled = false; doCapture(buildLabel(d), d); }, 1500);
-    }
   } catch(e) {}
 }
 load(); setInterval(load, 500); window.addEventListener('storage', load);
