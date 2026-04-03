@@ -1465,9 +1465,7 @@ export default function TestAdminPage() {
   const setupsPendingCall = SETUPS.filter(s => assignedSets[s.id] && !assignedSets[s.id]?.sessionId);
 
   async function callAllAssigned() {
-    for (const setup of setupsPendingCall) {
-      await callMatch(setup.id);
-    }
+    await Promise.all(setupsPendingCall.map(setup => callMatch(setup.id)));
   }
 
   if (checking) return (

@@ -133,8 +133,14 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.errors) {
-      console.error('⚠️ start.gg API error:', JSON.stringify(data.errors));
-      return res.status(400).json({ error: data.errors[0]?.message || 'Error de start.gg', details: data.errors });
+      // Si hay datos válidos junto con los errores, start.gg procesó la mutation exitosamente
+      // (envía warnings como errors). Loguear como advertencia y continuar.
+      if (data.data?.reportBracketSet) {
+        console.warn('⚠️ start.gg warnings (mutation ok):', JSON.stringify(data.errors));
+      } else {
+        console.error('⚠️ start.gg API error:', JSON.stringify(data.errors));
+        return res.status(400).json({ error: data.errors[0]?.message || 'Error de start.gg', details: data.errors });
+      }
     }
 
     const raw = data.data?.reportBracketSet;
