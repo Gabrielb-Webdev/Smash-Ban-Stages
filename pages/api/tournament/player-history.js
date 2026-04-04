@@ -7,8 +7,14 @@
 
 import redis from '../../../lib/redis';
 
+function stripTeamTag(name) {
+  const s = String(name || '');
+  const idx = s.indexOf(' | ');
+  return idx !== -1 ? s.slice(idx + 3) : s;
+}
+
 function tournamentHistoryKey(name) {
-  return `tournament:history:${(name || '').toLowerCase().trim().replace(/\s+/g, '_')}`;
+  return `tournament:history:${stripTeamTag(name).toLowerCase().trim().replace(/\s+/g, '_')}`;
 }
 
 function sanitize(s) {

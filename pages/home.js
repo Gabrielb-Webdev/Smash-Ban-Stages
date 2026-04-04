@@ -7993,7 +7993,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           : (user?.stats?.[plat] || {});
         const rankName = statsObj.rank;
         const rankRR   = statsObj.rankPoints;
-        const rankObj  = rankName ? RANKS.find(r => r.name === rankName) : null;
+        const rankObj  = !statsObj.placementDone ? null : (rankName ? RANKS.find(r => r.name === rankName) : null);
         const inPlacement = statsObj.wins > 0 && !statsObj.placementDone;
         if (!rankObj && !inPlacement) return null;
         return (
@@ -8002,7 +8002,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tu rango — {plat === 'switch' ? 'Switch' : 'Parsec'}{is2v2mode ? ' 2v2' : ''}</p>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: rankObj ? rankObj.color : '#FF8C00' }}>
-                {inPlacement && !rankObj ? 'Posicionamiento' : rankObj?.name}
+                {inPlacement ? 'Posicionamiento' : rankObj?.name}
                 {rankObj && typeof rankRR === 'number' ? <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{rankRR} RP</span> : null}
               </p>
             </div>
