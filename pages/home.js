@@ -126,12 +126,20 @@ const TOUR_STEPS = [
   },
 ];
 
+const VALID_TABS = ['rankings', 'torneos', 'tips', 'match', 'amigos', 'perfil'];
+
+function getInitialTab() {
+  if (typeof window === 'undefined') return 'rankings';
+  const hash = window.location.hash.replace('#', '');
+  return VALID_TABS.includes(hash) ? hash : 'rankings';
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCommunities, setAdminCommunities] = useState([]);
-  const [tab, setTab]         = useState('rankings');
+  const [tab, setTab]         = useState(getInitialTab);
   const [pendingFriendTab, setPendingFriendTab] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [notifs, setNotifs]       = useState([]);
@@ -602,6 +610,32 @@ export default function HomePage() {
     if (validTabs.includes(open)) setTab(open);
     router.replace('/home', undefined, { shallow: true });
   }, [user, router.isReady]);
+
+  // Sincronizar tab → URL hash (para que F5 restaure el tab actual)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const newHash = '#' + tab;
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(null, '', newHash);
+    }
+  }, [tab]);
+
+  // Capturar el botón "atrás" del navegador/gesto del celu → cambiar tab en vez de salir
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPopState = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (VALID_TABS.includes(hash)) {
+        setTab(hash);
+      } else {
+        // Si no hay hash válido, volver a rankings y restaurar el hash
+        setTab('rankings');
+        window.history.replaceState(null, '', '#rankings');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Escuchar postMessage del Service Worker (fallback para navegadores sin client.navigate)
   useEffect(() => {
@@ -2817,6 +2851,25 @@ function TabAmigos({ user, setNotifs }) {
       })
       .catch(() => setProfileLoading(false));
   };
+
+  // Navegación nativa: pushState al abrir perfil de amigo, popstate para volver
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (viewProfile) {
+      window.history.pushState({ friendProfile: viewProfile.userId }, '', window.location.href);
+    }
+  }, [viewProfile?.userId]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPop = () => {
+      if (viewProfile) {
+        setViewProfile(null);
+        setProfileData(null);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [viewProfile]);
 
   if (!user || !uid) return null;
 
@@ -6113,6 +6166,27 @@ function TabTips() {
   const handleEditTip = (updated) => {
     setTips(prev => prev.map(t => t.id === updated.id ? updated : t));
   };
+
+  // Navegación nativa: pushState al entrar al detalle, popstate para volver
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (selected) {
+      window.history.pushState({ tipsDetail: selected }, '', window.location.href);
+    }
+  }, [selected]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPop = (e) => {
+      if (selected) {
+        setSelected(null);
+        setShowForm(false);
+        setTips([]);
+        setSubmitResult(null);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [selected]);
 
   if (selected) {
     const imgSrc = `/images/characters/${encodeURIComponent(selected.replace(/\.$/, ''))}.png`;
