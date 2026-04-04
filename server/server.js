@@ -1672,11 +1672,35 @@ io.on('connection', (socket) => {
   socket.on('panel:state-update', ({ community, state }) => {
     if (!community || !state) return;
     const room = `panel:${community}`;
-    socket.to(room).emit('panel:state-update', { state });
-    // Actualizar estado en memoria y Redis
-    const merged = { ...(panelStates.get(community) || {}), ...state };
+    const prev = panelStates.get(community) || {};
+
+    // Merge inteligente de assignedSets: preservar entries con sessionId activa
+    // a menos que el cliente envíe forceResetAssigned: true (cierre intencional de torneo)
+    let mergedAssignedSets = state.assignedSets;
+    if (state.assignedSets !== undefined && !state.forceResetAssigned) {
+      const prevAssigned = prev.assignedSets || {};
+      const activeFromPrev = Object.fromEntries(
+        Object.entries(prevAssigned).filter(([, set]) => set?.sessionId)
+      );
+      // Los entries activos del estado anterior tienen prioridad sobre el reset vacío
+      mergedAssignedSets = { ...state.assignedSets, ...activeFromPrev };
+    } else if (state.forceResetAssigned) {
+      mergedAssignedSets = {};
+    }
+
+    // Construir el estado mergeado final (sin persistir forceResetAssigned)
+    const { forceResetAssigned: _drop, ...stateToMerge } = state;
+    const merged = {
+      ...prev,
+      ...stateToMerge,
+      ...(mergedAssignedSets !== undefined ? { assignedSets: mergedAssignedSets } : {}),
+    };
     panelStates.set(community, merged);
     redisPanelStateSet(community, merged);
+
+    // Broadcast el estado ya mergeado (no el payload crudo) para que todos los clientes
+    // reciban la versión consistente incluyendo los matches activos preservados
+    socket.to(room).emit('panel:state-update', { state: merged });
     console.log(`🔄 Panel state sync [${community}]:`, Object.keys(state).join(', '));
   });
 

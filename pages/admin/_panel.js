@@ -806,7 +806,7 @@ export default function TestAdminPage() {
       localStorage.removeItem(lsk('selectedEventId', community));
       localStorage.removeItem(lsk('phaseStarted', community));
     } catch {}
-    emitPanelState({ selectedSlug: '', selectedPhaseGroupId: '', selectedBracketUrl: '', selectedEventId: null, phaseStarted: false, assignedSets: {} });
+    emitPanelState({ selectedSlug: '', selectedPhaseGroupId: '', selectedBracketUrl: '', selectedEventId: null, phaseStarted: false, assignedSets: {}, forceResetAssigned: true });
   }
 
   async function finishTournament() {
@@ -1025,6 +1025,10 @@ export default function TestAdminPage() {
   function confirmPhaseGroup(slug, pgId, eventId) {
     const pgIdStr = String(pgId);
     const evIdStr = String(eventId);
+    // Preservar matches activos al cambiar de torneo/pool desde el picker
+    const activeMatches = Object.fromEntries(
+      Object.entries(assignedSets).filter(([, set]) => set?.sessionId)
+    );
     setSelectedSlug(slug);
     setSelectedPhaseGroupId(pgIdStr);
     setSelectedEventId(evIdStr);
@@ -1032,7 +1036,7 @@ export default function TestAdminPage() {
     setTournament(null);
     setBracketSets([]);
     setBracketLoading(true);   // mostrar spinner inmediatamente
-    setAssignedSets({});
+    setAssignedSets(activeMatches);
     setEntrants([]);
     setTourPickerOpen(false);
     // Extraer todos los phase groups disponibles para el dropdown de pools
@@ -1076,7 +1080,7 @@ export default function TestAdminPage() {
       selectedEventId: evIdStr,
       selectedBracketUrl: `https://www.start.gg/${slug}`,
       phaseStarted: false,
-      assignedSets: {},
+      assignedSets: activeMatches,
       allPhaseGroups: computedGroups,
       setupFormats,
     });
@@ -1085,10 +1089,14 @@ export default function TestAdminPage() {
   function switchPool(newPgId) {
     const pg = allPhaseGroups.find(p => p.id === newPgId);
     if (!pg || newPgId === selectedPhaseGroupId) return;
+    // Preservar matches que ya están activos (tienen sessionId) al cambiar de pool
+    const activeMatches = Object.fromEntries(
+      Object.entries(assignedSets).filter(([, set]) => set?.sessionId)
+    );
     setSelectedPhaseGroupId(newPgId);
     setBracketSets([]);
     setBracketLoading(true);
-    setAssignedSets({});
+    setAssignedSets(activeMatches);
     if (pg.eventId && pg.eventId !== selectedEventId) setSelectedEventId(pg.eventId);
     fetch(`/api/tournaments/bracket?phaseGroupId=${newPgId}`)
       .then(r => r.json())
@@ -1099,7 +1107,7 @@ export default function TestAdminPage() {
         .then(r => r.json())
         .then(d => { if (d.entrants) setEntrants(d.entrants); });
     }
-    emitPanelState({ selectedPhaseGroupId: newPgId, selectedEventId: pg.eventId || selectedEventId, assignedSets: {} });
+    emitPanelState({ selectedPhaseGroupId: newPgId, selectedEventId: pg.eventId || selectedEventId, assignedSets: activeMatches });
   }
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;

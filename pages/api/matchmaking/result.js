@@ -105,8 +105,6 @@ export default async function handler(req, res) {
         match.bans = {};
         match.banPhase = 'winner_ban';
         match.pendingResult = null;
-        match.interGameCharPick  = {};
-        match.interGameCharReady = false;
         const roomCode = await redis.get(`mm:user:room:${cleanReporter}`);
         if (roomCode) {
           const room = await redis.get(`mm:room:${roomCode}`);
@@ -118,9 +116,7 @@ export default async function handler(req, res) {
             room.bans = {};
             room.banPhase = 'winner_ban';
             room.stage = null;
-            room.banTurnStartedAt = null; // no empieza hasta que ambos elijan personaje
-            room.interGameCharPick  = {};
-            room.interGameCharReady = false;
+            room.banTurnStartedAt = null; // se inicia en el próximo poll del GET
             await redis.set(`mm:room:${roomCode}`, room);
           }
         }
