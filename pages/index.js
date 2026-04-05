@@ -20,6 +20,7 @@ export default function Home() {
   const [featuredOpen, setFeaturedOpen]           = useState(false);
   const [featuredPreview, setFeaturedPreview]     = useState(null);
   const [featuredPreviewLoading, setFeaturedPreviewLoading] = useState(false);
+  const [markCompleting, setMarkCompleting]       = useState({});
 
   useEffect(() => {
     verifySession().then(data => {
@@ -188,6 +189,26 @@ export default function Home() {
       }
     } catch { alert('Error de conexión'); }
     setFeaturedAdding(false);
+  }
+
+  async function markTournamentComplete(slug) {
+    if (markCompleting[slug]) return;
+    setMarkCompleting(prev => ({ ...prev, [slug]: true }));
+    try {
+      const r = await fetch('/api/tournaments/mark-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setFeaturedTours(prev => prev.map(t => t.slug === slug ? { ...t, state: 3, stateLabel: 'COMPLETED' } : t));
+        setSyncedTours(prev => prev.map(t => t.slug === slug ? { ...t, state: 3, stateLabel: 'COMPLETED' } : t));
+      } else {
+        alert(d.error || 'Error al terminar el torneo');
+      }
+    } catch { alert('Error de conexión'); }
+    setMarkCompleting(prev => ({ ...prev, [slug]: false }));
   }
 
   async function removeFeaturedFromIndex(slug) {
@@ -501,6 +522,14 @@ export default function Home() {
                             title={isHidden ? 'Mostrar en la app' : 'Ocultar de la app'}
                             style={{ background: isHidden ? 'rgba(34,197,94,0.1)' : 'rgba(100,100,100,0.1)', border: `1px solid ${isHidden ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '5px 9px', color: isHidden ? '#4ade80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
                           >{isHidden ? '👁' : '🙈'}</button>
+                          {t.state !== 3 && t.state !== 4 && (
+                            <button
+                              onClick={() => markTournamentComplete(t.slug)}
+                              disabled={!!markCompleting[t.slug]}
+                              title="Marcar como terminado"
+                              style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '5px 9px', color: '#FBBF24', cursor: 'pointer', fontSize: 13, flexShrink: 0, opacity: markCompleting[t.slug] ? 0.5 : 1 }}
+                            >{markCompleting[t.slug] ? '...' : '🏁'}</button>
+                          )}
                           <button
                             onClick={() => removeFeaturedFromIndex(t.slug)}
                             title="Eliminar"
@@ -532,6 +561,14 @@ export default function Home() {
                             title={isHidden ? 'Mostrar en la app' : 'Ocultar de la app'}
                             style={{ background: isHidden ? 'rgba(34,197,94,0.1)' : 'rgba(100,100,100,0.1)', border: `1px solid ${isHidden ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '5px 9px', color: isHidden ? '#4ade80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
                           >{isHidden ? '👁' : '🙈'}</button>
+                          {t.state !== 3 && t.state !== 4 && (
+                            <button
+                              onClick={() => markTournamentComplete(t.slug)}
+                              disabled={!!markCompleting[t.slug]}
+                              title="Marcar como terminado"
+                              style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '5px 9px', color: '#FBBF24', cursor: 'pointer', fontSize: 13, flexShrink: 0, opacity: markCompleting[t.slug] ? 0.5 : 1 }}
+                            >{markCompleting[t.slug] ? '...' : '🏁'}</button>
+                          )}
                         </div>
                       );
                     })}
