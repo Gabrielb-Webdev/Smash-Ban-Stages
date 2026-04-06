@@ -59,6 +59,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'El ganador reportado no es jugador de este match' });
   }
 
+  // Si el match ya terminó, devolver el resultado final sin crear un nuevo ciclo
+  if (match.status === 'finished') {
+    return res.status(200).json({
+      success: true,
+      matchStatus: 'finished',
+      result: match.result,
+      rpDelta: match.result?.rpDelta ?? undefined,
+      loserRpDelta: match.result?.loserRpDelta ?? undefined,
+      winnerRankChange: match.result?.winnerRankChange ?? undefined,
+      loserRankChange: match.result?.loserRankChange ?? undefined,
+    });
+  }
+
   // ── Confirm / Deny flow ─────────────────────────────────
   const { action: resultAction } = req.body || {};
 
@@ -465,13 +478,12 @@ async function applyFinishedStats(match, matchId) {
     if (roomCode) {
       const roomObj = await redis.get(`mm:room:${roomCode}`);
       if (roomObj) {
-        // Actualizar result en la room con datos de RP
-        if (roomObj.result) {
-          roomObj.result.rpDelta          = result.winner.rrDelta;
-          roomObj.result.loserRpDelta     = result.loser.rrDelta;
-          roomObj.result.winnerRankChange = result.winner.rankChange;
-          roomObj.result.loserRankChange  = result.loser.rankChange;
-        }
+        roomObj.status = 'finished'; // marcar la room como terminada
+        if (!roomObj.result) roomObj.result = {}; // inicializar si no existe
+        roomObj.result.rpDelta          = result.winner.rrDelta;
+        roomObj.result.loserRpDelta     = result.loser.rrDelta;
+        roomObj.result.winnerRankChange = result.winner.rankChange;
+        roomObj.result.loserRankChange  = result.loser.rankChange;
         await redis.set(`mm:room:${roomCode}`, roomObj, { ex: RESULT_TTL });
       }
       // El user→room key expira en 5 min (no se borra inmediato)
