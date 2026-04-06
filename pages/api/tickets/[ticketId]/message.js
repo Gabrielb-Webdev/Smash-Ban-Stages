@@ -1,7 +1,7 @@
 // POST /api/tickets/[ticketId]/message — Enviar mensaje en un ticket
 
-import redis, { ticketKey } from '../../../../../lib/redis';
-import { getTicketUser, canManageTickets } from '../../../../../lib/ticketAuth';
+import redis, { ticketKey } from '../../../../lib/redis';
+import { getTicketUser, canManageTickets } from '../../../../lib/ticketAuth';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

@@ -12,9 +12,9 @@ import redis, {
   ticketKey, ticketsOpenKey, matchHistoryKey,
   rankedStatsKey, rankedBoardKey, charStatsKey, charBoardKey,
   smasherBoardKey, smasherPoolKey,
-} from '../../../../../lib/redis';
-import { getTicketUser, canManageTickets } from '../../../../../lib/ticketAuth';
-import { processMatchResult, leaderboardScore, getRankIndex, RANKS, PLACEMENT_MATCHES, MMR_DEFAULT } from '../../../../../lib/ranks';
+} from '../../../../lib/redis';
+import { getTicketUser, canManageTickets } from '../../../../lib/ticketAuth';
+import { processMatchResult, leaderboardScore, getRankIndex, RANKS, PLACEMENT_MATCHES, MMR_DEFAULT } from '../../../../lib/ranks';
 
 const SMASHER_IDX = RANKS.length - 1;
 
