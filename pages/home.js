@@ -7302,57 +7302,112 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     const finalLoserRpDelta     = matchLoserRpDelta     ?? matchData?.result?.loserRpDelta     ?? null;
     const finalWinnerRankChange = matchWinnerRankChange ?? matchData?.result?.winnerRankChange ?? null;
     const finalLoserRankChange  = matchLoserRankChange  ?? matchData?.result?.loserRankChange  ?? null;
-    const winnerPlayerData = matchData.result.winnerId === matchData.host?.userId ? matchData.host : matchData.guest;
-    const winnerCharData = CHARACTERS.find(c => c.id === winnerPlayerData?.charId);
-    const winnerCharAlt  = winnerPlayerData?.charAlt || 1;
+    const myRpDelta    = iWon ? finalRpDelta : finalLoserRpDelta;
+    const myRankChange = iWon ? finalWinnerRankChange : finalLoserRankChange;
+    // Player data (perspectiva propia)
+    const myPlayerData  = matchData.host?.userId === uid ? matchData.host  : matchData.guest;
+    const oppPlayerData = matchData.host?.userId === uid ? matchData.guest : matchData.host;
+    // Imagen de personaje con skin seleccionada
+    const getCharSkin = (pData) => {
+      const cObj = CHARACTERS.find(c => c.id === pData?.charId);
+      if (!cObj?.alts?.length) return cObj ? charImgPath(cObj.img) : null;
+      const idx = Math.max(0, Math.min((parseInt(pData?.charAlt) || 1) - 1, cObj.alts.length - 1));
+      return `/images/characters/${cObj.alts[idx]}`;
+    };
+    const myCharImg  = getCharSkin(myPlayerData);
+    const oppCharImg = getCharSkin(oppPlayerData);
+    // Stage background (último escenario jugado)
+    const finishedGames = matchData.result?.games || [];
+    const lastStageName = finishedGames.length
+      ? (finishedGames[finishedGames.length - 1]?.result?.stage || finishedGames[finishedGames.length - 1]?.stage)
+      : matchData.stage;
+    const stageBgUrl = lastStageName ? `/images/stages/${encodeURIComponent(String(lastStageName))}.png` : null;
+    // Score BO3
+    const myFinScore  = matchData.result?.score?.[uid] ?? 0;
+    const oppFinId    = oppPlayerData?.userId;
+    const oppFinScore = oppFinId ? (matchData.result?.score?.[String(oppFinId)] ?? matchData.result?.score?.[oppFinId] ?? 0) : 0;
     return (
-      <div style={{ padding: '24px 18px' }}>
-        <button onClick={dismissResult} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 24 }}>
-          <Svg size={18} sw={2}>{ICO.back}</Svg> Nueva partida
-        </button>
-        <div style={{ textAlign: 'center', padding: '32px 16px', background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06))' : 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06))', border: '1px solid ' + (iWon ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'), borderRadius: 24, marginBottom: 16 }}>
-          <div style={{ fontSize: 56, marginBottom: 12 }}>{iWon ? '🏆' : '💀'}</div>
-          {isCasualFinished && <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚔️ Partida Normal</p>}
-          <p style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? (is2v2Finished ? '¡Ganaron!' : '¡Ganaste!') : (is2v2Finished ? 'Perdieron' : 'Perdiste')}</p>
-          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
-          {stocks && (
-            <div style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              {Array.from({ length: stocks }, (_, i) => winnerCharData ? <img key={i} src={stockIconPath(winnerCharData, winnerCharAlt)} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} /> : <span key={i}>❤️</span>)}
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>{stocks} stock{stocks > 1 ? 's' : ''} de ventaja</span>
-            </div>
+      <div style={{ paddingBottom: 32 }}>
+        {/* Botón volver */}
+        <div style={{ padding: '16px 18px 4px' }}>
+          <button onClick={dismissResult} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>
+            <Svg size={18} sw={2}>{ICO.back}</Svg> Nueva partida
+          </button>
+        </div>
+        {/* Hero: escenario de fondo + personajes */}
+        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 240 }}>
+          {stageBgUrl && (
+            <img src={stageBgUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(4px) brightness(0.28)', transform: 'scale(1.1)' }} onError={e => { e.target.style.display = 'none'; }} />
           )}
-          {!isCasualFinished && iWon && finalRpDelta != null && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)' }}>
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#34D399' }}>+{finalRpDelta} RP</span>
-            </div>
-          )}
-          {!isCasualFinished && !iWon && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#EF4444' }}>{finalLoserRpDelta != null ? finalLoserRpDelta : -10} RP</span>
-            </div>
-          )}
-          {/* Bo3 Games Summary */}
-          {matchData.format === 'bo3' && matchData.result?.games?.length > 0 && (
-            <div style={{ marginTop: 16, textAlign: 'left', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '10px 14px' }}>
-              <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                Score: {matchData.result.score?.[uid] || 0} — {matchData.result.score?.[Object.keys(matchData.result.score || {}).find(k => k !== uid)] || 0}
-              </p>
-              {matchData.result.games.map(g => {
+          <div style={{ position: 'absolute', inset: 0, background: iWon ? 'linear-gradient(180deg,rgba(52,211,153,0.18) 0%,rgba(0,0,0,0.65) 100%)' : 'linear-gradient(180deg,rgba(239,68,68,0.22) 0%,rgba(0,0,0,0.7) 100%)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: iWon ? 'linear-gradient(90deg,transparent,#34D399,transparent)' : 'linear-gradient(90deg,transparent,#EF4444,transparent)' }} />
+          <div style={{ position: 'relative', zIndex: 1, padding: '20px 16px 18px', textAlign: 'center' }}>
+            {isCasualFinished && <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Partida Normal</p>}
+            <p style={{ margin: '0 0 2px', fontSize: 30, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', textShadow: `0 0 28px ${iWon ? 'rgba(52,211,153,0.6)' : 'rgba(239,68,68,0.6)'}` }}>
+              {iWon ? (is2v2Finished ? '¡Ganaron! 🏆' : '¡Ganaste! 🏆') : (is2v2Finished ? 'Perdieron 💀' : 'Perdiste 💀')}
+            </p>
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
+            {/* Personajes con skins */}
+            {!is2v2Finished && (
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                {/* Mi personaje */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  {myCharImg
+                    ? <img src={myCharImg} alt="" style={{ width: 92, height: 92, objectFit: 'contain', filter: iWon ? 'drop-shadow(0 0 16px rgba(52,211,153,0.7))' : 'grayscale(30%) brightness(0.8)', transform: iWon ? 'scale(1.08)' : 'scale(0.93)', transition: 'all 0.3s' }} onError={e => { e.target.style.display = 'none'; }} />
+                    : <div style={{ width: 92, height: 92 }} />}
+                  <span style={{ fontSize: 11, fontWeight: 800, color: iWon ? '#34D399' : 'rgba(255,255,255,0.45)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myPlayerData?.userName || 'Yo'}</span>
+                </div>
+                {/* Centro: score / VS + RP */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, paddingBottom: 24, minWidth: 68 }}>
+                  {matchData.format === 'bo3' ? (
+                    <span style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+                      <span style={{ color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? myFinScore : oppFinScore}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 5px', fontSize: 18 }}>-</span>
+                      <span style={{ color: !iWon ? '#34D399' : '#EF4444' }}>{iWon ? oppFinScore : myFinScore}</span>
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.35)' }}>VS</span>
+                  )}
+                  {!isCasualFinished && myRpDelta != null && (
+                    <span style={{ fontSize: 13, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', padding: '3px 10px', borderRadius: 20, background: iWon ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)', border: `1px solid ${iWon ? 'rgba(52,211,153,0.35)' : 'rgba(239,68,68,0.35)'}`, whiteSpace: 'nowrap' }}>
+                      {iWon ? '+' : ''}{myRpDelta} RP
+                    </span>
+                  )}
+                </div>
+                {/* Personaje rival */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  {oppCharImg
+                    ? <img src={oppCharImg} alt="" style={{ width: 92, height: 92, objectFit: 'contain', filter: !iWon ? 'drop-shadow(0 0 16px rgba(52,211,153,0.7))' : 'grayscale(30%) brightness(0.8)', transform: !iWon ? 'scale(1.08)' : 'scale(0.93)', transition: 'all 0.3s' }} onError={e => { e.target.style.display = 'none'; }} />
+                    : <div style={{ width: 92, height: 92 }} />}
+                  <span style={{ fontSize: 11, fontWeight: 800, color: !iWon ? '#34D399' : 'rgba(255,255,255,0.45)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{oppPlayerData?.userName || 'Rival'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: '12px 18px 0' }}>
+          {/* Resumen BO3 */}
+          {matchData.format === 'bo3' && finishedGames.length > 0 && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 14px', marginBottom: 12 }}>
+              <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Resumen BO3</p>
+              {finishedGames.map((g, gi) => {
                 const gWon = g.result?.winnerId === uid;
+                const gStage = g.stage || g.result?.stage;
+                const isLast = gi === finishedGames.length - 1;
                 return (
-                  <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0' }}>
-                    <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: gWon ? '#22C55E' : '#EF4444' }}>Game {g.gameNum}: {g.stage || g.result?.stage}</span>
+                  <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: gWon ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: gWon ? '#22C55E' : '#EF4444', flex: 1 }}>Game {g.gameNum}</span>
+                    {gStage && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{gStage}</span>}
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
-        {!isCasualFinished && !is2v2Finished && (() => {
-          const myRpDelta = iWon ? finalRpDelta : finalLoserRpDelta;
-          const myRankChange = iWon ? finalWinnerRankChange : finalLoserRankChange;
-          return (
+          {/* Resumen de puntos */}
+          {!isCasualFinished && !is2v2Finished && (
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 16px', marginBottom: 12 }}>
               <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resumen de puntos</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: stocks && iWon ? 6 : 0 }}>
@@ -7383,22 +7438,22 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                 Los RP varían según stocks ganados y diferencia de MMR entre jugadores.
               </p>
             </div>
-          );
-        })()}
-        {isCasualFinished ? (
-          <button onClick={dismissResult} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-            Jugar otra vez
-          </button>
-        ) : (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-              🔍 Nueva búsqueda
+          )}
+          {isCasualFinished ? (
+            <button onClick={dismissResult} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+              Jugar otra vez
             </button>
-            <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-              👤 Cambiar personaje
-            </button>
-          </div>
-        )}
+          ) : (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+                🔍 Nueva búsqueda
+              </button>
+              <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                👤 Cambiar personaje
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -7610,8 +7665,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
               )}
               {reportError && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#EF4444' }}>{reportError}</p>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>✅ Confirmar</button>
-                <button onClick={() => reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer' }}>❌ Negar</button>
+                <button onClick={() => !reportLoading && reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.winnerId === uid ? reportStocks : matchData.pendingResult.stocks, 'confirm')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: `1px solid ${reportLoading ? 'rgba(52,211,153,0.15)' : 'rgba(52,211,153,0.3)'}`, background: reportLoading ? 'rgba(52,211,153,0.04)' : 'rgba(52,211,153,0.08)', color: reportLoading ? 'rgba(52,211,153,0.45)' : '#34D399', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 130, transition: 'all 0.2s' }}>
+                  {reportLoading
+                    ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(52,211,153,0.25)', borderTopColor: '#34D399', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />Enviando…</>
+                    : '✅ Confirmar'}
+                </button>
+                <button onClick={() => !reportLoading && reportResult(matchData.pendingResult.winnerId, matchData.pendingResult.stocks, 'deny')} disabled={reportLoading} style={{ padding: '12px 28px', borderRadius: 13, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: reportLoading ? 'rgba(239,68,68,0.35)' : '#EF4444', fontWeight: 800, fontSize: 14, cursor: reportLoading ? 'not-allowed' : 'pointer', opacity: reportLoading ? 0.55 : 1, transition: 'all 0.2s' }}>❌ Negar</button>
               </div>
             </div>
           )
