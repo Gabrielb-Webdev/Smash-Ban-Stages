@@ -479,7 +479,7 @@ async function applyFinishedStats(match, matchId) {
       const roomObj = await redis.get(`mm:room:${roomCode}`);
       if (roomObj) {
         roomObj.status = 'finished'; // marcar la room como terminada
-        if (!roomObj.result) roomObj.result = {}; // inicializar si no existe
+        if (!roomObj.result) roomObj.result = { ...match.result }; // copiar resultado completo (incluye winnerId)
         roomObj.result.rpDelta          = result.winner.rrDelta;
         roomObj.result.loserRpDelta     = result.loser.rrDelta;
         roomObj.result.winnerRankChange = result.winner.rankChange;
