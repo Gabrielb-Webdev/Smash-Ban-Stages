@@ -33,7 +33,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
   );
 }
 
-export default function TabletControl({ sessionId, playerName, playerIndex }) {
+export default function TabletControl({ sessionId, playerName, playerIndex, matchToken }) {
   const { session, sessionError, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, playerCheckin, getPlayerHistory, requestMatchDelay, playerUnavailable, enableSingleDevice, rpsPick } = useWebSocket(sessionId);
   const error = session ? null : (sessionError || 'Conectando...');
   
@@ -705,7 +705,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 360, alignItems: 'center' }}>
                     <button
-                      onClick={() => !myChecked && playerCheckin(sessionId, myName)}
+                      onClick={() => !myChecked && playerCheckin(sessionId, myName, matchToken || session?.matchToken)}
                       disabled={myChecked}
                       style={{
                         width: '100%',
@@ -830,7 +830,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex }) {
                     return (
                       <button
                         key={key}
-                        onClick={() => !checked && playerCheckin(sessionId, name)}
+                        onClick={() => !checked && playerCheckin(sessionId, name, matchToken || session?.matchToken)}
                         disabled={checked}
                         style={{
                           width: '100%',

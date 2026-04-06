@@ -103,7 +103,7 @@ function WaitingTurnCard({ icon, turnPlayerName, action }) {
 }
 
 // ───────────────────────────────────────────────────────────────
-export default function TabletControlMendoza({ sessionId, playerName, playerIndex }) {
+export default function TabletControlMendoza({ sessionId, playerName, playerIndex, matchToken }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay, rpsPick } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
@@ -463,7 +463,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 360, alignItems: 'center' }}>
                     <button
-                      onClick={() => !myChecked && playerCheckin(sessionId, myName)}
+                      onClick={() => !myChecked && playerCheckin(sessionId, myName, matchToken || session?.matchToken)}
                       disabled={myChecked}
                       style={{
                         width: '100%', padding: '22px 20px', borderRadius: 18,
@@ -559,7 +559,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
                     return (
                       <button
                         key={key}
-                        onClick={() => !checked && playerCheckin(sessionId, name)}
+                        onClick={() => !checked && playerCheckin(sessionId, name, matchToken || session?.matchToken)}
                         disabled={checked}
                         style={{
                           width: '100%', padding: '18px 20px', borderRadius: 16,

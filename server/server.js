@@ -512,11 +512,13 @@ const httpServer = createServer(async (req, res) => {
 
         // Crear la sesión completa en el Map para que join-session funcione inmediatamente
         let session = sessions.get(sessionId);
+        const newMatchToken = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         if (!session && (player1 || player2)) {
           session = {
             sessionId,
             community: null,
             createdAt: Date.now(),
+            matchToken: newMatchToken,
             player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
             player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
             format: format || 'BO3',
@@ -568,6 +570,7 @@ const httpServer = createServer(async (req, res) => {
             sessionId,
             community: session.community || null,
             createdAt: Date.now(),
+            matchToken: newMatchToken,
             player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
             player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
             format: format || 'BO3',
@@ -605,7 +608,7 @@ const httpServer = createServer(async (req, res) => {
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
+        res.end(JSON.stringify({ ok: true, matchToken: newMatchToken }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Body inválido' }));
@@ -723,7 +726,7 @@ const httpServer = createServer(async (req, res) => {
     }
   } else if (req.url === '/emit-event' && req.method === 'POST') {
     // Endpoint interno para que las API routes de Vercel envíen eventos WS a usuarios conectados
-    const expectedSecret = process.env.WS_INTERNAL_SECRET;
+    const expectedSecret = process.env.WS_INTERNAL_SECRET || process.env.ADMIN_SECRET || 'afk-admin-2025';
     const authHeader = req.headers.authorization || '';
     if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
       res.writeHead(401); res.end(JSON.stringify({ error: 'Unauthorized' })); return;
@@ -955,9 +958,38 @@ io.on('connection', (socket) => {
   });
 
   // Check-in de jugador para match de torneo
-  socket.on('player-checkin', ({ sessionId, playerName }) => {
+  socket.on('player-checkin', ({ sessionId, playerName, matchToken }) => {
     const session = sessions.get(sessionId);
     if (!session) { socket.emit('session-error', { message: 'Sesión no encontrada' }); return; }
+
+    // --- Validar matchToken: si la sesión tiene token y el cliente envía uno, deben coincidir ---
+    // Esto impide que jugadores de un match anterior hagan check-in en uno nuevo (mismo setupId de stream)
+    if (session.matchToken && matchToken && session.matchToken !== matchToken) {
+      console.log(`❌ Check-in rechazado por token expirado: "${playerName}" en ${sessionId} (token=${matchToken}, esperado=${session.matchToken})`);
+      socket.emit('session-error', { message: 'Este match ya terminó. Cerrá y abrí el nuevo link.' });
+      return;
+    }
+
+    // --- Validar que el nombre corresponda a uno de los jugadores asignados ---
+    const p1Name = session.player1?.name || '';
+    const p2Name = session.player2?.name || '';
+    const isP1 = playerName === p1Name;
+    const isP2 = playerName === p2Name;
+    if (!isP1 && !isP2) {
+      // Comparación flexible: extraer tag (sin sponsor) para manejar "SPONSOR | Tag"
+      const extractTag = (n) => { const s = String(n || '').trim(); const i = s.indexOf(' | '); return (i !== -1 ? s.slice(i + 3) : s).toLowerCase(); };
+      const inTag = extractTag(playerName);
+      const p1Tag = extractTag(p1Name);
+      const p2Tag = extractTag(p2Name);
+      const flexMatch = (inTag && p1Tag && (inTag === p1Tag || inTag.includes(p1Tag) || p1Tag.includes(inTag)))
+                     || (inTag && p2Tag && (inTag === p2Tag || inTag.includes(p2Tag) || p2Tag.includes(inTag)));
+      if (!flexMatch) {
+        console.log(`❌ Check-in rechazado: "${playerName}" no es jugador de sesión ${sessionId} (${p1Name} vs ${p2Name})`);
+        socket.emit('session-error', { message: `Check-in rechazado: "${playerName}" no es jugador de este match` });
+        return;
+      }
+    }
+
     if (!session.checkIns) session.checkIns = [];
     if (!session.checkIns.includes(playerName)) {
       session.checkIns.push(playerName);

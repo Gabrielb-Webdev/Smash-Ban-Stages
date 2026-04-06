@@ -99,7 +99,7 @@ const SANTAFE_BG = 'linear-gradient(160deg, #010810 0%, #031830 50%, #04284a 100
 
 
 // ───────────────────────────────────────────────────────────────
-export default function TabletControlSantaFe({ sessionId, playerName, playerIndex }) {
+export default function TabletControlSantaFe({ sessionId, playerName, playerIndex, matchToken }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay, rpsPick } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
@@ -447,7 +447,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 360, alignItems: 'center' }}>
                     <button
-                      onClick={() => !myChecked && playerCheckin(sessionId, myName)}
+                      onClick={() => !myChecked && playerCheckin(sessionId, myName, matchToken || session?.matchToken)}
                       disabled={myChecked}
                       style={{
                         width: '100%', padding: '22px 20px', borderRadius: 18,
@@ -543,7 +543,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                     return (
                       <button
                         key={key}
-                        onClick={() => !checked && playerCheckin(sessionId, name)}
+                        onClick={() => !checked && playerCheckin(sessionId, name, matchToken || session?.matchToken)}
                         disabled={checked}
                         style={{
                           width: '100%', padding: '18px 20px', borderRadius: 16,

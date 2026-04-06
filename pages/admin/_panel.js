@@ -625,7 +625,11 @@ export default function TestAdminPage() {
       if (!state) return;
       hasReceivedInitialPanelState.current = true;
       isRemoteStateRef.current = true;
-      if (state.selectedSlug         !== undefined) setSelectedSlug(state.selectedSlug);
+      if (state.selectedSlug         !== undefined) {
+        setSelectedSlug(state.selectedSlug);
+        // Si recibimos un torneo válido por WS, cerrar el picker (sync cross-device)
+        if (state.selectedSlug) setTourPickerOpen(false);
+      }
       if (state.selectedPhaseGroupId !== undefined) setSelectedPhaseGroupId(state.selectedPhaseGroupId);
       if (state.selectedEventId      !== undefined) setSelectedEventId(state.selectedEventId);
       if (state.selectedBracketUrl   !== undefined) setSelectedBracketUrl(state.selectedBracketUrl);
@@ -645,10 +649,23 @@ export default function TestAdminPage() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Si no hay torneo seleccionado, abrir el picker automáticamente
+  // Si no hay torneo seleccionado, esperar sync del WS antes de abrir el picker
+  // (otro dispositivo puede haber cargado un torneo — damos 3s para que llegue el estado)
+  const [waitingForSync, setWaitingForSync] = useState(() => {
+    // Si ya tenemos slug de localStorage, no hay que esperar
+    try { const c = _communitySync(); return !(typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))); } catch { return true; }
+  });
   useEffect(() => {
-    if (!checking && !selectedSlug) openTourPicker();
-  }, [checking, selectedSlug]);
+    if (!waitingForSync) return;
+    // Si llega estado del WS con slug, dejar de esperar
+    if (selectedSlug) { setWaitingForSync(false); return; }
+    // Timeout: si después de 3s no llegó nada, abrir picker
+    const t = setTimeout(() => setWaitingForSync(false), 3000);
+    return () => clearTimeout(t);
+  }, [waitingForSync, selectedSlug]);
+  useEffect(() => {
+    if (!checking && !selectedSlug && !waitingForSync) openTourPicker();
+  }, [checking, selectedSlug, waitingForSync]);
 
   // Cargar torneos destacados al montar
   useEffect(() => {
@@ -1089,14 +1106,11 @@ export default function TestAdminPage() {
   function switchPool(newPgId) {
     const pg = allPhaseGroups.find(p => p.id === newPgId);
     if (!pg || newPgId === selectedPhaseGroupId) return;
-    // Preservar matches que ya están activos (tienen sessionId) al cambiar de pool
-    const activeMatches = Object.fromEntries(
-      Object.entries(assignedSets).filter(([, set]) => set?.sessionId)
-    );
+    // Preservar TODOS los matches asignados al cambiar de pool (mismo torneo, distintas pools)
+    // No limpiar setups — los matches de otra pool siguen siendo válidos
     setSelectedPhaseGroupId(newPgId);
     setBracketSets([]);
     setBracketLoading(true);
-    setAssignedSets(activeMatches);
     if (pg.eventId && pg.eventId !== selectedEventId) setSelectedEventId(pg.eventId);
     fetch(`/api/tournaments/bracket?phaseGroupId=${newPgId}`)
       .then(r => r.json())
@@ -1107,7 +1121,7 @@ export default function TestAdminPage() {
         .then(r => r.json())
         .then(d => { if (d.entrants) setEntrants(d.entrants); });
     }
-    emitPanelState({ selectedPhaseGroupId: newPgId, selectedEventId: pg.eventId || selectedEventId, assignedSets: activeMatches });
+    emitPanelState({ selectedPhaseGroupId: newPgId, selectedEventId: pg.eventId || selectedEventId });
   }
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
@@ -1301,39 +1315,30 @@ export default function TestAdminPage() {
     // Reiniciar contador de games para este setup
     prevGamesRef.current[setupId] = 0;
 
-    // Poner el set en ACTIVE (verde) en Start.gg al iniciar match.
-    // NO tocamos Start.gg durante la serie — solo al final se envía todo.
-    let finalState = null;
-    if (startggSetId) {
-      try {
-        console.log(`[start.gg] markSetInProgress → setId=${startggSetId}`);
-        const res = await fetch('/api/tournaments/mark-set-in-progress', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ setId: String(startggSetId) }),
-        });
-        const data = await res.json();
-        finalState = data.set?.state || data.stateLabel;
-        console.log(`[start.gg] → state=${finalState}`, data);
-      } catch (e) {
-        console.error('[start.gg] ❌ error activando set:', e);
-      }
-    }
-
+    // --- Todas las llamadas de red se paralelizan para reducir latencia ---
+    // Start.gg corre en paralelo (no bloquea las notificaciones ni la sesión).
     const STATE_NAMES = { 1: 'CREATED', 2: 'ACTIVE ✅', 3: 'COMPLETED', 6: 'BYE', 7: 'CALLED' };
-    const stateDisplay = STATE_NAMES[finalState] || finalState || '?';
+    const startggPromise = startggSetId
+      ? (async () => {
+          try {
+            console.log(`[start.gg] markSetInProgress → setId=${startggSetId}`);
+            const res = await fetch('/api/tournaments/mark-set-in-progress', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ setId: String(startggSetId) }),
+            });
+            const data = await res.json();
+            const st = data.set?.state || data.stateLabel;
+            console.log(`[start.gg] → state=${st}`, data);
+            return st;
+          } catch (e) {
+            console.error('[start.gg] ❌ error activando set:', e);
+            return null;
+          }
+        })()
+      : Promise.resolve(null);
 
-    // Log local: match llamado
-    setReportLog(prev => [{
-      time: new Date(),
-      setId: startggSetId,
-      players: players.join(' vs '),
-      round: set.fullRoundText || '',
-      score: startggSetId ? `— start.gg: ${stateDisplay}` : '— iniciado (sin ID)',
-      called: true,
-    }, ...prev].slice(0, 20));
-
-    // Pre-crear la sesión de baneos con los jugadores y datos start.gg
+    // Pre-crear la sesión + registrar en WS server en paralelo con Start.gg
     try {
       await fetch(`/api/session/${sessionId}`, {
         method: 'POST',
@@ -1353,9 +1358,10 @@ export default function TestAdminPage() {
     // await garantiza que la sesión esté en CHECKIN antes de que el primer poll se ejecute.
     // Esto evita una race condition en setups de stream (mismo sessionId fijo) donde el
     // poll inmediato podría ver el estado CANCELLED de la sesión anterior.
+    let matchToken = '';
     try {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-      await fetch(`${socketUrl}/session-meta`, {
+      const metaRes = await fetch(`${socketUrl}/session-meta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id,
@@ -1367,7 +1373,55 @@ export default function TestAdminPage() {
           forceReset: true,
         }),
       });
+      const metaData = await metaRes.json().catch(() => ({}));
+      matchToken = metaData.matchToken || '';
     } catch {}
+
+    // Agregar matchToken a las URLs para validación de identidad
+    const tokenParam = matchToken ? `&mt=${matchToken}` : '';
+    const banUrl1WithToken = `${banUrl1}${tokenParam}`;
+    const banUrl2WithToken = `${banUrl2}${tokenParam}`;
+
+    // Notificar a cada jugador con su URL específica (para identificación automática sin login)
+    // Ambas notificaciones se envían en paralelo para máxima velocidad
+    const setupLabel = SETUPS.find(s => s.id === setupId)?.label || setupId.replace(`${community}-`, '').replace('stream', 'Stream');
+    const notifTitle = `📢 ¡Te toca match!`;
+    const notifBody  = `${players.join(' vs ')} — ${setupLabel} — ¡Tienen 5 min para hacer check-in!`;
+    const notifPromises = [];
+    if (players[0]) {
+      notifPromises.push(
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+          body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[0]], data: { url: banUrl1WithToken } }),
+        }).catch(() => {})
+      );
+    }
+    if (players[1]) {
+      notifPromises.push(
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+          body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[1]], data: { url: banUrl2WithToken } }),
+        }).catch(() => {})
+      );
+    }
+
+    await Promise.allSettled(notifPromises);
+
+    // Esperar Start.gg solo para el log (no bloquea notificaciones ni sesión)
+    const finalState = await startggPromise;
+    const stateDisplay = STATE_NAMES[finalState] || finalState || '?';
+
+    // Log local: match llamado
+    setReportLog(prev => [{
+      time: new Date(),
+      setId: startggSetId,
+      players: players.join(' vs '),
+      round: set.fullRoundText || '',
+      score: startggSetId ? `— start.gg: ${stateDisplay}` : '— iniciado (sin ID)',
+      called: true,
+    }, ...prev].slice(0, 20));
 
     // Para torneos Warui Team: sincronizar con overlay de stream (controls.html)
     if (community === 'warui' && isStreamSetup) {
@@ -1424,26 +1478,6 @@ export default function TestAdminPage() {
     // Guardar sessionId + datos startgg + timestamp en el state
     setAssignedSets(prev => ({ ...prev, [setupId]: { ...prev[setupId], sessionId, banUrl, banUrl1, banUrl2, startggSetId, startggEntrant1Id, startggEntrant2Id, timerStartedAt: Date.now() } }));
 
-    // Notificar a cada jugador con su URL específica (para identificación automática sin login)
-    const setupLabel = SETUPS.find(s => s.id === setupId)?.label || setupId.replace(`${community}-`, '').replace('stream', 'Stream');
-    const notifTitle = `📢 ¡Te toca match!`;
-    const notifBody  = `${players.join(' vs ')} — ${setupLabel} — ¡Tienen 5 min para hacer check-in!`;
-    try {
-      await fetch('/api/notifications/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-        body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[0]].filter(Boolean), data: { url: banUrl1 } }),
-      });
-    } catch {}
-    if (players[1]) {
-      try {
-        await fetch('/api/notifications/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-          body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[1]], data: { url: banUrl2 } }),
-        });
-      } catch {}
-    }
     // Iniciar countdown 5min
     const SECONDS = 5 * 60;
     matchTimersRef.current[setupId] = { secondsLeft: SECONDS };

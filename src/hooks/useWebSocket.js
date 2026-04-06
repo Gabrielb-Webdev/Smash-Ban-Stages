@@ -252,9 +252,9 @@ export const useWebSocket = (sessionId) => {
     }
   };
 
-  const playerCheckin = (sessionId, playerName) => {
+  const playerCheckin = (sessionId, playerName, matchToken) => {
     if (socket) {
-      socket.emit('player-checkin', { sessionId, playerName });
+      socket.emit('player-checkin', { sessionId, playerName, matchToken });
     }
   };
 

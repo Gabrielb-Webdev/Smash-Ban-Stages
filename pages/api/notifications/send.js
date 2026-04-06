@@ -33,8 +33,8 @@ async function storeAndPush(playerName, notif, pushPayload) {
     if (uid) {
       await sendPush(uid, pushPayload).catch(() => {});
       // Notificar en tiempo real si el usuario está conectado al servidor WS
-      const wsUrl = process.env.SOCKET_SERVER_URL;
-      const wsSecret = process.env.WS_INTERNAL_SECRET;
+      const wsUrl = process.env.SOCKET_SERVER_URL || process.env.NEXT_PUBLIC_SOCKET_URL;
+      const wsSecret = process.env.WS_INTERNAL_SECRET || process.env.ADMIN_SECRET || 'afk-admin-2025';
       if (wsUrl && wsSecret) {
         fetch(`${wsUrl}/emit-event`, {
           method: 'POST',

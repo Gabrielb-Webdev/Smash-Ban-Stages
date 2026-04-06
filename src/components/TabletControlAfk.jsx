@@ -107,7 +107,7 @@ const GAME1_STAGES_AFK = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-export default function TabletControlAfk({ sessionId, playerName, playerIndex }) {
+export default function TabletControlAfk({ sessionId, playerName, playerIndex, matchToken }) {
   const { session, selectRPSWinner, banStage, selectStage, selectCharacter, setGameWinner, proposeGameWinner, rejectGameWinner, repeatStage, proposeRepeatStage, confirmRepeatStage, rejectRepeatStage, getPlayerHistory, playerCheckin, playerUnavailable, enableSingleDevice, requestMatchDelay, rpsPick } = useWebSocket(sessionId);
   const error = session ? null : 'Conectando...';
 
@@ -563,7 +563,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex })
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 360, alignItems: 'center' }}>
                     <button
-                      onClick={() => !myChecked && playerCheckin(sessionId, myName)}
+                      onClick={() => !myChecked && playerCheckin(sessionId, myName, matchToken || session?.matchToken)}
                       disabled={myChecked}
                       style={{
                         width: '100%', padding: '22px 20px', borderRadius: 18,
