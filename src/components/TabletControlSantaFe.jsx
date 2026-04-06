@@ -535,6 +535,21 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                   </div>
                 );
               })()
+            ) : playerName ? (
+              // Usuario logueado pero no es jugador de este match
+              <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>🚫</div>
+                <p style={{ margin: 0, fontSize: 17, color: 'rgba(255,255,255,0.75)', fontWeight: 800 }}>
+                  No sos jugador de este match
+                </p>
+                <p style={{ margin: '10px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                  Este dispositivo está registrado como{' '}
+                  <span style={{ color: '#F59E0B', fontWeight: 800 }}>{playerName}</span>
+                </p>
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                  Jugadores: {session.player1?.name} vs {session.player2?.name}
+                </p>
+              </div>
             ) : (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
