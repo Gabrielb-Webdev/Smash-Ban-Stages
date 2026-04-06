@@ -344,6 +344,12 @@ async function applyFinishedStats(match, matchId) {
   const wWasInPlacement = !wStats.placementDone && ((wStats.wins || 0) + (wStats.losses || 0)) < PLACEMENT_MATCHES;
   const lWasInPlacement = !lStats.placementDone && ((lStats.wins || 0) + (lStats.losses || 0)) < PLACEMENT_MATCHES;
 
+  // Capturar rango y puntos ANTES de procesar (para reversión exacta en tickets)
+  const winnerRankBefore       = wStats.rank ?? 'Plástico I';
+  const winnerRankPointsBefore = wStats.rankPoints ?? 0;
+  const loserRankBefore        = lStats.rank ?? 'Plástico I';
+  const loserRankPointsBefore  = lStats.rankPoints ?? 0;
+
   // ── Actualizar conteo de personajes en stats ──
   const wcId = String(match.player1.userId) === String(winnerId) ? match.player1.charId : match.player2.charId;
   const lcId = String(match.player1.userId) === String(loserId)  ? match.player1.charId : match.player2.charId;
@@ -423,6 +429,8 @@ async function applyFinishedStats(match, matchId) {
     mmrWinnerAfter:  result.winner.mmrAfter,
     mmrLoserBefore:  result.loser.mmrBefore,
     mmrLoserAfter:   result.loser.mmrAfter,
+    winnerRankBefore,      winnerRankPointsBefore,
+    loserRankBefore,       loserRankPointsBefore,
     winnerRankAfter: wStats.rank,
     loserRankAfter:  lStats.rank,
     isPlacementWinner: wWasInPlacement,

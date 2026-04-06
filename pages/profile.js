@@ -1,916 +1,2082 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { getStoredUser, logout } from '../src/utils/auth';
-import { RANKS, TIER_ICONS } from '../lib/ranks';
-import { CHARACTERS, charImgPath, stockIconPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath } from '../lib/characters';
-import CharacterDetail from '../src/components/CharacterDetail';
-
-function timeAgo(iso) {
-  if (!iso) return '';
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return 'hace un momento';
-  if (m < 60) return `hace ${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `hace ${h}h`;
-  const d = Math.floor(h / 24);
-  return `hace ${d}d`;
-}
-
-const COUNTRY_TO_CODE = {
-  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','México':'MX',
-  'Chile':'CL','Peru':'PE','Perú':'PE','Colombia':'CO','Venezuela':'VE',
-  'Uruguay':'UY','Paraguay':'PY','Bolivia':'BO','Ecuador':'EC','Costa Rica':'CR',
-  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','España':'ES',
-  'Japan':'JP','South Korea':'KR','France':'FR','Germany':'DE','Italy':'IT',
-  'United Kingdom':'GB','UK':'GB','Australia':'AU','New Zealand':'NZ',
-  'Portugal':'PT','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
-};
-const AR_PROVINCES = {
-  'Buenos Aires':'BA','Ciudad Autónoma de Buenos Aires':'CABA','CABA':'CABA',
-  'Capital Federal':'CABA','Córdoba':'CBA','Cordoba':'CBA','Santa Fe':'SF',
-  'Mendoza':'MZA','Tucumán':'TUC','Tucuman':'TUC','Entre Ríos':'ER','Entre Rios':'ER',
-  'Salta':'SLA','Misiones':'MIS','Chaco':'CHA','Corrientes':'COR','Santiago del Estero':'SDE',
-  'San Juan':'SJ','Jujuy':'JUJ','Río Negro':'RN','Rio Negro':'RN','Neuquén':'NQN','Neuquen':'NQN',
-  'Formosa':'FOR','Chubut':'CHU','San Luis':'SL','Catamarca':'CAT','La Rioja':'LR',
-  'La Pampa':'LP','Santa Cruz':'SC','Tierra del Fuego':'TDF',
-};
-function countryFlag(country) {
-  if (!country) return null;
-  return country.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
-}
-function FlagImg({ cc, size = 20 }) {
-  if (!cc) return null;
-  return <img src={`https://flagcdn.com/w40/${cc.toLowerCase()}.png`} alt={cc} style={{ width: size, height: Math.round(size * 0.75), objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle' }} onError={e => { e.target.style.display = 'none'; }} />;
-}
-function provinceCode(state, country) {
-  if (!state) return null;
-  const cc = country?.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
-  if (cc === 'AR') return AR_PROVINCES[state] || state;
-  return state;
-}
-
-function withAlpha(hexColor, alpha) {
-  if (typeof hexColor !== 'string' || !hexColor.startsWith('#')) return `rgba(255,255,255,${alpha})`;
-  const hex = hexColor.replace('#', '');
-  const fullHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex;
-  if (fullHex.length !== 6) return `rgba(255,255,255,${alpha})`;
-  const r = parseInt(fullHex.slice(0, 2), 16);
-  const g = parseInt(fullHex.slice(2, 4), 16);
-  const b = parseInt(fullHex.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function getRankBadgeData(rankName) {
-  const rankObj = RANKS.find(r => r.name === rankName);
-  if (!rankObj) return null;
-  return {
-    icon: TIER_ICONS[rankObj.tier] || '??',
-    division: rankObj.subdivision || '',
-    color: rankObj.color || '#9CA3AF',
-  };
-}
-
-export default function ProfilePage() {
-  const router = useRouter();
-  const [user, setUser]           = useState(null);
-  const [stats, setStats]         = useState(null);
-  const [history, setHistory]     = useState([]);
-  const [recentChars, setRecentChars] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [startggStats, setStartggStats] = useState(null);
-  const [showAllChars, setShowAllChars] = useState(false);
-  const [showCharsModal, setShowCharsModal] = useState(false);
-  const [selectedChar, setSelectedChar] = useState(null);
-  const [charFromModal, setCharFromModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [myStatus, setMyStatus] = useState('online');
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
-  const [mainChar, setMainChar] = useState(null);
-  const [mainCharAlt, setMainCharAlt] = useState(null);
-  const [showMainPicker, setShowMainPicker] = useState(false);
-  const [pickerStep, setPickerStep] = useState('char'); // 'char' | 'alt'
-  const [parsecRole, setParsecRole] = useState(null); // 'host' | 'nohost' | null
-
-  const refreshStartgg = () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    try {
-      const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
-      const token = stored.access_token;
-      const slug = stored.user?.slug;
-      if (token && slug) {
-        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug) + '&refresh=true', {
-          headers: { 'Authorization': 'Bearer ' + token },
-        }).then(r => r.ok ? r.json() : null)
-          .then(d => { if (d) setStartggStats(d); })
-          .finally(() => setRefreshing(false));
-      } else {
-        setRefreshing(false);
-      }
-    } catch { setRefreshing(false); }
-  };
-
-  const changeStatus = async (newStatus) => {
-    setMyStatus(newStatus);
-    setShowStatusMenu(false);
-    try { localStorage.setItem('afk_my_status', newStatus); } catch {}
-    const uid = user?.id || user?.slug;
-    if (uid) {
-      try {
-        await fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, status: newStatus }) });
-      } catch {}
-    }
-  };
-
-  useEffect(() => {
-    const stored = getStoredUser();
-    if (!stored) { router.replace('/login'); return; }
-    const u = stored.user;
-    const nameIsStale = !u?.name || u.name === u?.slug || /^[0-9a-f]{6,16}$/i.test(u.name);
-    if (nameIsStale) {
-      localStorage.removeItem('afk_user');
-      router.replace('/login');
-      return;
-    }
-    setUser(u);
-    // Limpiar localStorage per-user si cambió el usuario
-    try {
-      const lastUid = localStorage.getItem('afk_last_uid');
-      const currentUid = String(u.id || u.slug || '');
-      if (lastUid && lastUid !== currentUid) {
-        ['afk_main_char','afk_main_alt','afk_my_status','afk_recent_chars','afk_parsec_role','chat_last_opened'].forEach(k => localStorage.removeItem(k));
-      }
-      localStorage.setItem('afk_last_uid', currentUid);
-    } catch {}
-    try { const s = localStorage.getItem('afk_my_status'); if (s) setMyStatus(s); } catch {}
-    const uid = encodeURIComponent(String(u.id || u.slug || ''));
-
-    // Load main char from Redis (fuente de verdad)
-    fetch(`/api/players/profile?id=${uid}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(p => {
-        if (p?.mainChar) { setMainChar(p.mainChar); try { localStorage.setItem('afk_main_char', p.mainChar); } catch {} }
-        else { setMainChar(null); try { localStorage.removeItem('afk_main_char'); } catch {} }
-        if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
-        else { setMainCharAlt(null); try { localStorage.removeItem('afk_main_alt'); } catch {} }
-        if (p?.parsecRole) { setParsecRole(p.parsecRole); }
-      })
-      .catch(() => {});
-
-    Promise.all([
-      fetch(`/api/players/stats?userId=${uid}`).then(r => r.json()).catch(() => null),
-      fetch(`/api/players/history?userId=${uid}&limit=30`).then(r => r.json()).catch(() => []),
-      fetch(`/api/matchmaking/recent-chars?userId=${uid}`).then(r => r.json()).catch(() => []),
-    ]).then(([s, h, chars]) => {
-      setStats(s);
-      setHistory(Array.isArray(h) ? h : []);
-      setRecentChars(Array.isArray(chars) ? chars : []);
-      setLoading(false);
-    });
-
-    // Fetch Start.GG stats
-    try {
-      const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
-      const token = stored.access_token;
-      const slug = stored.user?.slug;
-      if (token && slug) {
-        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), {
-          headers: { 'Authorization': 'Bearer ' + token },
-        }).then(r => {
-          if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
-          return r.json();
-        }).then(d => { if (d) {
-          setStartggStats(d);
-          // Persist country to Redis profile
-          const loc = d?.profile?.location;
-          if (loc?.country && u.id) {
-            const cc = countryFlag(loc.country);
-            if (cc) {
-              fetch('/api/players/profile', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: u.id, country: cc }),
-              }).catch(() => {});
-            }
-          }
-        } }).catch(() => {});
-      }
-    } catch (e) {}
-  }, []);
-
-  if (!user) return null;
-
-  const displayName = user.name || user.slug || 'Jugador';
-  const initial     = displayName.charAt(0).toUpperCase();
-  const swW  = stats?.switch?.wins   || 0;
-  const swL  = stats?.switch?.losses || 0;
-  const pcW  = stats?.parsec?.wins   || 0;
-  const pcL  = stats?.parsec?.losses || 0;
-  const totalW   = swW + pcW;
-  const totalL   = swL + pcL;
-  const total    = totalW + totalL;
-  const winRate  = total > 0 ? Math.round(totalW * 100 / total) : 0;
-  const swTotal  = swW + swL;
-  const pcTotal  = pcW + pcL;
-  const swWR     = swTotal > 0 ? Math.round(swW * 100 / swTotal) : null;
-  const pcWR     = pcTotal > 0 ? Math.round(pcW * 100 / pcTotal) : null;
-
-  const TABS = [
-    { id: 'overview',  label: 'General'  },
-    { id: 'ranked',    label: 'Ranked'    },
-    { id: 'historial', label: 'Historial' },
-  ];
-
-  const heroSrc = (() => {
-    // Alt skin path takes priority
-    if (mainCharAlt) return mainCharAlt;
-    if (mainChar && CHARACTER_RENDERS[mainChar]) return charRenderPath(CHARACTER_RENDERS[mainChar]);
-    if (!history.length) return null;
-    const counts = {};
-    for (const m of history) {
-      const charId = m.winnerId === String(user.id || user.slug) ? m.winnerCharId : m.loserCharId;
-      if (charId) counts[charId] = (counts[charId] || 0) + 1;
-    }
-    let best = null, max = 0;
-    for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
-    return best && CHARACTER_RENDERS[best] ? charRenderPath(CHARACTER_RENDERS[best]) : null;
-  })();
-
-  const selectMainChar = (charId, altPath) => {
-    setMainChar(charId);
-    setMainCharAlt(altPath || null);
-    setShowMainPicker(false);
-    setPickerStep('char');
-    try { localStorage.setItem('afk_main_char', charId); } catch {}
-    if (altPath) { try { localStorage.setItem('afk_main_alt', altPath); } catch {} }
-    else { try { localStorage.removeItem('afk_main_alt'); } catch {} }
-    const uid = user?.id || user?.slug;
-    if (uid) {
-      fetch('/api/players/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: uid, mainChar: charId, mainCharAlt: altPath || null }),
-      }).catch(() => {});
-    }
-  };
-
-  const clearMainChar = () => {
-    setMainChar(null);
-    setMainCharAlt(null);
-    setShowMainPicker(false);
-    setPickerStep('char');
-    try { localStorage.removeItem('afk_main_char'); localStorage.removeItem('afk_main_alt'); } catch {}
-    const uid = user?.id || user?.slug;
-    if (uid) {
-      fetch('/api/players/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: uid, mainChar: null, mainCharAlt: null }),
-      }).catch(() => {});
-    }
-  };
-
-  const changeParsecRole = (role) => {
-    const newRole = parsecRole === role ? null : role; // toggle off si es el mismo
-    setParsecRole(newRole);
-    try {
-      if (newRole) localStorage.setItem('afk_parsec_role', newRole);
-      else localStorage.removeItem('afk_parsec_role');
-    } catch {}
-    const uid = user?.id || user?.slug;
-    if (uid) {
-      fetch('/api/players/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: uid, parsecRole: newRole }),
-      }).catch(() => {});
-    }
-  };
-
-  return (
-    <>
-      <Head>
-        <title>{displayName} â AFK Smash</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <style>{`
-          * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-          body { background: #0B0B12; margin: 0; }
-          ::-webkit-scrollbar { display: none; }
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
-      </Head>
-      <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', -apple-system, sans-serif", maxWidth: 480, margin: '0 auto' }}>
-
-        {/* ââ Top bar ââ */}
-        <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-          </button>
-          <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>Mi Perfil</p>
-          <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,140,0,0.12)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0 }}>
-            {mainChar ? (
-              <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-            ) : (
-              <span style={{ fontSize: 18 }}>??</span>
-            )}
-          </button>
-        </div>
-
-        {/* ââ Banner / Hero ââ */}
-        <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
-          {heroSrc ? (
-            <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 4, cursor: 'pointer' }}>
-              <img
-                src={heroSrc}
-                alt=""
-                style={{ display: 'block', height: 180, objectFit: 'contain' }}
-                onError={e => { e.target.style.display = 'none'; }}
-              />
-              <div style={{ position: 'absolute', bottom: 8, right: 0, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 12 }}>??</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Main</span>
-              </div>
-            </div>
-          ) : (
-            <div style={{ height: 120, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>??</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Elegir main</span>
-              </button>
-            </div>
-          )}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
-          <p style={{ margin: 0, padding: '8px 18px 4px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
-          {startggStats?.profile?.location && (() => {
-            const loc = startggStats.profile.location;
-            const cc = countryFlag(loc.country);
-            const provCode = provinceCode(loc.state, loc.country);
-            const city = loc.city;
-            return (cc || provCode || city) ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '4px 0 12px', position: 'relative', zIndex: 3 }}>
-                {cc && <FlagImg cc={cc} size={22} />}
-                {provCode && (
-                  <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>{provCode}</span>
-                )}
-                {city && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{city}</span>}
-              </div>
-            ) : null;
-          })()}
-
-          {/* Change main button */}
-          <button onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 5, margin: '6px 0 4px', background: 'rgba(255,140,0,0.1)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 10, padding: '5px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12 }}>??</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>{mainChar ? 'Cambiar main' : 'Elegir main'}</span>
-          </button>
-
-          {/* Status selector */}
-          <div style={{ position: 'relative', zIndex: 5, marginBottom: 12 }}>
-            <button onClick={() => setShowStatusMenu(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : '#555', boxShadow: `0 0 4px ${myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : 'transparent'}` }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
-                {myStatus === 'online' ? 'En línea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
-              </span>
-              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>?</span>
-            </button>
-            {showStatusMenu && (
-              <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 4, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', zIndex: 50, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-                {[
-                  { key: 'online', color: '#22C55E', label: 'En línea', icon: '??' },
-                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '??' },
-                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '?' },
-                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '??' },
-                ].map(opt => (
-                  <button key={opt.key} onClick={() => changeStatus(opt.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: myStatus === opt.key ? 'rgba(255,255,255,0.06)' : 'transparent', cursor: 'pointer' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, boxShadow: opt.color !== '#555' ? `0 0 4px ${opt.color}` : 'none' }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: myStatus === opt.key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{opt.label}</span>
-                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>?</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tab bar */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', marginTop: 16 }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, padding: '13px 0', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === t.id ? '#FF8C00' : 'transparent'}`, cursor: 'pointer', color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === t.id ? 800 : 500, fontSize: 13, position: 'relative', bottom: -1, transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ââ Content ââ */}
-        <div style={{ padding: '0 18px 40px' }}>
-
-          {/* ââââ OVERVIEW ââââ */}
-          {activeTab === 'overview' && (
-            <div>
-              <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Winrates</p>
-
-              {/* ALL TIME card */}
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ALL TIME</p>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: '#22C55E', lineHeight: 1 }}>{loading ? 'â' : totalW}</span>
-                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>W</span>
-                        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', margin: '0 2px' }}>â</span>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{loading ? 'â' : totalL}</span>
-                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>L</span>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontSize: 40, fontWeight: 900, lineHeight: 1, color: loading ? 'rgba(255,255,255,0.2)' : winRate >= 50 ? '#22C55E' : winRate >= 40 ? '#F59E0B' : 'rgba(255,255,255,0.45)' }}>
-                        {loading ? 'â' : `${winRate}%`}
-                      </p>
-                    </div>
-                  </div>
-                  {!loading && total > 0 && (
-                    <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
-                      <div style={{ width: `${winRate}%`, height: '100%', background: `linear-gradient(90deg, ${winRate >= 50 ? '#22C55E, #16A34A' : '#F59E0B, #D97706'})`, borderRadius: 4, transition: 'width 0.8s ease' }} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Platform breakdown */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                  {[
-                    { label: '?? Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
-                    { label: '??? Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
-                  ].map((p, i) => (
-                    <div key={i} style={{ padding: '14px 20px', borderRight: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</p>
-                      {loading || p.wr === null
-                        ? <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin datos</p>
-                        : <>
-                          <p style={{ margin: '0 0 3px', fontSize: 24, fontWeight: 900, lineHeight: 1, color: p.wr >= 50 ? '#22C55E' : 'rgba(255,255,255,0.45)' }}>{p.wr}%</p>
-                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{p.w}W Â· {p.l}L</p>
-                        </>
-                      }
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* -- SUMMARY (Start.GG character usage) -- */}
-              {startggStats && startggStats.charUsage && startggStats.charUsage.length > 0 && (
-                <div style={{ marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '22px 0 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
-                      <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
-                    <button onClick={refreshStartgg} disabled={refreshing} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', cursor: refreshing ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: refreshing ? 0.5 : 1 }}>
-                      <span style={{ fontSize: 12, display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>??</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>{refreshing ? '...' : 'Sync'}</span>
-                    </button>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
-                    {startggStats.charUsage.slice(0, 3).map((ch, i) => {
-                      const localId = ch.localCharId;
-                      const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
-                      const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
-                      const isTop = i === 0;
-                      const charWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
-                      const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
-                      const barColor = barColors[i % barColors.length] || '#F5C518';
-                      return (
-                        <div key={ch.startggCharId} onClick={() => setSelectedChar(ch.startggCharId)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}>
-                          {renderFile ? (
-                            <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
-                          ) : charObj ? (
-                            <img src={charImgPath(charObj.img)} alt="" style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
-                          ) : (
-                            <div style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, flexShrink: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.2)' }}>?</span>
-                            </div>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                              <p style={{ margin: 0, fontSize: isTop ? 13 : 11, fontWeight: 700, color: isTop ? '#fff' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {charObj?.name || ch.charName || `#${ch.startggCharId}`}
-                              </p>
-                              <p style={{ margin: 0, fontSize: isTop ? 15 : 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
-                            </div>
-                            <div style={{ height: isTop ? 6 : 4, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.5s ease' }} />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
-                              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} partidas</p>
-                              <p style={{ margin: 0, fontSize: 9, color: charWR >= 50 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)', fontWeight: 700 }}>{charWR}% WR ({ch.wins}W-{ch.games - ch.wins}L)</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {selectedChar && (() => {
-                    const ch = startggStats.charUsage.find(c => c.startggCharId === selectedChar);
-                    return ch ? <CharacterDetail ch={ch} onClose={() => { setSelectedChar(null); setCharFromModal(false); }} onBack={charFromModal ? () => { setSelectedChar(null); setShowCharsModal(true); } : undefined} /> : null;
-                  })()}
-                  {startggStats.charUsage.length > 3 && (
-                    <button onClick={() => setShowCharsModal(true)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      Ver todos ({startggStats.charUsage.length})
-                    </button>
-                  )}
-
-                  {/* Modal ver todos chars */}
-                  {showCharsModal && (
-                    <div onClick={() => setShowCharsModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-                          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
-                          <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
-                        </div>
-                        <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                          {startggStats.charUsage.map((ch, i) => {
-                            const localId = ch.localCharId;
-                            const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
-                            const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
-                            const cWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
-                            const barColor = ['#F5C518','#818CF8','#22C55E','#F97316','#EF4444'][i % 5];
-                            return (
-                              <div key={ch.startggCharId} onClick={() => { setShowCharsModal(false); setCharFromModal(true); setSelectedChar(ch.startggCharId); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
-                                {renderFile ? <img src={charRenderPath(renderFile)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
-                                  : charObj ? <img src={charImgPath(charObj.img)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
-                                  : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charObj?.name || ch.charName}</p>
-                                    <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
-                                  </div>
-                                  <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                                    <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
-                                  </div>
-                                  <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
-                                </div>
-                                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}></span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {/* Start.GG career stats */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#F5C518' }}>{startggStats.winRate}%</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Winrate</p>
-                    </div>
-                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#22C55E' }}>{startggStats.wins}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Victorias</p>
-                    </div>
-                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{startggStats.losses}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Derrotas</p>
-                    </div>
-                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#818CF8' }}>{startggStats.tournaments}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Torneos</p>
-                    </div>
-                  </div>
-
-                  {/* Stages */}
-                  {startggStats.stageUsage && startggStats.stageUsage.length > 0 && (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
-                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#818CF8,#6366F1)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Escenarios</p>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                        {startggStats.stageUsage.slice(0, 3).map((st, i) => (
-                          <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-                            {st.image && <img src={st.image} alt="" style={{ width: '100%', height: 60, objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />}
-                            {!st.image && <div style={{ width: '100%', height: 60, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{st.name}</span></div>}
-                            <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)' }}>#{i + 1}</span>
-                              <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{st.usage}%</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {startggStats.stageUsage.length > 3 && (
-                        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                          {startggStats.stageUsage.slice(3, 8).map(st => {
-                            const wrPct = st.games > 0 ? Math.round(st.wins * 100 / st.games) : 0;
-                            return (
-                              <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{st.name}</span>
-                                <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>{st.usage}%</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Highlights */}
-                  {startggStats.highlights && startggStats.highlights.length > 0 && (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
-                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F97316,#EA580C)', flexShrink: 0 }} />
-                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Destacados</p>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                        {startggStats.highlights.slice(0, 12).map((h, i) => {
-                          const isTop3 = h.placement <= 3;
-                          const placementColor = h.placement === 1 ? '#F5C518' : h.placement === 2 ? '#C0C0C0' : h.placement === 3 ? '#CD7F32' : '#fff';
-                          return (
-                            <div key={i} onClick={() => h.eventSlug && window.open(h.eventSlug, '_blank')} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isTop3 ? 'rgba(245,197,24,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px', cursor: h.eventSlug ? 'pointer' : 'default', overflow: 'hidden' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                                {h.tournamentImage && <img src={h.tournamentImage} alt="" style={{ width: 24, height: 24, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />}
-                                <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{h.tournament}</p>
-                              </div>
-                              <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: placementColor }}>
-                                {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'RO' : h.placement === 2 ? 'DO' : h.placement === 3 ? 'RO' : 'TO'}</sup>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>/{h.entrants}</span>
-                              </p>
-                              <p style={{ margin: '3px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
-                                {h.country && <><FlagImg cc={countryFlag(h.country)} size={14} />{' '}</>}
-                                {h.date ? new Date(h.date).toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' }) : ''}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Recent characters */}
-              {recentChars.length > 0 && (
-                <>
-                  <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Personajes recientes</p>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {recentChars.slice(0, 6).map((charId, idx) => {
-                      const char = CHARACTERS.find(c => c.id === charId);
-                      if (!char) return null;
-                      return (
-                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 8px', minWidth: 68 }}>
-                          <img src={charImgPath(char.img)} alt={char.name} style={{ width: 46, height: 46, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-                          <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em', maxWidth: 62, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.name}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ââââ RANKED ââââ */}
-          {activeTab === 'ranked' && (
-            <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {(['switch', 'parsec']).map(plat => {
-                const s        = stats?.[plat];
-                const tot      = (s?.wins || 0) + (s?.losses || 0);
-                const unranked = !s?.placementDone && tot === 0;
-                const inPlac   = !s?.placementDone && tot > 0;
-                const rankName = s?.rank || '';
-                const pts      = s?.rankPoints || 0;
-                const isSmasher= rankName === 'SMASHer';
-                const rankObj  = RANKS.find(r => r.name === rankName)
-                  || (typeof s?.rankIndex === 'number' ? RANKS[s.rankIndex] : null)
-                  || null;
-                const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
-                const tierIconVal = rankObj
-                  ? (TIER_ICONS[rankObj.tier] || '??')
-                  : (rankName ? (TIER_ICONS[rankName.split(' ')[0]] || null) : null);
-                const tierIcon = unranked ? null : tierIconVal;
-                const pColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
-                const pLabel   = plat === 'switch' ? '?? Switch Online' : '??? Parsec';
-                const platWR   = tot > 0 ? Math.round((s?.wins || 0) * 100 / tot) : null;
-                return (
-                  <div key={plat} style={{ background: unranked ? 'rgba(255,255,255,0.03)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : rankColor + '35'}`, borderRadius: 20, padding: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{pLabel}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{tot} partidas</p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                      <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: tierIcon ? `${rankColor}18` : 'rgba(255,255,255,0.05)', border: `2px solid ${tierIcon ? rankColor + '55' : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
-                        {tierIcon || <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 24 }}>?</span>}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: unranked ? 'rgba(255,255,255,0.2)' : inPlac ? '#FF8C00' : rankColor }}>
-                          {unranked || inPlac ? 'UNRANKED' : rankName}
-                        </p>
-                        <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-                          <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
-                          {' Â· '}
-                          <span style={{ color: '#EF4444', fontWeight: 700 }}>{s?.losses || 0}L</span>
-                          {platWR !== null && <span style={{ color: 'rgba(255,255,255,0.3)' }}> Â· {platWR}%</span>}
-                        </p>
-                        {!unranked && !inPlac && !isSmasher && (
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Rank Points</span>
-                              <span style={{ fontSize: 10, fontWeight: 800, color: rankColor }}>{pts}/100</span>
-                            </div>
-                            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                              <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
-                            </div>
-                          </div>
-                        )}
-                        {isSmasher && <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#FF8C00' }}>{pts} RP</p>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ââââ HISTORIAL ââââ */}
-          {activeTab === 'historial' && (
-            <div style={{ paddingTop: 20 }}>
-              {loading ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
-              ) : history.length === 0 ? (
-                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>âï¸</p>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aÃºn</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>JugÃ¡ ranked para ver tu historial</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {history.map((m, i) => {
-                    const isWin    = String(m.winnerId) === String(user.id || user.slug);
-                    const opponent = isWin ? m.loserName : m.winnerName;
-                    const pLabel   = m.platform === 'switch' ? '?? Switch' : '??? Parsec';
-                    const myCharId = isWin ? m.winnerCharId : m.loserCharId;
-                    const myCharObj = CHARACTERS.find(c => c.id === myCharId) || null;
-                    const myIconSrc = stockIconPath(myCharObj, 1) || (myCharObj ? charImgPath(myCharObj.img) : null);
-                    const myRankAfter = isWin ? m.winnerRankAfter : m.loserRankAfter;
-                    const badge = getRankBadgeData(myRankAfter);
-                    const rrDelta = Number(isWin ? m.rpDelta : m.loserRpDelta);
-                    const rrText = Number.isFinite(rrDelta) && rrDelta !== 0
-                      ? `${rrDelta > 0 ? '+' : ''}${rrDelta} RR`
-                      : null;
-                    const myScore = Number(isWin ? m.winnerScore : m.loserScore);
-                    const rivalScore = Number(isWin ? m.loserScore : m.winnerScore);
-                    const hasScore = Number.isFinite(myScore) && Number.isFinite(rivalScore);
-                    return (
-                      <div key={i} style={{ position: 'relative', display: 'flex', alignItems: 'center', minHeight: 72, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, overflow: 'hidden' }}>
-                        <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
-                          {myIconSrc ? (
-                            <img
-                              src={myIconSrc}
-                              alt=""
-                              style={{ width: 50, height: 50, objectFit: 'contain' }}
-                              onError={e => { e.target.style.display='none'; }}
-                            />
-                          ) : (
-                            <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: 900 }}>?</div>
-                          )}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                            {badge ? (
-                              <div style={{ padding: '2px 4px', borderRadius: 5, background: withAlpha(badge.color, 0.15), border: `1px solid ${withAlpha(badge.color, 0.4)}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                                <span style={{ fontSize: 12, lineHeight: 1.1 }}>{badge.icon}</span>
-                                <span style={{ fontSize: 6.5, fontWeight: 900, color: badge.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{badge.division || 'RANK'}</span>
-                              </div>
-                            ) : (
-                              <div style={{ padding: '2px 6px', borderRadius: 5, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}>
-                                <span style={{ fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>N/A</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ flex: '1 1 0%', padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
-                          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{pLabel} · {timeAgo(m.playedAt)}</p>
-                          {rrText && (
-                            <span style={{ fontSize: 10, fontWeight: 800, color: rrDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rrText}</span>
-                          )}
-                        </div>
-                        <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                          <p style={{ margin: 0, fontSize: 11, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444', letterSpacing: '0.02em' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
-                          {hasScore && (
-                            <span style={{ fontSize: 20, fontWeight: 900, lineHeight: 1, color: 'rgba(255,255,255,0.85)' }}>
-                              {myScore}-{rivalScore}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Logout */}
-          <div style={{ marginTop: 28 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ajustes de Parsec</p>
-            <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 16, padding: '14px 16px' }}>
-              <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#fff' }}>Modo de conexión en Parsec</p>
-              <p style={{ margin: '0 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
-                Indicá si podés hostear una sesión. Esto evita que el sistema te empareje con otro jugador que tampoco puede hostear.
-              </p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => changeParsecRole('host')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
-                  {parsecRole === 'host' ? '? ' : ''}Host
-                </button>
-                <button onClick={() => changeParsecRole('nohost')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
-                  {parsecRole === 'nohost' ? '? ' : ''}No Host
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <button onClick={() => { logout(); window.location.href = '/login'; }} style={{ marginTop: 24, width: '100%', padding: '14px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-            Cerrar sesión
-          </button>
-        </div>
-      </div>
-
-      {/* Main character picker modal */}
-      {showMainPicker && (
-        <div onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {pickerStep === 'alt' && (
-                  <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>?</button>
-                )}
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>
-                  {pickerStep === 'char' ? 'Elegir main' : 'Elegir skin'}
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {mainChar && pickerStep === 'char' && (
-                  <button onClick={clearMainChar} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#EF4444' }}>Quitar</button>
-                )}
-                <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
-              </div>
-            </div>
-
-            {pickerStep === 'char' ? (
-              /* Step 1: Character grid */
-              <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                {Object.entries(CHARACTER_RENDERS).map(([charId, renderFile]) => {
-                  const charObj = CHARACTERS.find(c => c.id === charId);
-                  const isSelected = mainChar === charId;
-                  return (
-                    <button key={charId} onClick={() => {
-                      if (CHARACTERS.find(c => c.id === charId)?.alts?.length > 1) {
-                        setMainChar(charId);
-                        setPickerStep('alt');
-                      } else {
-                        selectMainChar(charId, null);
-                      }
-                    }} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}>
-                      <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-                      <span style={{ fontSize: 8, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{charObj?.name || charId}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Step 2: Alt skin selection */
-              <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                  {/* Default render */}
-                  {charDefaultAltPath(mainChar) && (
-                    <button onClick={() => selectMainChar(mainChar, null)} style={{ background: !mainCharAlt ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${!mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <img src={charDefaultAltPath(mainChar)} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-                      <span style={{ fontSize: 9, fontWeight: 700, color: !mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Default</span>
-                    </button>
-                  )}
-                  {/* Alts */}
-                  {charAltPaths(mainChar).map((altPath, i) => {
-                    const isSelected = mainCharAlt === altPath;
-                    return (
-                      <button key={i} onClick={() => selectMainChar(mainChar, altPath)} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <img src={altPath} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
-                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Skin {i + 2}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
+import { useEffect, useState } from 'react';
+
+import { useRouter } from 'next/router';
+
+import Head from 'next/head';
+
+import { getStoredUser, logout } from '../src/utils/auth';
+
+import { RANKS, TIER_ICONS } from '../lib/ranks';
+
+import { CHARACTERS, charImgPath, stockIconPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath } from '../lib/characters';
+
+import CharacterDetail from '../src/components/CharacterDetail';
+
+
+
+function timeAgo(iso) {
+
+  if (!iso) return '';
+
+  const diff = Date.now() - new Date(iso).getTime();
+
+  const m = Math.floor(diff / 60000);
+
+  if (m < 1)  return 'hace un momento';
+
+  if (m < 60) return `hace ${m}m`;
+
+  const h = Math.floor(m / 60);
+
+  if (h < 24) return `hace ${h}h`;
+
+  const d = Math.floor(h / 24);
+
+  return `hace ${d}d`;
+
+}
+
+
+
+const COUNTRY_TO_CODE = {
+
+  'Argentina':'AR','Brasil':'BR','Brazil':'BR','Mexico':'MX','México':'MX',
+
+  'Chile':'CL','Peru':'PE','Perú':'PE','Colombia':'CO','Venezuela':'VE',
+
+  'Uruguay':'UY','Paraguay':'PY','Bolivia':'BO','Ecuador':'EC','Costa Rica':'CR',
+
+  'United States':'US','USA':'US','Canada':'CA','Spain':'ES','España':'ES',
+
+  'Japan':'JP','South Korea':'KR','France':'FR','Germany':'DE','Italy':'IT',
+
+  'United Kingdom':'GB','UK':'GB','Australia':'AU','New Zealand':'NZ',
+
+  'Portugal':'PT','Netherlands':'NL','Sweden':'SE','Norway':'NO','Denmark':'DK',
+
+};
+
+const AR_PROVINCES = {
+
+  'Buenos Aires':'BA','Ciudad Autónoma de Buenos Aires':'CABA','CABA':'CABA',
+
+  'Capital Federal':'CABA','Córdoba':'CBA','Cordoba':'CBA','Santa Fe':'SF',
+
+  'Mendoza':'MZA','Tucumán':'TUC','Tucuman':'TUC','Entre Ríos':'ER','Entre Rios':'ER',
+
+  'Salta':'SLA','Misiones':'MIS','Chaco':'CHA','Corrientes':'COR','Santiago del Estero':'SDE',
+
+  'San Juan':'SJ','Jujuy':'JUJ','Río Negro':'RN','Rio Negro':'RN','Neuquén':'NQN','Neuquen':'NQN',
+
+  'Formosa':'FOR','Chubut':'CHU','San Luis':'SL','Catamarca':'CAT','La Rioja':'LR',
+
+  'La Pampa':'LP','Santa Cruz':'SC','Tierra del Fuego':'TDF',
+
+};
+
+function countryFlag(country) {
+
+  if (!country) return null;
+
+  return country.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
+
+}
+
+function FlagImg({ cc, size = 20 }) {
+
+  if (!cc) return null;
+
+  return <img src={`https://flagcdn.com/w40/${cc.toLowerCase()}.png`} alt={cc} style={{ width: size, height: Math.round(size * 0.75), objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle' }} onError={e => { e.target.style.display = 'none'; }} />;
+
+}
+
+function provinceCode(state, country) {
+
+  if (!state) return null;
+
+  const cc = country?.length === 2 ? country.toUpperCase() : (COUNTRY_TO_CODE[country] || null);
+
+  if (cc === 'AR') return AR_PROVINCES[state] || state;
+
+  return state;
+
+}
+
+
+
+function withAlpha(hexColor, alpha) {
+
+  if (typeof hexColor !== 'string' || !hexColor.startsWith('#')) return `rgba(255,255,255,${alpha})`;
+
+  const hex = hexColor.replace('#', '');
+
+  const fullHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex;
+
+  if (fullHex.length !== 6) return `rgba(255,255,255,${alpha})`;
+
+  const r = parseInt(fullHex.slice(0, 2), 16);
+
+  const g = parseInt(fullHex.slice(2, 4), 16);
+
+  const b = parseInt(fullHex.slice(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+}
+
+
+
+function getRankBadgeData(rankName) {
+
+  const rankObj = RANKS.find(r => r.name === rankName);
+
+  if (!rankObj) return null;
+
+  return {
+
+    icon: TIER_ICONS[rankObj.tier] || '??',
+
+    division: rankObj.subdivision || '',
+
+    color: rankObj.color || '#9CA3AF',
+
+  };
+
+}
+
+
+
+export default function ProfilePage() {
+
+  const router = useRouter();
+
+  const [user, setUser]           = useState(null);
+
+  const [stats, setStats]         = useState(null);
+
+  const [history, setHistory]     = useState([]);
+
+  const [recentChars, setRecentChars] = useState([]);
+
+  const [loading, setLoading]     = useState(true);
+
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const [startggStats, setStartggStats] = useState(null);
+
+  const [showAllChars, setShowAllChars] = useState(false);
+
+  const [showCharsModal, setShowCharsModal] = useState(false);
+
+  const [selectedChar, setSelectedChar] = useState(null);
+
+  const [charFromModal, setCharFromModal] = useState(false);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [myStatus, setMyStatus] = useState('online');
+
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+
+  const [mainChar, setMainChar] = useState(null);
+
+  const [mainCharAlt, setMainCharAlt] = useState(null);
+
+  const [showMainPicker, setShowMainPicker] = useState(false);
+
+  const [pickerStep, setPickerStep] = useState('char'); // 'char' | 'alt'
+
+  const [parsecRole, setParsecRole] = useState(null); // 'host' | 'nohost' | null
+
+  // ── Ticket / Reporte de match ──────────────────────────────────
+  const [reportModal, setReportModal]   = useState(null);   // matchEntry | null
+  const [reportReason, setReportReason] = useState('wrong_result');
+  const [reportDesc, setReportDesc]     = useState('');
+  const [reportImg, setReportImg]       = useState(null);   // { base64, preview }
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSent, setReportSent]     = useState(false);
+  const [reportError, setReportError]   = useState('');
+
+  const HOURS_LIMIT = 48;
+
+  function canReport(match) {
+    if (match.rpDelta === undefined && match.loserRpDelta === undefined) return false;
+    return Date.now() - new Date(match.playedAt).getTime() <= HOURS_LIMIT * 60 * 60 * 1000;
+  }
+
+  function openReportModal(match) {
+    setReportModal(match);
+    setReportReason('wrong_result');
+    setReportDesc('');
+    setReportImg(null);
+    setReportSent(false);
+    setReportError('');
+  }
+
+  function handleReportImage(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const MAX = 500 * 1024; // 500 KB objetivo
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        // Reducir si muy grande
+        const maxDim = 1280;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width  = Math.round(width  * scale);
+          height = Math.round(height * scale);
+        }
+        canvas.width  = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        // Comprimir iterativamente
+        let quality = 0.85;
+        let dataUrl;
+        do {
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+          quality -= 0.1;
+        } while (dataUrl.length > MAX * 1.37 && quality > 0.2); // base64 overhead ~37%
+        setReportImg({ base64: dataUrl, preview: dataUrl });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitReport() {
+    if (!reportModal || !reportImg) return;
+    const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
+    const token = stored.access_token;
+    if (!token) { setReportError('No estás autenticado'); return; }
+    setReportSending(true);
+    setReportError('');
+    try {
+      const res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          matchId: reportModal.matchId,
+          reason: reportReason,
+          description: reportDesc,
+          imageBase64: reportImg.base64,
+        }),
+      });
+      if (res.ok) {
+        setReportSent(true);
+      } else {
+        const data = await res.json();
+        setReportError(data.error || 'Error al enviar el reporte');
+      }
+    } catch { setReportError('Error de red'); }
+    finally { setReportSending(false); }
+  }
+
+  const refreshStartgg = () => {
+
+    if (refreshing) return;
+
+    setRefreshing(true);
+
+    try {
+
+      const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
+
+      const token = stored.access_token;
+
+      const slug = stored.user?.slug;
+
+      if (token && slug) {
+
+        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug) + '&refresh=true', {
+
+          headers: { 'Authorization': 'Bearer ' + token },
+
+        }).then(r => r.ok ? r.json() : null)
+
+          .then(d => { if (d) setStartggStats(d); })
+
+          .finally(() => setRefreshing(false));
+
+      } else {
+
+        setRefreshing(false);
+
+      }
+
+    } catch { setRefreshing(false); }
+
+  };
+
+
+
+  const changeStatus = async (newStatus) => {
+
+    setMyStatus(newStatus);
+
+    setShowStatusMenu(false);
+
+    try { localStorage.setItem('afk_my_status', newStatus); } catch {}
+
+    const uid = user?.id || user?.slug;
+
+    if (uid) {
+
+      try {
+
+        await fetch('/api/heartbeat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, status: newStatus }) });
+
+      } catch {}
+
+    }
+
+  };
+
+
+
+  useEffect(() => {
+
+    const stored = getStoredUser();
+
+    if (!stored) { router.replace('/login'); return; }
+
+    const u = stored.user;
+
+    const nameIsStale = !u?.name || u.name === u?.slug || /^[0-9a-f]{6,16}$/i.test(u.name);
+
+    if (nameIsStale) {
+
+      localStorage.removeItem('afk_user');
+
+      router.replace('/login');
+
+      return;
+
+    }
+
+    setUser(u);
+
+    // Limpiar localStorage per-user si cambió el usuario
+
+    try {
+
+      const lastUid = localStorage.getItem('afk_last_uid');
+
+      const currentUid = String(u.id || u.slug || '');
+
+      if (lastUid && lastUid !== currentUid) {
+
+        ['afk_main_char','afk_main_alt','afk_my_status','afk_recent_chars','afk_parsec_role','chat_last_opened'].forEach(k => localStorage.removeItem(k));
+
+      }
+
+      localStorage.setItem('afk_last_uid', currentUid);
+
+    } catch {}
+
+    try { const s = localStorage.getItem('afk_my_status'); if (s) setMyStatus(s); } catch {}
+
+    const uid = encodeURIComponent(String(u.id || u.slug || ''));
+
+
+
+    // Load main char from Redis (fuente de verdad)
+
+    fetch(`/api/players/profile?id=${uid}`)
+
+      .then(r => r.ok ? r.json() : null)
+
+      .then(p => {
+
+        if (p?.mainChar) { setMainChar(p.mainChar); try { localStorage.setItem('afk_main_char', p.mainChar); } catch {} }
+
+        else { setMainChar(null); try { localStorage.removeItem('afk_main_char'); } catch {} }
+
+        if (p?.mainCharAlt) { setMainCharAlt(p.mainCharAlt); try { localStorage.setItem('afk_main_alt', p.mainCharAlt); } catch {} }
+
+        else { setMainCharAlt(null); try { localStorage.removeItem('afk_main_alt'); } catch {} }
+
+        if (p?.parsecRole) { setParsecRole(p.parsecRole); }
+
+      })
+
+      .catch(() => {});
+
+
+
+    Promise.all([
+
+      fetch(`/api/players/stats?userId=${uid}`).then(r => r.json()).catch(() => null),
+
+      fetch(`/api/players/history?userId=${uid}&limit=30`).then(r => r.json()).catch(() => []),
+
+      fetch(`/api/matchmaking/recent-chars?userId=${uid}`).then(r => r.json()).catch(() => []),
+
+    ]).then(([s, h, chars]) => {
+
+      setStats(s);
+
+      setHistory(Array.isArray(h) ? h : []);
+
+      setRecentChars(Array.isArray(chars) ? chars : []);
+
+      setLoading(false);
+
+    });
+
+
+
+    // Fetch Start.GG stats
+
+    try {
+
+      const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
+
+      const token = stored.access_token;
+
+      const slug = stored.user?.slug;
+
+      if (token && slug) {
+
+        fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), {
+
+          headers: { 'Authorization': 'Bearer ' + token },
+
+        }).then(r => {
+
+          if (!r.ok) return r.json().catch(() => null).then(e => { console.warn('[StartGG]', r.status, e); return null; });
+
+          return r.json();
+
+        }).then(d => { if (d) {
+
+          setStartggStats(d);
+
+          // Persist country to Redis profile
+
+          const loc = d?.profile?.location;
+
+          if (loc?.country && u.id) {
+
+            const cc = countryFlag(loc.country);
+
+            if (cc) {
+
+              fetch('/api/players/profile', {
+
+                method: 'PATCH',
+
+                headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify({ id: u.id, country: cc }),
+
+              }).catch(() => {});
+
+            }
+
+          }
+
+        } }).catch(() => {});
+
+      }
+
+    } catch (e) {}
+
+  }, []);
+
+
+
+  if (!user) return null;
+
+
+
+  const displayName = user.name || user.slug || 'Jugador';
+
+  const initial     = displayName.charAt(0).toUpperCase();
+
+  const swW  = stats?.switch?.wins   || 0;
+
+  const swL  = stats?.switch?.losses || 0;
+
+  const pcW  = stats?.parsec?.wins   || 0;
+
+  const pcL  = stats?.parsec?.losses || 0;
+
+  const totalW   = swW + pcW;
+
+  const totalL   = swL + pcL;
+
+  const total    = totalW + totalL;
+
+  const winRate  = total > 0 ? Math.round(totalW * 100 / total) : 0;
+
+  const swTotal  = swW + swL;
+
+  const pcTotal  = pcW + pcL;
+
+  const swWR     = swTotal > 0 ? Math.round(swW * 100 / swTotal) : null;
+
+  const pcWR     = pcTotal > 0 ? Math.round(pcW * 100 / pcTotal) : null;
+
+
+
+  const TABS = [
+
+    { id: 'overview',  label: 'General'  },
+
+    { id: 'ranked',    label: 'Ranked'    },
+
+    { id: 'historial', label: 'Historial' },
+
+  ];
+
+
+
+  const heroSrc = (() => {
+
+    // Alt skin path takes priority
+
+    if (mainCharAlt) return mainCharAlt;
+
+    if (mainChar && CHARACTER_RENDERS[mainChar]) return charRenderPath(CHARACTER_RENDERS[mainChar]);
+
+    if (!history.length) return null;
+
+    const counts = {};
+
+    for (const m of history) {
+
+      const charId = m.winnerId === String(user.id || user.slug) ? m.winnerCharId : m.loserCharId;
+
+      if (charId) counts[charId] = (counts[charId] || 0) + 1;
+
+    }
+
+    let best = null, max = 0;
+
+    for (const [id, c] of Object.entries(counts)) { if (c > max) { max = c; best = id; } }
+
+    return best && CHARACTER_RENDERS[best] ? charRenderPath(CHARACTER_RENDERS[best]) : null;
+
+  })();
+
+
+
+  const selectMainChar = (charId, altPath) => {
+
+    setMainChar(charId);
+
+    setMainCharAlt(altPath || null);
+
+    setShowMainPicker(false);
+
+    setPickerStep('char');
+
+    try { localStorage.setItem('afk_main_char', charId); } catch {}
+
+    if (altPath) { try { localStorage.setItem('afk_main_alt', altPath); } catch {} }
+
+    else { try { localStorage.removeItem('afk_main_alt'); } catch {} }
+
+    const uid = user?.id || user?.slug;
+
+    if (uid) {
+
+      fetch('/api/players/profile', {
+
+        method: 'PATCH',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({ id: uid, mainChar: charId, mainCharAlt: altPath || null }),
+
+      }).catch(() => {});
+
+    }
+
+  };
+
+
+
+  const clearMainChar = () => {
+
+    setMainChar(null);
+
+    setMainCharAlt(null);
+
+    setShowMainPicker(false);
+
+    setPickerStep('char');
+
+    try { localStorage.removeItem('afk_main_char'); localStorage.removeItem('afk_main_alt'); } catch {}
+
+    const uid = user?.id || user?.slug;
+
+    if (uid) {
+
+      fetch('/api/players/profile', {
+
+        method: 'PATCH',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({ id: uid, mainChar: null, mainCharAlt: null }),
+
+      }).catch(() => {});
+
+    }
+
+  };
+
+
+
+  const changeParsecRole = (role) => {
+
+    const newRole = parsecRole === role ? null : role; // toggle off si es el mismo
+
+    setParsecRole(newRole);
+
+    try {
+
+      if (newRole) localStorage.setItem('afk_parsec_role', newRole);
+
+      else localStorage.removeItem('afk_parsec_role');
+
+    } catch {}
+
+    const uid = user?.id || user?.slug;
+
+    if (uid) {
+
+      fetch('/api/players/profile', {
+
+        method: 'PATCH',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({ id: uid, parsecRole: newRole }),
+
+      }).catch(() => {});
+
+    }
+
+  };
+
+
+
+  return (
+
+    <>
+
+      <Head>
+
+        <title>{displayName} â AFK Smash</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+        <style>{`
+
+          * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+          body { background: #0B0B12; margin: 0; }
+
+          ::-webkit-scrollbar { display: none; }
+
+          @keyframes spin { to { transform: rotate(360deg); } }
+
+        `}</style>
+
+      </Head>
+
+      <div style={{ minHeight: '100vh', background: '#0B0B12', color: '#fff', fontFamily: "'Outfit', -apple-system, sans-serif", maxWidth: 480, margin: '0 auto' }}>
+
+
+
+        {/* ââ Top bar ââ */}
+
+        <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+
+          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
+
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}>
+
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+
+            </svg>
+
+          </button>
+
+          <p style={{ margin: 0, fontWeight: 800, fontSize: 16, flex: 1 }}>Mi Perfil</p>
+
+          <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,140,0,0.12)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0 }}>
+
+            {mainChar ? (
+
+              <img src={charImgPath(CHARACTERS.find(c => c.id === mainChar)?.img)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+
+            ) : (
+
+              <span style={{ fontSize: 18 }}>??</span>
+
+            )}
+
+          </button>
+
+        </div>
+
+
+
+        {/* ââ Banner / Hero ââ */}
+
+        <div style={{ position: 'relative', background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
+
+          {heroSrc ? (
+
+            <div onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 4, cursor: 'pointer' }}>
+
+              <img
+
+                src={heroSrc}
+
+                alt=""
+
+                style={{ display: 'block', height: 180, objectFit: 'contain' }}
+
+                onError={e => { e.target.style.display = 'none'; }}
+
+              />
+
+              <div style={{ position: 'absolute', bottom: 8, right: 0, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+
+                <span style={{ fontSize: 12 }}>??</span>
+
+                <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>Main</span>
+
+              </div>
+
+            </div>
+
+          ) : (
+
+            <div style={{ height: 120, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+              <button onClick={() => setShowMainPicker(true)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                <span style={{ fontSize: 16 }}>??</span>
+
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Elegir main</span>
+
+              </button>
+
+            </div>
+
+          )}
+
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to top, #1a1a1a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+
+          <p style={{ margin: 0, padding: '8px 18px 4px', fontSize: 26, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', textAlign: 'center', lineHeight: 1, position: 'relative', zIndex: 3 }}>{displayName}</p>
+
+          {startggStats?.profile?.location && (() => {
+
+            const loc = startggStats.profile.location;
+
+            const cc = countryFlag(loc.country);
+
+            const provCode = provinceCode(loc.state, loc.country);
+
+            const city = loc.city;
+
+            return (cc || provCode || city) ? (
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '4px 0 12px', position: 'relative', zIndex: 3 }}>
+
+                {cc && <FlagImg cc={cc} size={22} />}
+
+                {provCode && (
+
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>{provCode}</span>
+
+                )}
+
+                {city && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{city}</span>}
+
+              </div>
+
+            ) : null;
+
+          })()}
+
+
+
+          {/* Change main button */}
+
+          <button onClick={() => setShowMainPicker(true)} style={{ position: 'relative', zIndex: 5, margin: '6px 0 4px', background: 'rgba(255,140,0,0.1)', border: '1px solid rgba(255,140,0,0.25)', borderRadius: 10, padding: '5px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+
+            <span style={{ fontSize: 12 }}>??</span>
+
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8C00' }}>{mainChar ? 'Cambiar main' : 'Elegir main'}</span>
+
+          </button>
+
+
+
+          {/* Status selector */}
+
+          <div style={{ position: 'relative', zIndex: 5, marginBottom: 12 }}>
+
+            <button onClick={() => setShowStatusMenu(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : '#555', boxShadow: `0 0 4px ${myStatus === 'online' ? '#22C55E' : myStatus === 'away' ? '#F59E0B' : myStatus === 'dnd' ? '#EF4444' : 'transparent'}` }} />
+
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+
+                {myStatus === 'online' ? 'En línea' : myStatus === 'away' ? 'Ausente' : myStatus === 'dnd' ? 'No molestar' : 'Invisible'}
+
+              </span>
+
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>?</span>
+
+            </button>
+
+            {showStatusMenu && (
+
+              <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 4, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', zIndex: 50, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+
+                {[
+
+                  { key: 'online', color: '#22C55E', label: 'En línea', icon: '??' },
+
+                  { key: 'away', color: '#F59E0B', label: 'Ausente', icon: '??' },
+
+                  { key: 'dnd', color: '#EF4444', label: 'No molestar', icon: '?' },
+
+                  { key: 'invisible', color: '#555', label: 'Invisible', icon: '??' },
+
+                ].map(opt => (
+
+                  <button key={opt.key} onClick={() => changeStatus(opt.key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: myStatus === opt.key ? 'rgba(255,255,255,0.06)' : 'transparent', cursor: 'pointer' }}>
+
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color, boxShadow: opt.color !== '#555' ? `0 0 4px ${opt.color}` : 'none' }} />
+
+                    <span style={{ fontSize: 12, fontWeight: 700, color: myStatus === opt.key ? '#fff' : 'rgba(255,255,255,0.5)' }}>{opt.label}</span>
+
+                    {myStatus === opt.key && <span style={{ marginLeft: 'auto', fontSize: 10, color: opt.color }}>?</span>}
+
+                  </button>
+
+                ))}
+
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+
+
+        {/* Tab bar */}
+
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', marginTop: 16 }}>
+
+          {TABS.map(t => (
+
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, padding: '13px 0', background: 'transparent', border: 'none', borderBottom: `2px solid ${activeTab === t.id ? '#FF8C00' : 'transparent'}`, cursor: 'pointer', color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: activeTab === t.id ? 800 : 500, fontSize: 13, position: 'relative', bottom: -1, transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+
+              {t.label}
+
+            </button>
+
+          ))}
+
+        </div>
+
+
+
+        {/* ââ Content ââ */}
+
+        <div style={{ padding: '0 18px 40px' }}>
+
+
+
+          {/* ââââ OVERVIEW ââââ */}
+
+          {activeTab === 'overview' && (
+
+            <div>
+
+              <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Winrates</p>
+
+
+
+              {/* ALL TIME card */}
+
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
+
+                <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+                    <div>
+
+                      <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ALL TIME</p>
+
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#22C55E', lineHeight: 1 }}>{loading ? 'â' : totalW}</span>
+
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>W</span>
+
+                        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', margin: '0 2px' }}>â</span>
+
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', lineHeight: 1 }}>{loading ? 'â' : totalL}</span>
+
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>L</span>
+
+                      </div>
+
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+
+                      <p style={{ margin: 0, fontSize: 40, fontWeight: 900, lineHeight: 1, color: loading ? 'rgba(255,255,255,0.2)' : winRate >= 50 ? '#22C55E' : winRate >= 40 ? '#F59E0B' : 'rgba(255,255,255,0.45)' }}>
+
+                        {loading ? 'â' : `${winRate}%`}
+
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                  {!loading && total > 0 && (
+
+                    <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 5, overflow: 'hidden' }}>
+
+                      <div style={{ width: `${winRate}%`, height: '100%', background: `linear-gradient(90deg, ${winRate >= 50 ? '#22C55E, #16A34A' : '#F59E0B, #D97706'})`, borderRadius: 4, transition: 'width 0.8s ease' }} />
+
+                    </div>
+
+                  )}
+
+                </div>
+
+
+
+                {/* Platform breakdown */}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+
+                  {[
+
+                    { label: '?? Switch',  w: swW, l: swL, wr: swWR, total: swTotal, color: '#EF4444' },
+
+                    { label: '??? Parsec',  w: pcW, l: pcL, wr: pcWR, total: pcTotal, color: '#8B5CF6' },
+
+                  ].map((p, i) => (
+
+                    <div key={i} style={{ padding: '14px 20px', borderRight: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+
+                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.label}</p>
+
+                      {loading || p.wr === null
+
+                        ? <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sin datos</p>
+
+                        : <>
+
+                          <p style={{ margin: '0 0 3px', fontSize: 24, fontWeight: 900, lineHeight: 1, color: p.wr >= 50 ? '#22C55E' : 'rgba(255,255,255,0.45)' }}>{p.wr}%</p>
+
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{p.w}W Â· {p.l}L</p>
+
+                        </>
+
+                      }
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+              </div>
+
+
+
+              {/* -- SUMMARY (Start.GG character usage) -- */}
+
+              {startggStats && startggStats.charUsage && startggStats.charUsage.length > 0 && (
+
+                <div style={{ marginBottom: 6 }}>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '22px 0 12px' }}>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+                      <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F5C518,#D4A017)', flexShrink: 0 }} />
+
+                      <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Resumen</p>
+
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 700 }}>Start.GG · {startggStats.totalSets} sets</p>
+
+                    <button onClick={refreshStartgg} disabled={refreshing} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 8px', cursor: refreshing ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: refreshing ? 0.5 : 1 }}>
+
+                      <span style={{ fontSize: 12, display: 'inline-block', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>??</span>
+
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>{refreshing ? '...' : 'Sync'}</span>
+
+                    </button>
+
+                  </div>
+
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' }}>
+
+                    {startggStats.charUsage.slice(0, 3).map((ch, i) => {
+
+                      const localId = ch.localCharId;
+
+                      const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+
+                      const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+
+                      const isTop = i === 0;
+
+                      const charWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
+
+                      const barColors = ['#F5C518', '#818CF8', '#22C55E', '#F97316', '#EF4444'];
+
+                      const barColor = barColors[i % barColors.length] || '#F5C518';
+
+                      return (
+
+                        <div key={ch.startggCharId} onClick={() => setSelectedChar(ch.startggCharId)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isTop ? '10px 14px 10px 6px' : '9px 14px', borderBottom: i < Math.min(startggStats.charUsage.length, showAllChars ? startggStats.charUsage.length : 5) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', position: 'relative', overflow: 'hidden', background: isTop ? 'linear-gradient(90deg, rgba(245,197,24,0.10), transparent)' : 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}>
+
+                          {renderFile ? (
+
+                            <img src={charRenderPath(renderFile)} alt="" style={{ width: isTop ? 52 : 36, height: isTop ? 52 : 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+
+                          ) : charObj ? (
+
+                            <img src={charImgPath(charObj.img)} alt="" style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+
+                          ) : (
+
+                            <div style={{ width: isTop ? 44 : 32, height: isTop ? 44 : 32, flexShrink: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+                              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.2)' }}>?</span>
+
+                            </div>
+
+                          )}
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+
+                              <p style={{ margin: 0, fontSize: isTop ? 13 : 11, fontWeight: 700, color: isTop ? '#fff' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+
+                                {charObj?.name || ch.charName || `#${ch.startggCharId}`}
+
+                              </p>
+
+                              <p style={{ margin: 0, fontSize: isTop ? 15 : 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
+
+                            </div>
+
+                            <div style={{ height: isTop ? 6 : 4, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+
+                              <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.5s ease' }} />
+
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+
+                              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{ch.games} partidas</p>
+
+                              <p style={{ margin: 0, fontSize: 9, color: charWR >= 50 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)', fontWeight: 700 }}>{charWR}% WR ({ch.wins}W-{ch.games - ch.wins}L)</p>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      );
+
+                    })}
+
+                  </div>
+
+                  {selectedChar && (() => {
+
+                    const ch = startggStats.charUsage.find(c => c.startggCharId === selectedChar);
+
+                    return ch ? <CharacterDetail ch={ch} onClose={() => { setSelectedChar(null); setCharFromModal(false); }} onBack={charFromModal ? () => { setSelectedChar(null); setShowCharsModal(true); } : undefined} /> : null;
+
+                  })()}
+
+                  {startggStats.charUsage.length > 3 && (
+
+                    <button onClick={() => setShowCharsModal(true)} style={{ width: '100%', padding: '8px', marginTop: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+
+                      Ver todos ({startggStats.charUsage.length})
+
+                    </button>
+
+                  )}
+
+
+
+                  {/* Modal ver todos chars */}
+
+                  {showCharsModal && (
+
+                    <div onClick={() => setShowCharsModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+
+                      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'slideUp .25s ease-out' }}>
+
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+
+                          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>Todos los personajes</p>
+
+                          <button onClick={() => setShowCharsModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
+
+                        </div>
+
+                        <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+
+                          {startggStats.charUsage.map((ch, i) => {
+
+                            const localId = ch.localCharId;
+
+                            const charObj = localId ? CHARACTERS.find(c => c.id === localId) : null;
+
+                            const renderFile = localId ? CHARACTER_RENDERS[localId] : null;
+
+                            const cWR = ch.games > 0 ? Math.round(ch.wins * 100 / ch.games) : 0;
+
+                            const barColor = ['#F5C518','#818CF8','#22C55E','#F97316','#EF4444'][i % 5];
+
+                            return (
+
+                              <div key={ch.startggCharId} onClick={() => { setShowCharsModal(false); setCharFromModal(true); setSelectedChar(ch.startggCharId); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+
+                                {renderFile ? <img src={charRenderPath(renderFile)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+
+                                  : charObj ? <img src={charImgPath(charObj.img)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+
+                                  : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />}
+
+                                <div style={{ flex: 1, minWidth: 0 }}>
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+
+                                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{charObj?.name || ch.charName}</p>
+
+                                    <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: barColor, flexShrink: 0, marginLeft: 8 }}>{ch.usage}%</p>
+
+                                  </div>
+
+                                  <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+
+                                    <div style={{ width: ch.usage + '%', height: '100%', background: barColor, borderRadius: 2 }} />
+
+                                  </div>
+
+                                  <p style={{ margin: '2px 0 0', fontSize: 9, color: cWR >= 50 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)', fontWeight: 700 }}>{ch.games}g · {cWR}% WR</p>
+
+                                </div>
+
+                                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}></span>
+
+                              </div>
+
+                            );
+
+                          })}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {/* Start.GG career stats */}
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+
+                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#F5C518' }}>{startggStats.winRate}%</p>
+
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Winrate</p>
+
+                    </div>
+
+                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#22C55E' }}>{startggStats.wins}</p>
+
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Victorias</p>
+
+                    </div>
+
+                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#EF4444' }}>{startggStats.losses}</p>
+
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Derrotas</p>
+
+                    </div>
+
+                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px', textAlign: 'center' }}>
+
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#818CF8' }}>{startggStats.tournaments}</p>
+
+                      <p style={{ margin: '2px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: 700 }}>Torneos</p>
+
+                    </div>
+
+                  </div>
+
+
+
+                  {/* Stages */}
+
+                  {startggStats.stageUsage && startggStats.stageUsage.length > 0 && (
+
+                    <>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
+
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#818CF8,#6366F1)', flexShrink: 0 }} />
+
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Escenarios</p>
+
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+
+                        {startggStats.stageUsage.slice(0, 3).map((st, i) => (
+
+                          <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+
+                            {st.image && <img src={st.image} alt="" style={{ width: '100%', height: 60, objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />}
+
+                            {!st.image && <div style={{ width: '100%', height: 60, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{st.name}</span></div>}
+
+                            <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+                              <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.3)' }}>#{i + 1}</span>
+
+                              <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{st.usage}%</span>
+
+                            </div>
+
+                          </div>
+
+                        ))}
+
+                      </div>
+
+                      {startggStats.stageUsage.length > 3 && (
+
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+
+                          {startggStats.stageUsage.slice(3, 8).map(st => {
+
+                            const wrPct = st.games > 0 ? Math.round(st.wins * 100 / st.games) : 0;
+
+                            return (
+
+                              <div key={st.stageId} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{st.name}</span>
+
+                                <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>{st.usage}%</span>
+
+                              </div>
+
+                            );
+
+                          })}
+
+                        </div>
+
+                      )}
+
+                    </>
+
+                  )}
+
+
+
+                  {/* Highlights */}
+
+                  {startggStats.highlights && startggStats.highlights.length > 0 && (
+
+                    <>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
+
+                        <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#F97316,#EA580C)', flexShrink: 0 }} />
+
+                        <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Destacados</p>
+
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+
+                        {startggStats.highlights.slice(0, 12).map((h, i) => {
+
+                          const isTop3 = h.placement <= 3;
+
+                          const placementColor = h.placement === 1 ? '#F5C518' : h.placement === 2 ? '#C0C0C0' : h.placement === 3 ? '#CD7F32' : '#fff';
+
+                          return (
+
+                            <div key={i} onClick={() => h.eventSlug && window.open(h.eventSlug, '_blank')} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${isTop3 ? 'rgba(245,197,24,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px', cursor: h.eventSlug ? 'pointer' : 'default', overflow: 'hidden' }}>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+
+                                {h.tournamentImage && <img src={h.tournamentImage} alt="" style={{ width: 24, height: 24, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />}
+
+                                <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{h.tournament}</p>
+
+                              </div>
+
+                              <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: placementColor }}>
+
+                                {h.placement}<sup style={{ fontSize: 8 }}>{h.placement === 1 ? 'RO' : h.placement === 2 ? 'DO' : h.placement === 3 ? 'RO' : 'TO'}</sup>
+
+                                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>/{h.entrants}</span>
+
+                              </p>
+
+                              <p style={{ margin: '3px 0 0', fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>
+
+                                {h.country && <><FlagImg cc={countryFlag(h.country)} size={14} />{' '}</>}
+
+                                {h.date ? new Date(h.date).toLocaleDateString('es', { month: 'short', day: 'numeric', year: '2-digit' }) : ''}
+
+                              </p>
+
+                            </div>
+
+                          );
+
+                        })}
+
+                      </div>
+
+                    </>
+
+                  )}
+
+                </div>
+
+              )}
+
+
+
+              {/* Recent characters */}
+
+              {recentChars.length > 0 && (
+
+                <>
+
+                  <p style={{ margin: '22px 0 12px', fontSize: 12, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Personajes recientes</p>
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+
+                    {recentChars.slice(0, 6).map((charId, idx) => {
+
+                      const char = CHARACTERS.find(c => c.id === charId);
+
+                      if (!char) return null;
+
+                      return (
+
+                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 8px', minWidth: 68 }}>
+
+                          <img src={charImgPath(char.img)} alt={char.name} style={{ width: 46, height: 46, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em', maxWidth: 62, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.name}</p>
+
+                        </div>
+
+                      );
+
+                    })}
+
+                  </div>
+
+                </>
+
+              )}
+
+            </div>
+
+          )}
+
+
+
+          {/* ââââ RANKED ââââ */}
+
+          {activeTab === 'ranked' && (
+
+            <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {(['switch', 'parsec']).map(plat => {
+
+                const s        = stats?.[plat];
+
+                const tot      = (s?.wins || 0) + (s?.losses || 0);
+
+                const unranked = !s?.placementDone && tot === 0;
+
+                const inPlac   = !s?.placementDone && tot > 0;
+
+                const rankName = s?.rank || '';
+
+                const pts      = s?.rankPoints || 0;
+
+                const isSmasher= rankName === 'SMASHer';
+
+                const rankObj  = RANKS.find(r => r.name === rankName)
+
+                  || (typeof s?.rankIndex === 'number' ? RANKS[s.rankIndex] : null)
+
+                  || null;
+
+                const rankColor= rankObj ? rankObj.color : 'rgba(255,255,255,0.2)';
+
+                const tierIconVal = rankObj
+
+                  ? (TIER_ICONS[rankObj.tier] || '??')
+
+                  : (rankName ? (TIER_ICONS[rankName.split(' ')[0]] || null) : null);
+
+                const tierIcon = unranked ? null : tierIconVal;
+
+                const pColor   = plat === 'switch' ? '#EF4444' : '#8B5CF6';
+
+                const pLabel   = plat === 'switch' ? '?? Switch Online' : '??? Parsec';
+
+                const platWR   = tot > 0 ? Math.round((s?.wins || 0) * 100 / tot) : null;
+
+                return (
+
+                  <div key={plat} style={{ background: unranked ? 'rgba(255,255,255,0.03)' : `linear-gradient(135deg, ${rankColor}14 0%, transparent 65%)`, border: `1px solid ${unranked ? 'rgba(255,255,255,0.07)' : rankColor + '35'}`, borderRadius: 20, padding: '20px' }}>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{pLabel}</p>
+
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{tot} partidas</p>
+
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+
+                      <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: tierIcon ? `${rankColor}18` : 'rgba(255,255,255,0.05)', border: `2px solid ${tierIcon ? rankColor + '55' : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
+
+                        {tierIcon || <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 900, fontSize: 24 }}>?</span>}
+
+                      </div>
+
+                      <div style={{ flex: 1 }}>
+
+                        <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: unranked ? 'rgba(255,255,255,0.2)' : inPlac ? '#FF8C00' : rankColor }}>
+
+                          {unranked || inPlac ? 'UNRANKED' : rankName}
+
+                        </p>
+
+                        <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+
+                          <span style={{ color: '#22C55E', fontWeight: 700 }}>{s?.wins || 0}W</span>
+
+                          {' Â· '}
+
+                          <span style={{ color: '#EF4444', fontWeight: 700 }}>{s?.losses || 0}L</span>
+
+                          {platWR !== null && <span style={{ color: 'rgba(255,255,255,0.3)' }}> Â· {platWR}%</span>}
+
+                        </p>
+
+                        {!unranked && !inPlac && !isSmasher && (
+
+                          <div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Rank Points</span>
+
+                              <span style={{ fontSize: 10, fontWeight: 800, color: rankColor }}>{pts}/100</span>
+
+                            </div>
+
+                            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+
+                              <div style={{ width: `${Math.min(100, pts)}%`, height: '100%', background: rankColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
+
+                            </div>
+
+                          </div>
+
+                        )}
+
+                        {isSmasher && <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#FF8C00' }}>{pts} RP</p>}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                );
+
+              })}
+
+            </div>
+
+          )}
+
+
+
+          {/* ââââ HISTORIAL ââââ */}
+
+          {activeTab === 'historial' && (
+
+            <div style={{ paddingTop: 20 }}>
+
+              {loading ? (
+
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
+
+              ) : history.length === 0 ? (
+
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px 20px', textAlign: 'center' }}>
+
+                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>âï¸</p>
+
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Sin partidas aÃºn</p>
+
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>JugÃ¡ ranked para ver tu historial</p>
+
+                </div>
+
+              ) : (
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+                  {history.map((m, i) => {
+
+                    const isWin    = String(m.winnerId) === String(user.id || user.slug);
+
+                    const opponent = isWin ? m.loserName : m.winnerName;
+
+                    const pLabel   = m.platform === 'switch' ? '?? Switch' : '??? Parsec';
+
+                    const myCharId = isWin ? m.winnerCharId : m.loserCharId;
+
+                    const myCharObj = CHARACTERS.find(c => c.id === myCharId) || null;
+
+                    const myIconSrc = stockIconPath(myCharObj, 1) || (myCharObj ? charImgPath(myCharObj.img) : null);
+
+                    const myRankAfter = isWin ? m.winnerRankAfter : m.loserRankAfter;
+
+                    const badge = getRankBadgeData(myRankAfter);
+
+                    const rrDelta = Number(isWin ? m.rpDelta : m.loserRpDelta);
+
+                    const rrText = Number.isFinite(rrDelta) && rrDelta !== 0
+
+                      ? `${rrDelta > 0 ? '+' : ''}${rrDelta} RR`
+
+                      : null;
+
+                    const myScore = Number(isWin ? m.winnerScore : m.loserScore);
+
+                    const rivalScore = Number(isWin ? m.loserScore : m.winnerScore);
+
+                    const hasScore = Number.isFinite(myScore) && Number.isFinite(rivalScore);
+
+                    return (
+
+                      <div key={i} style={{ position: 'relative', display: 'flex', alignItems: 'center', minHeight: 72, background: isWin ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${isWin ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'}`, borderLeft: `3px solid ${isWin ? '#22C55E' : '#EF4444'}`, borderRadius: 12, overflow: 'hidden' }}>
+
+                        <div style={{ width: 100, flexShrink: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 4px 8px 8px' }}>
+
+                          {myIconSrc ? (
+
+                            <img
+
+                              src={myIconSrc}
+
+                              alt=""
+
+                              style={{ width: 50, height: 50, objectFit: 'contain' }}
+
+                              onError={e => { e.target.style.display='none'; }}
+
+                            />
+
+                          ) : (
+
+                            <div style={{ width: 50, height: 50, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 18, fontWeight: 900 }}>?</div>
+
+                          )}
+
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+
+                            {badge ? (
+
+                              <div style={{ padding: '2px 4px', borderRadius: 5, background: withAlpha(badge.color, 0.15), border: `1px solid ${withAlpha(badge.color, 0.4)}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+
+                                <span style={{ fontSize: 12, lineHeight: 1.1 }}>{badge.icon}</span>
+
+                                <span style={{ fontSize: 6.5, fontWeight: 900, color: badge.color, lineHeight: 1.2, letterSpacing: '0.04em' }}>{badge.division || 'RANK'}</span>
+
+                              </div>
+
+                            ) : (
+
+                              <div style={{ padding: '2px 6px', borderRadius: 5, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}>
+
+                                <span style={{ fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>N/A</span>
+
+                              </div>
+
+                            )}
+
+                          </div>
+
+                        </div>
+
+                        <div style={{ flex: '1 1 0%', padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
+
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+
+                          <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{pLabel} · {timeAgo(m.playedAt)}</p>
+
+                          {rrText && (
+
+                            <span style={{ fontSize: 10, fontWeight: 800, color: rrDelta >= 0 ? '#22C55E' : '#EF4444' }}>{rrText}</span>
+
+                          )}
+
+                        </div>
+
+                        <div style={{ padding: '9px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 900, color: isWin ? '#22C55E' : '#EF4444', letterSpacing: '0.02em' }}>{isWin ? 'VICTORIA' : 'DERROTA'}</p>
+
+                          {hasScore && (
+
+                            <span style={{ fontSize: 20, fontWeight: 900, lineHeight: 1, color: 'rgba(255,255,255,0.85)' }}>
+
+                              {myScore}-{rivalScore}
+
+                            </span>
+
+                          )}
+
+                          {canReport(m) && (
+
+                            <button
+
+                              onClick={e => { e.stopPropagation(); openReportModal(m); }}
+
+                              title="Reportar error en este match"
+
+                              style={{ marginTop: 4, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 6, padding: '2px 5px', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}
+
+                            >⚠️</button>
+
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    );
+
+                  })}
+
+                </div>
+
+              )}
+
+            </div>
+
+          )}
+
+
+
+          {/* Logout */}
+
+          <div style={{ marginTop: 28 }}>
+
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ajustes de Parsec</p>
+
+            <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 16, padding: '14px 16px' }}>
+
+              <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#fff' }}>Modo de conexión en Parsec</p>
+
+              <p style={{ margin: '0 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+
+                Indicá si podés hostear una sesión. Esto evita que el sistema te empareje con otro jugador que tampoco puede hostear.
+
+              </p>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+
+                <button onClick={() => changeParsecRole('host')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+
+                  {parsecRole === 'host' ? '? ' : ''}Host
+
+                </button>
+
+                <button onClick={() => changeParsecRole('nohost')} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.5)', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Outfit', sans-serif" }}>
+
+                  {parsecRole === 'nohost' ? '? ' : ''}No Host
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <button onClick={() => { logout(); window.location.href = '/login'; }} style={{ marginTop: 24, width: '100%', padding: '14px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+
+            Cerrar sesión
+
+          </button>
+
+        </div>
+
+      </div>
+
+
+
+      {/* Main character picker modal */}
+
+      {showMainPicker && (
+
+        <div onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '80vh', background: '#111', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+                {pickerStep === 'alt' && (
+
+                  <button onClick={() => setPickerStep('char')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}>?</button>
+
+                )}
+
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>
+
+                  {pickerStep === 'char' ? 'Elegir main' : 'Elegir skin'}
+
+                </p>
+
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+
+                {mainChar && pickerStep === 'char' && (
+
+                  <button onClick={clearMainChar} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#EF4444' }}>Quitar</button>
+
+                )}
+
+                <button onClick={() => { setShowMainPicker(false); setPickerStep('char'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>?</button>
+
+              </div>
+
+            </div>
+
+
+
+            {pickerStep === 'char' ? (
+
+              /* Step 1: Character grid */
+
+              <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+
+                {Object.entries(CHARACTER_RENDERS).map(([charId, renderFile]) => {
+
+                  const charObj = CHARACTERS.find(c => c.id === charId);
+
+                  const isSelected = mainChar === charId;
+
+                  return (
+
+                    <button key={charId} onClick={() => {
+
+                      if (CHARACTERS.find(c => c.id === charId)?.alts?.length > 1) {
+
+                        setMainChar(charId);
+
+                        setPickerStep('alt');
+
+                      } else {
+
+                        selectMainChar(charId, null);
+
+                      }
+
+                    }} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '8px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}>
+
+                      <img src={charRenderPath(renderFile)} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+
+                      <span style={{ fontSize: 8, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{charObj?.name || charId}</span>
+
+                    </button>
+
+                  );
+
+                })}
+
+              </div>
+
+            ) : (
+
+              /* Step 2: Alt skin selection */
+
+              <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px 20px' }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+
+                  {/* Default render */}
+
+                  {charDefaultAltPath(mainChar) && (
+
+                    <button onClick={() => selectMainChar(mainChar, null)} style={{ background: !mainCharAlt ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${!mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+
+                      <img src={charDefaultAltPath(mainChar)} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+
+                      <span style={{ fontSize: 9, fontWeight: 700, color: !mainCharAlt ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Default</span>
+
+                    </button>
+
+                  )}
+
+                  {/* Alts */}
+
+                  {charAltPaths(mainChar).map((altPath, i) => {
+
+                    const isSelected = mainCharAlt === altPath;
+
+                    return (
+
+                      <button key={i} onClick={() => selectMainChar(mainChar, altPath)} style={{ background: isSelected ? 'rgba(255,140,0,0.15)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isSelected ? '#FF8C00' : 'rgba(255,255,255,0.06)'}`, borderRadius: 12, padding: '10px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+
+                        <img src={altPath} alt="" style={{ width: 72, height: 72, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+
+                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? '#FF8C00' : 'rgba(255,255,255,0.4)' }}>Skin {i + 2}</span>
+
+                      </button>
+
+                    );
+
+                  })}
+
+                </div>
+
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* ── Modal de reporte de match ── */}
+
+      {reportModal && (
+
+        <div onClick={() => !reportSending && setReportModal(null)} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px 20px 0 0', padding: '20px 18px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#fff' }}>⚠️ Reportar match</p>
+
+              {!reportSending && <button onClick={() => setReportModal(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer' }}>×</button>}
+
+            </div>
+
+            {reportSent ? (
+
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+
+                <p style={{ fontSize: 36, margin: '0 0 8px' }}>✅</p>
+
+                <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#22C55E' }}>¡Reporte enviado!</p>
+
+                <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Soporte revisará tu caso en breve.</p>
+
+                <button onClick={() => setReportModal(null)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '8px 20px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cerrar</button>
+
+              </div>
+
+            ) : (
+
+              <>
+
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 12px' }}>
+
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+
+                    Match vs <strong style={{ color: '#fff' }}>{String(reportModal.winnerId) === String(user?.id || user?.slug) ? reportModal.loserName : reportModal.winnerName}</strong>
+
+                    {' · '}{reportModal.platform === 'switch' ? '🎮 Switch' : '💻 Parsec'}
+
+                  </p>
+
+                </div>
+
+                <div>
+
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Motivo</p>
+
+                  <select
+
+                    value={reportReason}
+
+                    onChange={e => setReportReason(e.target.value)}
+
+                    style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+
+                  >
+
+                    <option value="wrong_result">Resultado incorrecto</option>
+
+                    <option value="wrong_stocks">Stocks incorrectos</option>
+
+                    <option value="wrong_character">Personaje incorrecto</option>
+
+                    <option value="other">Otro</option>
+
+                  </select>
+
+                </div>
+
+                <div>
+
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Descripción</p>
+
+                  <textarea
+
+                    value={reportDesc}
+
+                    onChange={e => setReportDesc(e.target.value)}
+
+                    rows={3}
+
+                    maxLength={500}
+
+                    placeholder="Explicá brevemente qué salió mal..."
+
+                    style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+
+                  />
+
+                  <p style={{ margin: '2px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>{reportDesc.length}/500</p>
+
+                </div>
+
+                <div>
+
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Evidencia (screenshot obligatorio)</p>
+
+                  {reportImg ? (
+
+                    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+
+                      <img src={reportImg.preview} alt="evidencia" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', display: 'block' }} />
+
+                      <button onClick={() => setReportImg(null)} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 14, padding: '2px 7px', cursor: 'pointer' }}>×</button>
+
+                    </div>
+
+                  ) : (
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 10, cursor: 'pointer' }}>
+
+                      <span style={{ fontSize: 22 }}>📷</span>
+
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Subir imagen (se comprime automáticamente)</span>
+
+                      <input type="file" accept="image/*" onChange={handleReportImage} style={{ display: 'none' }} />
+
+                    </label>
+
+                  )}
+
+                </div>
+
+                {reportError && <p style={{ margin: 0, fontSize: 12, color: '#EF4444', fontWeight: 600 }}>{reportError}</p>}
+
+                <button
+
+                  onClick={submitReport}
+
+                  disabled={reportSending || !reportImg || reportDesc.trim().length < 10}
+
+                  style={{ width: '100%', padding: '12px', background: reportSending || !reportImg || reportDesc.trim().length < 10 ? 'rgba(255,255,255,0.07)' : '#F59E0B', border: 'none', borderRadius: 12, color: '#000', fontWeight: 800, fontSize: 14, cursor: reportSending || !reportImg || reportDesc.trim().length < 10 ? 'default' : 'pointer', transition: 'background 0.2s', fontFamily: 'inherit' }}
+
+                >
+
+                  {reportSending ? 'Enviando...' : 'Enviar reporte'}
+
+                </button>
+
+              </>
+
+            )}
+
+          </div>
+
+        </div>
+
+      )}
+
+    </>
+
+  );
+
+}
