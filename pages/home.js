@@ -7182,7 +7182,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
 
   // ── Acciones de la Sala Parsec Grupal ─────────────────────────────────
   const pgCreate = async () => {
-    if (!searchChar) { setPgError('Elegí tu personaje primero'); return; }
     setPgLoading(true); setPgError(null);
     try {
       const r = await fetch('/api/matchmaking/parsec-group', {
@@ -7197,7 +7196,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   };
 
   const pgJoin = async (code) => {
-    if (!searchChar) { setPgError('Elegí tu personaje primero'); return; }
     if (!code || code.length < 5) { setPgError('Ingresá un código de sala válido'); return; }
     setPgLoading(true); setPgError(null);
     try {
@@ -8668,6 +8666,33 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                     );
                   })}
                 </div>
+                {/* Picker de personaje en el lobby */}
+                {(() => {
+                  const myPlayer = parsecGroup.players.find(p => p.userId === uid);
+                  const myCurrentChar = myPlayer?.charId;
+                  const myCharObj = myCurrentChar ? CHARACTERS.find(c => c.id === myCurrentChar) : null;
+                  return (
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        🎮 Tu personaje{myCharObj ? ` · ${myCharObj.name}` : ' · Sin elegir'}
+                      </p>
+                      <div style={{ maxHeight: 130, overflowY: 'auto', borderRadius: 8, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: 4 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 2 }}>
+                          {CHARACTERS.map(c => {
+                            const sel = c.id === myCurrentChar;
+                            return (
+                              <button key={c.id} title={c.name} onClick={() => { if (!sel) pgUpdateChar(c.id, 1); }}
+                                style={{ padding: 2, borderRadius: 5, border: `1px solid ${sel ? 'rgba(6,182,212,0.55)' : 'rgba(255,255,255,0.04)'}`, background: sel ? 'rgba(6,182,212,0.15)' : 'transparent', cursor: sel ? 'default' : 'pointer', transition: 'border 0.1s, background 0.1s' }}>
+                                <img src={stockIconPath(c, 1)} alt={c.name} style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} onError={e => { e.target.style.display='none'; }} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {parsecGroup.hostId === uid ? (
                   <button onClick={pgStart} disabled={pgLoading || parsecGroup.players.length < 2}
                     style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(6,182,212,0.4)', background: parsecGroup.players.length < 2 ? 'rgba(255,255,255,0.04)' : 'rgba(6,182,212,0.15)', color: parsecGroup.players.length < 2 ? 'rgba(255,255,255,0.3)' : '#06B6D4', fontWeight: 900, fontSize: 15, cursor: parsecGroup.players.length < 2 || pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
