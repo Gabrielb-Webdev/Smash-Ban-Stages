@@ -6991,6 +6991,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       try {
         const r = await fetch('/api/matchmaking/parsec-group?userId=' + encodeURIComponent(uid));
         const d = await r.json();
+        // Si la sala desapareció (kickeado o sala cerrada), salir de la vista
+        if (!d.room && parsecGroup) {
+          setParsecGroup(null); setParsecGroupView(false);
+          setPgReported(false); setPgReportStocks(1); setPgError(null);
+          return;
+        }
         setParsecGroup(d.room || null);
         // Reset "ya reporté" cuando cambia el game o el par
         if (d.room?.currentMatch && !d.room.currentMatch.done) {
@@ -7249,6 +7255,20 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       if (!r.ok) { setPgError(d.error || 'Error al reportar'); return; }
       if (d.disagreement) { setPgError('Los jugadores no coinciden. Vuelvan a reportar.'); setPgReported(false); setPgDisputing(false); }
       else { setPgReported(true); setPgDisputing(false); }
+      if (d.room) setParsecGroup(d.room);
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
+  const pgKick = async (targetId) => {
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kick', userId: uid, userName: uName, targetId }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error al echar jugador'); return; }
       if (d.room) setParsecGroup(d.room);
     } catch { setPgError('Error de conexión'); }
     finally { setPgLoading(false); }
@@ -8648,7 +8668,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Jugadores ({parsecGroup.players.length})</p>
                   {parsecGroup.players.map((p, i) => {
                     const isMe = p.userId === uid;
-                    const isHost = p.userId === parsecGroup.hostId;
+                    const isPHost = p.userId === parsecGroup.hostId;
+                    const amHost = parsecGroup.hostId === uid;
                     const rc = p.charId ? CHARACTER_RENDERS[p.charId] : null;
                     const cs = rc ? charRenderPath(rc) : null;
                     return (
@@ -8658,10 +8679,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                           <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: '#fff' }}>
                             {p.userName}
                             {isMe && <span style={{ marginLeft: 5, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>(vos)</span>}
-                            {isHost && <span style={{ marginLeft: 5, fontSize: 10, color: '#06B6D4', fontWeight: 900 }}>HOST</span>}
+                            {isPHost && <span style={{ marginLeft: 5, fontSize: 10, color: '#06B6D4', fontWeight: 900 }}>HOST</span>}
                           </p>
                           {!p.charId && <p style={{ margin: 0, fontSize: 10, color: '#FBBF24' }}>Sin personaje elegido</p>}
                         </div>
+                        {amHost && !isMe && (
+                          <button onClick={() => pgKick(p.userId)} disabled={pgLoading} title="Echar jugador"
+                            style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: 'rgba(239,68,68,0.6)', fontSize: 11, padding: '2px 7px', cursor: pgLoading ? 'not-allowed' : 'pointer' }}>✕</button>
+                        )}
                       </div>
                     );
                   })}
@@ -8762,8 +8787,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                         </div>
                       </div>
 
-                      {/* Picker de personaje — solo los jugadores del match */}
-                      {isPlaying && (() => {
+                      {/* Picker de personaje — solo cuando el set terminó */}
+                      {isPlaying && m.done && (() => {
                         const myPlayer = parsecGroup.players.find(p => p.userId === uid);
                         const myCurrentChar = myPlayer?.charId;
                         const myCharObj = myCurrentChar ? CHARACTERS.find(c => c.id === myCurrentChar) : null;
@@ -8930,13 +8955,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Marcador de sesión</p>
                   {[...parsecGroup.players].sort((a, b) => (b.wins || 0) - (a.wins || 0)).map((p, i) => {
                     const rc = p.charId && CHARACTER_RENDERS[p.charId] ? charRenderPath(CHARACTER_RENDERS[p.charId]) : null;
+                    const isMe = p.userId === uid;
+                    const amHost = parsecGroup.hostId === uid;
                     return (
                       <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                         <span style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.25)', width: 16, textAlign: 'center' }}>{i + 1}</span>
                         {rc ? <img src={rc} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />}
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: p.userId === uid ? 900 : 700, color: p.userId === uid ? '#06B6D4' : '#fff' }}>{p.userName}</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: isMe ? 900 : 700, color: isMe ? '#06B6D4' : '#fff' }}>{p.userName}</span>
                         <span style={{ fontSize: 12, color: '#22C55E', fontWeight: 800 }}>{p.wins || 0}W</span>
                         <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 800, marginLeft: 6 }}>{p.losses || 0}L</span>
+                        {amHost && !isMe && (
+                          <button onClick={() => pgKick(p.userId)} disabled={pgLoading} title="Echar jugador"
+                            style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: 'rgba(239,68,68,0.6)', fontSize: 11, padding: '2px 7px', marginLeft: 4, cursor: pgLoading ? 'not-allowed' : 'pointer' }}>✕</button>
+                        )}
                       </div>
                     );
                   })}

@@ -249,7 +249,7 @@ export default async function handler(req, res) {
 
   // ── POST: acciones de sala ────────────────────────────────────────────
   if (req.method === 'POST') {
-    const { action, userId, userName, charId, charAlt, code: joinCode, winnerId, stocksWon } = req.body || {};
+    const { action, userId, userName, charId, charAlt, code: joinCode, winnerId, stocksWon, targetId } = req.body || {};
     if (!userId || !userName) return res.status(400).json({ error: 'userId y userName requeridos' });
     const cleanId   = sanitize(userId);
     const cleanName = sanitize(userName);
@@ -472,6 +472,21 @@ export default async function handler(req, res) {
     }
 
     // ── SALIR DE SALA ────────────────────────────────────────────────────
+    if (action === 'kick') {
+      if (!targetId) return res.status(400).json({ error: 'targetId requerido' });
+      const kickTarget = sanitize(targetId);
+      const code = await redis.get(pgUserKey(cleanId));
+      if (!code) return res.status(404).json({ error: 'No estás en ninguna sala' });
+      const room = await redis.get(pgRoomKey(code));
+      if (!room) return res.status(404).json({ error: 'Sala no encontrada' });
+      if (room.hostId !== cleanId) return res.status(403).json({ error: 'Solo el host puede echar jugadores' });
+      if (kickTarget === cleanId) return res.status(400).json({ error: 'No podés echarte a vos mismo' });
+      room.players = room.players.filter(p => p.userId !== kickTarget);
+      await redis.del(pgUserKey(kickTarget));
+      await redis.set(pgRoomKey(code), room, { ex: ROOM_TTL });
+      return res.status(200).json({ room });
+    }
+
     if (action === 'leave') {
       const code = await redis.get(pgUserKey(cleanId));
       if (!code) return res.status(200).json({ left: true });
