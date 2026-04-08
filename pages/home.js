@@ -3734,7 +3734,10 @@ function TabPerfil({ user }) {
         setProfileLoading(false);
         // Fetch Start.GG stats for this profile player
         if (d?.profile?.slug) {
-          fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(d.profile.slug))
+          const _sgToken = (() => { try { return JSON.parse(localStorage.getItem('afk_user') || '{}').access_token; } catch { return null; } })();
+          fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(d.profile.slug),
+            _sgToken ? { headers: { 'Authorization': 'Bearer ' + _sgToken } } : {}
+          )
             .then(r => r.ok ? r.json() : null)
             .then(sg => { if (sg) setProfileStartggStats(sg); })
             .catch(() => {});
