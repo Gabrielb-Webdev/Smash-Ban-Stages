@@ -1383,84 +1383,105 @@ export default function HomePage() {
           const myTeam2  = is2v2 ? (bgMM.room.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
           const enemyTeam2 = is2v2 ? (myTeam2 === 'team1' ? bgMM.room.team2 : bgMM.room.team1) : null;
           const pData    = PLATFORMS.find(x => x.id === bgMM.plat);
-          const radius   = 26;
+          const radius   = 32;
           const circ     = 2 * Math.PI * radius;
           const pct      = acceptCountdown / 15;
+          const isUrgent = acceptCountdown <= 5;
+          const oppChar  = !is2v2 && opponent?.charId ? CHARACTERS.find(c => c.id === opponent.charId) : null;
           return (
             <div style={{
               position: 'fixed', inset: 0, zIndex: 200,
-              background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)',
+              background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 24px',
+              padding: '0 20px',
             }}>
               <div style={{
-                width: '100%', maxWidth: 360,
-                background: 'linear-gradient(160deg,#13131E,#0e0e18)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 28, padding: '28px 24px',
-                boxShadow: '0 24px 80px rgba(0,0,0,0.9)',
-                animation: 'fadeUp 0.22s ease',
+                width: '100%', maxWidth: 370,
+                background: 'linear-gradient(160deg,#15152A,#0d0d16)',
+                border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.3)' : 'rgba(255,140,0,0.2)'}`,
+                borderRadius: 28, padding: '0 0 24px',
+                boxShadow: `0 24px 80px rgba(0,0,0,0.9), 0 0 40px ${isUrgent ? 'rgba(239,68,68,0.1)' : 'rgba(255,140,0,0.08)'}`,
+                animation: `fadeUp 0.25s ease${isUrgent ? ', glow-pulse 1s ease-in-out infinite' : ''}`,
+                overflow: 'hidden',
+                transition: 'border-color 0.3s',
               }}>
-                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <div style={{ fontSize: 46, marginBottom: 10 }}>⚔️</div>
-                  <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{is2v2 ? '2v2 · ' : ''}{pData?.label ?? bgMM.plat}</p>
-                </div>
-                <div style={{
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 16, padding: '14px 16px', marginBottom: 20, textAlign: 'center',
-                }}>
-                  <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{is2v2 ? 'Equipo rival' : 'Tu rival'}</p>
-                  {is2v2 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {(enemyTeam2 || []).map(p => (
-                        <p key={p.userId} style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{p.userName}</p>
-                      ))}
+                {/* Top accent bar */}
+                <div style={{ height: 3, background: isUrgent ? 'linear-gradient(90deg,#EF4444,#FF6B6B,#EF4444)' : `linear-gradient(90deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'},${pData?.from || '#FF8C00'})`, animation: 'shimmer 2s linear infinite', backgroundSize: '200% 100%' }} />
+
+                <div style={{ padding: '24px 24px 0' }}>
+                  {/* Icon + Title */}
+                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 16, background: pData ? `linear-gradient(135deg,${pData.from},${pData.to})` : 'linear-gradient(135deg,#FF8C00,#E85D00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 12px', boxShadow: `0 8px 24px ${pData?.from || '#FF8C00'}40` }}>
+                      {pData?.icon || '⚔️'}
                     </div>
-                  ) : (
-                    <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
-                  )}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-                  <div style={{ position: 'relative', width: 68, height: 68 }}>
-                    <svg width={68} height={68} style={{ transform: 'rotate(-90deg)' }}>
-                      <circle cx={34} cy={34} r={radius} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={4} />
-                      <circle cx={34} cy={34} r={radius} fill="none"
-                        stroke={acceptCountdown > 5 ? '#FF8C00' : '#EF4444'}
-                        strokeWidth={4}
-                        strokeDasharray={circ}
-                        strokeDashoffset={circ * (1 - pct)}
-                        strokeLinecap="round"
-                        style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
-                      />
-                    </svg>
-                    <p style={{
-                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      margin: 0, fontSize: 20, fontWeight: 900,
-                      color: acceptCountdown > 5 ? '#FF8C00' : '#EF4444',
-                    }}>{acceptCountdown}</p>
+                    <p style={{ margin: '0 0 3px', fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>¡Partida encontrada!</p>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{is2v2 ? '2v2 · ' : ''}{pData?.label ?? bgMM.plat}</p>
                   </div>
-                </div>
-                {(() => {
-                  const iDidAccept = bgMM.room?.acceptedBy?.includes(uid);
-                  return (
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button onClick={handleDeclineMatch} disabled={iDidAccept} style={{
-                        flex: 1, padding: '13px', borderRadius: 14,
-                        border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
-                        color: iDidAccept ? 'rgba(239,68,68,0.3)' : '#EF4444', fontWeight: 800, fontSize: 14, cursor: iDidAccept ? 'default' : 'pointer',
-                      }}>Rechazar</button>
-                      <button onClick={iDidAccept ? undefined : handleAcceptMatch} disabled={iDidAccept} style={{
-                        flex: 2, padding: '13px', borderRadius: 14,
-                        border: iDidAccept ? '1px solid rgba(34,197,94,0.35)' : 'none',
-                        background: iDidAccept ? 'rgba(34,197,94,0.12)' : 'linear-gradient(135deg,#22C55E,#16A34A)',
-                        color: iDidAccept ? '#22C55E' : '#fff', fontWeight: 900, fontSize: 15,
-                        cursor: iDidAccept ? 'default' : 'pointer',
-                        boxShadow: iDidAccept ? 'none' : '0 6px 20px rgba(34,197,94,0.35)',
-                      }}>{iDidAccept ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar'}</button>
+
+                  {/* Opponent info */}
+                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px', marginBottom: 18 }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' }}>{is2v2 ? 'Equipo rival' : 'Tu rival'}</p>
+                    {is2v2 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                        {(enemyTeam2 || []).map(p => (
+                          <p key={p.userId} style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{p.userName}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                        {oppChar && <img src={stockIconPath(oppChar, opponent?.charAlt || 1)} alt="" style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8, background: 'rgba(239,68,68,0.08)' }} onError={e => { e.target.style.display='none'; }} />}
+                        <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Countdown circle */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                    <div style={{ position: 'relative', width: 80, height: 80 }}>
+                      <svg width={80} height={80} style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx={40} cy={40} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={5} />
+                        <circle cx={40} cy={40} r={radius} fill="none"
+                          stroke={isUrgent ? '#EF4444' : (pData?.from || '#FF8C00')}
+                          strokeWidth={5}
+                          strokeDasharray={circ}
+                          strokeDashoffset={circ * (1 - pct)}
+                          strokeLinecap="round"
+                          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s', filter: `drop-shadow(0 0 6px ${isUrgent ? '#EF4444' : (pData?.from || '#FF8C00')})` }}
+                        />
+                      </svg>
+                      <div style={{
+                        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <p style={{ margin: 0, fontSize: 26, fontWeight: 900, color: isUrgent ? '#EF4444' : (pData?.from || '#FF8C00'), lineHeight: 1 }}>{acceptCountdown}</p>
+                        <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>seg</p>
+                      </div>
                     </div>
-                  );
-                })()}
+                  </div>
+
+                  {/* Buttons */}
+                  {(() => {
+                    const iDidAccept = bgMM.room?.acceptedBy?.includes(uid);
+                    return (
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button onClick={handleDeclineMatch} disabled={iDidAccept} style={{
+                          flex: 1, padding: '14px', borderRadius: 16,
+                          border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)',
+                          color: iDidAccept ? 'rgba(239,68,68,0.25)' : '#EF4444', fontWeight: 800, fontSize: 14, cursor: iDidAccept ? 'default' : 'pointer',
+                          transition: 'all 0.15s',
+                        }}>✕ Rechazar</button>
+                        <button onClick={iDidAccept ? undefined : handleAcceptMatch} disabled={iDidAccept} style={{
+                          flex: 2, padding: '14px', borderRadius: 16,
+                          border: iDidAccept ? '1px solid rgba(34,197,94,0.35)' : 'none',
+                          background: iDidAccept ? 'rgba(34,197,94,0.1)' : 'linear-gradient(135deg,#22C55E,#16A34A)',
+                          color: iDidAccept ? '#22C55E' : '#fff', fontWeight: 900, fontSize: 15,
+                          cursor: iDidAccept ? 'default' : 'pointer',
+                          boxShadow: iDidAccept ? 'none' : '0 6px 24px rgba(34,197,94,0.35)',
+                          transition: 'all 0.15s',
+                        }}>{iDidAccept ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar partida'}</button>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           );
@@ -6767,7 +6788,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   useEffect(() => {
     if (!bgMM?.autoConfirmSignal || autoConfirmFiredRef.current) return;
     const pending = matchData?.pendingResult;
-    if (!pending || pending.reporterId !== uid) return;
+    if (!pending || pending.reporterId === uid) return;
     autoConfirmFiredRef.current = true;
     reportResult(pending.winnerId, pending.stocks, 'confirm');
   }, [bgMM?.autoConfirmSignal]); // eslint-disable-line
@@ -6866,6 +6887,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     return null;
   }); // 'host' | 'nohost' | null — modo de conexión para matchmaking Parsec
 
+  // Sala Parsec Grupal
+  const [parsecGroupView,    setParsecGroupView]    = useState(false);
+  const [parsecGroup,        setParsecGroup]        = useState(null);
+  const [pgJoinCode,         setPgJoinCode]         = useState('');
+  const [pgLoading,          setPgLoading]          = useState(false);
+  const [pgError,            setPgError]            = useState(null);
+  const [pgReportStocks,     setPgReportStocks]     = useState(1);
+  const [pgReported,         setPgReported]         = useState(false);
+
   // Ban state (Bo3)
   const [selectedBans, setSelectedBans] = useState([]);
   const [banLoading, setBanLoading]     = useState(false);
@@ -6929,6 +6959,30 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     const iv = setInterval(poll, 4000);
     return () => clearInterval(iv);
   }, [uid, matchTypeMode, matchMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll sala Parsec grupal
+  useEffect(() => {
+    if (!uid || !parsecGroupView) return;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/matchmaking/parsec-group?userId=' + encodeURIComponent(uid));
+        const d = await r.json();
+        setParsecGroup(d.room || null);
+        // Reset "ya reporté" cuando empieza un nuevo match
+        if (d.room?.currentMatch && !d.room.currentMatch.done) {
+          setPgReported(prev => {
+            // Si cambia el par jugando, limpiar el flag
+            const matchKey = (d.room.currentMatch.p1?.userId || '') + ':' + (d.room.currentMatch.p2?.userId || '');
+            if (prev !== matchKey) setPgReportStocks(1);
+            return prev; // no clear here, handled on report action
+          });
+        }
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 3000);
+    return () => clearInterval(iv);
+  }, [uid, parsecGroupView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer de búsqueda (basado en searchStartedAt para sobrevivir F5)
   useEffect(() => {
@@ -7029,8 +7083,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
 
   // Descartar pantalla de resultado e ir a buscar nueva partida
   const dismissResult = async () => {
-    // Notifica al backend que este usuario ya vio el resultado.
-    // Solo borra el vínculo user→room de este usuario; el oponente conserva el suyo.
     try {
       await fetch('/api/matchmaking/room', {
         method: 'POST',
@@ -7039,6 +7091,49 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       });
     } catch {}
     resetAll();
+  };
+
+  // Volver a jugar: auto-busca con el mismo personaje y plataforma
+  const replaySearch = async () => {
+    const savedPlat = bgMM?.plat;
+    const savedGameType = bgMM?.gameType;
+    const myPData = matchData?.host?.userId === uid ? matchData?.host : matchData?.guest;
+    const savedChar = myPData?.charId || searchChar;
+    const savedSkin = myPData?.charAlt || searchSkin || 1;
+    const savedRole = parsecRole;
+    try {
+      await fetch('/api/matchmaking/room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss_result', userId: uid, userName: uName }),
+      });
+    } catch {}
+    setChatMessages([]); setChatInput('');
+    setReported(false); setReportError(null);
+    setReportStocks(1); setMatchRpDelta(null); setMatchLoserRpDelta(null);
+    setMatchWinnerRankChange(null); setMatchLoserRankChange(null);
+    setShowForfeitConfirm(false); setForfeitLoading(false);
+    setInterGameCharId(null); setInterGameCharAlt(1);
+    setInterGameCharConfirmed(false); setInterGameCharLoading(false);
+    const endpoint = savedGameType === 'casual' ? '/api/matchmaking/casual-queue' : '/api/matchmaking/queue';
+    try {
+      const r = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, userName: uName, platform: savedPlat, charId: savedChar, charAlt: savedSkin, parsecRole: savedRole }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        setBgMM({ status: 'searching', plat: savedPlat, gameType: savedGameType || undefined, polling: true, searchStartedAt: Date.now() });
+        setSearchChar(savedChar);
+        setSearchSkin(savedSkin);
+      } else {
+        resetAll();
+        setFormError(data.error || 'Error al buscar');
+      }
+    } catch {
+      resetAll();
+      setFormError('Error de conexión');
+    }
   };
 
   const confirmNextGameChar = async () => {
@@ -7059,8 +7154,97 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     finally { setInterGameCharLoading(false); }
   };
 
+  // ── Acciones de la Sala Parsec Grupal ─────────────────────────────────
+  const pgCreate = async () => {
+    if (!searchChar) { setPgError('Elegí tu personaje primero'); return; }
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', userId: uid, userName: uName, charId: searchChar, charAlt: searchSkin || 1 }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error al crear sala'); return; }
+      if (d.room) { setParsecGroup(d.room); setParsecGroupView(true); }
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
+  const pgJoin = async (code) => {
+    if (!searchChar) { setPgError('Elegí tu personaje primero'); return; }
+    if (!code || code.length < 5) { setPgError('Ingresá un código de sala válido'); return; }
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', code, userId: uid, userName: uName, charId: searchChar, charAlt: searchSkin || 1 }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error al unirse'); return; }
+      if (d.room) { setParsecGroup(d.room); setParsecGroupView(true); setPgJoinCode(''); }
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
+  const pgStart = async () => {
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', userId: uid, userName: uName }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error al iniciar'); return; }
+      if (d.room) setParsecGroup(d.room);
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
+  const pgNext = async () => {
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'next', userId: uid, userName: uName }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error'); return; }
+      if (d.room) { setParsecGroup(d.room); setPgReported(false); setPgReportStocks(1); }
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
+  const pgReport = async (winnerId) => {
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'report', userId: uid, userName: uName, winnerId, stocksWon: pgReportStocks }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error al reportar'); return; }
+      if (d.disagreement) { setPgError('Los jugadores no coinciden. Vuelvan a reportar.'); setPgReported(false); }
+      else { setPgReported(true); }
+      if (d.room) setParsecGroup(d.room);
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
+  const pgLeave = async () => {
+    setPgLoading(true);
+    try {
+      await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'leave', userId: uid, userName: uName }),
+      });
+    } catch {}
+    setParsecGroup(null); setParsecGroupView(false); setPgReported(false);
+    setPgReportStocks(1); setPgError(null); setPgLoading(false);
+  };
+
   const startSearch = async (platform) => {
     if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (platform === 'parsec' && !parsecRole) { setFormError('Elegí si sos Host o No Host antes de buscar en Parsec'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/queue', {
@@ -7081,6 +7265,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
 
   const startCasualSearch = async (platform) => {
     if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
+    if (platform === 'parsec' && !parsecRole) { setFormError('Elegí si sos Host o No Host antes de buscar en Parsec'); return; }
     setLoading(true); setFormError(null);
     try {
       const r = await fetch('/api/matchmaking/casual-queue', {
@@ -7347,60 +7532,63 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
               {iWon ? (is2v2Finished ? '¡Ganaron! 🏆' : '¡Ganaste! 🏆') : (is2v2Finished ? 'Perdieron 💀' : 'Perdiste 💀')}
             </p>
             <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
-            {/* Personajes con skins */}
+            {/* Personajes con skins (grandes) */}
             {!is2v2Finished && (
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginTop: 4 }}>
                 {/* Mi personaje */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   {myCharImg
-                    ? <img src={myCharImg} alt="" style={{ width: 92, height: 92, objectFit: 'contain', filter: iWon ? 'drop-shadow(0 0 16px rgba(52,211,153,0.7))' : 'grayscale(30%) brightness(0.8)', transform: iWon ? 'scale(1.08)' : 'scale(0.93)', transition: 'all 0.3s' }} onError={e => { e.target.style.display = 'none'; }} />
-                    : <div style={{ width: 92, height: 92 }} />}
-                  <span style={{ fontSize: 11, fontWeight: 800, color: iWon ? '#34D399' : 'rgba(255,255,255,0.45)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myPlayerData?.userName || 'Yo'}</span>
+                    ? <img src={myCharImg} alt="" style={{ width: 140, height: 140, objectFit: 'contain', filter: iWon ? 'drop-shadow(0 0 24px rgba(52,211,153,0.8)) drop-shadow(0 0 48px rgba(52,211,153,0.3))' : 'grayscale(40%) brightness(0.7) drop-shadow(0 0 12px rgba(0,0,0,0.5))', transform: iWon ? 'scale(1.1)' : 'scale(0.88)', transition: 'all 0.4s ease' }} onError={e => { e.target.style.display = 'none'; }} />
+                    : <div style={{ width: 140, height: 140 }} />}
+                  <span style={{ fontSize: 12, fontWeight: 800, color: iWon ? '#34D399' : 'rgba(255,255,255,0.45)', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{myPlayerData?.userName || 'Yo'}</span>
                 </div>
                 {/* Centro: score / VS + RP */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, paddingBottom: 24, minWidth: 68 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingBottom: 28, minWidth: 72 }}>
                   {matchData.format === 'bo3' ? (
-                    <span style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+                    <span style={{ fontSize: 32, fontWeight: 900, lineHeight: 1, textShadow: '0 2px 14px rgba(0,0,0,0.9)' }}>
                       <span style={{ color: iWon ? '#34D399' : '#EF4444' }}>{iWon ? myFinScore : oppFinScore}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 5px', fontSize: 18 }}>-</span>
+                      <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px', fontSize: 20 }}>-</span>
                       <span style={{ color: !iWon ? '#34D399' : '#EF4444' }}>{iWon ? oppFinScore : myFinScore}</span>
                     </span>
                   ) : (
-                    <span style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.35)' }}>VS</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>VS</span>
                   )}
                   {!isCasualFinished && myRpDelta != null && (
-                    <span style={{ fontSize: 13, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', padding: '3px 10px', borderRadius: 20, background: iWon ? 'rgba(52,211,153,0.18)' : 'rgba(239,68,68,0.18)', border: `1px solid ${iWon ? 'rgba(52,211,153,0.35)' : 'rgba(239,68,68,0.35)'}`, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', padding: '5px 14px', borderRadius: 24, background: iWon ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)', border: `1px solid ${iWon ? 'rgba(52,211,153,0.4)' : 'rgba(239,68,68,0.4)'}`, whiteSpace: 'nowrap', backdropFilter: 'blur(4px)', boxShadow: `0 4px 16px ${iWon ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
                       {iWon ? '+' : ''}{myRpDelta} RP
                     </span>
                   )}
                 </div>
                 {/* Personaje rival */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   {oppCharImg
-                    ? <img src={oppCharImg} alt="" style={{ width: 92, height: 92, objectFit: 'contain', filter: !iWon ? 'drop-shadow(0 0 16px rgba(52,211,153,0.7))' : 'grayscale(30%) brightness(0.8)', transform: !iWon ? 'scale(1.08)' : 'scale(0.93)', transition: 'all 0.3s' }} onError={e => { e.target.style.display = 'none'; }} />
-                    : <div style={{ width: 92, height: 92 }} />}
-                  <span style={{ fontSize: 11, fontWeight: 800, color: !iWon ? '#34D399' : 'rgba(255,255,255,0.45)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{oppPlayerData?.userName || 'Rival'}</span>
+                    ? <img src={oppCharImg} alt="" style={{ width: 140, height: 140, objectFit: 'contain', filter: !iWon ? 'drop-shadow(0 0 24px rgba(52,211,153,0.8)) drop-shadow(0 0 48px rgba(52,211,153,0.3))' : 'grayscale(40%) brightness(0.7) drop-shadow(0 0 12px rgba(0,0,0,0.5))', transform: !iWon ? 'scale(1.1)' : 'scale(0.88)', transition: 'all 0.4s ease' }} onError={e => { e.target.style.display = 'none'; }} />
+                    : <div style={{ width: 140, height: 140 }} />}
+                  <span style={{ fontSize: 12, fontWeight: 800, color: !iWon ? '#34D399' : 'rgba(255,255,255,0.45)', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{oppPlayerData?.userName || 'Rival'}</span>
                 </div>
               </div>
             )}
           </div>
         </div>
         <div style={{ padding: '12px 18px 0' }}>
-          {/* Resumen BO3 */}
+          {/* Resumen BO3 con imágenes de escenarios */}
           {matchData.format === 'bo3' && finishedGames.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 14px', marginBottom: 12 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>Resumen BO3</p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               {finishedGames.map((g, gi) => {
                 const gWon = g.result?.winnerId === uid;
                 const gStage = g.stage || g.result?.stage;
-                const isLast = gi === finishedGames.length - 1;
+                const gStageImg = gStage ? STAGE_IMG[gStage] || `/images/stages/${encodeURIComponent(String(gStage))}.png` : null;
                 return (
-                  <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ width: 22, height: 22, borderRadius: 6, background: gWon ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
+                  <div key={g.gameNum} style={{ flex: 1, position: 'relative', borderRadius: 14, overflow: 'hidden', border: `2px solid ${gWon ? 'rgba(52,211,153,0.4)' : 'rgba(239,68,68,0.35)'}`, height: 80 }}>
+                    {gStageImg && (
+                      <img src={gStageImg} alt={gStage} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                    )}
+                    <div style={{ position: 'absolute', inset: 0, background: gWon ? 'linear-gradient(180deg,rgba(52,211,153,0.1) 0%,rgba(0,0,0,0.75) 100%)' : 'linear-gradient(180deg,rgba(239,68,68,0.15) 0%,rgba(0,0,0,0.8) 100%)' }} />
+                    <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '6px 4px' }}>
+                      <span style={{ fontSize: 20 }}>{gWon ? '🏆' : '💀'}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.9)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Game {g.gameNum}</span>
+                      {gStage && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.9)', textAlign: 'center', lineHeight: 1.2 }}>{gStage}</span>}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: gWon ? '#22C55E' : '#EF4444', flex: 1 }}>Game {g.gameNum}</span>
-                    {gStage && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{gStage}</span>}
                   </div>
                 );
               })}
@@ -7408,48 +7596,62 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           )}
           {/* Resumen de puntos */}
           {!isCasualFinished && !is2v2Finished && (
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 16px', marginBottom: 12 }}>
-              <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resumen de puntos</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: stocks && iWon ? 6 : 0 }}>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{iWon ? 'RP ganados' : 'RP perdidos'}</span>
-                <span style={{ fontSize: 16, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444' }}>
-                  {iWon ? '+' : ''}{myRpDelta != null ? myRpDelta : (iWon ? '?' : -10)} RP
-                </span>
+            <div style={{ background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.06),rgba(52,211,153,0.02))' : 'linear-gradient(135deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02))', border: `1px solid ${iWon ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.12)'}`, borderRadius: 18, padding: '16px 18px', marginBottom: 12, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: iWon ? 'linear-gradient(90deg,transparent,#34D399,transparent)' : 'linear-gradient(90deg,transparent,#EF4444,transparent)', opacity: 0.6 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: iWon ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                  {iWon ? '📈' : '📉'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{iWon ? 'Puntos ganados' : 'Puntos perdidos'}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 24, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', lineHeight: 1 }}>
+                    {iWon ? '+' : ''}{myRpDelta != null ? myRpDelta : (iWon ? '?' : -10)} <span style={{ fontSize: 14, fontWeight: 700, opacity: 0.7 }}>RP</span>
+                  </p>
+                </div>
               </div>
               {stocks && iWon && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Stocks de ventaja</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{stocks}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 14 }}>❤️</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', flex: 1 }}>Stocks de ventaja</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,0.8)' }}>{stocks}</span>
                 </div>
               )}
               {myRankChange?.promoted && (
-                <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>🎉</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: '#34D399' }}>¡Ascendiste de rango!</span>
+                <div style={{ padding: '10px 14px', borderRadius: 12, background: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.08))', border: '1px solid rgba(52,211,153,0.3)', display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, animation: 'fadeUp 0.4s ease' }}>
+                  <span style={{ fontSize: 22 }}>🎉</span>
+                  <div>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: '#34D399' }}>¡Ascendiste de rango!</span>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(52,211,153,0.6)' }}>Seguí así, crack 🔥</p>
+                  </div>
                 </div>
               )}
               {myRankChange?.demoted && (
-                <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>📉</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: '#EF4444' }}>Descendiste de rango</span>
+                <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                  <span style={{ fontSize: 22 }}>📉</span>
+                  <div>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: '#EF4444' }}>Descendiste de rango</span>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(239,68,68,0.5)' }}>La próxima será 💪</p>
+                  </div>
                 </div>
               )}
-              <p style={{ margin: '8px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.5 }}>
-                Los RP varían según stocks ganados y diferencia de MMR entre jugadores.
-              </p>
             </div>
           )}
           {isCasualFinished ? (
-            <button onClick={dismissResult} style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-              Jugar otra vez
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={replaySearch} style={{ flex: 2, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(255,140,0,0.3)' }}>
+                🎮 Volver a jugar
+              </button>
+              <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                👤 Cambiar PJ
+              </button>
+            </div>
           ) : (
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-                🔍 Nueva búsqueda
+              <button onClick={replaySearch} style={{ flex: 2, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(255,140,0,0.3)' }}>
+                🎮 Volver a jugar
               </button>
-              <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-                👤 Cambiar personaje
+              <button onClick={dismissResult} style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                👤 Cambiar PJ
               </button>
             </div>
           )}
@@ -8028,24 +8230,41 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   // --- RENDER: BUSCANDO RANKED -------------------------------------------
   if (matchStatus === 'searching') {
     const sp = bgMM?.plat ? PLATFORMS.find(x => x.id === bgMM.plat) : null;
+    const mins = Math.floor(searchElapsed / 60);
+    const secs = searchElapsed % 60;
+    const mySearchChar = CHARACTERS.find(c => c.id === searchChar);
     return (
       <div style={{ padding: '24px 18px' }}>
-        <div style={{ background: sp ? 'linear-gradient(135deg,' + sp.from + '15,' + sp.to + '08)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.08)' }} />
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid ' + (sp?.from || '#FF8C00'), borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite' }} />
-            <div style={{ position: 'absolute', inset: '16px', background: sp ? 'linear-gradient(135deg,' + sp.from + ',' + sp.to + ')' : '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{sp?.icon || '?'}</div>
+        <div style={{ background: sp ? `linear-gradient(160deg,${sp.from}12,${sp.to}08)` : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '28px 24px', textAlign: 'center', marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
+          {/* Animated glow ring */}
+          <div style={{ position: 'absolute', top: '50%', left: '50%', width: 200, height: 200, transform: 'translate(-50%, -65%)', borderRadius: '50%', background: `radial-gradient(circle, ${sp?.from || '#FF8C00'}15 0%, transparent 70%)`, animation: 'pulse 2s ease-in-out infinite' }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Spinner + character icon */}
+            <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 18px' }}>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.06)' }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid transparent', borderTopColor: sp?.from || '#FF8C00', borderRightColor: sp?.from || '#FF8C00', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid transparent', borderBottomColor: sp?.to || '#E85D00', animation: 'spin 1.6s linear infinite reverse', opacity: 0.5 }} />
+              <div style={{ position: 'absolute', inset: '12px', borderRadius: '50%', background: sp ? `linear-gradient(135deg,${sp.from},${sp.to})` : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: `0 0 24px ${sp?.from || '#FF8C00'}40` }}>
+                {mySearchChar
+                  ? <img src={stockIconPath(mySearchChar, searchSkin || 1)} alt="" style={{ width: 38, height: 38, objectFit: 'contain' }} onError={e => { e.target.textContent = sp?.icon || '?'; }} />
+                  : (sp?.icon || '?')}
+              </div>
+            </div>
+            <p style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{bgMM?.mode === '2v2' ? 'Buscando rivales 2v2…' : 'Buscando rival…'}</p>
+            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || ''}{bgMM?.gameType === 'casual' ? ' · Normal' : ' · Ranked'}</p>
+            <p style={{ margin: '0 0 18px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Podés navegar la app sin cancelar</p>
+            {/* Timer */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '6px 16px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: sp?.from || '#FF8C00', animation: 'pulse 1.5s ease-in-out infinite', boxShadow: `0 0 8px ${sp?.from || '#FF8C00'}` }} />
+              <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>
+                {mins}:{String(secs).padStart(2, '0')}
+              </p>
+            </div>
           </div>
-          <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: '#fff' }}>{bgMM?.mode === '2v2' ? 'Buscando rivales 2v2…' : 'Buscando rival…'}</p>
-          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: sp?.from || '#FF8C00' }}>{sp?.label || ''}{bgMM?.gameType === 'casual' ? ' (Normal)' : ''}</p>
-          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Podés navegar la app sin cancelar</p>
-          <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'rgba(255,255,255,0.5)', fontVariantNumeric: 'tabular-nums' }}>
-            {Math.floor(searchElapsed / 60)}:{String(searchElapsed % 60).padStart(2, '0')}
-          </p>
         </div>
 
-        <button onClick={bgMM?.mode === '2v2' ? cancelSearch2v2 : cancelSearch} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-          Cancelar búsqueda
+        <button onClick={bgMM?.mode === '2v2' ? cancelSearch2v2 : cancelSearch} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'all 0.15s' }}>
+          ✕ Cancelar búsqueda
         </button>
       </div>
     );
@@ -8224,16 +8443,37 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   key={px.id}
                   onClick={() => { setSearchPlat(px.id); startCasualSearch(px.id); }}
                   disabled={loading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: `1px solid ${px.id === 'parsec' && !parsecRole ? 'rgba(251,191,36,0.4)' : px.from + '40'}`, borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
                 >
                   <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar Normal en {px.label}</p>
-                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>Sin efecto en el rango</p>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+                      {px.id === 'parsec' && !parsecRole
+                        ? <span style={{ color: '#FBBF24' }}>⚠ Elegí Host/No Host primero</span>
+                        : 'Sin efecto en el rango'}
+                    </p>
                   </div>
                   <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
                 </button>
               ))}
+              {/* Modo Parsec inline (casual) */}
+              <div style={{ marginTop: 10, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: '10px 14px' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Modo Parsec <span style={{ color: '#EF4444', marginLeft: 4 }}>*obligatorio</span></p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {['host', 'nohost'].map(role => (
+                    <button key={role} onClick={() => {
+                      const nr = parsecRole === role ? null : role;
+                      setParsecRole(nr);
+                      if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
+                      fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
+                    }} style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === role ? (role === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(255,255,255,0.1)'}`, background: parsecRole === role ? (role === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)') : 'rgba(255,255,255,0.04)', color: parsecRole === role ? (role === 'host' ? '#22C55E' : '#EF4444') : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      {parsecRole === role ? '✅ ' : ''}{role === 'host' ? 'Host' : 'No Host'}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indicá si podés hostear Parsec. Es obligatorio para buscar Normal en Parsec.</p>
+              </div>
             </div>
           ) : (
             /* Casual 2v2: Party UI */
@@ -8316,59 +8556,295 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           )}
         </>
       ) : matchMode === '1v1' ? (
-        <>
-          {/* Botones de búsqueda por plataforma */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {PLATFORMS.map(px => (
-              <button
-                key={px.id}
-                onClick={() => { setSearchPlat(px.id); startSearch(px.id); }}
-                disabled={loading}
-                style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: '1px solid ' + px.from + '40', borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
-              >
-                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar en {px.label}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
-                    {px.id === 'switch' ? 'Ranked en Nintendo Switch Online' : (
-                      <>Ranked en Parsec (PC)
-                        {parsecRole && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 5, fontSize: 10, fontWeight: 800, background: parsecRole === 'host' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', color: parsecRole === 'host' ? '#22C55E' : '#EF4444' }}>{parsecRole === 'host' ? 'HOST' : 'NO HOST'}</span>}
-                      </>
-                    )}
-                  </p>
-                </div>
-                <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+        parsecGroupView ? (
+          /* ── SALA PARSEC GRUPAL ────────────────────────────────────── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <button onClick={pgLeave} style={{ background: 'none', border: 'none', color: '#06B6D4', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 700, fontSize: 13, padding: 0 }}>
+                <Svg size={16} sw={2.5}>{ICO.back}</Svg> Salir
               </button>
-            ))}
-          </div>
-
-          {/* Modo de conexión Parsec */}
-          <div style={{ marginTop: 10, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: '10px 14px' }}>
-            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Modo Parsec</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => {
-                  const nr = parsecRole === 'host' ? null : 'host';
-                  setParsecRole(nr);
-                  if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
-                  fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
-                }}
-                style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-              >{parsecRole === 'host' ? '✅ ' : ''}Host</button>
-              <button
-                onClick={() => {
-                  const nr = parsecRole === 'nohost' ? null : 'nohost';
-                  setParsecRole(nr);
-                  if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
-                  fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
-                }}
-                style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-              >{parsecRole === 'nohost' ? '✅ ' : ''}No Host</button>
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>🖥️ Sala Parsec Grupal</span>
+              </div>
             </div>
-            <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indicá si podés hostear Parsec. Evita que te emparejen con otro No Host.</p>
+
+            {pgError && <p style={{ margin: 0, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{pgError}</p>}
+
+            {!parsecGroup ? (
+              /* No estoy en ninguna sala: crear o unirse */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>Rankeo por turnos en la misma sesión Parsec. Los puntos van al ranking Parsec habitual.</p>
+                {/* Crear sala */}
+                <button onClick={pgCreate} disabled={pgLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 18, padding: '14px 16px', cursor: pgLoading ? 'not-allowed' : 'pointer', opacity: pgLoading ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#06B6D4,#0891B2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🖥️</div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#06B6D4' }}>Crear sala</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Generás un código para que se unan</p>
+                  </div>
+                  <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                </button>
+                {/* Unirse */}
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unirse a sala existente</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={pgJoinCode} onChange={e => setPgJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))} placeholder="Código (5 letras)" maxLength={5}
+                      style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: 5, padding: '8px 14px', outline: 'none', textAlign: 'center' }} />
+                    <button onClick={() => pgJoin(pgJoinCode)} disabled={pgLoading || pgJoinCode.length < 5}
+                      style={{ padding: '8px 18px', background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', borderRadius: 10, color: '#06B6D4', fontWeight: 800, fontSize: 13, cursor: pgJoinCode.length < 5 || pgLoading ? 'not-allowed' : 'pointer', opacity: pgJoinCode.length < 5 ? 0.5 : 1, transition: 'all 0.15s' }}>Unirse</button>
+                  </div>
+                </div>
+              </div>
+            ) : parsecGroup.status === 'waiting' ? (
+              /* Sala abierta, esperando jugadores */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Código */}
+                <div style={{ background: 'rgba(6,182,212,0.07)', border: '2px solid rgba(6,182,212,0.35)', borderRadius: 20, padding: '16px 20px', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(6,182,212,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código de sala</p>
+                  <p style={{ margin: 0, fontSize: 40, fontWeight: 900, color: '#fff', letterSpacing: 8 }}>{parsecGroup.code}</p>
+                  <button onClick={() => { try { navigator.clipboard.writeText(parsecGroup.code); } catch {} }} style={{ marginTop: 8, background: 'rgba(6,182,212,0.2)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 8, color: '#06B6D4', fontWeight: 700, fontSize: 11, padding: '5px 14px', cursor: 'pointer' }}>📋 Copiar código</button>
+                </div>
+                {/* Jugadores */}
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Jugadores ({parsecGroup.players.length})</p>
+                  {parsecGroup.players.map((p, i) => {
+                    const isMe = p.userId === uid;
+                    const isHost = p.userId === parsecGroup.hostId;
+                    const rc = p.charId ? CHARACTER_RENDERS[p.charId] : null;
+                    const cs = rc ? charRenderPath(rc) : null;
+                    return (
+                      <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                        {cs ? <img src={cs} alt="" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👤</div>}
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: '#fff' }}>
+                            {p.userName}
+                            {isMe && <span style={{ marginLeft: 5, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>(vos)</span>}
+                            {isHost && <span style={{ marginLeft: 5, fontSize: 10, color: '#06B6D4', fontWeight: 900 }}>HOST</span>}
+                          </p>
+                          {!p.charId && <p style={{ margin: 0, fontSize: 10, color: '#FBBF24' }}>Sin personaje elegido</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {parsecGroup.hostId === uid ? (
+                  <button onClick={pgStart} disabled={pgLoading || parsecGroup.players.length < 2}
+                    style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(6,182,212,0.4)', background: parsecGroup.players.length < 2 ? 'rgba(255,255,255,0.04)' : 'rgba(6,182,212,0.15)', color: parsecGroup.players.length < 2 ? 'rgba(255,255,255,0.3)' : '#06B6D4', fontWeight: 900, fontSize: 15, cursor: parsecGroup.players.length < 2 || pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                    {parsecGroup.players.length < 2 ? 'Esperá más jugadores…' : '⚡ Empezar matchmaking'}
+                  </button>
+                ) : (
+                  <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>Esperando que el host inicie…</p>
+                )}
+              </div>
+            ) : parsecGroup.status === 'playing' ? (
+              /* Sesión activa */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Partida actual */}
+                {parsecGroup.currentMatch && (() => {
+                  const m = parsecGroup.currentMatch;
+                  const isP1 = uid === m.p1.userId;
+                  const isP2 = uid === m.p2.userId;
+                  const isPlaying = isP1 || isP2;
+                  const isHost = parsecGroup.hostId === uid;
+                  const myChar = isP1 ? (CHARACTER_RENDERS[m.p1.charId] ? charRenderPath(CHARACTER_RENDERS[m.p1.charId]) : null) : (isP2 ? (CHARACTER_RENDERS[m.p2.charId] ? charRenderPath(CHARACTER_RENDERS[m.p2.charId]) : null) : null);
+                  const p1Render = m.p1.charId && CHARACTER_RENDERS[m.p1.charId] ? charRenderPath(CHARACTER_RENDERS[m.p1.charId]) : null;
+                  const p2Render = m.p2.charId && CHARACTER_RENDERS[m.p2.charId] ? charRenderPath(CHARACTER_RENDERS[m.p2.charId]) : null;
+
+                  return (
+                    <div style={{ background: 'rgba(6,182,212,0.07)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 18, padding: '16px' }}>
+                      <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: 'rgba(6,182,212,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {m.done ? '✅ Partida terminada' : '⚔️ Partida en curso'}
+                      </p>
+                      {/* VS */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          {p1Render ? <img src={p1Render} alt="" style={{ width: 54, height: 54, objectFit: 'contain', margin: '0 auto 4px', display: 'block' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 54, height: 54, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 4px' }}>👤</div>}
+                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.winnerId === m.p1.userId ? '#22C55E' : '#fff' }}>{m.p1.userName}{m.done && m.winnerId === m.p1.userId ? ' 🏆' : ''}</p>
+                        </div>
+                        <span style={{ fontSize: 16, fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>VS</span>
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          {p2Render ? <img src={p2Render} alt="" style={{ width: 54, height: 54, objectFit: 'contain', margin: '0 auto 4px', display: 'block' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 54, height: 54, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 4px' }}>👤</div>}
+                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.winnerId === m.p2.userId ? '#22C55E' : '#fff' }}>{m.p2.userName}{m.done && m.winnerId === m.p2.userId ? ' 🏆' : ''}</p>
+                        </div>
+                      </div>
+
+                      {/* Resultado */}
+                      {m.done ? (
+                        <div style={{ textAlign: 'center' }}>
+                          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 800, color: '#22C55E' }}>
+                            Ganó {m.winnerId === m.p1.userId ? m.p1.userName : m.p2.userName}
+                          </p>
+                          {typeof m.rpDelta === 'number' && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>+{m.rpDelta} RP ganador · {m.loserRpDelta} RP perdedor</p>}
+                          {isHost && (
+                            <button onClick={pgNext} disabled={pgLoading}
+                              style={{ marginTop: 12, padding: '10px 28px', borderRadius: 14, border: '1px solid rgba(6,182,212,0.4)', background: 'rgba(6,182,212,0.15)', color: '#06B6D4', fontWeight: 900, fontSize: 14, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                              ⚡ Siguiente partida
+                            </button>
+                          )}
+                          {!isHost && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Esperando que el host avance…</p>}
+                        </div>
+                      ) : (isPlaying || isHost) && !pgReported ? (
+                        /* Reporte de resultado */
+                        <div>
+                          <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {isPlaying ? 'Reportá el resultado' : '🛡️ Resultado (host)'}
+                          </p>
+                          {/* Stocks */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Stocks del ganador:</span>
+                            {[1, 2, 3].map(s => (
+                              <button key={s} onClick={() => setPgReportStocks(s)}
+                                style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${pgReportStocks === s ? 'rgba(6,182,212,0.6)' : 'rgba(255,255,255,0.1)'}`, background: pgReportStocks === s ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.04)', color: pgReportStocks === s ? '#06B6D4' : 'rgba(255,255,255,0.5)', fontWeight: 900, fontSize: 14, cursor: 'pointer', transition: 'all 0.1s' }}>{s}</button>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => pgReport(m.p1.userId)} disabled={pgLoading}
+                              style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                              🏆 Ganó {m.p1.userName}
+                            </button>
+                            <button onClick={() => pgReport(m.p2.userId)} disabled={pgLoading}
+                              style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                              🏆 Ganó {m.p2.userName}
+                            </button>
+                          </div>
+                        </div>
+                      ) : !m.done && pgReported ? (
+                        <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                          ✅ Reporte enviado. Esperando confirmación del otro jugador…
+                        </p>
+                      ) : !m.done ? (
+                        <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                          Observador — esperando resultado…
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })()}
+
+                {/* Marcador de sesión */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '12px 14px' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Marcador de sesión</p>
+                  {[...parsecGroup.players].sort((a, b) => (b.wins || 0) - (a.wins || 0)).map((p, i) => {
+                    const rc = p.charId && CHARACTER_RENDERS[p.charId] ? charRenderPath(CHARACTER_RENDERS[p.charId]) : null;
+                    return (
+                      <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <span style={{ fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.25)', width: 16, textAlign: 'center' }}>{i + 1}</span>
+                        {rc ? <img src={rc} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />}
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: p.userId === uid ? 900 : 700, color: p.userId === uid ? '#06B6D4' : '#fff' }}>{p.userName}</span>
+                        <span style={{ fontSize: 12, color: '#22C55E', fontWeight: 800 }}>{p.wins || 0}W</span>
+                        <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 800, marginLeft: 6 }}>{p.losses || 0}L</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Historial de la sesión */}
+                {parsecGroup.matchHistory && parsecGroup.matchHistory.length > 0 && (
+                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 14px' }}>
+                    <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Historial ({parsecGroup.matchHistory.length})</p>
+                    {[...parsecGroup.matchHistory].reverse().slice(0, 6).map((h, i) => {
+                      const wName = parsecGroup.players.find(p => p.userId === h.winnerId)?.userName || h.winnerId;
+                      const lName = parsecGroup.players.find(p => p.userId === (h.p1Id === h.winnerId ? h.p2Id : h.p1Id))?.userName || '';
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#22C55E', flex: 1 }}>{wName}</span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>vs</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', flex: 1, textAlign: 'right' }}>{lName}</span>
+                          {typeof h.rpDelta === 'number' && <span style={{ fontSize: 10, color: '#22C55E', marginLeft: 6 }}>+{h.rpDelta}RP</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Cómo funciona */}
+            {!parsecGroup && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
+                {[['🖥️','Todos en Parsec','Varios jugadores en la misma sesión Parsec'],['📋','Creá o unite','Una persona crea la sala y comparte el código'],['⚡','El host inicia','Con 2 o más jugadores, el host arranca el matchmaking'],['🎲','Emparejamiento aleatorio','El sistema hace los pares evitando repetir el mismo consecutivamente'],['🏆','Puntos al ranking','Cada resultado suma al ranking Parsec de todos']].map(([icon, t, d]) => (
+                  <div key={t} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '3px 0' }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
+                    <div>
+                      <p style={{ margin: '0 0 1px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{t}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </>
-      ) : (
+        ) : (
+          /* ── BÚSQUEDA 1v1 NORMAL ────────────────────────────────────── */
+          <>
+            {/* Botones de búsqueda por plataforma */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {PLATFORMS.map(px => (
+                <button
+                  key={px.id}
+                  onClick={() => { setSearchPlat(px.id); startSearch(px.id); }}
+                  disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg,' + px.from + '18,' + px.to + '0a)', border: `1px solid ${px.id === 'parsec' && !parsecRole ? 'rgba(251,191,36,0.4)' : px.from + '40'}`, borderRadius: 20, padding: '18px 16px', cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: loading ? 0.6 : 1, transition: 'all 0.15s' }}
+                >
+                  <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg,' + px.from + ',' + px.to + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 16px ' + px.from + '40' }}>{px.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 4px', fontWeight: 900, fontSize: 16, color: '#fff' }}>Buscar en {px.label}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+                      {px.id === 'switch' ? 'Ranked en Nintendo Switch Online' : (
+                        <>Ranked en Parsec (PC){' '}
+                          {parsecRole
+                            ? <span style={{ marginLeft: 4, padding: '1px 6px', borderRadius: 5, fontSize: 10, fontWeight: 800, background: parsecRole === 'host' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)', color: parsecRole === 'host' ? '#22C55E' : '#EF4444' }}>{parsecRole === 'host' ? 'HOST' : 'NO HOST'}</span>
+                            : <span style={{ marginLeft: 4, padding: '1px 6px', borderRadius: 5, fontSize: 10, fontWeight: 800, background: 'rgba(251,191,36,0.15)', color: '#FBBF24' }}>⚠ Elegí Host/No Host</span>}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+                </button>
+              ))}
+            </div>
+
+            {/* Modo de conexión Parsec */}
+            <div style={{ marginTop: 10, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: '10px 14px' }}>
+              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Modo Parsec <span style={{ color: '#EF4444', marginLeft: 4 }}>*obligatorio</span></p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    const nr = parsecRole === 'host' ? null : 'host';
+                    setParsecRole(nr);
+                    if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
+                    fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
+                  }}
+                  style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'host' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'host' ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'host' ? '#22C55E' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
+                >{parsecRole === 'host' ? '✅ ' : ''}Host</button>
+                <button
+                  onClick={() => {
+                    const nr = parsecRole === 'nohost' ? null : 'nohost';
+                    setParsecRole(nr);
+                    if (nr) localStorage.setItem('afk_parsec_role', nr); else localStorage.removeItem('afk_parsec_role');
+                    fetch('/api/players/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uid, parsecRole: nr }) }).catch(() => {});
+                  }}
+                  style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: `1px solid ${parsecRole === 'nohost' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: parsecRole === 'nohost' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: parsecRole === 'nohost' ? '#EF4444' : 'rgba(255,255,255,0.45)', fontWeight: 800, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}
+                >{parsecRole === 'nohost' ? '✅ ' : ''}No Host</button>
+              </div>
+              <p style={{ margin: '6px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4 }}>Indicá si podés hostear Parsec. Es obligatorio para buscar partida.</p>
+            </div>
+
+            {/* Entrada a Sala Parsec Grupal */}
+            <button onClick={() => { setParsecGroupView(true); setPgError(null); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 18, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', marginTop: 6 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#06B6D4,#0891B2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🖥️</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 14, color: '#06B6D4' }}>Sala Parsec Grupal</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Varios en un mismo Parsec — turnos aleatorios</p>
+              </div>
+              <Svg size={18} sw={2.5} style={{ color: 'rgba(255,255,255,0.3)' }}>{ICO.chevron}</Svg>
+            </button>
+          </>
+        )
+
         <>
           {/* 2v2 Ranked - Room code party system */}
           {!rankedParty ? (

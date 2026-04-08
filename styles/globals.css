@@ -51,6 +51,7 @@ html, body {
 @keyframes shimmer      { to { background-position:-200% 0 } }
 @keyframes neon-scan    { 0%{opacity:.4} 50%{opacity:.8} 100%{opacity:.4} }
 @keyframes bounce       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }
+@keyframes pulse        { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
 
 @layer utilities {
   .animate-scale-in { animation: scale-in 0.2s ease-out; }
