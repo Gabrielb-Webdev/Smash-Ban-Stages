@@ -8737,6 +8737,33 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                         </div>
                       </div>
 
+                      {/* Picker de personaje — solo los jugadores del match */}
+                      {isPlaying && (() => {
+                        const myPlayer = parsecGroup.players.find(p => p.userId === uid);
+                        const myCurrentChar = myPlayer?.charId;
+                        const myCharObj = myCurrentChar ? CHARACTERS.find(c => c.id === myCurrentChar) : null;
+                        return (
+                          <div style={{ marginBottom: 10 }}>
+                            <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              🎮 Tu personaje{myCharObj ? ` · ${myCharObj.name}` : ' · Sin elegir'}
+                            </p>
+                            <div style={{ maxHeight: 112, overflowY: 'auto', borderRadius: 8, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)', padding: 4 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 2 }}>
+                                {CHARACTERS.map(c => {
+                                  const sel = c.id === myCurrentChar;
+                                  return (
+                                    <button key={c.id} title={c.name} onClick={() => { if (!sel) pgUpdateChar(c.id, 1); }}
+                                      style={{ padding: 2, borderRadius: 5, border: `1px solid ${sel ? 'rgba(6,182,212,0.55)' : 'rgba(255,255,255,0.04)'}`, background: sel ? 'rgba(6,182,212,0.15)' : 'transparent', cursor: sel ? 'default' : 'pointer', transition: 'border 0.1s, background 0.1s' }}>
+                                      <img src={stockIconPath(c, 1)} alt={c.name} style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} onError={e => { e.target.style.display='none'; }} />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Games jugados dentro del BO3 */}
                       {m.games && m.games.length > 0 && (
                         <div style={{ display: 'flex', gap: 5, justifyContent: 'center', marginBottom: 12 }}>
@@ -8840,25 +8867,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   );
                 })()}
 
-                {/* Cambio de personaje (solo entre sets, cuando currentMatch.done) */}
-                {parsecGroup.currentMatch?.done && (() => {
+                {/* Cambio de personaje — para los que NO están en el match activo */}
+                {(() => {
+                  const cm = parsecGroup.currentMatch;
+                  const isInCurrentMatch = cm && !cm.done && (cm.p1.userId === uid || cm.p2.userId === uid);
+                  if (isInCurrentMatch) return null;
                   const myPlayer = parsecGroup.players.find(p => p.userId === uid);
                   const myCurrentChar = myPlayer?.charId;
                   const myCurrentAlt = myPlayer?.charAlt || 1;
                   const myCharObj = myCurrentChar ? CHARACTERS.find(c => c.id === myCurrentChar) : null;
                   return (
                     <div style={{ background: 'rgba(255,140,0,0.06)', border: '1px solid rgba(255,140,0,0.18)', borderRadius: 14, padding: '12px 14px' }}>
-                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🎮 Cambiar personaje (opcional)</p>
+                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🎮 Tu personaje</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         {myCharObj && <img src={stockIconPath(myCharObj, myCurrentAlt)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />}
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Actual: <strong style={{ color: '#fff' }}>{myCharObj?.name || 'Ninguno'}</strong></span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Actual: <strong style={{ color: '#fff' }}>{myCharObj?.name || 'Sin elegir'}</strong></span>
                       </div>
                       <div style={{ maxHeight: 160, overflowY: 'auto', borderRadius: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', padding: 6 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 3 }}>
                           {CHARACTERS.map(c => {
                             const sel = c.id === myCurrentChar;
                             return (
-                              <button key={c.id} onClick={() => { if (!sel) pgUpdateChar(c.id, 1); }}
+                              <button key={c.id} title={c.name} onClick={() => { if (!sel) pgUpdateChar(c.id, 1); }}
                                 style={{ padding: 3, borderRadius: 6, border: `1px solid ${sel ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.05)'}`, background: sel ? 'rgba(255,140,0,0.12)' : 'transparent', cursor: sel ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <img src={stockIconPath(c, 1)} alt={c.name} style={{ width: 26, height: 26, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
                               </button>
