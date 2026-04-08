@@ -7260,6 +7260,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     finally { setPgLoading(false); }
   };
 
+  const pgClose = async () => {
+    if (!confirm('\u00bfCerrás la sala? Todos los jugadores serán desconectados.')) return;
+    setPgLoading(true);
+    try {
+      await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'close', userId: uid, userName: uName }),
+      });
+    } catch {}
+    setParsecGroup(null); setParsecGroupView(false); setPgReported(false);
+    setPgReportStocks(1); setPgError(null); setPgLoading(false);
+  };
+
   const pgKick = async (targetId) => {
     setPgLoading(true); setPgError(null);
     try {
@@ -8625,6 +8638,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
               <div style={{ flex: 1, textAlign: 'center' }}>
                 <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>🖥️ Sala Parsec Grupal</span>
               </div>
+              {parsecGroup?.hostId === uid && (
+                <button onClick={pgClose} disabled={pgLoading} title="Cerrar sala"
+                  style={{ background: 'none', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, color: 'rgba(239,68,68,0.7)', cursor: pgLoading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 11, padding: '4px 9px', whiteSpace: 'nowrap' }}>
+                  🚪 Cerrar sala
+                </button>
+              )}
             </div>
 
             {pgError && <p style={{ margin: 0, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{pgError}</p>}

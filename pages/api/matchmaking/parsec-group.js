@@ -472,6 +472,18 @@ export default async function handler(req, res) {
     }
 
     // ── SALIR DE SALA ────────────────────────────────────────────────────
+    if (action === 'close') {
+      const code = await redis.get(pgUserKey(cleanId));
+      if (!code) return res.status(404).json({ error: 'No estás en ninguna sala' });
+      const room = await redis.get(pgRoomKey(code));
+      if (!room) return res.status(200).json({ closed: true });
+      if (room.hostId !== cleanId) return res.status(403).json({ error: 'Solo el host puede cerrar la sala' });
+      // Borrar la key de todos los jugadores
+      await Promise.all(room.players.map(p => redis.del(pgUserKey(String(p.userId)))));
+      await redis.del(pgRoomKey(code));
+      return res.status(200).json({ closed: true });
+    }
+
     if (action === 'kick') {
       if (!targetId) return res.status(400).json({ error: 'targetId requerido' });
       const kickTarget = sanitize(targetId);
