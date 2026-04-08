@@ -6917,6 +6917,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const [pgError,            setPgError]            = useState(null);
   const [pgReportStocks,     setPgReportStocks]     = useState(1);
   const [pgReported,         setPgReported]         = useState(false);
+  const [pgDisputing,        setPgDisputing]        = useState(false);
   const pgLastGameRef = useRef(null); // tracks currentGame + pair to reset pgReported on advance
 
   // Ban state (Bo3)
@@ -6998,6 +6999,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           if (pgLastGameRef.current && pgLastGameRef.current !== gameKey) {
             setPgReported(false);
             setPgReportStocks(1);
+            setPgDisputing(false);
           }
           pgLastGameRef.current = gameKey;
         }
@@ -7238,17 +7240,17 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     finally { setPgLoading(false); }
   };
 
-  const pgReport = async (winnerId) => {
+  const pgReport = async (winnerId, stocksOverride) => {
     setPgLoading(true); setPgError(null);
     try {
       const r = await fetch('/api/matchmaking/parsec-group', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'report', userId: uid, userName: uName, winnerId, stocksWon: pgReportStocks }),
+        body: JSON.stringify({ action: 'report', userId: uid, userName: uName, winnerId, stocksWon: stocksOverride ?? pgReportStocks }),
       });
       const d = await r.json();
       if (!r.ok) { setPgError(d.error || 'Error al reportar'); return; }
-      if (d.disagreement) { setPgError('Los jugadores no coinciden. Vuelvan a reportar.'); setPgReported(false); }
-      else { setPgReported(true); }
+      if (d.disagreement) { setPgError('Los jugadores no coinciden. Vuelvan a reportar.'); setPgReported(false); setPgDisputing(false); }
+      else { setPgReported(true); setPgDisputing(false); }
       if (d.room) setParsecGroup(d.room);
     } catch { setPgError('Error de conexión'); }
     finally { setPgLoading(false); }
@@ -8690,11 +8692,19 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   const p1Score = m.score?.[m.p1.userId] || 0;
                   const p2Score = m.score?.[m.p2.userId] || 0;
                   const gameNum = m.currentGame || (m.games?.length || 0) + 1;
+                  const currentStage = !m.done && m.gameStages ? m.gameStages[gameNum - 1] : null;
+                  const currentStageImg = currentStage ? STAGE_IMG[currentStage] : null;
+                  // Reportes: quién ya reportó y qué dijo
+                  const myReport    = m.reports?.[uid];
+                  const otherUid    = isP1 ? m.p2.userId : (isP2 ? m.p1.userId : null);
+                  const otherReport = otherUid ? m.reports?.[otherUid] : null;
+                  const otherName   = otherUid === m.p1.userId ? m.p1.userName : m.p2.userName;
+                  const reportedWinnerName = otherReport ? (otherReport.winnerId === m.p1.userId ? m.p1.userName : m.p2.userName) : null;
 
                   return (
                     <div style={{ background: 'rgba(6,182,212,0.07)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 18, padding: '16px' }}>
                       {/* Header con Game y Score */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(6,182,212,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                           {m.done ? '✅ Set terminado' : `⚔️ Game ${gameNum}/3`}
                         </p>
@@ -8704,8 +8714,18 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                           <span style={{ fontSize: 14, fontWeight: 900, color: (m.done && m.setWinnerId === m.p2.userId) || p2Score > p1Score ? '#22C55E' : '#fff' }}>{p2Score}</span>
                         </div>
                       </div>
+
+                      {/* Stage banner para el game actual */}
+                      {currentStage && (
+                        <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', marginBottom: 10, height: 38, display: 'flex', alignItems: 'center' }}>
+                          {currentStageImg && <img src={currentStageImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.3)' }} />}
+                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(6,182,212,0.15)' }} />
+                          <p style={{ position: 'relative', margin: 0, padding: '0 12px', fontSize: 11, fontWeight: 800, color: '#06B6D4' }}>🗺️ {currentStage}</p>
+                        </div>
+                      )}
+
                       {/* VS */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                           {p1Render ? <img src={p1Render} alt="" style={{ width: 54, height: 54, objectFit: 'contain', margin: '0 auto 4px', display: 'block' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 54, height: 54, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 4px' }}>👤</div>}
                           <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.setWinnerId === m.p1.userId ? '#22C55E' : '#fff' }}>{m.p1.userName}{m.done && m.setWinnerId === m.p1.userId ? ' 🏆' : ''}</p>
@@ -8719,14 +8739,16 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
 
                       {/* Games jugados dentro del BO3 */}
                       {m.games && m.games.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', marginBottom: 12 }}>
                           {m.games.map(g => {
                             const gWon = g.winnerId === m.p1.userId;
+                            const gStageImg = g.stage ? STAGE_IMG[g.stage] : null;
                             return (
-                              <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)' }}>G{g.gameNum}</span>
-                                <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: gWon ? '#22C55E' : '#EF4444' }}>{gWon ? m.p1.userName.split(' ')[0] : m.p2.userName.split(' ')[0]}</span>
+                              <div key={g.gameNum} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', minWidth: 0 }}>
+                                {gStageImg && <img src={gStageImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.25)', pointerEvents: 'none' }} />}
+                                <span style={{ position: 'relative', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)' }}>G{g.gameNum}</span>
+                                <span style={{ position: 'relative', fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
+                                <span style={{ position: 'relative', fontSize: 10, fontWeight: 700, color: gWon ? '#22C55E' : '#EF4444' }}>{gWon ? m.p1.userName.split(' ')[0] : m.p2.userName.split(' ')[0]}</span>
                               </div>
                             );
                           })}
@@ -8751,39 +8773,69 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                           )}
                           {!isHost && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Esperando que el host avance…</p>}
                         </div>
-                      ) : (isPlaying || isHost) && !pgReported ? (
-                        /* Reporte de game */
-                        <div>
-                          <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            {isPlaying ? `Reportá el Game ${gameNum}` : `🛡️ Game ${gameNum} (host)`}
+
+                      ) : isPlaying ? (
+                        /* Zona de reporte — SOLO los jugadores del match */
+                        myReport && !otherReport ? (
+                          /* Ya reporté, esperando confirmación */
+                          <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                            ✅ Resultado enviado. Esperando confirmación de {otherName}…
                           </p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Stocks del ganador:</span>
-                            {[1, 2, 3].map(s => (
-                              <button key={s} onClick={() => setPgReportStocks(s)}
-                                style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${pgReportStocks === s ? 'rgba(6,182,212,0.6)' : 'rgba(255,255,255,0.1)'}`, background: pgReportStocks === s ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.04)', color: pgReportStocks === s ? '#06B6D4' : 'rgba(255,255,255,0.5)', fontWeight: 900, fontSize: 14, cursor: 'pointer', transition: 'all 0.1s' }}>{s}</button>
-                            ))}
+                        ) : otherReport && !myReport && !pgDisputing ? (
+                          /* El otro jugador ya reportó — mostrar para confirmar o disputar */
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>
+                              <strong style={{ color: '#FBBF24' }}>{otherName}</strong> dice que ganó <strong style={{ color: '#fff' }}>{reportedWinnerName}</strong>
+                            </p>
+                            <p style={{ margin: '0 0 10px', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>con {otherReport.stocksWon} stock{otherReport.stocksWon !== 1 ? 's' : ''}</p>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={() => pgReport(otherReport.winnerId, otherReport.stocksWon)} disabled={pgLoading}
+                                style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 13, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                                ✅ Confirmar
+                              </button>
+                              <button onClick={() => setPgDisputing(true)} disabled={pgLoading}
+                                style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 13, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                                ❌ Disputar
+                              </button>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => { pgReport(m.p1.userId); }} disabled={pgLoading}
-                              style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
-                              🏆 Ganó {m.p1.userName}
-                            </button>
-                            <button onClick={() => { pgReport(m.p2.userId); }} disabled={pgLoading}
-                              style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
-                              🏆 Ganó {m.p2.userName}
-                            </button>
+                        ) : (
+                          /* Formulario de reporte (normal o en modo disputa) */
+                          <div>
+                            {pgDisputing && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, padding: '5px 10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#EF4444' }}>⚠️ Disputando resultado</span>
+                                <button onClick={() => setPgDisputing(false)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.6)', fontSize: 11, cursor: 'pointer', padding: 0 }}>✕ Cancelar</button>
+                              </div>
+                            )}
+                            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              Reportá el Game {gameNum}
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Stocks del ganador:</span>
+                              {[1, 2, 3].map(s => (
+                                <button key={s} onClick={() => setPgReportStocks(s)}
+                                  style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${pgReportStocks === s ? 'rgba(6,182,212,0.6)' : 'rgba(255,255,255,0.1)'}`, background: pgReportStocks === s ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.04)', color: pgReportStocks === s ? '#06B6D4' : 'rgba(255,255,255,0.5)', fontWeight: 900, fontSize: 14, cursor: 'pointer', transition: 'all 0.1s' }}>{s}</button>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={() => pgReport(m.p1.userId)} disabled={pgLoading}
+                                style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                                🏆 Ganó {m.p1.userName}
+                              </button>
+                              <button onClick={() => pgReport(m.p2.userId)} disabled={pgLoading}
+                                style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                                🏆 Ganó {m.p2.userName}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : !m.done && pgReported ? (
-                        <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-                          ✅ Reporte enviado. Esperando al otro jugador…
-                        </p>
-                      ) : !m.done ? (
+                        )
+                      ) : (
+                        /* Espectador / Host */
                         <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                          Observador — esperando resultado del Game {gameNum}…
+                          {isHost ? '🎮 Host — Game ' : 'Observador — Game '}{gameNum} en curso…
                         </p>
-                      ) : null}
+                      )}
                     </div>
                   );
                 })()}

@@ -21,6 +21,22 @@ function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
 }
 
+// Stages disponibles para selección aleatoria en Sala Grupal
+const PG_STAGES = [
+  'Battlefield', 'Small Battlefield', 'Town and City',
+  'Smashville', 'Pokémon Stadium 2', 'Hollow Bastion', 'Kalos',
+];
+function pickGameStages(count) {
+  const pool = [...PG_STAGES];
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    if (pool.length === 0) pool.push(...PG_STAGES);
+    const idx = Math.floor(Math.random() * pool.length);
+    result.push(pool.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
 function genCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let c = '';
@@ -168,6 +184,8 @@ async function applyGroupMatchStats(match, roomCode) {
     winnerCharId: winner.charId, loserCharId: loser.charId,
     winnerAltId: winner.charAlt, loserAltId: loser.charAlt,
     stocksWon: agreedStocks,
+    score: match.score || {},
+    games: match.games || [],
     rpDelta: result.winner.rrDelta,
     loserRpDelta: result.loser.rrDelta,
     mmrDelta: result.winner.mmrDelta,
@@ -316,7 +334,7 @@ export default async function handler(req, res) {
         p1: { userId: p1.userId, userName: p1.userName, charId: p1.charId, charAlt: p1.charAlt || 1 },
         p2: { userId: p2.userId, userName: p2.userName, charId: p2.charId, charAlt: p2.charAlt || 1 },
         score: { [p1.userId]: 0, [p2.userId]: 0 },
-        games: [],
+        games: [], gameStages: pickGameStages(3),
         currentGame: 1,
         reports: {}, done: false, setWinnerId: null, stocksWon: null,
         rpDelta: null, loserRpDelta: null, startedAt: new Date().toISOString(),
@@ -343,7 +361,7 @@ export default async function handler(req, res) {
         p1: { userId: p1.userId, userName: p1.userName, charId: p1.charId, charAlt: p1.charAlt || 1 },
         p2: { userId: p2.userId, userName: p2.userName, charId: p2.charId, charAlt: p2.charAlt || 1 },
         score: { [p1.userId]: 0, [p2.userId]: 0 },
-        games: [],
+        games: [], gameStages: pickGameStages(3),
         currentGame: 1,
         reports: {}, done: false, setWinnerId: null, stocksWon: null,
         rpDelta: null, loserRpDelta: null, startedAt: new Date().toISOString(),
@@ -363,10 +381,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No hay set activo para reportar' });
       }
       const match = room.currentMatch;
+      // Solo los dos jugadores del match pueden reportar
       const isPlayer = cleanId === match.p1.userId || cleanId === match.p2.userId;
-      const isHost   = room.hostId === cleanId;
-      if (!isPlayer && !isHost) {
-        return res.status(403).json({ error: 'Solo los jugadores o el host pueden reportar' });
+      if (!isPlayer) {
+        return res.status(403).json({ error: 'Solo los jugadores de este match pueden reportar' });
       }
       const cleanWinner = sanitize(winnerId || '');
       if (cleanWinner !== match.p1.userId && cleanWinner !== match.p2.userId) {
@@ -374,74 +392,68 @@ export default async function handler(req, res) {
       }
       const finalStocks = Math.min(3, Math.max(1, parseInt(stocksWon) || 1));
 
-      // Guardar reporte de este usuario para el game actual
       match.reports = match.reports || {};
       match.reports[cleanId] = { winnerId: cleanWinner, stocksWon: finalStocks };
 
       const p1Report = match.reports[match.p1.userId];
       const p2Report = match.reports[match.p2.userId];
+      const bothAgree = p1Report && p2Report && p1Report.winnerId === p2Report.winnerId;
 
-      const hostDecide = isHost && !isPlayer;
-      const bothAgree  = p1Report && p2Report && p1Report.winnerId === p2Report.winnerId;
-
-      if (!hostDecide && !bothAgree) {
+      if (!bothAgree) {
         if (p1Report && p2Report && p1Report.winnerId !== p2Report.winnerId) {
+          // Disputa: ambos reportaron ganadores distintos → resetear
           match.reports = {};
           await redis.set(pgRoomKey(code), room, { ex: ROOM_TTL });
           return res.status(200).json({ room, disagreement: true });
         }
+        // Solo uno reportó, esperando confirmación del otro
         await redis.set(pgRoomKey(code), room, { ex: ROOM_TTL });
         return res.status(200).json({ room, pending: true });
       }
 
-      // Game acordado: registrar resultado del game
-      const gameWinnerId = hostDecide ? cleanWinner : p1Report.winnerId;
-      const gameStocks   = hostDecide ? finalStocks : p1Report.stocksWon;
+      // Ambos coinciden: registrar resultado del game
+      const gameNum    = match.currentGame || ((match.games?.length || 0) + 1);
+      const gameWinnerId = p1Report.winnerId;
+      const gameStocks   = p1Report.stocksWon;
+      const gameStage    = (match.gameStages || [])[gameNum - 1] || null;
 
       match.games = match.games || [];
       match.games.push({
-        gameNum: match.currentGame || (match.games.length + 1),
-        winnerId: gameWinnerId,
-        stocksWon: gameStocks,
-        playedAt: new Date().toISOString(),
+        gameNum, winnerId: gameWinnerId, stocksWon: gameStocks,
+        stage: gameStage, playedAt: new Date().toISOString(),
       });
 
-      // Actualizar score del BO3
       match.score = match.score || { [match.p1.userId]: 0, [match.p2.userId]: 0 };
       match.score[gameWinnerId] = (match.score[gameWinnerId] || 0) + 1;
       match.reports = {};
 
-      // Verificar si alguien ganó el set (2 victorias)
       const p1Score = match.score[match.p1.userId] || 0;
       const p2Score = match.score[match.p2.userId] || 0;
 
       if (p1Score >= 2 || p2Score >= 2) {
-        // Set terminado
-        match.done       = true;
+        match.done        = true;
         match.setWinnerId = p1Score >= 2 ? match.p1.userId : match.p2.userId;
-        match.winnerId   = match.setWinnerId;
-        match.stocksWon  = gameStocks; // stocks del último game
-        match.finishedAt = new Date().toISOString();
+        match.winnerId    = match.setWinnerId;
+        match.stocksWon   = gameStocks;
+        match.finishedAt  = new Date().toISOString();
 
-        // Aplicar stats ranked (por el set completo, no por game)
         const statsResult = await applyGroupMatchStats(match, code);
         match.rpDelta          = statsResult.rpDelta;
         match.loserRpDelta     = statsResult.loserRpDelta;
         match.winnerRankChange = statsResult.winnerRankChange;
         match.loserRankChange  = statsResult.loserRankChange;
 
-        // Actualizar score de sesión
         const loserId = match.p1.userId === match.setWinnerId ? match.p2.userId : match.p1.userId;
         const wp = room.players.find(p => p.userId === match.setWinnerId);
         const lp = room.players.find(p => p.userId === loserId);
-        if (wp) wp.wins   = (wp.wins || 0) + 1;
+        if (wp) wp.wins   = (wp.wins   || 0) + 1;
         if (lp) lp.losses = (lp.losses || 0) + 1;
 
         room.matchHistory = room.matchHistory || [];
         room.matchHistory.push({
           p1Id: match.p1.userId, p2Id: match.p2.userId,
-          winnerId: match.setWinnerId, score: match.score,
-          stocksWon: match.stocksWon,
+          winnerId: match.setWinnerId, score: { ...match.score },
+          games: match.games, stocksWon: match.stocksWon,
           rpDelta: match.rpDelta, loserRpDelta: match.loserRpDelta,
           playedAt: match.finishedAt,
         });
@@ -454,8 +466,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Set sigue: avanzar al siguiente game
-      match.currentGame = (match.currentGame || 1) + 1;
+      match.currentGame = gameNum + 1;
       await redis.set(pgRoomKey(code), room, { ex: ROOM_TTL });
       return res.status(200).json({ room, gameFinished: true, setInProgress: true });
     }
