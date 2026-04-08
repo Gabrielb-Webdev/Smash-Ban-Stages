@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         const qEntry = queue.find(e => e.userId === cleanId);
         if (qEntry) {
           if (queue.length >= 2) tryMatch(plat).catch(() => {});
-          return res.status(200).json({ status: 'searching', platform: plat, joinedAt: qEntry.joinedAt });
+          return res.status(200).json({ status: 'searching', platform: plat, joinedAt: qEntry.joinedAt, charId: qEntry.charId || null, charAlt: qEntry.charAlt || 1 });
         }
         // También verificar cola de 2v2
         const queue2v2 = (await redis.get(mmQueueDoublesKey(plat))) || [];

@@ -486,8 +486,9 @@ export default function HomePage() {
         const r = await fetch('/api/matchmaking/room?userId=' + encodeURIComponent(uid));
         if (!r.ok || !active) return;
         const data = await r.json();
-        // Si estamos buscando ranked y room devuelve idle, seguir esperando
-        if (prev_status === 'searching' && data.status === 'idle') return;
+        // Ignorar 'idle' solo en los primeros 5s para evitar race condition al iniciar búsqueda
+        const msSinceSearch = searchStartedAt ? Date.now() - searchStartedAt : Infinity;
+        if (prev_status === 'searching' && data.status === 'idle' && msSinceSearch < 5000) return;
         if (['idle', 'timeout', 'declined'].includes(data.status)) {
           if (active) setBgMM(null);
           return;
@@ -506,6 +507,7 @@ export default function HomePage() {
       } catch {}
     };
     const prev_status = bgMM?.status;
+    const searchStartedAt = bgMM?.searchStartedAt || 0;
     poll();
     const iv = setInterval(poll, 3000);
     return () => { active = false; clearInterval(iv); };
@@ -555,7 +557,7 @@ export default function HomePage() {
         if (data && !['idle', 'timeout', 'declined'].includes(data.status)) {
           if (data.status === 'searching') {
             const startedAt = data.joinedAt ? new Date(data.joinedAt).getTime() : Date.now();
-            setBgMM({ status: 'searching', plat: data.platform, mode: data.mode || '1v1', polling: true, searchStartedAt: startedAt });
+            setBgMM({ status: 'searching', plat: data.platform, mode: data.mode || '1v1', polling: true, searchStartedAt: startedAt, charId: data.charId || null, charAlt: data.charAlt || 1 });
           } else {
             setBgMM({
               status: data.status,
@@ -2340,7 +2342,7 @@ function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
               <CharSlot src={oppCharSrc} playerName={opponent} charName={oppCharObj?.name} onClick={oppClickable} badge={oppBadge} />
             </div>
           </div>
-          <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{isTournament ? `${m.communityLabel || m.community || 'Torneo'}${m.round ? ` · ${m.round}` : ''} · ${timeAgo(m.playedAt)}` : `${platLabel(m.platform)} · ${timeAgo(m.playedAt)}${isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : ' · Ranked'}`}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{isTournament ? `${m.tournamentName || m.communityLabel || m.community || 'Torneo'}${m.round ? ` · ${m.round}` : ''} · ${timeAgo(m.playedAt)}` : `${platLabel(m.platform)} · ${timeAgo(m.playedAt)}${isCasual ? ' · Normal' : is2v2 ? ' · 2v2' : ' · Ranked'}`}</p>
           {/* Juegos */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <div style={{ height: 14, width: 3, borderRadius: 2, background: 'linear-gradient(180deg,#FF8C00,#E85D00)', flexShrink: 0 }} />
@@ -2387,13 +2389,16 @@ const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '
 function buildHistFilterTabs(hist) {
   if (!Array.isArray(hist)) return [['all','Todos']];
   const hasCasual = hist.some(m => m.type === 'casual');
-  const commIds = [...new Set(hist.filter(m => m.type === 'tournament' && m.community).map(m => m.community))];
+  // Normalize afk-multi → afk so only one AFK tab appears
+  const commIds = [...new Set(hist.filter(m => m.type === 'tournament' && m.community).map(m => m.community === 'afk-multi' ? 'afk' : m.community))];
   return [['all','Todos'],['ranked','Ranked'],...(hasCasual?[['casual','Normal']]:[]),...commIds.map(c=>[c,HIST_COMM_LABELS[c]||c])];
 }
 function applyHistFilter(hist, filter) {
   if (filter === 'all') return hist;
   if (filter === 'casual') return hist.filter(m => m.type === 'casual');
   if (filter === 'ranked') return hist.filter(m => !m.type || m.type === 'ranked');
+  // afk tab matches both 'afk' and 'afk-multi' communities
+  if (filter === 'afk') return hist.filter(m => m.type === 'tournament' && (m.community === 'afk' || m.community === 'afk-multi'));
   return hist.filter(m => m.type === 'tournament' && m.community === filter);
 }
 function groupHistByDate(matches) {
@@ -2518,7 +2523,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                           <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
                             <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                              {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
+                              {isTournament ? (m.tournamentName || m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
                             </p>
                             {isTournament ? (
                               m.round ? <span style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B' }}>{m.round}</span> : null
@@ -6678,6 +6683,14 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const matchData = bgMM?.room;
   const matchStatus = bgMM?.status;
 
+  // Restaurar personaje de búsqueda al remontar (cambio de tab, F5)
+  useEffect(() => {
+    if (bgMM?.charId && !searchChar) {
+      setSearchChar(bgMM.charId);
+      setSearchSkin(bgMM.charAlt || 1);
+    }
+  }, [bgMM?.charId, bgMM?.charAlt]); // eslint-disable-line
+
   // Chat state
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput]       = useState('');
@@ -6895,6 +6908,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const [pgError,            setPgError]            = useState(null);
   const [pgReportStocks,     setPgReportStocks]     = useState(1);
   const [pgReported,         setPgReported]         = useState(false);
+  const pgLastGameRef = useRef(null); // tracks currentGame + pair to reset pgReported on advance
 
   // Ban state (Bo3)
   const [selectedBans, setSelectedBans] = useState([]);
@@ -6968,14 +6982,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         const r = await fetch('/api/matchmaking/parsec-group?userId=' + encodeURIComponent(uid));
         const d = await r.json();
         setParsecGroup(d.room || null);
-        // Reset "ya reporté" cuando empieza un nuevo match
+        // Reset "ya reporté" cuando cambia el game o el par
         if (d.room?.currentMatch && !d.room.currentMatch.done) {
-          setPgReported(prev => {
-            // Si cambia el par jugando, limpiar el flag
-            const matchKey = (d.room.currentMatch.p1?.userId || '') + ':' + (d.room.currentMatch.p2?.userId || '');
-            if (prev !== matchKey) setPgReportStocks(1);
-            return prev; // no clear here, handled on report action
-          });
+          const cm = d.room.currentMatch;
+          const gameKey = (cm.p1?.userId || '') + ':' + (cm.p2?.userId || '') + ':' + (cm.currentGame || 1);
+          if (pgLastGameRef.current && pgLastGameRef.current !== gameKey) {
+            setPgReported(false);
+            setPgReportStocks(1);
+          }
+          pgLastGameRef.current = gameKey;
         }
       } catch {}
     };
@@ -7123,7 +7138,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       });
       const data = await r.json();
       if (r.ok) {
-        setBgMM({ status: 'searching', plat: savedPlat, gameType: savedGameType || undefined, polling: true, searchStartedAt: Date.now() });
+        setBgMM({ status: 'searching', plat: savedPlat, gameType: savedGameType || undefined, polling: true, searchStartedAt: Date.now(), charId: savedChar, charAlt: savedSkin || 1 });
         setSearchChar(savedChar);
         setSearchSkin(savedSkin);
       } else {
@@ -7242,6 +7257,20 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     setPgReportStocks(1); setPgError(null); setPgLoading(false);
   };
 
+  const pgUpdateChar = async (newCharId, newCharAlt) => {
+    setPgLoading(true); setPgError(null);
+    try {
+      const r = await fetch('/api/matchmaking/parsec-group', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_char', userId: uid, userName: uName, charId: newCharId, charAlt: newCharAlt || 1 }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setPgError(d.error || 'Error al cambiar personaje'); return; }
+      if (d.room) setParsecGroup(d.room);
+    } catch { setPgError('Error de conexión'); }
+    finally { setPgLoading(false); }
+  };
+
   const startSearch = async (platform) => {
     if (!searchChar) { setFormError('Elegí tu personaje primero'); return; }
     if (platform === 'parsec' && !parsecRole) { setFormError('Elegí si sos Host o No Host antes de buscar en Parsec'); return; }
@@ -7258,7 +7287,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         return;
       }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
-      setBgMM({ status: 'searching', plat: platform, polling: true, searchStartedAt: Date.now() });
+      setBgMM({ status: 'searching', plat: platform, polling: true, searchStartedAt: Date.now(), charId: searchChar, charAlt: searchSkin || 1 });
     } catch { setFormError('Error de conexión'); }
     finally { setLoading(false); }
   };
@@ -7275,7 +7304,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       const data = await r.json();
       if (r.status === 409) { setFormError(data.error); return; }
       if (!r.ok) { setFormError(data.error || 'Error al buscar'); return; }
-      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', polling: true, searchStartedAt: Date.now() });
+      setBgMM({ status: 'searching', plat: platform, gameType: 'casual', polling: true, searchStartedAt: Date.now(), charId: searchChar, charAlt: searchSkin || 1 });
     } catch { setFormError('Error de conexión'); }
     finally { setLoading(false); }
   };
@@ -8589,10 +8618,10 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px' }}>
                   <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unirse a sala existente</p>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <input value={pgJoinCode} onChange={e => setPgJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))} placeholder="Código (5 letras)" maxLength={5}
-                      style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: 5, padding: '8px 14px', outline: 'none', textAlign: 'center' }} />
+                    <input value={pgJoinCode} onChange={e => setPgJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))} placeholder="AB3Z1" maxLength={5}
+                      style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: 16, fontWeight: 900, letterSpacing: 4, padding: '10px 12px', outline: 'none', textAlign: 'center' }} />
                     <button onClick={() => pgJoin(pgJoinCode)} disabled={pgLoading || pgJoinCode.length < 5}
-                      style={{ padding: '8px 18px', background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', borderRadius: 10, color: '#06B6D4', fontWeight: 800, fontSize: 13, cursor: pgJoinCode.length < 5 || pgLoading ? 'not-allowed' : 'pointer', opacity: pgJoinCode.length < 5 ? 0.5 : 1, transition: 'all 0.15s' }}>Unirse</button>
+                      style={{ flexShrink: 0, padding: '10px 16px', background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.4)', borderRadius: 10, color: '#06B6D4', fontWeight: 800, fontSize: 13, cursor: pgJoinCode.length < 5 || pgLoading ? 'not-allowed' : 'pointer', opacity: pgJoinCode.length < 5 ? 0.5 : 1, transition: 'all 0.15s', whiteSpace: 'nowrap' }}>Unirse</button>
                   </div>
                 </div>
               </div>
@@ -8638,59 +8667,87 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                 )}
               </div>
             ) : parsecGroup.status === 'playing' ? (
-              /* Sesión activa */
+              /* Sesión activa — BO3 */
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Partida actual */}
+                {/* Partida actual (BO3) */}
                 {parsecGroup.currentMatch && (() => {
                   const m = parsecGroup.currentMatch;
                   const isP1 = uid === m.p1.userId;
                   const isP2 = uid === m.p2.userId;
                   const isPlaying = isP1 || isP2;
                   const isHost = parsecGroup.hostId === uid;
-                  const myChar = isP1 ? (CHARACTER_RENDERS[m.p1.charId] ? charRenderPath(CHARACTER_RENDERS[m.p1.charId]) : null) : (isP2 ? (CHARACTER_RENDERS[m.p2.charId] ? charRenderPath(CHARACTER_RENDERS[m.p2.charId]) : null) : null);
                   const p1Render = m.p1.charId && CHARACTER_RENDERS[m.p1.charId] ? charRenderPath(CHARACTER_RENDERS[m.p1.charId]) : null;
                   const p2Render = m.p2.charId && CHARACTER_RENDERS[m.p2.charId] ? charRenderPath(CHARACTER_RENDERS[m.p2.charId]) : null;
+                  const p1Score = m.score?.[m.p1.userId] || 0;
+                  const p2Score = m.score?.[m.p2.userId] || 0;
+                  const gameNum = m.currentGame || (m.games?.length || 0) + 1;
 
                   return (
                     <div style={{ background: 'rgba(6,182,212,0.07)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 18, padding: '16px' }}>
-                      <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: 'rgba(6,182,212,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        {m.done ? '✅ Partida terminada' : '⚔️ Partida en curso'}
-                      </p>
+                      {/* Header con Game y Score */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(6,182,212,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          {m.done ? '✅ Set terminado' : `⚔️ Game ${gameNum}/3`}
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '3px 10px' }}>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: (m.done && m.setWinnerId === m.p1.userId) || p1Score > p2Score ? '#22C55E' : '#fff' }}>{p1Score}</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: '0 2px' }}>—</span>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: (m.done && m.setWinnerId === m.p2.userId) || p2Score > p1Score ? '#22C55E' : '#fff' }}>{p2Score}</span>
+                        </div>
+                      </div>
                       {/* VS */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                           {p1Render ? <img src={p1Render} alt="" style={{ width: 54, height: 54, objectFit: 'contain', margin: '0 auto 4px', display: 'block' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 54, height: 54, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 4px' }}>👤</div>}
-                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.winnerId === m.p1.userId ? '#22C55E' : '#fff' }}>{m.p1.userName}{m.done && m.winnerId === m.p1.userId ? ' 🏆' : ''}</p>
+                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.setWinnerId === m.p1.userId ? '#22C55E' : '#fff' }}>{m.p1.userName}{m.done && m.setWinnerId === m.p1.userId ? ' 🏆' : ''}</p>
                         </div>
                         <span style={{ fontSize: 16, fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>VS</span>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                           {p2Render ? <img src={p2Render} alt="" style={{ width: 54, height: 54, objectFit: 'contain', margin: '0 auto 4px', display: 'block' }} onError={e => { e.target.style.display='none'; }} /> : <div style={{ width: 54, height: 54, borderRadius: 12, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 4px' }}>👤</div>}
-                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.winnerId === m.p2.userId ? '#22C55E' : '#fff' }}>{m.p2.userName}{m.done && m.winnerId === m.p2.userId ? ' 🏆' : ''}</p>
+                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: m.done && m.setWinnerId === m.p2.userId ? '#22C55E' : '#fff' }}>{m.p2.userName}{m.done && m.setWinnerId === m.p2.userId ? ' 🏆' : ''}</p>
                         </div>
                       </div>
 
-                      {/* Resultado */}
+                      {/* Games jugados dentro del BO3 */}
+                      {m.games && m.games.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
+                          {m.games.map(g => {
+                            const gWon = g.winnerId === m.p1.userId;
+                            return (
+                              <div key={g.gameNum} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)' }}>G{g.gameNum}</span>
+                                <span style={{ fontSize: 12 }}>{gWon ? '🏆' : '💀'}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: gWon ? '#22C55E' : '#EF4444' }}>{gWon ? m.p1.userName.split(' ')[0] : m.p2.userName.split(' ')[0]}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Set terminado: resultado final */}
                       {m.done ? (
                         <div style={{ textAlign: 'center' }}>
-                          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 800, color: '#22C55E' }}>
-                            Ganó {m.winnerId === m.p1.userId ? m.p1.userName : m.p2.userName}
+                          <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 900, color: '#22C55E' }}>
+                            🏆 Ganó el set: {m.setWinnerId === m.p1.userId ? m.p1.userName : m.p2.userName}
                           </p>
-                          {typeof m.rpDelta === 'number' && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>+{m.rpDelta} RP ganador · {m.loserRpDelta} RP perdedor</p>}
+                          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+                            {p1Score} — {p2Score}
+                          </p>
+                          {typeof m.rpDelta === 'number' && <p style={{ margin: '0 0 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>+{m.rpDelta} RP ganador · {m.loserRpDelta} RP perdedor</p>}
                           {isHost && (
                             <button onClick={pgNext} disabled={pgLoading}
-                              style={{ marginTop: 12, padding: '10px 28px', borderRadius: 14, border: '1px solid rgba(6,182,212,0.4)', background: 'rgba(6,182,212,0.15)', color: '#06B6D4', fontWeight: 900, fontSize: 14, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
-                              ⚡ Siguiente partida
+                              style={{ marginTop: 4, padding: '10px 28px', borderRadius: 14, border: '1px solid rgba(6,182,212,0.4)', background: 'rgba(6,182,212,0.15)', color: '#06B6D4', fontWeight: 900, fontSize: 14, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                              ⚡ Siguiente set
                             </button>
                           )}
                           {!isHost && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Esperando que el host avance…</p>}
                         </div>
                       ) : (isPlaying || isHost) && !pgReported ? (
-                        /* Reporte de resultado */
+                        /* Reporte de game */
                         <div>
                           <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            {isPlaying ? 'Reportá el resultado' : '🛡️ Resultado (host)'}
+                            {isPlaying ? `Reportá el Game ${gameNum}` : `🛡️ Game ${gameNum} (host)`}
                           </p>
-                          {/* Stocks */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Stocks del ganador:</span>
                             {[1, 2, 3].map(s => (
@@ -8699,11 +8756,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                             ))}
                           </div>
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => pgReport(m.p1.userId)} disabled={pgLoading}
+                            <button onClick={() => { pgReport(m.p1.userId); }} disabled={pgLoading}
                               style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                               🏆 Ganó {m.p1.userName}
                             </button>
-                            <button onClick={() => pgReport(m.p2.userId)} disabled={pgLoading}
+                            <button onClick={() => { pgReport(m.p2.userId); }} disabled={pgLoading}
                               style={{ flex: 1, padding: '10px 6px', borderRadius: 12, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.1)', color: '#22C55E', fontWeight: 800, fontSize: 12, cursor: pgLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                               🏆 Ganó {m.p2.userName}
                             </button>
@@ -8711,13 +8768,43 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                         </div>
                       ) : !m.done && pgReported ? (
                         <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-                          ✅ Reporte enviado. Esperando confirmación del otro jugador…
+                          ✅ Reporte enviado. Esperando al otro jugador…
                         </p>
                       ) : !m.done ? (
                         <p style={{ textAlign: 'center', margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                          Observador — esperando resultado…
+                          Observador — esperando resultado del Game {gameNum}…
                         </p>
                       ) : null}
+                    </div>
+                  );
+                })()}
+
+                {/* Cambio de personaje (solo entre sets, cuando currentMatch.done) */}
+                {parsecGroup.currentMatch?.done && (() => {
+                  const myPlayer = parsecGroup.players.find(p => p.userId === uid);
+                  const myCurrentChar = myPlayer?.charId;
+                  const myCurrentAlt = myPlayer?.charAlt || 1;
+                  const myCharObj = myCurrentChar ? CHARACTERS.find(c => c.id === myCurrentChar) : null;
+                  return (
+                    <div style={{ background: 'rgba(255,140,0,0.06)', border: '1px solid rgba(255,140,0,0.18)', borderRadius: 14, padding: '12px 14px' }}>
+                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,140,0,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🎮 Cambiar personaje (opcional)</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        {myCharObj && <img src={stockIconPath(myCharObj, myCurrentAlt)} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />}
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Actual: <strong style={{ color: '#fff' }}>{myCharObj?.name || 'Ninguno'}</strong></span>
+                      </div>
+                      <div style={{ maxHeight: 160, overflowY: 'auto', borderRadius: 10, background: '#10101A', border: '1px solid rgba(255,255,255,0.06)', padding: 6 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 3 }}>
+                          {CHARACTERS.map(c => {
+                            const sel = c.id === myCurrentChar;
+                            return (
+                              <button key={c.id} onClick={() => { if (!sel) pgUpdateChar(c.id, 1); }}
+                                style={{ padding: 3, borderRadius: 6, border: `1px solid ${sel ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.05)'}`, background: sel ? 'rgba(255,140,0,0.12)' : 'transparent', cursor: sel ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <img src={stockIconPath(c, 1)} alt={c.name} style={{ width: 26, height: 26, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}
@@ -8746,10 +8833,12 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                     {[...parsecGroup.matchHistory].reverse().slice(0, 6).map((h, i) => {
                       const wName = parsecGroup.players.find(p => p.userId === h.winnerId)?.userName || h.winnerId;
                       const lName = parsecGroup.players.find(p => p.userId === (h.p1Id === h.winnerId ? h.p2Id : h.p1Id))?.userName || '';
+                      const wScore = h.score?.[h.winnerId] || 2;
+                      const lScore = h.score?.[h.p1Id === h.winnerId ? h.p2Id : h.p1Id] || 0;
                       return (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                           <span style={{ fontSize: 11, fontWeight: 800, color: '#22C55E', flex: 1 }}>{wName}</span>
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>vs</span>
+                          <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.35)' }}>{wScore}–{lScore}</span>
                           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', flex: 1, textAlign: 'right' }}>{lName}</span>
                           {typeof h.rpDelta === 'number' && <span style={{ fontSize: 10, color: '#22C55E', marginLeft: 6 }}>+{h.rpDelta}RP</span>}
                         </div>
