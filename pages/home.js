@@ -8844,7 +8844,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             </button>
           </>
         )
-
+      ) : (
         <>
           {/* 2v2 Ranked - Room code party system */}
           {!rankedParty ? (
