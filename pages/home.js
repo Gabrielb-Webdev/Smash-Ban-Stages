@@ -2386,20 +2386,29 @@ function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
 const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
 const HIST_COMM_SHORT  = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
 const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '/images/SCC.webp', 'mendoza': '/images/Team_Anexo/team_anexo_logo_nwe.png', 'afk-multi': '/images/AFK.webp', 'afk': '/images/AFK.webp', 'warui': '/images/warui/logo.png', 'inc': '/images/inc.png' };
+// Canonical community id: lowercase, trim, afk-multi → afk
+function canonComm(raw) {
+  const c = String(raw || '').toLowerCase().trim();
+  return c === 'afk-multi' ? 'afk' : c;
+}
 function buildHistFilterTabs(hist) {
   if (!Array.isArray(hist)) return [['all','Todos']];
   const hasCasual = hist.some(m => m.type === 'casual');
-  // Normalize afk-multi → afk so only one AFK tab appears
-  const commIds = [...new Set(hist.filter(m => m.type === 'tournament' && m.community).map(m => m.community === 'afk-multi' ? 'afk' : m.community))];
-  return [['all','Todos'],['ranked','Ranked'],...(hasCasual?[['casual','Normal']]:[]),...commIds.map(c=>[c,HIST_COMM_LABELS[c]||c])];
+  // Deduplicate by display label — any two communities with the same label become one tab
+  const labelToId = {};
+  hist.filter(m => m.type === 'tournament' && m.community).forEach(m => {
+    const id = canonComm(m.community);
+    const label = HIST_COMM_LABELS[id] || HIST_COMM_LABELS[m.community] || m.community;
+    if (!labelToId[label]) labelToId[label] = id;
+  });
+  const commTabs = Object.entries(labelToId).map(([label, id]) => [id, label]);
+  return [['all','Todos'],['ranked','Ranked'],...(hasCasual?[['casual','Normal']]:[]),...commTabs];
 }
 function applyHistFilter(hist, filter) {
   if (filter === 'all') return hist;
   if (filter === 'casual') return hist.filter(m => m.type === 'casual');
   if (filter === 'ranked') return hist.filter(m => !m.type || m.type === 'ranked');
-  // afk tab matches both 'afk' and 'afk-multi' communities
-  if (filter === 'afk') return hist.filter(m => m.type === 'tournament' && (m.community === 'afk' || m.community === 'afk-multi'));
-  return hist.filter(m => m.type === 'tournament' && m.community === filter);
+  return hist.filter(m => m.type === 'tournament' && canonComm(m.community) === filter);
 }
 function groupHistByDate(matches) {
   const groups = []; let curKey = null, curGroup = null;
