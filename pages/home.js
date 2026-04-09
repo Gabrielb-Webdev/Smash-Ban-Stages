@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { getStoredUser, logout, verifySession } from '../src/utils/auth';
 import { RANKS, TIER_ICONS } from '../lib/ranks';
 import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath, stockIconPath } from '../lib/characters';
