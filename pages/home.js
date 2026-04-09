@@ -142,7 +142,6 @@ export default function HomePage() {
   const router = useRouter();
   const { isDesktop, isWide } = useResponsive();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarHidden, setSidebarHidden]         = useState(false);
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCommunities, setAdminCommunities] = useState([]);
@@ -806,8 +805,6 @@ export default function HomePage() {
             unreadCount={unreadCount}
             collapsed={sidebarCollapsed}
             setCollapsed={setSidebarCollapsed}
-            hidden={sidebarHidden}
-            setHidden={setSidebarHidden}
             onBellClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
             isAdmin={isAdmin}
             adminCommunities={adminCommunities}
@@ -817,7 +814,7 @@ export default function HomePage() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             {/* Desktop top bar */}
             <header style={{
-              padding: '0 20px', height: 56, minHeight: 56,
+              padding: '0 32px', height: 56, minHeight: 56,
               background: 'rgba(11,11,18,0.95)',
               backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
               borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -825,19 +822,6 @@ export default function HomePage() {
               flexShrink: 0,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {sidebarHidden && (
-                  <button
-                    onClick={() => { setSidebarHidden(false); setSidebarCollapsed(false); }}
-                    title="Mostrar barra lateral"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, cursor: 'pointer', padding: '7px 9px', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-                    </svg>
-                  </button>
-                )}
                 <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>
                   {tab === 'match' ? 'Match' : tab === 'rankings' ? 'Rankings' : tab === 'torneos' ? 'Torneos' : tab === 'tips' ? 'Tips' : tab === 'amigos' ? 'Amigos' : 'Mi Perfil'}
                 </span>
@@ -2008,7 +1992,8 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
 }
 
 /* ─── DESKTOP SIDEBAR ───────────────────────────── */
-function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, hidden, setHidden, onBellClick, isAdmin, adminCommunities, onLogout, onShowConfig }) {
+function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick, isAdmin, adminCommunities, onLogout, onShowConfig }) {
+  const [hovered, setHovered] = React.useState(false);
   const w = collapsed ? 72 : 260;
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
@@ -2019,13 +2004,16 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
     { id: 'amigos',   label: 'Amigos',   icon: ICO.users,    emoji: '👥' },
   ];
   return (
-    <aside style={{
-      width: hidden ? 0 : w, minWidth: hidden ? 0 : w, height: '100vh', display: 'flex', flexDirection: 'column',
-      background: 'linear-gradient(180deg, #0A0A14 0%, #08080F 100%)',
-      borderRight: hidden ? 'none' : '1px solid rgba(255,255,255,0.06)',
-      transition: 'width 0.25s cubic-bezier(.4,0,.2,1), min-width 0.25s cubic-bezier(.4,0,.2,1)',
-      overflow: 'hidden', flexShrink: 0,
-    }}>
+    <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: w, minWidth: w, height: '100vh', display: 'flex', flexDirection: 'column',
+        background: 'linear-gradient(180deg, #0A0A14 0%, #08080F 100%)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+        transition: 'width 0.25s cubic-bezier(.4,0,.2,1), min-width 0.25s cubic-bezier(.4,0,.2,1)',
+        overflow: 'clip', flexShrink: 0, position: 'relative',
+      }}>
       {/* Logo + collapse */}
       <div style={{ padding: collapsed ? '18px 12px' : '18px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 64 }}>
         <img src="/images/logo.app.png" alt="Logo" style={{ width: 36, height: 28, flexShrink: 0 }} />
@@ -2035,17 +2023,33 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
             <span style={{ fontWeight: 300, fontSize: 16, color: 'rgba(232,142,0,0.7)', marginLeft: 3 }}>sin H</span>
           </div>
         )}
-        <button
-          onClick={() => { if (collapsed) { setHidden(true); } else { setCollapsed(true); } }}
-          title={collapsed ? 'Ocultar barra lateral' : 'Colapsar'}
-          style={{ marginLeft: collapsed ? 0 : 'auto', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 6, display: 'flex', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {collapsed ? <path d="M19 12H5M12 5l-7 7 7 7" /> : <path d="M15 18l-6-6 6-6" />}
-          </svg>
-        </button>
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(true)}
+            title="Colapsar"
+            style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 6, display: 'flex', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        )}
+        {/* Botón expandir — aparece al hacer hover cuando está colapsado */}
+        {collapsed && hovered && (
+          <button
+            onClick={() => setCollapsed(false)}
+            title="Expandir"
+            style={{ position: 'absolute', right: -14, top: 18, zIndex: 10, width: 28, height: 28, background: '#1C1C2E', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '50%', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)', transition: 'background 0.15s, color 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#2E2E48'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#1C1C2E'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* User card */}
