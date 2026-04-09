@@ -1820,10 +1820,6 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
             <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
             {(rankSw || rankPc) && <div style={{ marginTop: 3 }}><RankBadge rankName={rankSw || rankPc} /></div>}
           </div>
-          <button onClick={() => setTab('perfil')} style={{ background: 'rgba(232,142,0,0.1)', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 10, padding: '6px 12px', color: '#FF8C00', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.18)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.1)'; }}
-          >Mi perfil</button>
         </div>
         {totalG > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
@@ -1960,12 +1956,10 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
           ? <img src={user.avatar} alt="" style={{ width: 38, height: 38, borderRadius: 12, border: '2px solid rgba(232,142,0,0.3)', objectFit: 'cover', flexShrink: 0 }} />
           : <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 15, color: '#fff', flexShrink: 0 }}>{initial}</div>
         }
-        {!collapsed && (
-          <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(232,142,0,0.6)', marginTop: 1 }}>Ver perfil →</div>
-          </div>
-        )}
+        <div style={{ overflow: 'hidden', flex: 1, maxWidth: collapsed ? 0 : 160, opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.18s ease', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(232,142,0,0.45)', marginTop: 1 }}>Tu perfil</div>
+        </div>
       </div>
 
       {/* MATCH button */}
@@ -1986,7 +1980,7 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
             <div style={{ position: 'absolute', top: 8, right: collapsed ? 8 : 14, width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E', animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
           )}
           <Svg size={20} sw={2.4}>{ICO.bolt}</Svg>
-          {!collapsed && 'MATCH'}
+          <span style={{ maxWidth: collapsed ? 0 : 80, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', display: 'block', letterSpacing: '0.08em' }}>MATCH</span>
         </button>
       </div>
 
@@ -1998,14 +1992,14 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
         {items.map(item => {
           const active = tab === item.id;
           return (
-            <button key={item.id} onClick={() => setTab(item.id)} title={collapsed ? item.label : undefined} style={{
+            <button key={item.id} onClick={() => setTab(item.id)} title={item.label} style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              padding: collapsed ? '12px 0' : '12px 22px',
-              justifyContent: collapsed ? 'center' : 'flex-start',
+              padding: collapsed ? '12px 26px' : '12px 22px',
+              justifyContent: 'flex-start',
               background: active ? 'rgba(232,142,0,0.1)' : 'transparent',
               border: 'none', borderLeft: active ? '3px solid #FF8C00' : '3px solid transparent',
               cursor: 'pointer', color: active ? '#FF8C00' : 'rgba(255,255,255,0.45)',
-              transition: 'background 0.15s, color 0.15s, padding-left 0.15s',
+              transition: 'background 0.15s, color 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
               width: '100%', fontSize: 13, fontWeight: active ? 800 : 600,
               borderRadius: 0,
             }}
@@ -2013,7 +2007,7 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
             >
               <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
-              {!collapsed && <span>{item.label}</span>}
+              <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', display: 'block' }}>{item.label}</span>
             </button>
           );
         })}
@@ -2022,21 +2016,21 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
       {/* Bottom section — bell + version */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: collapsed ? '10px 0' : '10px 14px' }}>
         <button onClick={onBellClick} style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: collapsed ? '10px 0' : '10px 8px',
+          display: 'flex', alignItems: 'center', gap: 10, padding: collapsed ? '10px 26px' : '10px 8px',
           background: 'none', border: 'none', cursor: 'pointer', width: '100%',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          borderRadius: 10, transition: 'background 0.15s',
+          justifyContent: 'flex-start',
+          borderRadius: 10, transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
         }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
         >
-          <div style={{ position: 'relative', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)' }}>
+          <div style={{ position: 'relative', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
             <Svg size={20} sw={1.8}>{ICO.bell}</Svg>
             {unreadCount > 0 && (
               <span style={{ position: 'absolute', top: -4, right: -6, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#fff', border: '2px solid #0A0A14', padding: '0 3px' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
           </div>
-          {!collapsed && <span style={{ fontSize: 12, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', fontWeight: unreadCount > 0 ? 700 : 500 }}>Notificaciones{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>}
+          <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', fontSize: 12, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', fontWeight: unreadCount > 0 ? 700 : 500, display: 'block' }}>Notificaciones{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>
         </button>
       </div>
     </aside>
