@@ -873,7 +873,7 @@ export default function HomePage() {
                 <DesktopRightPanel
                   user={user} uid={uid} bgMM={bgMM} setTab={setTab}
                   notifs={notifs} unreadCount={unreadCount}
-                  dismissNotif={dismissNotif} router={router}
+                  dismissNotif={dismissNotif} dismissAllNotifs={dismissAllNotifs} router={router}
                   setPendingFriendTab={setPendingFriendTab}
                   desktopStats={desktopStats}
                 />
@@ -1788,7 +1788,7 @@ export default function HomePage() {
 }
 
 /* ─── DESKTOP RIGHT PANEL ───────────────────────── */
-function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismissNotif, router, setPendingFriendTab, desktopStats }) {
+function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismissNotif, dismissAllNotifs, router, setPendingFriendTab, desktopStats }) {
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -1882,6 +1882,16 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
             <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Notificaciones</span>
             {unreadCount > 0 && <span style={{ background: '#EF4444', color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 6, padding: '2px 6px' }}>{unreadCount}</span>}
           </div>
+          {unreadCount > 0 && (
+            <button onClick={dismissAllNotifs} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
+              padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s, background 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#FF8C00'; e.currentTarget.style.background = 'rgba(232,142,0,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; e.currentTarget.style.background = 'none'; }}
+            >Marcar todo leído</button>
+          )}
         </div>
         <div style={{ padding: '4px 0' }}>
           {recentNotifs.length === 0 ? (
@@ -1892,6 +1902,7 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
           ) : recentNotifs.map(n => (
             <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={user?.name || ''}
               onNavigate={(route) => {
+                if (!n.readAt) dismissNotif(n.id);
                 if (route.external) { router.push(route.external); }
                 else if (route.tab) { setTab(route.tab); if (route.friendTab) setPendingFriendTab(route.friendTab); }
               }}
