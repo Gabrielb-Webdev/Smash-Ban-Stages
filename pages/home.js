@@ -421,11 +421,10 @@ export default function HomePage() {
     if (!user || typeof window === 'undefined') return;
     const playerName = user.player?.gamerTag || user.name;
     if (!playerName) return;
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const fetchMatch = async () => {
       if (!pageVisible.current) return;
       try {
-        const r = await fetch(`${socketUrl}/sessions/player?name=${encodeURIComponent(playerName)}`);
+        const r = await fetch(`/api/tournament/sessions-player?name=${encodeURIComponent(playerName)}`);
         if (!r.ok) return;
         const list = await r.json();
         const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED' && s.phase !== 'CANCELLED' && s.phase !== 'POSTPONED') : null;
@@ -1809,18 +1808,13 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
       background: 'linear-gradient(180deg, #0A0A14 0%, #08080F 100%)',
       padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16,
     }}>
-      {/* Tu perfil card */}
+      {/* Stats card */}
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden' }}>
-        <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {user?.avatar
-            ? <img src={user.avatar} alt="" style={{ width: 44, height: 44, borderRadius: 14, border: '2px solid rgba(232,142,0,0.3)', objectFit: 'cover', flexShrink: 0 }} />
-            : <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#fff', flexShrink: 0 }}>{initial}</div>
-          }
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
-            {(rankSw || rankPc) && <div style={{ marginTop: 3 }}><RankBadge rankName={rankSw || rankPc} /></div>}
+        {(rankSw || rankPc) && (
+          <div style={{ padding: '12px 16px 8px', borderBottom: totalG > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <RankBadge rankName={rankSw || rankPc} />
           </div>
-        </div>
+        )}
         {totalG > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             {[
@@ -1942,10 +1936,10 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
 
       {/* User card */}
       <div style={{
-        margin: collapsed ? '12px 8px' : '12px 14px', padding: collapsed ? '10px 0' : '12px 14px',
+        margin: '12px 8px', padding: collapsed ? '10px 8px' : '12px 14px',
         background: 'rgba(232,142,0,0.04)', border: '1px solid rgba(232,142,0,0.1)', borderRadius: 14,
-        display: 'flex', alignItems: 'center', gap: 12, justifyContent: collapsed ? 'center' : 'flex-start',
-        transition: 'background 0.15s',
+        display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-start',
+        transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
         cursor: 'pointer',
       }}
         onClick={() => setTab('perfil')}
@@ -1963,12 +1957,12 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
       </div>
 
       {/* MATCH button */}
-      <div style={{ padding: collapsed ? '4px 10px' : '4px 14px' }}>
+      <div style={{ padding: '4px 8px' }}>
         <button onClick={() => setTab('match')} style={{
           width: '100%', padding: collapsed ? '14px 0' : '14px 18px',
           background: tab === 'match' ? 'linear-gradient(135deg,#e84040,#b01010)' : 'linear-gradient(135deg,#c92020,#8c0e0e)',
           border: 'none', borderRadius: 14, cursor: 'pointer', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'center', gap: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           fontWeight: 900, fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase',
           boxShadow: tab === 'match' ? '0 4px 24px rgba(220,40,40,0.55)' : '0 2px 12px rgba(180,20,20,0.3)',
           transition: 'box-shadow 0.2s, background 0.2s, transform 0.15s', position: 'relative',
@@ -1994,8 +1988,8 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
           return (
             <button key={item.id} onClick={() => setTab(item.id)} title={item.label} style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              padding: collapsed ? '12px 26px' : '12px 22px',
-              justifyContent: 'flex-start',
+              padding: collapsed ? '12px 0' : '12px 22px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
               background: active ? 'rgba(232,142,0,0.1)' : 'transparent',
               border: 'none', borderLeft: active ? '3px solid #FF8C00' : '3px solid transparent',
               cursor: 'pointer', color: active ? '#FF8C00' : 'rgba(255,255,255,0.45)',
@@ -2016,9 +2010,9 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
       {/* Bottom section — bell + version */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: collapsed ? '10px 0' : '10px 14px' }}>
         <button onClick={onBellClick} style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: collapsed ? '10px 26px' : '10px 8px',
+          display: 'flex', alignItems: 'center', gap: 10, padding: collapsed ? '10px 0' : '10px 8px',
           background: 'none', border: 'none', cursor: 'pointer', width: '100%',
-          justifyContent: 'flex-start',
+          justifyContent: collapsed ? 'center' : 'flex-start',
           borderRadius: 10, transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
         }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
