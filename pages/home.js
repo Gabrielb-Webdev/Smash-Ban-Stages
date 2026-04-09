@@ -60,6 +60,8 @@ const ICO = {
   settings:  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />,
   user:      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />,
   users:     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />,
+  shield:    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />,
+  logout:    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />,
 };
 
 /* ─── ROOT ─────────────────────────────────────── */
@@ -791,6 +793,9 @@ export default function HomePage() {
             collapsed={sidebarCollapsed}
             setCollapsed={setSidebarCollapsed}
             onBellClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
+            isAdmin={isAdmin}
+            adminCommunities={adminCommunities}
+            onLogout={() => { logout(); window.location.href = '/login'; }}
           />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             {/* Desktop top bar */}
@@ -1897,7 +1902,7 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
 }
 
 /* ─── DESKTOP SIDEBAR ───────────────────────────── */
-function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick }) {
+function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick, isAdmin, adminCommunities, onLogout }) {
   const w = collapsed ? 72 : 260;
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
@@ -2007,24 +2012,43 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
         })}
       </nav>
 
-      {/* Bottom section — bell + version */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: collapsed ? '10px 0' : '10px 14px' }}>
-        <button onClick={onBellClick} style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: collapsed ? '10px 0' : '10px 8px',
+      {/* Bottom section — admin + logout */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: collapsed ? '8px 0' : '8px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Panel de admin — solo si tiene permisos */}
+        {(isAdmin || (adminCommunities && adminCommunities.length > 0)) && (
+          <Link href="/?panel=1">
+            <button title="Panel de Admin" style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: collapsed ? '10px 0' : '10px 8px',
+              background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              borderRadius: 10, transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              <div style={{ color: 'rgba(232,142,0,0.6)', flexShrink: 0 }}>
+                <Svg size={20} sw={1.8}>{ICO.shield}</Svg>
+              </div>
+              <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', fontSize: 12, color: 'rgba(232,142,0,0.6)', fontWeight: 700, display: 'block' }}>Panel de Admin</span>
+            </button>
+          </Link>
+        )}
+        {/* Cerrar sesión */}
+        <button onClick={onLogout} title="Cerrar sesión" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: collapsed ? '10px 0' : '10px 8px',
           background: 'none', border: 'none', cursor: 'pointer', width: '100%',
           justifyContent: collapsed ? 'center' : 'flex-start',
           borderRadius: 10, transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
         >
-          <div style={{ position: 'relative', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
-            <Svg size={20} sw={1.8}>{ICO.bell}</Svg>
-            {unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: -4, right: -6, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#fff', border: '2px solid #0A0A14', padding: '0 3px' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
-            )}
+          <div style={{ color: 'rgba(239,68,68,0.5)', flexShrink: 0 }}>
+            <Svg size={20} sw={1.8}>{ICO.logout}</Svg>
           </div>
-          <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', fontSize: 12, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', fontWeight: unreadCount > 0 ? 700 : 500, display: 'block' }}>Notificaciones{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>
+          <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', fontSize: 12, color: 'rgba(239,68,68,0.5)', fontWeight: 700, display: 'block' }}>Cerrar sesión</span>
         </button>
       </div>
     </aside>
