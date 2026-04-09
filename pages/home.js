@@ -5777,11 +5777,12 @@ function TabRankings({ user, setTab }) {
       )}
       {/* ── Header con tabs y selector de plataforma ── */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: '#0D0D15',
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(13,13,21,0.97)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         padding: isWide ? '12px 0 16px' : '20px 18px 0',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: isWide ? 0 : 0,
       }}>
         {/* Título — solo en móvil (en desktop ya aparece en la barra superior) */}
         {!isWide && (
