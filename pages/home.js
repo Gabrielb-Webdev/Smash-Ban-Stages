@@ -659,6 +659,17 @@ export default function HomePage() {
     return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
 
+  // Quick stats para el panel derecho desktop (debe estar antes del early return)
+  const [desktopStats, setDesktopStats] = useState(null);
+  useEffect(() => {
+    const id = user?.id ? String(user.id) : (user?.slug || '');
+    if (!id) return;
+    fetch(`/api/players/profile?id=${encodeURIComponent(id)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setDesktopStats(d); })
+      .catch(() => {});
+  }, [user?.id, user?.slug]);
+
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B0B12' }}>
       <div style={{ width: 32, height: 32, border: '2px solid #E88E00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -694,16 +705,6 @@ export default function HomePage() {
 
   const uid        = user?.id ? String(user.id) : (user?.slug || '');
   const uName      = user?.name || 'Jugador';
-
-  // Quick stats para el panel derecho desktop
-  const [desktopStats, setDesktopStats] = useState(null);
-  useEffect(() => {
-    if (!uid) return;
-    fetch(`/api/players/profile?id=${encodeURIComponent(uid)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setDesktopStats(d); })
-      .catch(() => {});
-  }, [uid]);
 
   const handleAcceptMatch = async () => {
     const isCasual = bgMM?.gameType === 'casual';
