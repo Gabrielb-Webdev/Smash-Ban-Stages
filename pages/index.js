@@ -377,6 +377,23 @@ export default function Home() {
     }
   }
 
+  async function notifyFeaturedFromIndex(slug) {
+    const allTours = [...featuredTours, ...syncedTours];
+    const t = allTours.find(x => x.slug === slug);
+    if (!t) return;
+    if (!window.confirm(`¿Enviar notificación push a todos sobre "${t.name}"?`)) return;
+    try {
+      const r = await fetch('/api/tournaments/featured', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({ url: slug, notify: true }),
+      });
+      const d = await r.json();
+      if (d.success) alert('✅ Notificación enviada');
+      else alert(d.error || 'Error al enviar notificación');
+    } catch { alert('Error de conexión'); }
+  }
+
   return (
     <>
       <Head>
@@ -578,6 +595,7 @@ export default function Home() {
         {/* ── TORNEOS EN LA APP ── */}
         {(() => {
           const totalCount = featuredTours.length + syncedTours.length;
+          const sortByDate = (a, b) => { const aD = a.state===3||a.state===4||a.state==='COMPLETED'||a.state==='CANCELLED'; const bD = b.state===3||b.state===4||b.state==='COMPLETED'||b.state==='CANCELLED'; if (aD!==bD) return aD?1:-1; return (a.startAt?new Date(a.startAt).getTime():Infinity)-(b.startAt?new Date(b.startAt).getTime():Infinity); };
           return (
           <div style={{ marginTop: 32, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden', maxWidth: 640, margin: '32px auto 0' }}>
             <button
@@ -642,7 +660,7 @@ export default function Home() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {/* Torneos manuales (featured) */}
-                    {featuredTours.map(t => {
+                    {[...featuredTours].sort(sortByDate).map(t => {
                       const isHidden = t._hidden || hiddenSlugs.includes(t.slug);
                       return (
                         <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
@@ -673,6 +691,11 @@ export default function Home() {
                             >{markCompleting[t.slug] ? '...' : '🏁'}</button>
                           )}
                           <button
+                            onClick={() => notifyFeaturedFromIndex(t.slug)}
+                            title="Enviar notificación push"
+                            style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 9px', color: '#a5b4fc', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
+                          >🔔</button>
+                          <button
                             onClick={() => removeFeaturedFromIndex(t.slug)}
                             title="Eliminar"
                             style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
@@ -680,8 +703,8 @@ export default function Home() {
                         </div>
                       );
                     })}
-                    {/* Torneos auto-sincronizados */}
-                    {syncedTours.map(t => {
+                    {/* Torneos auto-sincronizados */
+                    {[...syncedTours].sort(sortByDate).map(t => {
                       const isHidden = hiddenSlugs.includes(t.slug);
                       return (
                         <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
@@ -711,6 +734,11 @@ export default function Home() {
                               style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '5px 9px', color: '#FBBF24', cursor: 'pointer', fontSize: 13, flexShrink: 0, opacity: markCompleting[t.slug] ? 0.5 : 1 }}
                             >{markCompleting[t.slug] ? '...' : '🏁'}</button>
                           )}
+                          <button
+                            onClick={() => notifyFeaturedFromIndex(t.slug)}
+                            title="Enviar notificación push"
+                            style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 9px', color: '#a5b4fc', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
+                          >🔔</button>
                         </div>
                       );
                     })}

@@ -6518,7 +6518,11 @@ function TabTorneos({ user }) {
       filtered.sort((a, b) => {
         const aF = a.state === 3 || a.state === 4 || a.state === 'COMPLETED' || a.state === 'CANCELLED';
         const bF = b.state === 3 || b.state === 4 || b.state === 'COMPLETED' || b.state === 'CANCELLED';
-        return aF === bF ? 0 : aF ? 1 : -1;
+        if (aF !== bF) return aF ? 1 : -1;
+        // Mismo grupo: ordenar por fecha ascendente (más próximo primero)
+        const aT = a.startAt ? new Date(a.startAt).getTime() : Infinity;
+        const bT = b.startAt ? new Date(b.startAt).getTime() : Infinity;
+        return aT - bT;
       });
       setStartggTorneos(filtered);
     }).finally(() => setStartggLoading(false));
