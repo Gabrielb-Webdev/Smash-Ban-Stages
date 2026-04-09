@@ -104,7 +104,21 @@ html, body {
 /* ── Desktop responsive ────────────────────────── */
 @media (min-width: 768px) {
   .char-grid-5 { grid-template-columns: repeat(8, 1fr); gap: 8px; }
-  .tips-grid   { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .tips-grid   { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+  /* Better scrollbar for desktop */
+  .desktop-main-scroll::-webkit-scrollbar { display: block; width: 8px; }
+  .desktop-main-scroll::-webkit-scrollbar-track { background: transparent; }
+  .desktop-main-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
+  .desktop-main-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+  /* Desktop card hover improvements */
+  .gamer-card { transition: border-color .2s, box-shadow .2s, transform .15s; }
+  .gamer-card:hover {
+    border-color: rgba(232,142,0,.3) !important;
+    box-shadow: 0 4px 24px rgba(232,142,0,.08) !important;
+    transform: translateY(-1px);
+  }
 }
 @media (min-width: 1200px) {
   .char-grid-5 { grid-template-columns: repeat(10, 1fr); }

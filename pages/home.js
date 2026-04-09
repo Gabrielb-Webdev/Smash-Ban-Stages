@@ -752,10 +752,10 @@ export default function HomePage() {
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
           body { background: #0B0B12; margin: 0; }
           ::-webkit-scrollbar { display: none; }
-          .desktop-main-scroll::-webkit-scrollbar { display: block; width: 6px; }
+          .desktop-main-scroll::-webkit-scrollbar { display: block; width: 8px; }
           .desktop-main-scroll::-webkit-scrollbar-track { background: transparent; }
-          .desktop-main-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-          .desktop-main-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+          .desktop-main-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
+          .desktop-main-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
           .tab-content { animation: fadeUp 0.18s ease; }
           @keyframes fadeUp    { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
           @keyframes spin      { to { transform: rotate(360deg) } }
@@ -780,44 +780,55 @@ export default function HomePage() {
             unreadCount={unreadCount}
             collapsed={sidebarCollapsed}
             setCollapsed={setSidebarCollapsed}
+            onBellClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
           />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-            {/* Desktop top bar — simplified */}
+            {/* Desktop top bar */}
             <header style={{
-              padding: '10px 24px', background: 'rgba(11,11,18,0.92)',
+              padding: '0 32px', height: 56, minHeight: 56,
+              background: 'rgba(11,11,18,0.95)',
               backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
               borderBottom: '1px solid rgba(255,255,255,0.06)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               flexShrink: 0,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {tab === 'match' ? '⚡ Match' : tab === 'rankings' ? '🏆 Rankings' : tab === 'torneos' ? '📅 Torneos' : tab === 'tips' ? '💡 Tips' : tab === 'amigos' ? '👥 Amigos' : '👤 Perfil'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>
+                  {tab === 'match' ? 'Match' : tab === 'rankings' ? 'Rankings' : tab === 'torneos' ? 'Torneos' : tab === 'tips' ? 'Tips' : tab === 'amigos' ? 'Amigos' : 'Mi Perfil'}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>
+                  {tab === 'match' ? 'Buscar partida' : tab === 'rankings' ? 'Clasificación general' : tab === 'torneos' ? 'Eventos y torneos' : tab === 'tips' ? 'Guías y consejos' : tab === 'amigos' ? 'Lista de amigos' : 'Tu cuenta'}
                 </span>
               </div>
-              <button
-                onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
-                style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center' }}
-              >
-                <Svg size={22} sw={1.8}>{ICO.bell}</Svg>
-                {unreadCount > 0 && (
-                  <span style={{ position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #0B0B12', padding: '0 2px' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
+                  style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, cursor: 'pointer', padding: '8px 10px', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', transition: 'background 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                >
+                  <Svg size={20} sw={1.8}>{ICO.bell}</Svg>
+                  {unreadCount > 0 && (
+                    <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #0B0B12', padding: '0 2px' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                  )}
+                </button>
+              </div>
             </header>
 
             {/* Desktop main content */}
-            <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
-              <div style={{ maxWidth: 800, margin: '0 auto' }}>
+            <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 32px 32px' }}>
+              <div style={{ maxWidth: isWide ? 960 : 800, margin: '0 auto', width: '100%' }}>
                 {/* Banner sala activa (fuera del tab match) */}
                 {tab !== 'match' && bgMM && ['searching','waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
                   <button
                     onClick={() => setTab('match')}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px', background: 'linear-gradient(90deg,rgba(124,58,237,0.18),rgba(255,140,0,0.12))', borderBottom: '1px solid rgba(124,58,237,0.3)', border: 'none', cursor: 'pointer', gap: 10, borderRadius: 12, marginBottom: 12 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 20px', background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(255,140,0,0.08))', border: '1px solid rgba(124,58,237,0.25)', cursor: 'pointer', gap: 12, borderRadius: 16, marginBottom: 16, transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.45)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(124,58,237,0.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.25)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
                         {bgMM.status === 'searching'       ? 'Buscando partida...'     :
                          bgMM.status === 'waiting'          ? 'Esperando confirmación'  :
                          bgMM.status === 'active'           ? '¡Partida en juego!'      :
@@ -825,7 +836,7 @@ export default function HomePage() {
                                                             'Resultado en disputa'}
                       </span>
                     </div>
-                    <span style={{ fontSize: 12, color: '#FF8C00', fontWeight: 800 }}>Ir →</span>
+                    <span style={{ fontSize: 13, color: '#FF8C00', fontWeight: 800, background: 'rgba(255,140,0,0.1)', padding: '6px 14px', borderRadius: 8 }}>Ir al match →</span>
                   </button>
                 )}
                 {tab === 'rankings' && <TabRankings user={user} setTab={setTab} />}
@@ -840,28 +851,35 @@ export default function HomePage() {
 
           {/* Notifications panel (desktop) */}
           {showNotifs && (
-            <div style={{ position: 'fixed', top: 60, right: 24, width: 380, maxHeight: 'calc(100vh - 80px)', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>🔔 Notificaciones</span>
-                <button onClick={() => setShowNotifs(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+            <>
+              <div onClick={() => setShowNotifs(false)} style={{ position: 'fixed', inset: 0, zIndex: 199, background: 'transparent' }} />
+              <div style={{ position: 'fixed', top: 12, right: 16, width: 400, maxHeight: 'calc(100vh - 40px)', background: '#111118', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 12px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'scale-in 0.15s ease-out' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>Notificaciones</span>
+                  <button onClick={() => setShowNotifs(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, transition: 'background 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  >✕</button>
+                </div>
+                <div className="desktop-main-scroll" style={{ overflowY: 'auto', flex: 1, padding: '8px 16px 16px' }}>
+                  {notifs.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <div style={{ fontSize: 40, marginBottom: 8 }}>🔔</div>
+                      <p style={{ margin: 0, color: 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 600 }}>Sin notificaciones</p>
+                      <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>Las alertas aparecerán aquí</p>
+                    </div>
+                  ) : notifs.map(n => (
+                    <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={uName}
+                      onNavigate={(route) => {
+                        setShowNotifs(false);
+                        if (route.external) { router.push(route.external); }
+                        else if (route.tab) { setTab(route.tab); if (route.friendTab) setPendingFriendTab(route.friendTab); }
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
-              <div style={{ overflowY: 'auto', flex: 1, padding: '4px 18px 16px' }}>
-                {notifs.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                    <div style={{ fontSize: 36 }}>🔔</div>
-                    <p style={{ margin: '10px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>Sin notificaciones</p>
-                  </div>
-                ) : notifs.map(n => (
-                  <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={uName}
-                    onNavigate={(route) => {
-                      setShowNotifs(false);
-                      if (route.external) { router.push(route.external); }
-                      else if (route.tab) { setTab(route.tab); if (route.friendTab) setPendingFriendTab(route.friendTab); }
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+            </>
           )}
 
           {/* Chat flotante — desktop */}
@@ -870,15 +888,17 @@ export default function HomePage() {
               <button
                 onClick={() => setChatBubbleOpen(v => { if (!v) { const t = Date.now(); setChatLastOpened(t); try { localStorage.setItem('chat_last_opened', String(t)); } catch {} } return !v; })}
                 style={{
-                  position: 'fixed', bottom: 24, right: 24, zIndex: 48,
-                  width: 52, height: 52, borderRadius: '50%',
+                  position: 'fixed', bottom: 28, right: 28, zIndex: 48,
+                  width: 56, height: 56, borderRadius: 16,
                   background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
-                  border: 'none', cursor: 'pointer',
+                  border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 20px rgba(99,102,241,0.5)',
-                  transition: 'transform 0.2s',
-                  transform: chatBubbleOpen ? 'scale(0.9)' : 'scale(1)',
+                  boxShadow: '0 6px 24px rgba(99,102,241,0.45)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  transform: chatBubbleOpen ? 'scale(0.92)' : 'scale(1)',
                 }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 32px rgba(99,102,241,0.6)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 6px 24px rgba(99,102,241,0.45)'; }}
               >
                 <span style={{ fontSize: 22 }}>💬</span>
                 {chatInbox.some(c => c.lastMessage && c.lastMessage.from !== uid && c.lastMessage.sentAt && new Date(c.lastMessage.sentAt).getTime() > chatLastOpened) && (
@@ -904,18 +924,19 @@ export default function HomePage() {
             return (
               <div style={{
                 position: 'fixed', inset: 0, zIndex: 200,
-                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+                background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(16px)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: '0 20px',
               }}>
                 <div style={{
-                  width: '100%', maxWidth: 440,
+                  width: '100%', maxWidth: 480,
                   background: '#111118', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: 24, padding: '28px 24px', textAlign: 'center',
-                  boxShadow: '0 12px 60px rgba(0,0,0,0.6)',
+                  borderRadius: 24, padding: '32px 28px', textAlign: 'center',
+                  boxShadow: '0 16px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+                  animation: 'scale-in 0.2s ease-out',
                 }}>
                   <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: pData?.from || '#FF8C00', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{pData?.icon} {pData?.label} · {is2v2 ? '2v2' : '1v1'}</p>
-                  <p style={{ margin: '0 0 16px', fontSize: 24, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
+                  <p style={{ margin: '0 0 20px', fontSize: 26, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
                     <svg width={80} height={80}>
                       <circle cx={40} cy={40} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={5} />
@@ -925,9 +946,12 @@ export default function HomePage() {
                       <text x={40} y={44} textAnchor="middle" fontSize={isUrgent ? 22 : 20} fontWeight={900} fill={isUrgent ? '#EF4444' : '#fff'}>{acceptCountdown}</text>
                     </svg>
                   </div>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={declineMatch} style={{ flex: 1, padding: '13px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>✕ Rechazar</button>
-                    <button onClick={acceptMatch} disabled={bgMM.accepted} style={{ flex: 2, padding: '13px', borderRadius: 14, border: 'none', background: bgMM.accepted ? 'rgba(52,211,153,0.15)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: bgMM.accepted ? 'default' : 'pointer', boxShadow: bgMM.accepted ? 'none' : `0 4px 20px ${pData?.from || '#FF8C00'}50` }}>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                    <button onClick={declineMatch} style={{ flex: 1, padding: '14px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
+                    >✕ Rechazar</button>
+                    <button onClick={acceptMatch} disabled={bgMM.accepted} style={{ flex: 2, padding: '14px', borderRadius: 14, border: 'none', background: bgMM.accepted ? 'rgba(52,211,153,0.15)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: bgMM.accepted ? 'default' : 'pointer', boxShadow: bgMM.accepted ? 'none' : `0 4px 24px ${pData?.from || '#FF8C00'}50`, transition: 'transform 0.15s, box-shadow 0.15s' }}>
                       {bgMM.accepted ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar partida'}
                     </button>
                   </div>
@@ -1732,8 +1756,8 @@ export default function HomePage() {
 }
 
 /* ─── DESKTOP SIDEBAR ───────────────────────────── */
-function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed }) {
-  const w = collapsed ? 64 : 220;
+function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick }) {
+  const w = collapsed ? 72 : 260;
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
   const items = [
@@ -1741,73 +1765,103 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
     { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar, emoji: '📅' },
     { id: 'tips',     label: 'Tips',     icon: ICO.bulb,     emoji: '💡' },
     { id: 'amigos',   label: 'Amigos',   icon: ICO.users,    emoji: '👥' },
-    { id: 'perfil',   label: 'Perfil',   icon: ICO.user,     emoji: '👤' },
+    { id: 'perfil',   label: 'Mi Perfil', icon: ICO.user,    emoji: '👤' },
   ];
   return (
     <aside style={{
       width: w, minWidth: w, height: '100vh', display: 'flex', flexDirection: 'column',
-      background: '#08080F', borderRight: '1px solid rgba(255,255,255,0.06)',
-      transition: 'width 0.2s, min-width 0.2s', overflow: 'hidden', flexShrink: 0,
+      background: 'linear-gradient(180deg, #0A0A14 0%, #08080F 100%)',
+      borderRight: '1px solid rgba(255,255,255,0.06)',
+      transition: 'width 0.25s cubic-bezier(.4,0,.2,1), min-width 0.25s cubic-bezier(.4,0,.2,1)',
+      overflow: 'hidden', flexShrink: 0,
     }}>
       {/* Logo + collapse */}
-      <div style={{ padding: collapsed ? '16px 10px' : '16px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 60 }}>
-        <img src="/images/logo.app.png" alt="Logo" style={{ width: 34, height: 26, flexShrink: 0 }} />
+      <div style={{ padding: collapsed ? '18px 12px' : '18px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 64 }}>
+        <img src="/images/logo.app.png" alt="Logo" style={{ width: 36, height: 28, flexShrink: 0 }} />
         {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', textTransform: 'uppercase' }}>la app</span>
-            <span style={{ fontWeight: 300, fontSize: 15, color: 'rgba(232,142,0,0.7)', marginLeft: 2 }}>sin H</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>
+            <span style={{ fontWeight: 900, fontSize: 16, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.02em' }}>la app</span>
+            <span style={{ fontWeight: 300, fontSize: 16, color: 'rgba(232,142,0,0.7)', marginLeft: 3 }}>sin H</span>
           </div>
         )}
-        <button onClick={() => setCollapsed(v => !v)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: 4, display: 'flex', flexShrink: 0 }}>
+        <button onClick={() => setCollapsed(v => !v)} style={{ marginLeft: collapsed ? 0 : 'auto', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 6, display: 'flex', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {collapsed ? <path d="M9 18l6-6-6-6" /> : <path d="M15 18l-6-6 6-6" />}
           </svg>
         </button>
       </div>
 
-      {/* User avatar */}
-      <div style={{ padding: collapsed ? '14px 0' : '14px 16px', display: 'flex', alignItems: 'center', gap: 10, justifyContent: collapsed ? 'center' : 'flex-start' }}>
+      {/* User card */}
+      <div style={{
+        margin: collapsed ? '12px 8px' : '12px 14px', padding: collapsed ? '10px 0' : '12px 14px',
+        background: 'rgba(232,142,0,0.04)', border: '1px solid rgba(232,142,0,0.1)', borderRadius: 14,
+        display: 'flex', alignItems: 'center', gap: 12, justifyContent: collapsed ? 'center' : 'flex-start',
+        transition: 'background 0.15s',
+        cursor: 'pointer',
+      }}
+        onClick={() => setTab('perfil')}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.08)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.04)'; }}
+      >
         {user?.avatar
-          ? <img src={user.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(232,142,0,0.35)', objectFit: 'cover', flexShrink: 0 }} />
-          : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,142,0,0.08))', border: '2px solid rgba(232,142,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#fff', flexShrink: 0 }}>{initial}</div>
+          ? <img src={user.avatar} alt="" style={{ width: 38, height: 38, borderRadius: 12, border: '2px solid rgba(232,142,0,0.3)', objectFit: 'cover', flexShrink: 0 }} />
+          : <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 15, color: '#fff', flexShrink: 0 }}>{initial}</div>
         }
-        {!collapsed && <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>}
+        {!collapsed && (
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(232,142,0,0.6)', marginTop: 1 }}>Ver perfil →</div>
+          </div>
+        )}
       </div>
 
       {/* MATCH button */}
-      <div style={{ padding: collapsed ? '8px 10px' : '8px 16px' }}>
+      <div style={{ padding: collapsed ? '4px 10px' : '4px 14px' }}>
         <button onClick={() => setTab('match')} style={{
-          width: '100%', padding: collapsed ? '12px 0' : '12px 16px',
-          background: tab === 'match' ? 'linear-gradient(170deg,#e84040,#b01010)' : 'linear-gradient(170deg,#c92020,#8c0e0e)',
+          width: '100%', padding: collapsed ? '14px 0' : '14px 18px',
+          background: tab === 'match' ? 'linear-gradient(135deg,#e84040,#b01010)' : 'linear-gradient(135deg,#c92020,#8c0e0e)',
           border: 'none', borderRadius: 14, cursor: 'pointer', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10,
-          fontWeight: 900, fontSize: 14, letterSpacing: '0.06em', textTransform: 'uppercase',
-          boxShadow: tab === 'match' ? '0 4px 20px rgba(220,40,40,0.5)' : '0 2px 10px rgba(180,20,20,0.3)',
-          transition: 'box-shadow 0.2s, background 0.2s', position: 'relative',
-        }}>
+          display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'center', gap: 10,
+          fontWeight: 900, fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase',
+          boxShadow: tab === 'match' ? '0 4px 24px rgba(220,40,40,0.55)' : '0 2px 12px rgba(180,20,20,0.3)',
+          transition: 'box-shadow 0.2s, background 0.2s, transform 0.15s', position: 'relative',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(220,40,40,0.6)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = tab === 'match' ? '0 4px 24px rgba(220,40,40,0.55)' : '0 2px 12px rgba(180,20,20,0.3)'; }}
+        >
           {bgMMStatus && bgMMStatus !== 'idle' && (
-            <div style={{ position: 'absolute', top: 6, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E', animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', top: 8, right: collapsed ? 8 : 14, width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E', animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
           )}
-          <Svg size={18} sw={2.4}>{ICO.bolt}</Svg>
+          <Svg size={20} sw={2.4}>{ICO.bolt}</Svg>
           {!collapsed && 'MATCH'}
         </button>
       </div>
 
+      {/* Divider */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: collapsed ? '10px 12px' : '10px 14px' }} />
+
       {/* Nav items */}
-      <nav style={{ flex: 1, padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <nav style={{ flex: 1, padding: '4px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {items.map(item => {
           const active = tab === item.id;
           return (
-            <button key={item.id} onClick={() => setTab(item.id)} style={{
+            <button key={item.id} onClick={() => setTab(item.id)} title={collapsed ? item.label : undefined} style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              padding: collapsed ? '11px 0' : '11px 20px',
+              padding: collapsed ? '12px 0' : '12px 22px',
               justifyContent: collapsed ? 'center' : 'flex-start',
               background: active ? 'rgba(232,142,0,0.1)' : 'transparent',
               border: 'none', borderLeft: active ? '3px solid #FF8C00' : '3px solid transparent',
-              cursor: 'pointer', color: active ? '#FF8C00' : 'rgba(255,255,255,0.4)',
-              transition: 'background 0.15s, color 0.15s',
+              cursor: 'pointer', color: active ? '#FF8C00' : 'rgba(255,255,255,0.45)',
+              transition: 'background 0.15s, color 0.15s, padding-left 0.15s',
               width: '100%', fontSize: 13, fontWeight: active ? 800 : 600,
-            }}>
+              borderRadius: 0,
+            }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
+            >
               <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
               {!collapsed && <span>{item.label}</span>}
             </button>
@@ -1815,15 +1869,25 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
         })}
       </nav>
 
-      {/* Notification bell at bottom */}
-      <div style={{ padding: collapsed ? '12px 0' : '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10 }}>
-        <div style={{ position: 'relative', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.3)' }}>
-          <Svg size={20} sw={1.8}>{ICO.bell}</Svg>
-          {unreadCount > 0 && (
-            <span style={{ position: 'absolute', top: -4, right: -6, minWidth: 14, height: 14, borderRadius: 7, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#fff', border: '2px solid #08080F', padding: '0 2px' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
-          )}
-        </div>
-        {!collapsed && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Notificaciones</span>}
+      {/* Bottom section — bell + version */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: collapsed ? '10px 0' : '10px 14px' }}>
+        <button onClick={onBellClick} style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: collapsed ? '10px 0' : '10px 8px',
+          background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          borderRadius: 10, transition: 'background 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+        >
+          <div style={{ position: 'relative', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)' }}>
+            <Svg size={20} sw={1.8}>{ICO.bell}</Svg>
+            {unreadCount > 0 && (
+              <span style={{ position: 'absolute', top: -4, right: -6, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#fff', border: '2px solid #0A0A14', padding: '0 3px' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+            )}
+          </div>
+          {!collapsed && <span style={{ fontSize: 12, color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', fontWeight: unreadCount > 0 ? 700 : 500 }}>Notificaciones{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>}
+        </button>
       </div>
     </aside>
   );
