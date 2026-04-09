@@ -176,6 +176,9 @@ async function applyGroupMatchStats(match, roomCode) {
     await redis.ltrim(rankHistoryKey(String(agreedLoserId)), 0, 99);
   }
 
+  const winnerRankPointsAfter = wStats.rankPoints ?? 0;
+  const loserRankPointsAfter  = lStats.rankPoints ?? 0;
+
   const matchEntry = {
     matchId: `pg-${roomCode}-${Date.now()}`,
     platform: PLATFORM,
@@ -192,6 +195,7 @@ async function applyGroupMatchStats(match, roomCode) {
     winnerRankBefore, winnerRankPointsBefore,
     loserRankBefore, loserRankPointsBefore,
     winnerRankAfter: wStats.rank, loserRankAfter: lStats.rank,
+    winnerRankPointsAfter, loserRankPointsAfter,
     isPlacementWinner: wWasInPlacement, isPlacementLoser: lWasInPlacement,
     groupRoom: roomCode,
     playedAt: new Date().toISOString(),
@@ -226,6 +230,12 @@ async function applyGroupMatchStats(match, roomCode) {
     loserRpDelta: result.loser.rrDelta,
     winnerRankChange: result.winner.rankChange,
     loserRankChange: result.loser.rankChange,
+    winnerRPBefore: winnerRankPointsBefore,
+    winnerRPAfter: winnerRankPointsAfter,
+    loserRPBefore: loserRankPointsBefore,
+    loserRPAfter: loserRankPointsAfter,
+    winnerRankAfter: wStats.rank,
+    loserRankAfter: lStats.rank,
   };
 }
 
@@ -442,6 +452,12 @@ export default async function handler(req, res) {
         match.loserRpDelta     = statsResult.loserRpDelta;
         match.winnerRankChange = statsResult.winnerRankChange;
         match.loserRankChange  = statsResult.loserRankChange;
+        match.winnerRPBefore   = statsResult.winnerRPBefore;
+        match.winnerRPAfter    = statsResult.winnerRPAfter;
+        match.loserRPBefore    = statsResult.loserRPBefore;
+        match.loserRPAfter     = statsResult.loserRPAfter;
+        match.winnerRankAfter  = statsResult.winnerRankAfter;
+        match.loserRankAfter   = statsResult.loserRankAfter;
 
         const loserId = match.p1.userId === match.setWinnerId ? match.p2.userId : match.p1.userId;
         const wp = room.players.find(p => p.userId === match.setWinnerId);
@@ -463,6 +479,9 @@ export default async function handler(req, res) {
           room, finalized: true,
           rpDelta: match.rpDelta, loserRpDelta: match.loserRpDelta,
           winnerRankChange: match.winnerRankChange, loserRankChange: match.loserRankChange,
+          winnerRPBefore: match.winnerRPBefore, winnerRPAfter: match.winnerRPAfter,
+          loserRPBefore: match.loserRPBefore, loserRPAfter: match.loserRPAfter,
+          winnerRankAfter: match.winnerRankAfter, loserRankAfter: match.loserRankAfter,
         });
       }
 

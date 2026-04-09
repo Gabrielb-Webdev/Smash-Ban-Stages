@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { CHARACTERS, CHARACTER_RENDERS, charRenderPath, stockIconPath } from '../../lib/characters';
+import { RANKS, TIER_ICONS } from '../../lib/ranks';
 
 const STAGE_IMG = {
   'Battlefield':       '/images/stages/Battlefield.png',
@@ -197,20 +198,24 @@ function ScreenReport({ myChar, myAlt, stocks, setStocks, flow }) {
 }
 
 // ── Pantalla: Resultado final ─────────────────────────────────────────────────
-function ScreenResult({ iWon, myChar, myAlt, oppChar, oppAlt, myName, oppName, stage, rpDelta, isBo3, games }) {
+function ScreenResult({ iWon, myChar, myAlt, oppChar, oppAlt, myName, oppName, stage, rpDelta, isBo3, games, rankName, rpBefore, rpAfter }) {
+  const rankObj = RANKS.find(r => r.name === rankName) || RANKS[0];
+  const rkColor = rankObj?.color || 'rgba(255,255,255,0.3)';
+  const rkIcon  = TIER_ICONS[rankObj?.tier] || '';
+  const isSmasher = rankName === 'SMASHer';
   const stageImg = STAGE_IMG[stage];
   const myRender = myChar && CHARACTER_RENDERS[myChar.id] ? charRenderPath(CHARACTER_RENDERS[myChar.id]) : null;
   const oppRender = oppChar && CHARACTER_RENDERS[oppChar.id] ? charRenderPath(CHARACTER_RENDERS[oppChar.id]) : null;
   return (
     <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-      <p style={{ ...label, padding: '12px 16px 0' }}>{iWon ? '🏆 Ganaste' : '💀 Perdiste'}</p>
+      <p style={{ ...label, padding: '12px 16px 0' }}>{iWon ? '🏆 Victoria' : '💀 Derrota'}</p>
       <div style={{ position: 'relative', overflow: 'hidden', minHeight: 220 }}>
         {stageImg && <img src={stageImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(4px) brightness(0.28)', transform: 'scale(1.1)' }} onError={e => { e.target.style.display='none'; }} />}
         <div style={{ position: 'absolute', inset: 0, background: iWon ? 'linear-gradient(180deg,rgba(52,211,153,0.18),rgba(0,0,0,0.65))' : 'linear-gradient(180deg,rgba(239,68,68,0.22),rgba(0,0,0,0.7))' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: iWon ? 'linear-gradient(90deg,transparent,#34D399,transparent)' : 'linear-gradient(90deg,transparent,#EF4444,transparent)' }} />
         <div style={{ position: 'relative', zIndex: 1, padding: '16px 16px 14px', textAlign: 'center' }}>
           <p style={{ margin: '0 0 2px', fontSize: 30, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', textShadow: `0 0 28px ${iWon ? 'rgba(52,211,153,0.6)' : 'rgba(239,68,68,0.6)'}` }}>
-            {iWon ? '¡Ganaste! 🏆' : 'Perdiste 💀'}
+            {iWon ? '¡Victoria! 🏆' : 'Derrota 💀'}
           </p>
           <p style={{ margin: '0 0 12px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -255,6 +260,49 @@ function ScreenResult({ iWon, myChar, myAlt, oppChar, oppAlt, myName, oppName, s
           ))}
         </div>
       )}
+      {/* Resumen de puntos */}
+      <div style={{ background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.06),rgba(52,211,153,0.02))' : 'linear-gradient(135deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02))', border: `1px solid ${iWon ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.12)'}`, borderRadius: 18, padding: '16px 18px', margin: '0 16px 12px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: iWon ? 'linear-gradient(90deg,transparent,#34D399,transparent)' : 'linear-gradient(90deg,transparent,#EF4444,transparent)', opacity: 0.6 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: iWon ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+            {iWon ? '📈' : '📉'}
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{iWon ? 'Puntos ganados' : 'Puntos perdidos'}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 24, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', lineHeight: 1 }}>
+              {iWon ? '+' : ''}{rpDelta} <span style={{ fontSize: 14, fontWeight: 700, opacity: 0.7 }}>RP</span>
+            </p>
+          </div>
+        </div>
+        {rankObj && (
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 22 }}>{rkIcon}</span>
+              <span style={{ fontSize: 13, fontWeight: 900, color: rkColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{rankName}</span>
+            </div>
+            {!isSmasher && typeof rpAfter === 'number' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Rank Points</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: rkColor }}>{rpAfter}/100</span>
+                </div>
+                <div style={{ position: 'relative', height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                  {typeof rpBefore === 'number' && (
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.min(100, Math.max(0, rpBefore))}%`, borderRadius: 4, background: `${rkColor}40` }} />
+                  )}
+                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.min(100, Math.max(0, rpAfter))}%`, borderRadius: 4, background: rkColor, transition: 'width 0.6s ease' }} />
+                </div>
+                {typeof rpBefore === 'number' && (
+                  <p style={{ margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>{rpBefore} → {rpAfter}</p>
+                )}
+              </div>
+            )}
+            {isSmasher && typeof rpAfter === 'number' && (
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#FF8C00' }}>{rpAfter} RP</p>
+            )}
+          </div>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: 10, padding: '0 16px 16px' }}>
         <button style={{ flex: 2, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>🎮 Volver a jugar</button>
         <button style={{ flex: 1, padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>👤 Cambiar PJ</button>
@@ -330,11 +378,11 @@ export default function DevMatchmaking() {
         <p style={sectionTitle}>3d · Reportar — Disputa</p>
         <ScreenReport myChar={MARIO} myAlt={1} stocks={stocks} setStocks={setStocks} flow="disputa" />
 
-        <p style={sectionTitle}>4a · Resultado — {iWon ? 'Ganaste' : 'Perdiste'} (1v1)</p>
-        <ScreenResult iWon={iWon} myChar={MARIO} myAlt={1} oppChar={LINK} oppAlt={1} myName="GabrielBW" oppName="RivalX" stage={stage} rpDelta={iWon ? 12 : -8} isBo3={false} />
+        <p style={sectionTitle}>4a · Resultado — {iWon ? 'Victoria' : 'Derrota'} (1v1)</p>
+        <ScreenResult iWon={iWon} myChar={MARIO} myAlt={1} oppChar={LINK} oppAlt={1} myName="GabrielBW" oppName="RivalX" stage={stage} rpDelta={iWon ? 12 : -8} isBo3={false} rankName="Hierro II" rpBefore={iWon ? 53 : 65} rpAfter={iWon ? 65 : 57} />
 
-        <p style={sectionTitle}>4b · Resultado — {iWon ? 'Ganaste' : 'Perdiste'} (BO3)</p>
-        <ScreenResult iWon={iWon} myChar={MARIO} myAlt={1} oppChar={LINK} oppAlt={1} myName="GabrielBW" oppName="RivalX" stage={stage} rpDelta={iWon ? 18 : -12} isBo3={true} games={[
+        <p style={sectionTitle}>4b · Resultado — {iWon ? 'Victoria' : 'Derrota'} (BO3)</p>
+        <ScreenResult iWon={iWon} myChar={MARIO} myAlt={1} oppChar={LINK} oppAlt={1} myName="GabrielBW" oppName="RivalX" stage={stage} rpDelta={iWon ? 18 : -12} isBo3={true} rankName="Bronce I" rpBefore={iWon ? 65 : 83} rpAfter={iWon ? 83 : 71} games={[
           { won: iWon, stage: 'Smashville' },
           { won: !iWon, stage: 'Hollow Bastion' },
           { won: iWon, stage: 'Battlefield' },

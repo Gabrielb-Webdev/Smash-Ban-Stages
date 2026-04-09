@@ -2363,7 +2363,7 @@ function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Juego {g.result.gameNum || gi + 1}</p>
                         <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff' }}>{gStage || 'Escenario desconocido'}</p>
-                        {gStocks != null && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{gWon ? `Ganaste · ${gStocks} stock${gStocks !== 1 ? 's' : ''}` : `Perdiste · ${gStocks} stock${gStocks !== 1 ? 's' : ''}`}</p>}
+                        {gStocks != null && <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{gWon ? `Victoria · ${gStocks} stock${gStocks !== 1 ? 's' : ''}` : `Derrota · ${gStocks} stock${gStocks !== 1 ? 's' : ''}`}</p>}
                       </div>
                       <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: gWon ? '#22C55E' : '#EF4444', flexShrink: 0 }}>{gWon ? '✅' : '❌'}</p>
                     </div>
@@ -3530,6 +3530,7 @@ function TabAmigos({ user, setNotifs }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
+                        {renderRPBar(rankName, rankColor, s.rankPoints, isUnranked, inPlacement)}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -3567,6 +3568,7 @@ function TabAmigos({ user, setNotifs }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
+                        {renderRPBar(rankName, rankColor, s.rankPoints, isUnranked, inPlacement)}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -3604,6 +3606,23 @@ function TabAmigos({ user, setNotifs }) {
 /* --- TAB PERFIL ------------------------------------------------ */
 function platLabel(p) { return p === 'switch' ? '🎮 Switch' : '🖥️ Parsec'; }
 function platColor(p) { return p === 'switch' ? '#EF4444' : '#8B5CF6'; }
+function renderRPBar(rankName, rankColor, rankPoints, isUnranked, inPlacement) {
+  const pts = rankPoints || 0;
+  const isSmasher = rankName === 'SMASHer';
+  if (isUnranked || inPlacement) return null;
+  if (isSmasher) return <p style={{ margin: '2px 0 0', fontSize: 10, fontWeight: 800, color: '#FF8C00' }}>{pts} RP</p>;
+  return (
+    <div style={{ width: '100%', marginTop: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>RR</span>
+        <span style={{ fontSize: 8, fontWeight: 800, color: rankColor }}>{pts}/100</span>
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 3, height: 5, overflow: 'hidden' }}>
+        <div style={{ width: Math.min(100, pts) + '%', height: '100%', background: rankColor, borderRadius: 3 }} />
+      </div>
+    </div>
+  );
+}
 function timeAgo(iso) {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
@@ -4332,6 +4351,7 @@ function TabPerfil({ user }) {
                               <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
                             </div>
                           )}
+                        {renderRPBar(rankName, rankColor, s.rankPoints, isUnranked, inPlacement)}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                         </div>
                       );
@@ -4369,6 +4389,7 @@ function TabPerfil({ user }) {
                               <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
                             </div>
                           )}
+                        {renderRPBar(rankName, rankColor, s.rankPoints, isUnranked, inPlacement)}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                         </div>
                       );
@@ -5702,6 +5723,7 @@ function TabRankings({ user, setTab }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#FF8C00' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
+                        {renderRPBar(rankName, rankColor, s.rankPoints, isUnranked, inPlacement)}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -5739,6 +5761,7 @@ function TabRankings({ user, setTab }) {
                             <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#A78BFA' }}>{total}/{PLACEMENT_TOTAL}</p>
                           </div>
                         )}
+                        {renderRPBar(rankName, rankColor, s.rankPoints, isUnranked, inPlacement)}
                         <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{wins}W · {losses}L</p>
                       </div>
                     );
@@ -7603,7 +7626,7 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           <div style={{ position: 'relative', zIndex: 1, padding: '20px 16px 18px', textAlign: 'center' }}>
             {isCasualFinished && <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.1em', textTransform: 'uppercase' }}>⚔️ Partida Normal</p>}
             <p style={{ margin: '0 0 2px', fontSize: 30, fontWeight: 900, color: iWon ? '#34D399' : '#EF4444', textShadow: `0 0 28px ${iWon ? 'rgba(52,211,153,0.6)' : 'rgba(239,68,68,0.6)'}` }}>
-              {iWon ? (is2v2Finished ? '¡Ganaron! 🏆' : '¡Ganaste! 🏆') : (is2v2Finished ? 'Perdieron 💀' : 'Perdiste 💀')}
+              {iWon ? '¡Victoria! 🏆' : 'Derrota 💀'}
             </p>
             <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{iWon ? '¡Bien jugado! 💪' : 'La próxima será'}</p>
             {/* Personajes con skins (grandes) */}
@@ -7669,7 +7692,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             </div>
           )}
           {/* Resumen de puntos */}
-          {!isCasualFinished && !is2v2Finished && (
+          {!isCasualFinished && !is2v2Finished && (() => {
+            const myRPBefore = iWon ? matchData.result?.winnerRPBefore : matchData.result?.loserRPBefore;
+            const myRPAfter  = iWon ? matchData.result?.winnerRPAfter  : matchData.result?.loserRPAfter;
+            const myRankAfterName = iWon ? matchData.result?.winnerRankAfter : matchData.result?.loserRankAfter;
+            const myRankAfterObj = myRankAfterName ? RANKS.find(r => r.name === myRankAfterName) : null;
+            const rkColor = myRankAfterObj?.color || 'rgba(255,255,255,0.3)';
+            const rkIcon  = myRankAfterObj ? (TIER_ICONS[myRankAfterObj.tier] || '') : '';
+            const isSmasher = myRankAfterName === 'SMASHer';
+            return (
             <div style={{ background: iWon ? 'linear-gradient(135deg,rgba(52,211,153,0.06),rgba(52,211,153,0.02))' : 'linear-gradient(135deg,rgba(239,68,68,0.06),rgba(239,68,68,0.02))', border: `1px solid ${iWon ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.12)'}`, borderRadius: 18, padding: '16px 18px', marginBottom: 12, position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: iWon ? 'linear-gradient(90deg,transparent,#34D399,transparent)' : 'linear-gradient(90deg,transparent,#EF4444,transparent)', opacity: 0.6 }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -7683,6 +7714,35 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                   </p>
                 </div>
               </div>
+              {/* Rango + barra de RP */}
+              {myRankAfterObj && (
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 14px', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: 22 }}>{rkIcon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: rkColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{myRankAfterName}</span>
+                  </div>
+                  {!isSmasher && typeof myRPAfter === 'number' && (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Rank Points</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: rkColor }}>{myRPAfter}/100</span>
+                      </div>
+                      <div style={{ position: 'relative', height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                        {typeof myRPBefore === 'number' && (
+                          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.min(100, Math.max(0, myRPBefore))}%`, borderRadius: 4, background: `${rkColor}40` }} />
+                        )}
+                        <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.min(100, Math.max(0, myRPAfter))}%`, borderRadius: 4, background: rkColor, transition: 'width 0.6s ease' }} />
+                      </div>
+                      {typeof myRPBefore === 'number' && (
+                        <p style={{ margin: '4px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>{myRPBefore} → {myRPAfter}</p>
+                      )}
+                    </div>
+                  )}
+                  {isSmasher && typeof myRPAfter === 'number' && (
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#FF8C00' }}>{myRPAfter} RP</p>
+                  )}
+                </div>
+              )}
               {stocks && iWon && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, marginBottom: 8 }}>
                   <span style={{ fontSize: 14 }}>❤️</span>
@@ -7709,7 +7769,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
           {isCasualFinished ? (
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={replaySearch} style={{ flex: 2, padding: '14px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg,#FF8C00,#E85D00)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(255,140,0,0.3)' }}>

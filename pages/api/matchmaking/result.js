@@ -470,12 +470,22 @@ async function applyFinishedStats(match, matchId) {
     }
   }
 
+  // Capturar RP después de procesar
+  const winnerRankPointsAfter = wStats.rankPoints ?? 0;
+  const loserRankPointsAfter  = lStats.rankPoints ?? 0;
+
   // ── Guardar RP en match.result para que el polling lo entregue al no-reporter ──
   if (match.result) {
     match.result.rpDelta      = result.winner.rrDelta;
     match.result.loserRpDelta = result.loser.rrDelta;
     match.result.winnerRankChange = result.winner.rankChange;
     match.result.loserRankChange  = result.loser.rankChange;
+    match.result.winnerRPBefore = winnerRankPointsBefore;
+    match.result.winnerRPAfter  = winnerRankPointsAfter;
+    match.result.loserRPBefore  = loserRankPointsBefore;
+    match.result.loserRPAfter   = loserRankPointsAfter;
+    match.result.winnerRankAfter = wStats.rank;
+    match.result.loserRankAfter  = lStats.rank;
     await redis.set(mmMatchKey(matchId), match);
   }
 
@@ -492,6 +502,12 @@ async function applyFinishedStats(match, matchId) {
         roomObj.result.loserRpDelta     = result.loser.rrDelta;
         roomObj.result.winnerRankChange = result.winner.rankChange;
         roomObj.result.loserRankChange  = result.loser.rankChange;
+        roomObj.result.winnerRPBefore   = winnerRankPointsBefore;
+        roomObj.result.winnerRPAfter    = winnerRankPointsAfter;
+        roomObj.result.loserRPBefore    = loserRankPointsBefore;
+        roomObj.result.loserRPAfter     = loserRankPointsAfter;
+        roomObj.result.winnerRankAfter  = wStats.rank;
+        roomObj.result.loserRankAfter   = lStats.rank;
         await redis.set(`mm:room:${roomCode}`, roomObj, { ex: RESULT_TTL });
       }
       // El user→room key expira en 5 min (no se borra inmediato)
@@ -505,5 +521,11 @@ async function applyFinishedStats(match, matchId) {
     mmrDelta: result.winner.mmrDelta,
     winnerRankChange: result.winner.rankChange,
     loserRankChange: result.loser.rankChange,
+    winnerRPBefore: winnerRankPointsBefore,
+    winnerRPAfter: winnerRankPointsAfter,
+    loserRPBefore: loserRankPointsBefore,
+    loserRPAfter: loserRankPointsAfter,
+    winnerRankAfter: wStats.rank,
+    loserRankAfter: lStats.rank,
   };
 }
