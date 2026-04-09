@@ -9,6 +9,7 @@ export default function Home() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [session, setSession]   = useState(null);
+  const [showPanel, setShowPanel] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [featuredTours, setFeaturedTours]         = useState([]);
@@ -24,12 +25,16 @@ export default function Home() {
 
   useEffect(() => {
     verifySession().then(data => {
-      if (!data) { router.replace('/login'); return; }
+      if (!data) {
+        // Sin sesión → mostrar landing page
+        setChecking(false);
+        return;
+      }
       const fromPanel = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('panel') === '1';
       const hasAccess = data.isAdmin || (data.adminCommunities && data.adminCommunities.length > 0);
-      // Solo quedarse en / si viene desde el botón Panel (?panel=1), si no → /home
       if (hasAccess && fromPanel) {
         setSession(data);
+        setShowPanel(true);
         setChecking(false);
       } else {
         router.replace('/home');
@@ -37,7 +42,6 @@ export default function Home() {
     });
   }, []);
 
-  // Cerrar menú al hacer click fuera
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
@@ -46,8 +50,8 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Cargar torneos destacados (modo admin: incluye ocultos) + auto-sincronizados
   useEffect(() => {
+    if (!showPanel) return;
     setFeaturedLoading(true);
     Promise.all([
       fetch('/api/tournaments/featured?admin=1').then(r => r.json()),
@@ -56,22 +60,160 @@ export default function Home() {
       if (Array.isArray(fd.featured)) setFeaturedTours(fd.featured);
       if (Array.isArray(fd.hiddenSlugs)) setHiddenSlugs(fd.hiddenSlugs);
       if (Array.isArray(sd.tournaments)) {
-        // Solo mostrar los que NO sean ya featured (dedup por slug)
         const featSlugs = new Set((fd.featured || []).map(t => t.slug));
         setSyncedTours(sd.tournaments.filter(t => !featSlugs.has(t.slug)));
       }
     }).catch(() => {})
     .finally(() => setFeaturedLoading(false));
-  }, []);
+  }, [showPanel]);
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div style={{ minHeight: '100vh', background: '#090910', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, border: '2px solid #E88E00', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
 
+  // ── LANDING PAGE (sin sesión) ──────────────────────────────────────────────
+  if (!session) {
+    const features = [
+      { icon: '⚔️', title: 'Matchmaking Ranked', desc: 'Encontrá rivales de tu nivel en segundos. Sistema ELO con Switch y Parsec.' },
+      { icon: '🏆', title: 'Rankings', desc: 'Escalá posiciones en el ranking competitivo de tu región y comunidad.' },
+      { icon: '📅', title: 'Torneos', desc: 'Participá en torneos organizados por las comunidades. Integración con Start.gg.' },
+      { icon: '👥', title: 'Comunidades', desc: 'AFK, Córdoba, Santa Fe, Mendoza, INC, Warui. Una sola app para todas.' },
+    ];
+    const comms = [
+      { name: 'Smash AFK',      logo: '/images/AFK.webp' },
+      { name: 'Smash Córdoba',  logo: '/images/SCC.webp' },
+      { name: 'Smash Santa Fe', logo: '/images/Smash_Santa_Fe.png' },
+      { name: 'INC',            logo: '/images/inc.png' },
+      { name: 'Smash Mendoza',  logo: '/images/Team_Anexo/team_anexo_logo_nwe.png' },
+      { name: 'Warui Team',     logo: '/images/warui/logo.png' },
+    ];
+    return (
+      <>
+        <Head>
+          <title>La app sin H — Smash Bros Competitivo Argentina</title>
+          <meta name="description" content="Matchmaking ranked, rankings, torneos y comunidades de Super Smash Bros Ultimate en Argentina." />
+          <style>{`
+            @keyframes fadeUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
+            @keyframes spin { to { transform:rotate(360deg) } }
+            .lp-feature-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.05) !important; }
+            .lp-comm-card:hover { transform: scale(1.05); border-color: rgba(232,142,0,0.4) !important; }
+            .lp-btn-primary:hover { background: #e07a00 !important; transform: scale(1.03); }
+            .lp-btn-secondary:hover { background: rgba(255,255,255,0.08) !important; }
+          `}</style>
+        </Head>
+        <div style={{ minHeight: '100vh', background: '#090910', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
+          {/* ── NAVBAR ── */}
+          <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(9,9,16,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(20px,5vw,80px)', height: 64 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/images/logo.app.png" alt="Logo" style={{ width: 36, height: 28, objectFit: 'contain' }} />
+              <span style={{ fontWeight: 900, fontSize: 18, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em' }}>la app <span style={{ fontWeight: 300, color: 'rgba(232,142,0,0.8)' }}>sin H</span></span>
+            </div>
+            <Link href="/login">
+              <button className="lp-btn-primary" style={{ background: '#FF8C00', border: 'none', borderRadius: 12, padding: '10px 24px', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'background 0.15s, transform 0.15s' }}>
+                Iniciar sesión
+              </button>
+            </Link>
+          </nav>
+          {/* ── HERO ── */}
+          <section style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(60px,10vh,120px) clamp(20px,5vw,80px)', textAlign: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,142,0,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', maxWidth: 760, margin: '0 auto', animation: 'fadeUp 0.6s ease both' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(232,142,0,0.1)', border: '1px solid rgba(232,142,0,0.25)', borderRadius: 99, padding: '6px 16px', marginBottom: 28, fontSize: 13, fontWeight: 700, color: '#FF8C00' }}>
+                ⚡ Matchmaking competitivo de Smash Bros Ultimate
+              </div>
+              <h1 style={{ margin: '0 0 20px', fontSize: 'clamp(36px,6vw,72px)', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                La plataforma de{' '}
+                <span style={{ background: 'linear-gradient(90deg,#FF8C00,#E85D00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Smash Bros</span>
+                {' '}competitivo
+              </h1>
+              <p style={{ margin: '0 auto 40px', fontSize: 'clamp(16px,2.5vw,20px)', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, maxWidth: 560 }}>
+                Matchmaking ranked, rankings por región, torneos y comunidades de toda Argentina en una sola app.
+              </p>
+              <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link href="/login">
+                  <button className="lp-btn-primary" style={{ background: '#FF8C00', border: 'none', borderRadius: 14, padding: '16px 36px', color: '#fff', fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'background 0.15s, transform 0.15s', boxShadow: '0 8px 32px rgba(232,142,0,0.35)' }}>
+                    Unirse ahora →
+                  </button>
+                </Link>
+                <a href="#comunidades" style={{ textDecoration: 'none' }}>
+                  <button className="lp-btn-secondary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: '16px 32px', color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: 16, cursor: 'pointer', transition: 'background 0.15s' }}>
+                    Ver comunidades
+                  </button>
+                </a>
+              </div>
+            </div>
+            <div style={{ marginTop: 64, display: 'flex', justifyContent: 'center' }}>
+              <img src="/images/logo.png" alt="" style={{ width: 'min(260px,55vw)', opacity: 0.1 }} />
+            </div>
+          </section>
+          {/* ── FEATURES ── */}
+          <section style={{ padding: 'clamp(60px,8vh,100px) clamp(20px,5vw,80px)' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+              <h2 style={{ textAlign: 'center', margin: '0 0 12px', fontSize: 'clamp(24px,4vw,40px)', fontWeight: 900 }}>Todo en un solo lugar</h2>
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', margin: '0 0 48px', fontSize: 16 }}>Diseñado para la escena competitiva argentina</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+                {features.map(f => (
+                  <div key={f.title} className="lp-feature-card" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '28px 24px', transition: 'transform 0.2s, background 0.2s' }}>
+                    <div style={{ fontSize: 36, marginBottom: 16 }}>{f.icon}</div>
+                    <h3 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 800 }}>{f.title}</h3>
+                    <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+          {/* ── COMUNIDADES ── */}
+          <section id="comunidades" style={{ padding: 'clamp(60px,8vh,100px) clamp(20px,5vw,80px)', background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+              <h2 style={{ textAlign: 'center', margin: '0 0 12px', fontSize: 'clamp(24px,4vw,40px)', fontWeight: 900 }}>Nuestras comunidades</h2>
+              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', margin: '0 0 48px', fontSize: 16 }}>Una sola plataforma. Múltiples comunidades.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
+                {comms.map(c => (
+                  <div key={c.name} className="lp-comm-card" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, transition: 'transform 0.2s, border-color 0.2s' }}>
+                    <img src={c.logo} alt={c.name} style={{ width: 72, height: 72, objectFit: 'contain' }} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>{c.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+          {/* ── CTA ── */}
+          <section style={{ padding: 'clamp(80px,10vh,120px) clamp(20px,5vw,80px)', textAlign: 'center' }}>
+            <div style={{ maxWidth: 600, margin: '0 auto' }}>
+              <div style={{ fontSize: 48, marginBottom: 20 }}>🎮</div>
+              <h2 style={{ margin: '0 0 16px', fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, lineHeight: 1.15 }}>
+                Unite a la escena{' '}
+                <span style={{ background: 'linear-gradient(90deg,#FF8C00,#E85D00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>competitiva</span>
+              </h2>
+              <p style={{ margin: '0 0 36px', color: 'rgba(255,255,255,0.45)', fontSize: 17, lineHeight: 1.6 }}>
+                Creá tu cuenta con tu perfil de Start.gg y empezá a jugar ranked hoy mismo.
+              </p>
+              <Link href="/login">
+                <button className="lp-btn-primary" style={{ background: '#FF8C00', border: 'none', borderRadius: 14, padding: '18px 48px', color: '#fff', fontWeight: 900, fontSize: 17, cursor: 'pointer', transition: 'background 0.15s, transform 0.15s', boxShadow: '0 8px 40px rgba(232,142,0,0.4)' }}>
+                  Iniciar sesión con Start.gg →
+                </button>
+              </Link>
+            </div>
+          </section>
+          {/* ── FOOTER ── */}
+          <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '28px clamp(20px,5vw,80px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="/images/logo.app.png" alt="" style={{ width: 24, height: 18, opacity: 0.5 }} />
+              <span>la app sin H © {new Date().getFullYear()}</span>
+            </div>
+            <span>Super Smash Bros Ultimate — Argentina</span>
+          </footer>
+        </div>
+      </>
+    );
+  }
+
+  // ── PANEL ADMIN (con sesión + ?panel=1) ──────────────────────────────────
   const user = session?.user;
   const displayName = user?.name || user?.slug || 'Usuario';
   const initial = displayName.charAt(0).toUpperCase();
