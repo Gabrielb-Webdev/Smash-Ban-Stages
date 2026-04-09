@@ -915,7 +915,7 @@ export default function HomePage() {
           )}
 
           {/* Chat flotante — desktop */}
-          {chatInbox.length > 0 && tab !== 'amigos' && (
+          {tab !== 'amigos' && (
             <>
               <button
                 onClick={() => setChatBubbleOpen(v => { if (!v) { const t = Date.now(); setChatLastOpened(t); try { localStorage.setItem('chat_last_opened', String(t)); } catch {} } return !v; })}
@@ -1460,7 +1460,7 @@ export default function HomePage() {
         {/* ── BOTTOM NAV ── */}
 
         {/* CHAT FLOTANTE */}
-        {chatInbox.length > 0 && tab !== 'amigos' && (
+        {tab !== 'amigos' && (
           <>
             <button
               onClick={() => setChatBubbleOpen(v => { if (!v) { const t = Date.now(); setChatLastOpened(t); try { localStorage.setItem('chat_last_opened', String(t)); } catch {} } return !v; })}
@@ -1500,7 +1500,13 @@ export default function HomePage() {
                     <button onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }} style={{ background: 'none', border: 'none', color: '#6366F1', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos →</button>
                   </div>
                   <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                    {chatInbox.map(c => {
+                    {chatInbox.length === 0 ? (
+                      <div style={{ padding: '32px 18px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+                        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Sin conversaciones aún</p>
+                        <button onClick={() => { setChatBubbleOpen(false); setTab('amigos'); }} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, padding: '8px 18px', color: '#818CF8', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Ir a Amigos →</button>
+                      </div>
+                    ) : chatInbox.map(c => {
                       const isFromMe = c.lastMessage?.from === uid;
                       const timeAgo = c.lastMessage?.sentAt ? (() => {
                         const diff = Date.now() - new Date(c.lastMessage.sentAt).getTime();
