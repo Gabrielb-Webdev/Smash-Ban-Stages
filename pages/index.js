@@ -659,16 +659,21 @@ export default function Home() {
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0' }}>No hay torneos todavía.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {/* Torneos manuales (featured) */}
-                    {[...featuredTours].sort(sortByDate).map(t => {
+                    {[
+                      ...featuredTours.map(t => ({ ...t, _isManual: true })),
+                      ...syncedTours.map(t => ({ ...t, _isManual: false })),
+                    ].sort(sortByDate).map(t => {
                       const isHidden = t._hidden || hiddenSlugs.includes(t.slug);
                       return (
-                        <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
+                        <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : (t._isManual ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.07)')}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
                           {t.image && <img src={t.image} alt="" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                               <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(255,140,0,0.15)', color: '#FF8C00', borderRadius: 4, flexShrink: 0 }}>Manual</span>
+                              {t._isManual
+                                ? <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(255,140,0,0.15)', color: '#FF8C00', borderRadius: 4, flexShrink: 0 }}>Manual</span>
+                                : <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(99,102,241,0.15)', color: '#818CF8', borderRadius: 4, flexShrink: 0 }}>Auto</span>
+                              }
                               {isHidden && <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(100,100,100,0.2)', color: 'rgba(255,255,255,0.4)', borderRadius: 4, flexShrink: 0 }}>Oculto</span>}
                             </div>
                             <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
@@ -695,50 +700,13 @@ export default function Home() {
                             title="Enviar notificación push"
                             style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 9px', color: '#a5b4fc', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
                           >🔔</button>
-                          <button
-                            onClick={() => removeFeaturedFromIndex(t.slug)}
-                            title="Eliminar"
-                            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
-                          >✕</button>
-                        </div>
-                      );
-                    })}
-                    {/* Torneos auto-sincronizados */}
-                    {[...syncedTours].sort(sortByDate).map(t => {
-                      const isHidden = hiddenSlugs.includes(t.slug);
-                      return (
-                        <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isHidden ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isHidden ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 13, padding: '11px 13px', opacity: isHidden ? 0.55 : 1 }}>
-                          {t.image && <img src={t.image} alt="" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(99,102,241,0.15)', color: '#818CF8', borderRadius: 4, flexShrink: 0 }}>Auto</span>
-                              {isHidden && <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', background: 'rgba(100,100,100,0.2)', color: 'rgba(255,255,255,0.4)', borderRadius: 4, flexShrink: 0 }}>Oculto</span>}
-                            </div>
-                            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
-                              {t.startAt ? new Date(t.startAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
-                              {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
-                              {t.registrationOpen ? ' · ✅ Inscripciones abiertas' : ''}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => toggleHidden(t.slug, isHidden)}
-                            title={isHidden ? 'Mostrar en la app' : 'Ocultar de la app'}
-                            style={{ background: isHidden ? 'rgba(34,197,94,0.1)' : 'rgba(100,100,100,0.1)', border: `1px solid ${isHidden ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '5px 9px', color: isHidden ? '#4ade80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
-                          >{isHidden ? '👁' : '🙈'}</button>
-                          {t.state !== 3 && t.state !== 4 && (
+                          {t._isManual && (
                             <button
-                              onClick={() => markTournamentComplete(t.slug)}
-                              disabled={!!markCompleting[t.slug]}
-                              title="Marcar como terminado"
-                              style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '5px 9px', color: '#FBBF24', cursor: 'pointer', fontSize: 13, flexShrink: 0, opacity: markCompleting[t.slug] ? 0.5 : 1 }}
-                            >{markCompleting[t.slug] ? '...' : '🏁'}</button>
+                              onClick={() => removeFeaturedFromIndex(t.slug)}
+                              title="Eliminar"
+                              style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+                            >✕</button>
                           )}
-                          <button
-                            onClick={() => notifyFeaturedFromIndex(t.slug)}
-                            title="Enviar notificación push"
-                            style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 9px', color: '#a5b4fc', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
-                          >🔔</button>
                         </div>
                       );
                     })}
