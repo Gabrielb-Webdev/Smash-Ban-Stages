@@ -703,7 +703,7 @@ export default function Home() {
                         </div>
                       );
                     })}
-                    {/* Torneos auto-sincronizados */
+                    {/* Torneos auto-sincronizados */}
                     {[...syncedTours].sort(sortByDate).map(t => {
                       const isHidden = hiddenSlugs.includes(t.slug);
                       return (
