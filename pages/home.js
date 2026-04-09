@@ -1806,6 +1806,17 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
   const rpSw   = desktopStats?.rankedStats?.switch?.rp ?? null;
   const rpPc   = desktopStats?.rankedStats?.parsec?.rp  ?? null;
 
+  // Widget jugadores buscando ahora
+  const [onlineNow, setOnlineNow] = React.useState(null);
+  React.useEffect(() => {
+    const fetchOnline = () => {
+      fetch('/api/matchmaking/online').then(r => r.ok ? r.json() : null).then(d => { if (d) setOnlineNow(d); }).catch(() => {});
+    };
+    fetchOnline();
+    const iv = setInterval(fetchOnline, 15000);
+    return () => clearInterval(iv);
+  }, []);
+
   const recentNotifs = notifs.slice(0, 5);
 
   return (
@@ -1855,6 +1866,40 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
           </div>
         )}
       </div>
+
+      {/* Widget: jugadores buscando ahora */}
+      {onlineNow && (
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: onlineNow.total > 0 ? '#22C55E' : 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block', boxShadow: onlineNow.total > 0 ? '0 0 6px #22C55E88' : 'none' }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', flex: 1 }}>Buscando ahora</span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: onlineNow.total > 0 ? '#22C55E' : 'rgba(255,255,255,0.25)' }}>{onlineNow.total}</span>
+          </div>
+          <div style={{ padding: '6px 0' }}>
+            {[
+              { key: 'ranked1v1',  label: 'Ranked 1v1',  accent: '#FF8C00' },
+              { key: 'ranked2v2',  label: 'Ranked 2v2',  accent: '#F97316' },
+              { key: 'casual1v1',  label: 'Normal 1v1',  accent: '#A78BFA' },
+              { key: 'casual2v2',  label: 'Normal 2v2',  accent: '#8B5CF6' },
+            ].map(({ key, label, accent }) => {
+              const q = onlineNow[key] || { switch: 0, parsec: 0, total: 0 };
+              if (q.total === 0) return null;
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 14px' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: accent, flex: 1 }}>{label}</span>
+                  <span title="Switch" style={{ fontSize: 10, fontWeight: 800, color: q.switch > 0 ? '#EF4444' : 'rgba(255,255,255,0.2)', background: q.switch > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '1px 7px' }}>🎮 {q.switch}</span>
+                  <span title="Parsec" style={{ fontSize: 10, fontWeight: 800, color: q.parsec > 0 ? '#8B5CF6' : 'rgba(255,255,255,0.2)', background: q.parsec > 0 ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '1px 7px' }}>🖥️ {q.parsec}</span>
+                </div>
+              );
+            })}
+            {onlineNow.total === 0 && (
+              <div style={{ padding: '10px 14px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Nadie buscando ahora</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Match activo banner */}
       {bgMM && bgMM.status && bgMM.status !== 'idle' && (
@@ -5732,9 +5777,9 @@ function TabRankings({ user, setTab }) {
       )}
       {/* ── Header con tabs y selector de plataforma ── */}
       <div style={{
-        position: isWide ? 'static' : 'sticky', top: 0, zIndex: isWide ? 'auto' : 10,
-        background: isWide ? 'transparent' : '#0D0D15',
-        padding: isWide ? '0 0 16px' : '20px 18px 0',
+        position: 'sticky', top: 0, zIndex: 10,
+        background: '#0D0D15',
+        padding: isWide ? '12px 0 16px' : '20px 18px 0',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         marginBottom: isWide ? 0 : 0,
       }}>
@@ -9144,6 +9189,28 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
       })()}
 
       {formError && <p style={{ margin: '0 0 12px', fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{formError}</p>}
+
+      {/* Widget: jugadores buscando partida ahora */}
+      {onlineCount && (() => {
+        const qKey = matchTypeMode === 'casual'
+          ? (casualMode === '2v2' ? 'casual2v2' : 'casual1v1')
+          : (matchMode === '2v2' ? 'ranked2v2' : 'ranked1v1');
+        const q = onlineCount[qKey] || { switch: 0, parsec: 0, total: 0 };
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: q.total > 0 ? '#22C55E' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', flex: 1 }}>
+              {q.total === 0 ? 'Nadie buscando ahora' : `${q.total} buscando ahora`}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: q.switch > 0 ? '#EF4444' : 'rgba(255,255,255,0.2)', background: q.switch > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${q.switch > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7, padding: '2px 8px' }}>
+              🎮 {q.switch}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: q.parsec > 0 ? '#8B5CF6' : 'rgba(255,255,255,0.2)', background: q.parsec > 0 ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${q.parsec > 0 ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 7, padding: '2px 8px' }}>
+              🖥️ {q.parsec}
+            </span>
+          </div>
+        );
+      })()}
 
       {matchTypeMode === 'casual' ? (
         <>
