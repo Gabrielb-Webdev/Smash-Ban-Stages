@@ -100,3 +100,22 @@ html, body {
   .pill-switcher { gap: 2px !important; }
   .pill-switcher button { font-size: 10px !important; padding: 8px 4px !important; }
 }
+
+/* ── Desktop responsive ────────────────────────── */
+@media (min-width: 768px) {
+  .char-grid-5 { grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .tips-grid   { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+}
+@media (min-width: 1200px) {
+  .char-grid-5 { grid-template-columns: repeat(10, 1fr); }
+}
+
+/* ── Side-panel animations ──────────────────────── */
+@keyframes slidePanelIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fadeBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

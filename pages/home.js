@@ -6,6 +6,7 @@ import { RANKS, TIER_ICONS } from '../lib/ranks';
 import { CHARACTERS, charImgPath, CHARACTER_RENDERS, charRenderPath, charAltPaths, charDefaultAltPath, stockIconPath } from '../lib/characters';
 import CharacterDetail from '../src/components/CharacterDetail';
 import { registerPresence, updateFriendList, setPresenceCallback, setNotificationCallback, setReconnectCallback } from '../src/hooks/useWebSocket';
+import { useResponsive } from '../src/hooks/useResponsive';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION;
 const PLACEMENT_TOTAL = 5;
 const STAGE_IMG = {
@@ -136,6 +137,8 @@ function getInitialTab() {
 
 export default function HomePage() {
   const router = useRouter();
+  const { isDesktop, isWide } = useResponsive();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [user, setUser]       = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCommunities, setAdminCommunities] = useState([]);
@@ -740,12 +743,19 @@ export default function HomePage() {
     <>
       <Head>
         <title>la app sin H</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        {isDesktop
+          ? <meta name="viewport" content="width=device-width, initial-scale=1" />
+          : <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        }
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
           * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
           body { background: #0B0B12; margin: 0; }
           ::-webkit-scrollbar { display: none; }
+          .desktop-main-scroll::-webkit-scrollbar { display: block; width: 6px; }
+          .desktop-main-scroll::-webkit-scrollbar-track { background: transparent; }
+          .desktop-main-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+          .desktop-main-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
           .tab-content { animation: fadeUp 0.18s ease; }
           @keyframes fadeUp    { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
           @keyframes spin      { to { transform: rotate(360deg) } }
@@ -760,6 +770,175 @@ export default function HomePage() {
         `}</style>
       </Head>
 
+      {isDesktop ? (
+        /* ════════ DESKTOP LAYOUT ════════ */
+        <div style={{ display: 'flex', height: '100vh', background: '#0B0B12', overflow: 'hidden' }}>
+          <DesktopSidebar
+            tab={tab} setTab={setTab}
+            bgMMStatus={bgMM?.status}
+            user={user}
+            unreadCount={unreadCount}
+            collapsed={sidebarCollapsed}
+            setCollapsed={setSidebarCollapsed}
+          />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+            {/* Desktop top bar — simplified */}
+            <header style={{
+              padding: '10px 24px', background: 'rgba(11,11,18,0.92)',
+              backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {tab === 'match' ? '⚡ Match' : tab === 'rankings' ? '🏆 Rankings' : tab === 'torneos' ? '📅 Torneos' : tab === 'tips' ? '💡 Tips' : tab === 'amigos' ? '👥 Amigos' : '👤 Perfil'}
+                </span>
+              </div>
+              <button
+                onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
+                style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center' }}
+              >
+                <Svg size={22} sw={1.8}>{ICO.bell}</Svg>
+                {unreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #0B0B12', padding: '0 2px' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </button>
+            </header>
+
+            {/* Desktop main content */}
+            <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+              <div style={{ maxWidth: 800, margin: '0 auto' }}>
+                {/* Banner sala activa (fuera del tab match) */}
+                {tab !== 'match' && bgMM && ['searching','waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
+                  <button
+                    onClick={() => setTab('match')}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 16px', background: 'linear-gradient(90deg,rgba(124,58,237,0.18),rgba(255,140,0,0.12))', borderBottom: '1px solid rgba(124,58,237,0.3)', border: 'none', cursor: 'pointer', gap: 10, borderRadius: 12, marginBottom: 12 }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 6px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                        {bgMM.status === 'searching'       ? 'Buscando partida...'     :
+                         bgMM.status === 'waiting'          ? 'Esperando confirmación'  :
+                         bgMM.status === 'active'           ? '¡Partida en juego!'      :
+                         bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' :
+                                                            'Resultado en disputa'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 12, color: '#FF8C00', fontWeight: 800 }}>Ir →</span>
+                  </button>
+                )}
+                {tab === 'rankings' && <TabRankings user={user} setTab={setTab} />}
+                {tab === 'torneos'  && <TabTorneos user={user} />}
+                {tab === 'tips'     && <TabTips     />}
+                {tab === 'match'    && <TabMatch bgMM={bgMM} setBgMM={setBgMM} userId={uid} userName={uName} user={user} />}
+                {tab === 'amigos'   && <TabAmigos user={user} setNotifs={setNotifs} />}
+                {tab === 'perfil'   && <TabPerfil user={user} />}
+              </div>
+            </main>
+          </div>
+
+          {/* Notifications panel (desktop) */}
+          {showNotifs && (
+            <div style={{ position: 'fixed', top: 60, right: 24, width: 380, maxHeight: 'calc(100vh - 80px)', background: '#12121E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>🔔 Notificaciones</span>
+                <button onClick={() => setShowNotifs(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1, padding: '4px 18px 16px' }}>
+                {notifs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                    <div style={{ fontSize: 36 }}>🔔</div>
+                    <p style={{ margin: '10px 0 0', color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>Sin notificaciones</p>
+                  </div>
+                ) : notifs.map(n => (
+                  <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={uName}
+                    onNavigate={(route) => {
+                      setShowNotifs(false);
+                      if (route.external) { router.push(route.external); }
+                      else if (route.tab) { setTab(route.tab); if (route.friendTab) setPendingFriendTab(route.friendTab); }
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chat flotante — desktop */}
+          {chatInbox.length > 0 && tab !== 'amigos' && (
+            <>
+              <button
+                onClick={() => setChatBubbleOpen(v => { if (!v) { const t = Date.now(); setChatLastOpened(t); try { localStorage.setItem('chat_last_opened', String(t)); } catch {} } return !v; })}
+                style={{
+                  position: 'fixed', bottom: 24, right: 24, zIndex: 48,
+                  width: 52, height: 52, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 20px rgba(99,102,241,0.5)',
+                  transition: 'transform 0.2s',
+                  transform: chatBubbleOpen ? 'scale(0.9)' : 'scale(1)',
+                }}
+              >
+                <span style={{ fontSize: 22 }}>💬</span>
+                {chatInbox.some(c => c.lastMessage && c.lastMessage.from !== uid && c.lastMessage.sentAt && new Date(c.lastMessage.sentAt).getTime() > chatLastOpened) && (
+                  <span style={{ position: 'absolute', top: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#EF4444', border: '2px solid #0B0B12' }} />
+                )}
+              </button>
+            </>
+          )}
+
+          {/* Match found popup (desktop) */}
+          {bgMM && bgMM.status === 'pending_accept' && bgMM.room && (() => {
+            const is2v2    = bgMM.room.mode === '2v2';
+            const myRole   = uid === bgMM.room.host?.userId ? 'host' : 'guest';
+            const opponent = is2v2 ? null : (myRole === 'host' ? bgMM.room.guest : bgMM.room.host);
+            const myTeam2  = is2v2 ? (bgMM.room.team1?.some(p => p.userId === uid) ? 'team1' : 'team2') : null;
+            const enemyTeam2 = is2v2 ? (myTeam2 === 'team1' ? bgMM.room.team2 : bgMM.room.team1) : null;
+            const pData    = PLATFORMS.find(x => x.id === bgMM.plat);
+            const radius   = 32;
+            const circ     = 2 * Math.PI * radius;
+            const pct      = acceptCountdown / 15;
+            const isUrgent = acceptCountdown <= 5;
+            const oppChar  = !is2v2 && opponent?.charId ? CHARACTERS.find(c => c.id === opponent.charId) : null;
+            return (
+              <div style={{
+                position: 'fixed', inset: 0, zIndex: 200,
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 20px',
+              }}>
+                <div style={{
+                  width: '100%', maxWidth: 440,
+                  background: '#111118', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 24, padding: '28px 24px', textAlign: 'center',
+                  boxShadow: '0 12px 60px rgba(0,0,0,0.6)',
+                }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: pData?.from || '#FF8C00', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{pData?.icon} {pData?.label} · {is2v2 ? '2v2' : '1v1'}</p>
+                  <p style={{ margin: '0 0 16px', fontSize: 24, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
+                    <svg width={80} height={80}>
+                      <circle cx={40} cy={40} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={5} />
+                      <circle cx={40} cy={40} r={radius} fill="none" stroke={isUrgent ? '#EF4444' : (pData?.from || '#FF8C00')} strokeWidth={5} strokeLinecap="round"
+                        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+                        style={{ transition: 'stroke-dashoffset 1s linear', transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }} />
+                      <text x={40} y={44} textAnchor="middle" fontSize={isUrgent ? 22 : 20} fontWeight={900} fill={isUrgent ? '#EF4444' : '#fff'}>{acceptCountdown}</text>
+                    </svg>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={declineMatch} style={{ flex: 1, padding: '13px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>✕ Rechazar</button>
+                    <button onClick={acceptMatch} disabled={bgMM.accepted} style={{ flex: 2, padding: '13px', borderRadius: 14, border: 'none', background: bgMM.accepted ? 'rgba(52,211,153,0.15)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: bgMM.accepted ? 'default' : 'pointer', boxShadow: bgMM.accepted ? 'none' : `0 4px 20px ${pData?.from || '#FF8C00'}50` }}>
+                      {bgMM.accepted ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar partida'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : (
+        /* ════════ MOBILE LAYOUT (unchanged) ════════ */
+        <>
       <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', background: '#0B0B12', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
 
         {/* ── TOP BAR ── */}
@@ -1489,6 +1668,8 @@ export default function HomePage() {
           );
         })()}
       </div>
+      </>
+      )}
 
       {/* -- TOUR DE BIENVENIDA -- */}
       {showTour && (() => {
@@ -1547,6 +1728,104 @@ export default function HomePage() {
         );
       })()}
     </>
+  );
+}
+
+/* ─── DESKTOP SIDEBAR ───────────────────────────── */
+function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed }) {
+  const w = collapsed ? 64 : 220;
+  const displayName = user?.name || user?.username || '';
+  const initial = displayName.charAt(0).toUpperCase();
+  const items = [
+    { id: 'rankings', label: 'Rankings', icon: ICO.trophy,   emoji: '🏆' },
+    { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar, emoji: '📅' },
+    { id: 'tips',     label: 'Tips',     icon: ICO.bulb,     emoji: '💡' },
+    { id: 'amigos',   label: 'Amigos',   icon: ICO.users,    emoji: '👥' },
+    { id: 'perfil',   label: 'Perfil',   icon: ICO.user,     emoji: '👤' },
+  ];
+  return (
+    <aside style={{
+      width: w, minWidth: w, height: '100vh', display: 'flex', flexDirection: 'column',
+      background: '#08080F', borderRight: '1px solid rgba(255,255,255,0.06)',
+      transition: 'width 0.2s, min-width 0.2s', overflow: 'hidden', flexShrink: 0,
+    }}>
+      {/* Logo + collapse */}
+      <div style={{ padding: collapsed ? '16px 10px' : '16px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 60 }}>
+        <img src="/images/logo.app.png" alt="Logo" style={{ width: 34, height: 26, flexShrink: 0 }} />
+        {!collapsed && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', textTransform: 'uppercase' }}>la app</span>
+            <span style={{ fontWeight: 300, fontSize: 15, color: 'rgba(232,142,0,0.7)', marginLeft: 2 }}>sin H</span>
+          </div>
+        )}
+        <button onClick={() => setCollapsed(v => !v)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: 4, display: 'flex', flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {collapsed ? <path d="M9 18l6-6-6-6" /> : <path d="M15 18l-6-6 6-6" />}
+          </svg>
+        </button>
+      </div>
+
+      {/* User avatar */}
+      <div style={{ padding: collapsed ? '14px 0' : '14px 16px', display: 'flex', alignItems: 'center', gap: 10, justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        {user?.avatar
+          ? <img src={user.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(232,142,0,0.35)', objectFit: 'cover', flexShrink: 0 }} />
+          : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,142,0,0.08))', border: '2px solid rgba(232,142,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#fff', flexShrink: 0 }}>{initial}</div>
+        }
+        {!collapsed && <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>}
+      </div>
+
+      {/* MATCH button */}
+      <div style={{ padding: collapsed ? '8px 10px' : '8px 16px' }}>
+        <button onClick={() => setTab('match')} style={{
+          width: '100%', padding: collapsed ? '12px 0' : '12px 16px',
+          background: tab === 'match' ? 'linear-gradient(170deg,#e84040,#b01010)' : 'linear-gradient(170deg,#c92020,#8c0e0e)',
+          border: 'none', borderRadius: 14, cursor: 'pointer', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10,
+          fontWeight: 900, fontSize: 14, letterSpacing: '0.06em', textTransform: 'uppercase',
+          boxShadow: tab === 'match' ? '0 4px 20px rgba(220,40,40,0.5)' : '0 2px 10px rgba(180,20,20,0.3)',
+          transition: 'box-shadow 0.2s, background 0.2s', position: 'relative',
+        }}>
+          {bgMMStatus && bgMMStatus !== 'idle' && (
+            <div style={{ position: 'absolute', top: 6, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E', animation: 'pulse-ring 1.2s ease-in-out infinite' }} />
+          )}
+          <Svg size={18} sw={2.4}>{ICO.bolt}</Svg>
+          {!collapsed && 'MATCH'}
+        </button>
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ flex: 1, padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {items.map(item => {
+          const active = tab === item.id;
+          return (
+            <button key={item.id} onClick={() => setTab(item.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: collapsed ? '11px 0' : '11px 20px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              background: active ? 'rgba(232,142,0,0.1)' : 'transparent',
+              border: 'none', borderLeft: active ? '3px solid #FF8C00' : '3px solid transparent',
+              cursor: 'pointer', color: active ? '#FF8C00' : 'rgba(255,255,255,0.4)',
+              transition: 'background 0.15s, color 0.15s',
+              width: '100%', fontSize: 13, fontWeight: active ? 800 : 600,
+            }}>
+              <Svg size={20} sw={active ? 2.2 : 1.6}>{item.icon}</Svg>
+              {!collapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Notification bell at bottom */}
+      <div style={{ padding: collapsed ? '12px 0' : '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10 }}>
+        <div style={{ position: 'relative', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.3)' }}>
+          <Svg size={20} sw={1.8}>{ICO.bell}</Svg>
+          {unreadCount > 0 && (
+            <span style={{ position: 'absolute', top: -4, right: -6, minWidth: 14, height: 14, borderRadius: 7, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#fff', border: '2px solid #08080F', padding: '0 2px' }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+          )}
+        </div>
+        {!collapsed && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Notificaciones</span>}
+      </div>
+    </aside>
   );
 }
 
@@ -2691,6 +2970,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
 }
 /* --- TAB AMIGOS ------------------------------------------------ */
 function TabAmigos({ user, setNotifs }) {
+  const { isWide } = useResponsive();
   const pageVisible = useRef(true);
   useEffect(() => {
     const onVis = () => { pageVisible.current = !document.hidden; };
@@ -3240,7 +3520,9 @@ function TabAmigos({ user, setNotifs }) {
 
       {/* --- MODAL PERFIL JUGADOR --- */}
       {viewProfile && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <>
+        {isWide && <div onClick={() => setViewProfile(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, animation: 'fadeBackdropIn 0.2s ease-out' }} />}
+        <div style={{ position: 'fixed', top: 0, bottom: 0, ...(isWide ? { right: 0, width: 440, boxShadow: '-8px 0 40px rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.08)', animation: 'slidePanelIn 0.25s ease-out' } : { left: 0, right: 0 }), background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <button onClick={() => setViewProfile(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={18} height={18}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
@@ -3598,6 +3880,7 @@ function TabAmigos({ user, setNotifs }) {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );
@@ -3635,6 +3918,7 @@ function timeAgo(iso) {
   return 'hace ' + d + 'd';
 }
 function TabPerfil({ user }) {
+  const { isWide } = useResponsive();
   const [stats, setStats]     = useState(null);
   const [history, setHistory] = useState([]);
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'ranked' | 'casual' | community-id
@@ -4174,7 +4458,9 @@ function TabPerfil({ user }) {
 
         {/* --- MODAL PERFIL JUGADOR --- */}
         {viewProfile && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          <>
+          {isWide && <div onClick={() => setViewProfile(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, animation: 'fadeBackdropIn 0.2s ease-out' }} />}
+          <div style={{ position: 'fixed', top: 0, bottom: 0, ...(isWide ? { right: 0, width: 440, boxShadow: '-8px 0 40px rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.08)', animation: 'slidePanelIn 0.25s ease-out' } : { left: 0, right: 0 }), background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             {/* Sticky top bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <button onClick={() => setViewProfile(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
@@ -4419,6 +4705,7 @@ function TabPerfil({ user }) {
               </div>
             )}
           </div>
+          </>
         )}
 
         {/* --- MODAL RANGOS --- */}
@@ -5000,6 +5287,7 @@ function NotifCard({ notif, onDismiss, userId, userName, onNavigate }) {
    TAB — RANKINGS
 ═══════════════════════════════════════════════════ */
 function TabRankings({ user, setTab }) {
+  const { isWide } = useResponsive();
   const [mode,        setMode]       = useState('ba');
   const [rankPlat,    setRankPlat]   = useState('switch');
   const [rankBoard,   setRankBoard]  = useState([]);
@@ -5442,7 +5730,9 @@ function TabRankings({ user, setTab }) {
 
       {/* --- MODAL PERFIL JUGADOR (Rankings) --- */}
       {viewProfile && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <>
+        {isWide && <div onClick={() => setViewProfile(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, animation: 'fadeBackdropIn 0.2s ease-out' }} />}
+        <div style={{ position: 'fixed', top: 0, bottom: 0, ...(isWide ? { right: 0, width: 440, boxShadow: '-8px 0 40px rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.08)', animation: 'slidePanelIn 0.25s ease-out' } : { left: 0, right: 0 }), background: '#0B0B12', zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           {/* Sticky top bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(11,11,18,0.95)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <button onClick={() => setViewProfile(null)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}>
@@ -5791,6 +6081,7 @@ function TabRankings({ user, setTab }) {
             </div>
           )}
         </div>
+        </>
       )}
       </div>
     </div>
