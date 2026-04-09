@@ -167,6 +167,8 @@ export default function HomePage() {
   const [chatLastOpened, setChatLastOpened] = useState(() => {
     try { return parseInt(localStorage.getItem('chat_last_opened') || '0', 10); } catch { return 0; }
   });
+  // Jugadores online (compartido entre banner desktop y TabMatch)
+  const [homeOnlineCount, setHomeOnlineCount] = useState(null);
   // Mini-chat inline
   const [miniChat, setMiniChat]         = useState(null); // { friendId, friendName }
   const [miniChatMsgs, setMiniChatMsgs] = useState([]);
@@ -335,6 +337,16 @@ export default function HomePage() {
 
   // Polling de notificaciones — eliminado, ahora vienen en el heartbeat
   // y en tiempo real vía WebSocket (new-notification)
+
+  // Fetch jugadores online compartido (banner desktop + TabMatch)
+  useEffect(() => {
+    const fetchOnline = () => {
+      fetch('/api/matchmaking/online').then(r => r.ok ? r.json() : null).then(d => { if (d) setHomeOnlineCount(d); }).catch(() => {});
+    };
+    fetchOnline();
+    const iv = setInterval(fetchOnline, 15000);
+    return () => clearInterval(iv);
+  }, []);
 
   // Registrar Service Worker y suscribirse a Web Push
   const registerPush = async (uid, userName) => {
@@ -848,13 +860,27 @@ export default function HomePage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: bgMM.status === 'active' ? '#34D399' : '#FF8C00', flexShrink: 0, display: 'inline-block', boxShadow: '0 0 8px ' + (bgMM.status === 'active' ? '#34D399' : '#FF8C00') }} />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
-                        {bgMM.status === 'searching'       ? 'Buscando partida...'     :
-                         bgMM.status === 'waiting'          ? 'Esperando confirmación'  :
-                         bgMM.status === 'active'           ? '¡Partida en juego!'      :
-                         bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' :
-                                                            'Resultado en disputa'}
-                      </span>
+                      <div>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                          {bgMM.status === 'searching'       ? 'Buscando partida...'     :
+                           bgMM.status === 'waiting'          ? 'Esperando confirmación'  :
+                           bgMM.status === 'active'           ? '¡Partida en juego!'      :
+                           bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' :
+                                                              'Resultado en disputa'}
+                        </span>
+                        {bgMM.status === 'searching' && homeOnlineCount && (() => {
+                          const isDoubles = bgMM?.mode === '2v2';
+                          const isCasual  = bgMM?.gameType === 'casual';
+                          const qKey = isCasual ? (isDoubles ? 'casual2v2' : 'casual1v1') : (isDoubles ? 'ranked2v2' : 'ranked1v1');
+                          const q = homeOnlineCount[qKey] || { switch: 0, parsec: 0, total: 0 };
+                          const platCount = Math.max(0, (bgMM?.plat ? q[bgMM.plat] : q.total) - 1);
+                          return platCount > 0 ? (
+                            <span style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                              {platCount === 1 ? '1 jugador más en cola' : `${platCount} jugadores en cola`}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
                     </div>
                     <span style={{ fontSize: 13, color: '#FF8C00', fontWeight: 800, background: 'rgba(255,140,0,0.1)', padding: '6px 14px', borderRadius: 8 }}>Ir al match →</span>
                   </button>
@@ -3066,6 +3092,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                     const is2v2 = m.mode === '2v2';
                     const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === String(viewedUserId);
                     const opponent = is2v2 ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`) : (isWin ? m.loserName : m.winnerName);
+                    const opponentId = is2v2 ? null : (isWin ? m.loserId : m.winnerId);
                     const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
                     const myRankName = is2v2 ? null : (isWin ? m.winnerRankAfter : m.loserRankAfter);
                     // Fallback: usar rango actual del perfil segun plataforma de la partida
@@ -3133,7 +3160,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                             </div>
                           </div>
                           <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {!is2v2 && opponentId ? <span onClick={e => { e.stopPropagation(); setViewProfile({ userId: String(opponentId), userName: opponent }); }} style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.25)', textUnderlineOffset: 2 }}>{opponent}</span> : opponent}</p>
                             <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
                               {isTournament ? (m.tournamentName || m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
                             </p>
@@ -3202,6 +3229,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                         const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                         const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
                         const _ai = (o, s) => Math.min(Math.max(0,(s||1)-1),(o.alts?.length||1)-1);
+                        const opponentId = is2v2 ? null : (isWin ? m.loserId : m.winnerId);
                         const charSrc = stockIconPath(charObj, mySkin);
                         const oppCharId = is2v2 ? null : (isWin ? m.loserCharId : m.winnerCharId);
                         const oppCharObj = oppCharId ? CHARACTERS.find(ch => ch.id === oppCharId) : null;
@@ -3258,7 +3286,7 @@ function ProfileHistorySection({ history: hist, histFilter, setHistFilter, histE
                                 </div>
                               </div>
                               <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {!is2v2 && opponentId ? <span onClick={e => { e.stopPropagation(); setShowAllModal(false); setTimeout(() => setViewProfile({ userId: String(opponentId), userName: opponent }), 120); }} style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.25)', textUnderlineOffset: 2 }}>{opponent}</span> : opponent}</p>
                                 <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
                               {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
                                 </p>
@@ -5152,8 +5180,9 @@ function TabPerfil({ user }) {
           {/* Filtros dinámicos */}
           {(() => {
             const hasCasual = history.some(m => m.type === 'casual');
-            const communityIds = [...new Set(history.filter(m => m.type === 'tournament' && m.community).map(m => m.community))];
-            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
+            const AFK_COMMUNITIES = ['afk', 'afk-multi'];
+            const communityIds = [...new Set(history.filter(m => m.type === 'tournament' && m.community).map(m => AFK_COMMUNITIES.includes(m.community) ? 'afk' : m.community))];
+            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
             const filterTabs = [
               ['all', 'Todos'],
               ['ranked', 'Ranked'],
@@ -5172,12 +5201,13 @@ function TabPerfil({ user }) {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>Cargando...</div>
         ) : (() => {
+          const AFK_COMMUNITIES = ['afk', 'afk-multi'];
           const filtered = history.filter(m => {
             if (historyFilter === 'all') return true;
             if (historyFilter === 'casual') return m.type === 'casual';
             if (historyFilter === 'ranked') return !m.type || m.type === 'ranked';
-            // Community filter
-            return m.type === 'tournament' && m.community === historyFilter;
+            // Community filter – 'afk' abarca tanto 'afk' como 'afk-multi'
+            return m.type === 'tournament' && (historyFilter === 'afk' ? AFK_COMMUNITIES.includes(m.community) : m.community === historyFilter);
           });
           if (filtered.length === 0) return (
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
@@ -5288,7 +5318,7 @@ function TabPerfil({ user }) {
                       </div>
                       {/* Centro: info */}
                       <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0, }}> 
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {!is2v2 && opponentId ? <span onClick={e => { e.stopPropagation(); setViewProfile({ userId: String(opponentId), userName: opponent }); }} style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.25)', textUnderlineOffset: 2 }}>{opponent}</span> : opponent}</p>
                         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
                               {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
                         </p>
@@ -5329,11 +5359,12 @@ function TabPerfil({ user }) {
 
     {/* Bottom sheet: Historial completo (perfil personal) */}
     {showHistAllModal && (() => {
+      const AFK_COMMUNITIES_M = ['afk', 'afk-multi'];
       const filtered = history.filter(m => {
         if (historyFilter === 'all') return true;
         if (historyFilter === 'casual') return m.type === 'casual';
         if (historyFilter === 'ranked') return !m.type || m.type === 'ranked';
-        return m.type === 'tournament' && m.community === historyFilter;
+        return m.type === 'tournament' && (historyFilter === 'afk' ? AFK_COMMUNITIES_M.includes(m.community) : m.community === historyFilter);
       });
       const allGrp = groupHistByDate(filtered);
       const selfId = String(user.id || user.slug);
@@ -5372,6 +5403,7 @@ function TabPerfil({ user }) {
                         const charObj = myCharId ? CHARACTERS.find(ch => ch.id === myCharId) : null;
                         const mySkin = is2v2 ? null : (isWin ? (m.winnerAltId || 1) : (m.loserAltId || 1));
                         const _ai = (o, s) => Math.min(Math.max(0,(s||1)-1),(o.alts?.length||1)-1);
+                        const opponentId = is2v2 ? null : (isWin ? m.loserId : m.winnerId);
                         const charSrcRaw = stockIconPath(charObj, mySkin);
                         const mainCharObj2 = !charSrcRaw && mainChar ? CHARACTERS.find(ch => ch.id === mainChar) : null;
                         const charSrc = charSrcRaw || stockIconPath(mainCharObj2, 1);
@@ -5430,7 +5462,7 @@ function TabPerfil({ user }) {
                                 </div>
                               </div>
                               <div style={{ flex: 1, padding: '9px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, minWidth: 0 }}>
-                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {opponent}</p>
+                                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>vs {!is2v2 && opponentId ? <span onClick={e => { e.stopPropagation(); setShowHistAllModal(false); setTimeout(() => setViewProfile({ userId: String(opponentId), userName: opponent }), 120); }} style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.25)', textUnderlineOffset: 2 }}>{opponent}</span> : opponent}</p>
                                 <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
                               {isTournament ? (m.communityLabel || m.community || 'Torneo') : platLabel(m.platform)} · {timeAgo(m.playedAt)}
                                 </p>
@@ -9041,6 +9073,30 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
             </div>
           </div>
         </div>
+
+        {/* Widget: otros jugadores buscando */}
+        {onlineCount && (() => {
+          const isDoubles = bgMM?.mode === '2v2';
+          const isCasual  = bgMM?.gameType === 'casual';
+          const qKey = isCasual ? (isDoubles ? 'casual2v2' : 'casual1v1') : (isDoubles ? 'ranked2v2' : 'ranked1v1');
+          const q = onlineCount[qKey] || { switch: 0, parsec: 0, total: 0 };
+          const sp = bgMM?.plat;
+          const platCount = sp ? (q[sp] - 1) : (q.total - 1); // -1 para excluirse a uno mismo
+          const total = Math.max(0, platCount);
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: total > 0 ? '#22C55E' : 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block', boxShadow: total > 0 ? '0 0 6px #22C55E' : 'none' }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                  {total === 0 ? 'Nadie más buscando' : total === 1 ? '1 jugador más buscando' : `${total} jugadores buscando`}
+                </p>
+                <p style={{ margin: '1px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                  {sp === 'switch' ? '🎮 Switch' : '🖥️ Parsec'} · {isCasual ? 'Normal' : 'Ranked'}{isDoubles ? ' 2v2' : ''}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         <button onClick={bgMM?.mode === '2v2' ? cancelSearch2v2 : cancelSearch} style={{ width: '100%', padding: '13px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'all 0.15s' }}>
           ✕ Cancelar búsqueda

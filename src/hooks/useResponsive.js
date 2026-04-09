@@ -4,7 +4,9 @@ const BP_DESKTOP = 768;
 const BP_WIDE    = 1200;
 
 export function useResponsive() {
-  const [width, setWidth] = useState(0);
+  const [width, setWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 0
+  );
 
   useEffect(() => {
     const update = () => setWidth(window.innerWidth);

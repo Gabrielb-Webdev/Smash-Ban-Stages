@@ -1003,6 +1003,22 @@ export default function TestAdminPage() {
     } catch {}
   }
 
+  async function notifyFeaturedTournament(slug) {
+    const t = featuredTours.find(x => x.slug === slug);
+    if (!t) return;
+    if (!window.confirm(`¿Enviar notificación push a todos los usuarios sobre "${t.name}"?`)) return;
+    try {
+      const r = await fetch('/api/tournaments/featured', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ADMIN_SECRET || 'afk-admin-2025'}` },
+        body: JSON.stringify({ url: slug, notify: true }),
+      });
+      const d = await r.json();
+      if (d.success) { alert('✅ Notificación enviada correctamente'); }
+      else { alert(d.error || 'Error al enviar notificación'); }
+    } catch { alert('Error de conexión'); }
+  }
+
   function parseStartGgSlug(raw) {
     let s = raw.trim();
     // Acepta URL completa: https://www.start.gg/tournament/mi-torneo/details/...
@@ -2102,6 +2118,11 @@ export default function TestAdminPage() {
                             {t.attendees > 0 ? ` · 👥 ${t.attendees}` : ''}
                           </p>
                         </div>
+                        <button
+                          onClick={() => notifyFeaturedTournament(t.slug)}
+                          title="Enviar notificación push"
+                          style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '5px 9px', color: '#a5b4fc', cursor: 'pointer', fontSize: 13, fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}
+                        >🔔</button>
                         <button
                           onClick={() => removeFeaturedTournament(t.slug)}
                           title="Quitar de la app"
