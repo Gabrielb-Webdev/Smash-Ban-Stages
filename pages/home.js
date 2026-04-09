@@ -1807,8 +1807,8 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
   const rpPc   = desktopStats?.rankedStats?.parsec?.rp  ?? null;
 
   // Widget jugadores buscando ahora
-  const [onlineNow, setOnlineNow] = React.useState(null);
-  React.useEffect(() => {
+  const [onlineNow, setOnlineNow] = useState(null);
+  useEffect(() => {
     const fetchOnline = () => {
       fetch('/api/matchmaking/online').then(r => r.ok ? r.json() : null).then(d => { if (d) setOnlineNow(d); }).catch(() => {});
     };
