@@ -5719,33 +5719,52 @@ function TabRankings({ user, setTab }) {
           </div>
         </div>
       )}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0D0D15', padding: '20px 18px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Rankings</h1>
-        <p style={{ margin: '0 0 14px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
+      {/* ── Header con tabs y selector de plataforma ── */}
+      <div style={{
+        position: isWide ? 'static' : 'sticky', top: 0, zIndex: isWide ? 'auto' : 10,
+        background: isWide ? 'transparent' : '#0D0D15',
+        padding: isWide ? '0 0 16px' : '20px 18px 0',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: isWide ? 0 : 0,
+      }}>
+        {/* Título — solo en móvil (en desktop ya aparece en la barra superior) */}
+        {!isWide && (
+          <>
+            <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Rankings</h1>
+            <p style={{ margin: '0 0 14px', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Clasificaciones de la comunidad</p>
+          </>
+        )}
 
         {/* Pill switcher */}
-        <div className="pill-switcher" style={{ background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, display: 'flex', gap: 4, marginBottom: 0, flexWrap: 'wrap' }}>
-        {MODES.map(m => (
-          <button key={m.id} onClick={() => setMode(m.id)}
-            style={{
-              flex: '1 1 auto', minWidth: 0, padding: '9px 6px', borderRadius: 10, fontWeight: 700, fontSize: 11,
-              border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-              background: mode === m.id ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'transparent',
-              color: mode === m.id ? '#fff' : 'rgba(255,255,255,0.3)',
-              boxShadow: mode === m.id ? '0 4px 12px rgba(232,142,0,0.3)' : 'none',
-              whiteSpace: 'nowrap',
-            }}>
-            {m.label}
-          </button>
-        ))}
+        <div className="pill-switcher" style={{
+          background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 14, padding: 4,
+          display: 'flex', gap: 4, marginBottom: 0,
+          flexWrap: isWide ? 'nowrap' : 'wrap',
+          overflowX: isWide ? 'auto' : 'visible',
+        }}>
+          {MODES.map(m => (
+            <button key={m.id} onClick={() => setMode(m.id)}
+              style={{
+                flex: isWide ? '0 0 auto' : '1 1 auto', minWidth: 0,
+                padding: isWide ? '10px 18px' : '9px 6px',
+                borderRadius: 10, fontWeight: 700, fontSize: isWide ? 13 : 11,
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                background: mode === m.id ? 'linear-gradient(135deg,#FF8C00,#E85D00)' : 'transparent',
+                color: mode === m.id ? '#fff' : 'rgba(255,255,255,0.3)',
+                boxShadow: mode === m.id ? '0 4px 12px rgba(232,142,0,0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}>
+              {m.label}
+            </button>
+          ))}
         </div>
 
-        {/* Sub-selector de plataforma - sticky (ranked, 2v2 y personaje) */}
+        {/* Sub-selector de plataforma */}
         {(mode === 'ranked' || mode === 'ranked2v2' || mode === 'char') && (
-          <div style={{ display: 'flex', gap: 8, padding: '12px 0 0' }}>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 0 0', maxWidth: isWide ? 420 : undefined }}>
             {[{ id: 'switch', label: '🎮 Switch Online' }, { id: 'parsec', label: '🖥️ Parsec' }].map(p => {
-              const activeVal  = mode === 'char' ? charPlat  : rankPlat;
-              const setActive  = mode === 'char'
+              const activeVal = mode === 'char' ? charPlat : rankPlat;
+              const setActive = mode === 'char'
                 ? v => { setCharPlat(v); setCharSel(null); }
                 : v => setRankPlat(v);
               return (
@@ -5762,10 +5781,11 @@ function TabRankings({ user, setTab }) {
             })}
           </div>
         )}
-        <div style={{ height: 25 }} />
+        {!isWide && <div style={{ height: 25 }} />}
+        {isWide && <div style={{ height: 16 }} />}
       </div>
 
-      <div style={{ padding: '0 18px' }}>
+      <div style={{ padding: isWide ? '0' : '0 18px' }}>
       {(mode === 'ranked' || mode === 'ranked2v2') ? (
         <>
           {mode === 'ranked2v2' && (
@@ -5809,7 +5829,7 @@ function TabRankings({ user, setTab }) {
       ) : mode !== 'char' ? (
         <>
           {/* Header con año y nombre de comunidad */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8, padding: '10px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8, padding: '10px 0' }}>
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
               {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
             </p>
