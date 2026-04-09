@@ -836,7 +836,7 @@ export default function HomePage() {
             {/* Desktop content row (main + optional right panel) */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
               {/* Desktop main content */}
-              <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 32px 32px' }}>
+              <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0px 32px 32px' }}>
                 <div style={{ maxWidth: 800, margin: '0 auto', width: '100%' }}>
                 {/* Banner sala activa (fuera del tab match) */}
                 {tab !== 'match' && bgMM && ['searching','waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
