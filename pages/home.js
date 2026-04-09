@@ -695,6 +695,16 @@ export default function HomePage() {
   const uid        = user?.id ? String(user.id) : (user?.slug || '');
   const uName      = user?.name || 'Jugador';
 
+  // Quick stats para el panel derecho desktop
+  const [desktopStats, setDesktopStats] = useState(null);
+  useEffect(() => {
+    if (!uid) return;
+    fetch(`/api/players/profile?id=${encodeURIComponent(uid)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setDesktopStats(d); })
+      .catch(() => {});
+  }, [uid]);
+
   const handleAcceptMatch = async () => {
     const isCasual = bgMM?.gameType === 'casual';
     try {
@@ -792,15 +802,16 @@ export default function HomePage() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               flexShrink: 0,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>
                   {tab === 'match' ? 'Match' : tab === 'rankings' ? 'Rankings' : tab === 'torneos' ? 'Torneos' : tab === 'tips' ? 'Tips' : tab === 'amigos' ? 'Amigos' : 'Mi Perfil'}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>
-                  {tab === 'match' ? 'Buscar partida' : tab === 'rankings' ? 'Clasificación general' : tab === 'torneos' ? 'Eventos y torneos' : tab === 'tips' ? 'Guías y consejos' : tab === 'amigos' ? 'Lista de amigos' : 'Tu cuenta'}
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {tab === 'match' ? '/ Buscar partida' : tab === 'rankings' ? '/ Clasificación' : tab === 'torneos' ? '/ Eventos' : tab === 'tips' ? '/ Guías' : tab === 'amigos' ? '/ Lista de amigos' : '/ Tu cuenta'}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Campana en header solo si NO hay right panel */}
+              {!isWide && (
                 <button
                   onClick={() => { setShowNotifs(v => !v); setShowMenu(false); }}
                   style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, cursor: 'pointer', padding: '8px 10px', color: unreadCount > 0 ? '#FF8C00' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', transition: 'background 0.15s' }}
@@ -812,12 +823,14 @@ export default function HomePage() {
                     <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid #0B0B12', padding: '0 2px' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
                   )}
                 </button>
-              </div>
+              )}
             </header>
 
-            {/* Desktop main content */}
-            <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 32px 32px' }}>
-              <div style={{ maxWidth: isWide ? 960 : 800, margin: '0 auto', width: '100%' }}>
+            {/* Desktop content row (main + optional right panel) */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+              {/* Desktop main content */}
+              <main className="tab-content desktop-main-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 32px 32px' }}>
+                <div style={{ maxWidth: 800, margin: '0 auto', width: '100%' }}>
                 {/* Banner sala activa (fuera del tab match) */}
                 {tab !== 'match' && bgMM && ['searching','waiting','active','pending_confirm','disputed','pending_accept'].includes(bgMM.status) && (
                   <button
@@ -846,11 +859,23 @@ export default function HomePage() {
                 {tab === 'amigos'   && <TabAmigos user={user} setNotifs={setNotifs} />}
                 {tab === 'perfil'   && <TabPerfil user={user} />}
               </div>
-            </main>
+              </main>
+
+              {/* Right panel — solo en pantallas ≥1200px */}
+              {isWide && (
+                <DesktopRightPanel
+                  user={user} uid={uid} bgMM={bgMM} setTab={setTab}
+                  notifs={notifs} unreadCount={unreadCount}
+                  dismissNotif={dismissNotif} router={router}
+                  setPendingFriendTab={setPendingFriendTab}
+                  desktopStats={desktopStats}
+                />
+              )}
+            </div>
           </div>
 
-          {/* Notifications panel (desktop) */}
-          {showNotifs && (
+          {/* Notifications panel flotante — solo en desktop no-wide (768-1199px) */}
+          {showNotifs && !isWide && (
             <>
               <div onClick={() => setShowNotifs(false)} style={{ position: 'fixed', inset: 0, zIndex: 199, background: 'transparent' }} />
               <div style={{ position: 'fixed', top: 12, right: 16, width: 400, maxHeight: 'calc(100vh - 40px)', background: '#111118', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 12px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'scale-in 0.15s ease-out' }}>
@@ -1755,6 +1780,131 @@ export default function HomePage() {
   );
 }
 
+/* ─── DESKTOP RIGHT PANEL ───────────────────────── */
+function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismissNotif, router, setPendingFriendTab, desktopStats }) {
+  const displayName = user?.name || user?.username || '';
+  const initial = displayName.charAt(0).toUpperCase();
+
+  // Calcular stats del jugador
+  const sw   = desktopStats?.stats?.switch || {};
+  const pc   = desktopStats?.stats?.parsec || {};
+  const sw2  = desktopStats?.doublesStats?.switch || {};
+  const pc2  = desktopStats?.doublesStats?.parsec || {};
+  const totalW = (sw.wins||0) + (pc.wins||0) + (sw2.wins||0) + (pc2.wins||0);
+  const totalL = (sw.losses||0) + (pc.losses||0) + (sw2.losses||0) + (pc2.losses||0);
+  const totalG = totalW + totalL;
+  const wr     = totalG > 0 ? Math.round((totalW / totalG) * 100) : 0;
+  const rankSw = desktopStats?.rankedStats?.switch?.rank || null;
+  const rankPc = desktopStats?.rankedStats?.parsec?.rank  || null;
+  const rpSw   = desktopStats?.rankedStats?.switch?.rp ?? null;
+  const rpPc   = desktopStats?.rankedStats?.parsec?.rp  ?? null;
+
+  const recentNotifs = notifs.slice(0, 5);
+
+  return (
+    <aside className="desktop-main-scroll" style={{
+      width: 300, minWidth: 300, height: '100%', overflowY: 'auto', flexShrink: 0,
+      borderLeft: '1px solid rgba(255,255,255,0.06)',
+      background: 'linear-gradient(180deg, #0A0A14 0%, #08080F 100%)',
+      padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16,
+    }}>
+      {/* Tu perfil card */}
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden' }}>
+        <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {user?.avatar
+            ? <img src={user.avatar} alt="" style={{ width: 44, height: 44, borderRadius: 14, border: '2px solid rgba(232,142,0,0.3)', objectFit: 'cover', flexShrink: 0 }} />
+            : <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,rgba(232,142,0,0.3),rgba(232,142,0,0.1))', border: '2px solid rgba(232,142,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 18, color: '#fff', flexShrink: 0 }}>{initial}</div>
+          }
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+            {(rankSw || rankPc) && <div style={{ marginTop: 3 }}><RankBadge rankName={rankSw || rankPc} /></div>}
+          </div>
+          <button onClick={() => setTab('perfil')} style={{ background: 'rgba(232,142,0,0.1)', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 10, padding: '6px 12px', color: '#FF8C00', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.18)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,142,0,0.1)'; }}
+          >Mi perfil</button>
+        </div>
+        {totalG > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {[
+              { label: 'Victorias', value: totalW, color: '#22C55E' },
+              { label: 'Derrotas',  value: totalL, color: '#EF4444' },
+              { label: 'Win Rate',  value: `${wr}%`, color: wr >= 50 ? '#22C55E' : '#FF8C00' },
+            ].map((s, i) => (
+              <div key={s.label} style={{ padding: '12px 8px', textAlign: 'center', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {(rankSw || rankPc) && (rpSw !== null || rpPc !== null) && (
+          <div style={{ display: 'flex', gap: 0, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {rankSw && rpSw !== null && (
+              <div style={{ flex: 1, padding: '10px 12px', borderRight: rankPc ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 700, marginBottom: 3 }}>🎮 SWITCH</div>
+                <RankBadge rankName={rankSw} />
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{rpSw} RP</div>
+              </div>
+            )}
+            {rankPc && rpPc !== null && (
+              <div style={{ flex: 1, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 700, marginBottom: 3 }}>🖥️ PARSEC</div>
+                <RankBadge rankName={rankPc} />
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{rpPc} RP</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Match activo banner */}
+      {bgMM && bgMM.status && bgMM.status !== 'idle' && (
+        <button onClick={() => setTab('match')} style={{
+          background: bgMM.status === 'active' ? 'rgba(34,197,94,0.08)' : 'rgba(124,58,237,0.08)',
+          border: `1px solid ${bgMM.status === 'active' ? 'rgba(34,197,94,0.25)' : 'rgba(124,58,237,0.25)'}`,
+          borderRadius: 14, padding: '12px 14px', cursor: 'pointer', width: '100%',
+          display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+          transition: 'background 0.15s', animation: 'pulse 2s ease-in-out infinite',
+        }}>
+          <span style={{ fontSize: 20, flexShrink: 0 }}>{bgMM.status === 'active' ? '⚔️' : bgMM.status === 'searching' ? '🔍' : '⏳'}</span>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: bgMM.status === 'active' ? '#34D399' : '#A78BFA' }}>
+              {bgMM.status === 'searching' ? 'Buscando partida...' : bgMM.status === 'active' ? '¡Partida en juego!' : bgMM.status === 'pending_confirm' ? 'Confirmá el resultado' : 'Match activo'}
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>Tap para ir al match →</div>
+          </div>
+        </button>
+      )}
+
+      {/* Notificaciones */}
+      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Notificaciones</span>
+            {unreadCount > 0 && <span style={{ background: '#EF4444', color: '#fff', fontSize: 9, fontWeight: 900, borderRadius: 6, padding: '2px 6px' }}>{unreadCount}</span>}
+          </div>
+        </div>
+        <div style={{ padding: '4px 0' }}>
+          {recentNotifs.length === 0 ? (
+            <div style={{ padding: '24px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>🔔</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Sin notificaciones nuevas</p>
+            </div>
+          ) : recentNotifs.map(n => (
+            <NotifCard key={n.id} notif={n} onDismiss={dismissNotif} userId={uid} userName={user?.name || ''}
+              onNavigate={(route) => {
+                if (route.external) { router.push(route.external); }
+                else if (route.tab) { setTab(route.tab); if (route.friendTab) setPendingFriendTab(route.friendTab); }
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 /* ─── DESKTOP SIDEBAR ───────────────────────────── */
 function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick }) {
   const w = collapsed ? 72 : 260;
@@ -1765,7 +1915,6 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
     { id: 'torneos',  label: 'Torneos',  icon: ICO.calendar, emoji: '📅' },
     { id: 'tips',     label: 'Tips',     icon: ICO.bulb,     emoji: '💡' },
     { id: 'amigos',   label: 'Amigos',   icon: ICO.users,    emoji: '👥' },
-    { id: 'perfil',   label: 'Mi Perfil', icon: ICO.user,    emoji: '👤' },
   ];
   return (
     <aside style={{
