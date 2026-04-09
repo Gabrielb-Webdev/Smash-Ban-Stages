@@ -5840,6 +5840,48 @@ function TabRankings({ user, setTab }) {
         )}
         {!isWide && <div style={{ height: 25 }} />}
         {isWide && <div style={{ height: 16 }} />}
+
+        {/* Sub-header comunidad: selector de año + título — solo para modos de comunidad */}
+        {!['ranked','ranked2v2','char'].includes(mode) && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '0 0 10px', borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 4, paddingTop: 10 }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+              {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
+            </p>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(() => {
+                const cur = new Date().getFullYear();
+                const years = [];
+                for (let y = cur; y >= 2025; y--) years.push(String(y));
+                return years.map(y => (
+                  <button key={y} onClick={() => setCommYear(y)} style={{
+                    padding: '6px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12,
+                    border: `1px solid ${commYear === y ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    background: commYear === y ? 'rgba(255,140,0,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: commYear === y ? '#FF8C00' : 'rgba(255,255,255,0.25)',
+                    boxShadow: commYear === y ? '0 2px 10px rgba(255,140,0,0.25)' : 'none',
+                  }}>
+                    {y}
+                  </button>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Contador ranked */}
+        {(mode === 'ranked' || mode === 'ranked2v2') && !rankLoading && rankBoard.length > 0 && (
+          <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', textAlign: 'center' }}>
+            Mostrando 1 - {rankBoard.length} de {rankTotal}
+          </p>
+        )}
+
+        {/* Contador comunidad */}
+        {!['ranked','ranked2v2','char'].includes(mode) && !commRanking.loading && commRanking.players.length > 0 && (
+          <p style={{ margin: '0 0 4px', fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+            Mostrando {(commPage - 1) * 100 + 1} - {Math.min(commPage * 100, commRanking.players.length)} de {commRanking.players.length}
+          </p>
+        )}
       </div>
 
       <div style={{ padding: isWide ? '0' : '0 18px' }}>
@@ -5873,9 +5915,6 @@ function TabRankings({ user, setTab }) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', textAlign: 'center' }}>
-                Mostrando 1 - {rankBoard.length} de {rankTotal}
-              </p>
               {rankBoard.map((p, i) => (
                 <RankedPlayerRow key={p.userId} position={i + 1} player={p} onPlayerClick={openProfile} />
               ))}
@@ -5885,32 +5924,6 @@ function TabRankings({ user, setTab }) {
         </>
       ) : mode !== 'char' ? (
         <>
-          {/* Header con año y nombre de comunidad */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8, padding: '10px 0' }}>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-              {(() => { const t = COMM_TAB_MAP.find(x => x.modeId === mode); return t ? `📍 ${t.label}` : ''; })()}
-            </p>
-            {/* Selector de año */}
-            <div style={{ display: 'flex', gap: 6 }}>
-              {(() => {
-                const cur = new Date().getFullYear();
-                const years = [];
-                for (let y = cur; y >= 2025; y--) years.push(String(y));
-                return years.map(y => (
-                  <button key={y} onClick={() => setCommYear(y)} style={{
-                    padding: '6px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12,
-                    border: `1px solid ${commYear === y ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                    background: commYear === y ? 'rgba(255,140,0,0.18)' : 'rgba(255,255,255,0.04)',
-                    color: commYear === y ? '#FF8C00' : 'rgba(255,255,255,0.25)',
-                    boxShadow: commYear === y ? '0 2px 10px rgba(255,140,0,0.25)' : 'none',
-                  }}>
-                    {y}
-                  </button>
-                ));
-              })()}
-            </div>
-          </div>
 
           {commRanking.loading && (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Cargando ranking...</div>
@@ -5933,11 +5946,6 @@ function TabRankings({ user, setTab }) {
             const pageSlice  = commRanking.players.slice((commPage - 1) * PAGE_SIZE, commPage * PAGE_SIZE);
             return (
               <>
-                {/* Contador */}
-                <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
-                  Mostrando {(commPage - 1) * PAGE_SIZE + 1} - {Math.min(commPage * PAGE_SIZE, commRanking.players.length)} de {commRanking.players.length}
-                </p>
-
                 {/* Lista estilo Ranked */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {pageSlice.map(p => (
