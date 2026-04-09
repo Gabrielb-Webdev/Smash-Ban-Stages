@@ -797,6 +797,7 @@ export default function HomePage() {
             isAdmin={isAdmin}
             adminCommunities={adminCommunities}
             onLogout={() => { logout(); window.location.href = '/login'; }}
+            onShowConfig={() => setShowConfig(true)}
           />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             {/* Desktop top bar */}
@@ -1903,7 +1904,7 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
 }
 
 /* ─── DESKTOP SIDEBAR ───────────────────────────── */
-function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick, isAdmin, adminCommunities, onLogout }) {
+function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick, isAdmin, adminCommunities, onLogout, onShowConfig }) {
   const w = collapsed ? 72 : 260;
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
@@ -2035,6 +2036,40 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
             </button>
           </Link>
         )}
+        {/* Gestionar Rankings — solo si tiene permisos */}
+        {(isAdmin || (adminCommunities && adminCommunities.length > 0)) && (
+          <button onClick={() => window.location.href = '/admin/afk-ranking'} title="Gestionar Rankings" style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: collapsed ? '10px 0' : '10px 8px',
+            background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            borderRadius: 10, transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(167,139,250,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+          >
+            <div style={{ color: 'rgba(167,139,250,0.6)', flexShrink: 0 }}>
+              <Svg size={20} sw={1.8}>{ICO.trophy}</Svg>
+            </div>
+            <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', fontSize: 12, color: 'rgba(167,139,250,0.6)', fontWeight: 700, display: 'block' }}>Gestionar Rankings</span>
+          </button>
+        )}
+        {/* Configuración */}
+        <button onClick={onShowConfig} title="Configuración" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: collapsed ? '10px 0' : '10px 8px',
+          background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          borderRadius: 10, transition: 'background 0.15s, padding 0.22s cubic-bezier(.4,0,.2,1)',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+        >
+          <div style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+            <Svg size={20} sw={1.8}>{ICO.settings}</Svg>
+          </div>
+          <span style={{ maxWidth: collapsed ? 0 : 160, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 700, display: 'block' }}>Configuración</span>
+        </button>
         {/* Cerrar sesión */}
         <button onClick={onLogout} title="Cerrar sesión" style={{
           display: 'flex', alignItems: 'center', gap: 10,
