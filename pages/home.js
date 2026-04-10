@@ -1993,7 +1993,7 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
 
 /* ─── DESKTOP SIDEBAR ───────────────────────────── */
 function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed, setCollapsed, onBellClick, isAdmin, adminCommunities, onLogout, onShowConfig }) {
-  const [hovered, setHovered] = React.useState(false);
+  const [hovered, setHovered] = useState(false);
   const w = collapsed ? 72 : 260;
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
