@@ -1005,7 +1005,7 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                    <button onClick={declineMatch} style={{ flex: 1, padding: '14px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+                    <button onClick={handleDeclineMatch} style={{ flex: 1, padding: '14px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
                     >✕ Rechazar</button>
