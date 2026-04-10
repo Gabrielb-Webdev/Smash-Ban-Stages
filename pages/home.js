@@ -1009,7 +1009,7 @@ export default function HomePage() {
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
                     >✕ Rechazar</button>
-                    <button onClick={acceptMatch} disabled={bgMM.accepted} style={{ flex: 2, padding: '14px', borderRadius: 14, border: 'none', background: bgMM.accepted ? 'rgba(52,211,153,0.15)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: bgMM.accepted ? 'default' : 'pointer', boxShadow: bgMM.accepted ? 'none' : `0 4px 24px ${pData?.from || '#FF8C00'}50`, transition: 'transform 0.15s, box-shadow 0.15s' }}>
+                    <button onClick={handleAcceptMatch} disabled={bgMM.accepted} style={{ flex: 2, padding: '14px', borderRadius: 14, border: 'none', background: bgMM.accepted ? 'rgba(52,211,153,0.15)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: bgMM.accepted ? 'default' : 'pointer', boxShadow: bgMM.accepted ? 'none' : `0 4px 24px ${pData?.from || '#FF8C00'}50`, transition: 'transform 0.15s, box-shadow 0.15s' }}>
                       {bgMM.accepted ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar partida'}
                     </button>
                   </div>
