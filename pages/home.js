@@ -135,7 +135,8 @@ const VALID_TABS = ['rankings', 'torneos', 'tips', 'match', 'amigos', 'perfil'];
 function getInitialTab() {
   if (typeof window === 'undefined') return 'rankings';
   const hash = window.location.hash.replace('#', '');
-  return VALID_TABS.includes(hash) ? hash : 'rankings';
+  const base = hash.split('/')[0];
+  return VALID_TABS.includes(base) ? base : 'rankings';
 }
 
 export default function HomePage() {
@@ -644,8 +645,9 @@ export default function HomePage() {
     if (typeof window === 'undefined') return;
     const onPopState = () => {
       const hash = window.location.hash.replace('#', '');
-      if (VALID_TABS.includes(hash)) {
-        setTab(hash);
+      const base = hash.split('/')[0];
+      if (VALID_TABS.includes(base)) {
+        setTab(base);
       } else {
         // Si no hay hash válido, volver a rankings y restaurar el hash
         setTab('rankings');
@@ -6941,17 +6943,36 @@ function TabTips() {
     setTips(prev => prev.map(t => t.id === updated.id ? updated : t));
   };
 
-  // Navegación nativa: pushState al entrar al detalle, popstate para volver
+  // Al montar: restaurar personaje desde hash (URL directa / F5 / link compartido)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash.replace('#', '');
+    const parts = hash.split('/');
+    if (parts[0] === 'tips' && parts[1]) {
+      setSelected(decodeURIComponent(parts[1]));
+    }
+  }, []);
+
+  // Actualizar URL hash cuando cambia el personaje seleccionado
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (selected) {
-      window.history.pushState({ tipsDetail: selected }, '', window.location.href);
+      const newHash = '#tips/' + encodeURIComponent(selected);
+      if (window.location.hash !== newHash) {
+        window.history.pushState({ tipsChar: selected }, '', newHash);
+      }
     }
   }, [selected]);
+
+  // Capturar botón atrás del navegador
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onPop = (e) => {
-      if (selected) {
+    const onPop = () => {
+      const hash = window.location.hash.replace('#', '');
+      const parts = hash.split('/');
+      if (parts[0] === 'tips' && parts[1]) {
+        setSelected(decodeURIComponent(parts[1]));
+      } else {
         setSelected(null);
         setShowForm(false);
         setTips([]);
@@ -6960,43 +6981,39 @@ function TabTips() {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [selected]);
+  }, []);
 
   if (selected) {
     const imgSrc = `/images/characters/${encodeURIComponent(selected.replace(/\.$/, ''))}.png`;
+    const goBack = () => { setSelected(null); setShowForm(false); setTips([]); setSubmitResult(null); window.history.replaceState(null, '', '#tips'); };
     return (
-      <div style={{ padding: '24px 18px' }}>
-        <button onClick={() => { setSelected(null); setShowForm(false); setTips([]); setSubmitResult(null); }} style={{
-          display: 'flex', alignItems: 'center', gap: 8, color: '#FF8C00',
-          fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer',
-          padding: '4px 0', marginBottom: 20,
-        }}>
-          <Svg size={18} sw={2}>{ICO.back}</Svg> Volver
-        </button>
-
-        {/* Character hero */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, background: '#10101A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 20, padding: 16 }}>
-          <img src={imgSrc} alt={selected} style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 14, background: 'rgba(255,255,255,0.03)', flexShrink: 0 }} />
-          <div>
-            <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{selected}</h2>
-            <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Super Smash Bros. Ultimate</p>
-            <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '4px 10px' }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{tips.length} tip{tips.length !== 1 ? 's' : ''} de la comunidad</span>
+      <div>
+        {/* Sticky header: Volver + personaje + botón subir */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0B0B12', padding: '14px 18px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <button onClick={goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF8C00', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, padding: 0, flexShrink: 0 }}>
+              <Svg size={16} sw={2}>{ICO.back}</Svg> Volver
+            </button>
+            <img src={imgSrc} alt={selected} style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 900, fontSize: 16, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected}</p>
+              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Super Smash Bros. Ultimate &middot; {tips.length} tip{tips.length !== 1 ? 's' : ''} de la comunidad</p>
             </div>
           </div>
+          {/* Botón subir tip */}
+          <button onClick={() => { setShowForm(v => !v); setSubmitResult(null); }} style={{
+            width: '100%', padding: '10px 16px', borderRadius: 12,
+            background: showForm ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,rgba(232,142,0,0.15),rgba(232,142,0,0.06))',
+            border: `1px solid ${showForm ? 'rgba(255,255,255,0.08)' : 'rgba(232,142,0,0.3)'}`,
+            color: '#FF8C00', fontWeight: 800, fontSize: 13, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>
+            {showForm ? '✕ Cancelar' : '+ Subir tip'}
+          </button>
         </div>
 
-        {/* Botón subir tip */}
-        <button onClick={() => { setShowForm(v => !v); setSubmitResult(null); }} style={{
-          width: '100%', marginBottom: 14, padding: '12px 16px', borderRadius: 14,
-          background: showForm ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,rgba(232,142,0,0.15),rgba(232,142,0,0.06))',
-          border: `1px solid ${showForm ? 'rgba(255,255,255,0.08)' : 'rgba(232,142,0,0.3)'}`,
-          color: '#FF8C00', fontWeight: 800, fontSize: 14, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        }}>
-          {showForm ? '✕ Cancelar' : '+ Subir tip'}
-        </button>
-
+        {/* Contenido scrollable */}
+        <div style={{ padding: '14px 18px 24px' }}>
         {/* Formulario */}
         {showForm && (
           <div style={{ background: '#10101A', border: '1px solid rgba(232,142,0,0.2)', borderRadius: 20, padding: 16, marginBottom: 14 }}>
@@ -7069,6 +7086,7 @@ function TabTips() {
         ) : (
           [...tips].reverse().map(t => <TipCard key={t.id} tip={t} currentUserId={currentUserId} currentUserName={currentUserName} onDelete={handleDeleteTip} onEdit={handleEditTip} />)
         )}
+        </div>{/* /contenido scrollable */}
       </div>
     );
   }
