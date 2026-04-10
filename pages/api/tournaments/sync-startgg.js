@@ -330,6 +330,11 @@ export default async function handler(req, res) {
               }
             }
             if (communityFilter) data = data.filter(t => t.community === communityFilter);
+            // Aplicar community_map overrides
+            try {
+              const communityMap = (await redis.get('tournaments:community_map')) || {};
+              data = data.map(t => communityMap[t.slug] ? { ...t, community: communityMap[t.slug] } : t);
+            } catch {}
             // Filtrar torneos ocultos por el admin
             try {
               const hiddenSlugs = (await redis.get('tournaments:hidden')) || [];

@@ -8,6 +8,7 @@ import { sendPushToAll } from '../../../lib/push';
 
 const FEATURED_KEY  = 'tournaments:featured';
 const HIDDEN_KEY    = 'tournaments:hidden';
+const COMMUNITY_MAP_KEY = 'tournaments:community_map';
 const AUTO_COMPLETE_PREFIX = 'startgg:auto_complete:';
 const STARTGG_API   = 'https://api.start.gg/gql/alpha';
 const STATE_LABELS  = { 1: 'CREATED', 2: 'ACTIVE', 3: 'COMPLETED', 4: 'CANCELLED' };
@@ -55,6 +56,9 @@ export default async function handler(req, res) {
       if (!Array.isArray(list)) list = [];
       const hiddenSlugs = (await redis.get(HIDDEN_KEY)) || [];
       const hidden = Array.isArray(hiddenSlugs) ? hiddenSlugs : [];
+      // Aplicar community_map overrides
+      const communityMap = (await redis.get(COMMUNITY_MAP_KEY)) || {};
+      list = list.map(t => communityMap[t.slug] ? { ...t, community: communityMap[t.slug] } : t);
       // mget todos los slugs de auto-complete en 1 comando en vez de loop serial
       const toCheck = list.filter(t => t.state !== 3 && t.state !== 4);
       if (toCheck.length > 0) {
@@ -64,7 +68,7 @@ export default async function handler(req, res) {
       if (isAdmin) {
         // Panel admin: incluir todos marcando los ocultos con _hidden: true
         list = list.map(t => hidden.includes(t.slug) ? { ...t, _hidden: true } : t);
-        return res.status(200).json({ featured: list, hiddenSlugs: hidden });
+        return res.status(200).json({ featured: list, hiddenSlugs: hidden, communityMap });
       } else {
         // Vista pública: filtrar los ocultos
         list = list.filter(t => !hidden.includes(t.slug));
@@ -176,6 +180,20 @@ export default async function handler(req, res) {
     if (!checkAuth(req)) return res.status(401).json({ error: 'No autorizado' });
     const { slug, state, action } = req.body || {};
     if (!slug) return res.status(400).json({ error: 'slug requerido' });
+
+    // Asignar comunidad a un torneo
+    if (action === 'set_community') {
+      const { community } = req.body || {};
+      try {
+        const map = (await redis.get(COMMUNITY_MAP_KEY)) || {};
+        if (community) map[slug] = community;
+        else delete map[slug];
+        await redis.set(COMMUNITY_MAP_KEY, map);
+        return res.status(200).json({ success: true, communityMap: map });
+      } catch (err) {
+        return res.status(500).json({ error: 'Error en Redis', detail: err.message });
+      }
+    }
 
     // Ocultar / mostrar torneo (funciona para featured y auto-sync)
     if (action === 'hide' || action === 'unhide') {

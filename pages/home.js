@@ -6513,6 +6513,15 @@ function ElapsedTimer({ startAt }) {
   return <>{m}m {String(s).padStart(2,'0')}s</>;
 }
 
+const COMMUNITY_LOGOS = {
+  'afk-multi': '/images/AFK.webp',
+  'cordoba':   '/images/SCC.webp',
+  'mendoza':   '/images/Team_Anexo/team_anexo_logo_nwe.png',
+  'inc':       '/images/inc.png',
+  'warui':     '/images/warui/logo.png',
+  'santafe':   '/images/Smash_Santa_Fe.png',
+};
+
 function TabTorneos({ user }) {
   const [startggTorneos, setStartggTorneos] = useState([]);
   const [startggLoading, setStartggLoading] = useState(true);
@@ -6603,7 +6612,11 @@ function TabTorneos({ user }) {
             <div key={t.id || t.slug} style={{ background: '#10101A', border: t._featured ? '1px solid rgba(255,140,0,0.35)' : '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden', opacity: _isFinished ? 0.65 : 1 }}>
               {/* 1. NOMBRE */}
               <div style={{ padding: '14px 16px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>🏆</span>
+                {COMMUNITY_LOGOS[t.community] ? (
+                  <img src={COMMUNITY_LOGOS[t.community]} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                ) : (
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🏆</span>
+                )}
                 <p style={{ margin: 0, fontWeight: 900, fontSize: 15, color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
                 {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>DEST.</span>}
               </div>

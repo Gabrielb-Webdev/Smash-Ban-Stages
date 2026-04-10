@@ -22,6 +22,7 @@ export default function Home() {
   const [featuredPreview, setFeaturedPreview]     = useState(null);
   const [featuredPreviewLoading, setFeaturedPreviewLoading] = useState(false);
   const [markCompleting, setMarkCompleting]       = useState({});
+  const [communityMap, setCommunityMap]           = useState({});
 
   useEffect(() => {
     verifySession().then(data => {
@@ -59,6 +60,7 @@ export default function Home() {
     ]).then(([fd, sd]) => {
       if (Array.isArray(fd.featured)) setFeaturedTours(fd.featured);
       if (Array.isArray(fd.hiddenSlugs)) setHiddenSlugs(fd.hiddenSlugs);
+      if (fd.communityMap && typeof fd.communityMap === 'object') setCommunityMap(fd.communityMap);
       if (Array.isArray(sd.tournaments)) {
         const featSlugs = new Set((fd.featured || []).map(t => t.slug));
         setSyncedTours(sd.tournaments.filter(t => !featSlugs.has(t.slug)));
@@ -375,6 +377,17 @@ export default function Home() {
       // Actualizar marca _hidden en featured
       setFeaturedTours(prev => prev.map(t => ({ ...t, _hidden: d.hiddenSlugs.includes(t.slug) })));
     }
+  }
+
+  async function setTournamentCommunity(slug, communityId) {
+    const r = await fetch('/api/tournaments/featured', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+      body: JSON.stringify({ slug, action: 'set_community', community: communityId || null }),
+    }).catch(() => null);
+    if (!r?.ok) return;
+    const d = await r.json();
+    if (d.communityMap) setCommunityMap(d.communityMap);
   }
 
   async function notifyFeaturedFromIndex(slug) {
@@ -695,6 +708,20 @@ export default function Home() {
                               style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '5px 9px', color: '#FBBF24', cursor: 'pointer', fontSize: 13, flexShrink: 0, opacity: markCompleting[t.slug] ? 0.5 : 1 }}
                             >{markCompleting[t.slug] ? '...' : '🏁'}</button>
                           )}
+                          <select
+                            value={communityMap[t.slug] || t.community || ''}
+                            onChange={e => setTournamentCommunity(t.slug, e.target.value || null)}
+                            title="Organización"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'rgba(255,255,255,0.6)', fontSize: 11, padding: '4px 6px', cursor: 'pointer', maxWidth: 110 }}
+                          >
+                            <option value="">— Org —</option>
+                            <option value="afk-multi">Smash AFK</option>
+                            <option value="cordoba">Smash Córdoba</option>
+                            <option value="mendoza">Smash Mendoza</option>
+                            <option value="inc">INC</option>
+                            <option value="warui">Warui Team</option>
+                            <option value="santafe">Smash Santa Fe</option>
+                          </select>
                           <button
                             onClick={() => notifyFeaturedFromIndex(t.slug)}
                             title="Enviar notificación push"
