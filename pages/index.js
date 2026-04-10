@@ -712,15 +712,15 @@ export default function Home() {
                             value={communityMap[t.slug] || t.community || ''}
                             onChange={e => setTournamentCommunity(t.slug, e.target.value || null)}
                             title="Organización"
-                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'rgba(255,255,255,0.6)', fontSize: 11, padding: '4px 6px', cursor: 'pointer', maxWidth: 110 }}
+                            style={{ background: '#1e1433', border: '1px solid rgba(167,139,250,0.35)', borderRadius: 8, color: '#e2d9f3', fontSize: 11, padding: '5px 7px', cursor: 'pointer', maxWidth: 120, fontWeight: 600, outline: 'none' }}
                           >
-                            <option value="">— Org —</option>
-                            <option value="afk-multi">Smash AFK</option>
-                            <option value="cordoba">Smash Córdoba</option>
-                            <option value="mendoza">Smash Mendoza</option>
-                            <option value="inc">INC</option>
-                            <option value="warui">Warui Team</option>
-                            <option value="santafe">Smash Santa Fe</option>
+                            <option value=""    style={{ background: '#1e1433', color: '#9d8bbf' }}>— Org —</option>
+                            <option value="afk-multi" style={{ background: '#1e1433', color: '#e2d9f3' }}>Smash AFK</option>
+                            <option value="cordoba"   style={{ background: '#1e1433', color: '#e2d9f3' }}>Smash Córdoba</option>
+                            <option value="mendoza"   style={{ background: '#1e1433', color: '#e2d9f3' }}>Smash Mendoza</option>
+                            <option value="inc"       style={{ background: '#1e1433', color: '#e2d9f3' }}>INC</option>
+                            <option value="warui"     style={{ background: '#1e1433', color: '#e2d9f3' }}>Warui Team</option>
+                            <option value="santafe"   style={{ background: '#1e1433', color: '#e2d9f3' }}>Smash Santa Fe</option>
                           </select>
                           <button
                             onClick={() => notifyFeaturedFromIndex(t.slug)}
