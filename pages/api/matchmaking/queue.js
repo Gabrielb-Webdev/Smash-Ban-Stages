@@ -261,6 +261,11 @@ export default async function handler(req, res) {
     const cleanCharAlt   = charAlt ? sanitize(String(charAlt)).slice(0, 200) : null;
     const cleanParsecRole = parsecRole === 'host' || parsecRole === 'nohost' ? parsecRole : null;
 
+    // Parsec requiere rol definido
+    if (platform === 'parsec' && !cleanParsecRole) {
+      return res.status(400).json({ error: 'Debes elegir Host o No Host para buscar en Parsec' });
+    }
+
     // Check si ya está en cola
     const queue = await pruneQueue(platform);
     if (queue.find(e => e.userId === cleanUserId)) {

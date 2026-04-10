@@ -242,9 +242,15 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Ya estás en cola casual' });
     }
 
+    // Parsec requiere rol definido
+    const cleanParsecRole = parsecRole === 'host' || parsecRole === 'nohost' ? parsecRole : null;
+    if (platform === 'parsec' && !cleanParsecRole) {
+      return res.status(400).json({ error: 'Debes elegir Host o No Host para buscar en Parsec' });
+    }
+
     queue.push({
       userId: cleanId, userName: cleanName, charId: cleanChar, charAlt: cleanAlt,
-      parsecRole: parsecRole || null,
+      parsecRole: cleanParsecRole,
       platform, joinedAt: new Date().toISOString(),
     });
     await redis.set(casualQueueKey(platform), queue);

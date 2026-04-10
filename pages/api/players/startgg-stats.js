@@ -463,8 +463,8 @@ export default async function handler(req, res) {
     return res.status(200).json({});
   }
 
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'Authorization header required' });
+  const auth = req.headers.authorization ||
+    (process.env.STARTGG_TOKEN ? `Bearer ${process.env.STARTGG_TOKEN}` : null);
 
   const cacheKey = `startgg:stats:v16:${slug}`;
   const forceRefresh = req.query.refresh === 'true';
@@ -478,6 +478,9 @@ export default async function handler(req, res) {
       }
     } catch (e) { /* continuar sin cache */ }
   }
+
+  // Sin auth (ningún token disponible) → no podemos consultar Start.GG
+  if (!auth) return res.status(200).json({});
 
   // Fetch a Start.GG — solo 1 página para respetar el timeout de Vercel
   try {

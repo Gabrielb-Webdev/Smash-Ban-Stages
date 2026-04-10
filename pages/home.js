@@ -3530,12 +3530,11 @@ function TabAmigos({ user, setNotifs }) {
           try {
             const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
             const token = stored.access_token;
-            if (token) {
-              fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers: { 'Authorization': 'Bearer ' + token } })
-                .then(r => r.ok ? r.json() : null)
-                .then(sg => { if (sg) setProfileStartggStats(sg); })
-                .catch(() => {});
-            }
+            const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+            fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers })
+              .then(r => r.ok ? r.json() : null)
+              .then(sg => { if (sg && Object.keys(sg).length > 0) setProfileStartggStats(sg); })
+              .catch(() => {});
           } catch {}
         }
       })
@@ -5734,12 +5733,11 @@ function TabRankings({ user, setTab }) {
           try {
             const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
             const token = stored.access_token;
-            if (token) {
-              fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers: { 'Authorization': 'Bearer ' + token } })
-                .then(r => r.ok ? r.json() : null)
-                .then(sg => { if (sg) setProfileStartggStats(sg); })
-                .catch(() => {});
-            }
+            const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+            fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers })
+              .then(r => r.ok ? r.json() : null)
+              .then(sg => { if (sg && Object.keys(sg).length > 0) setProfileStartggStats(sg); })
+              .catch(() => {});
           } catch {}
         }
       })
@@ -9063,6 +9061,11 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         )}
       </div>
     );
+  }
+
+  // --- RENDER: PENDING ACCEPT — el modal lo maneja el componente padre ---
+  if (matchStatus === 'pending_accept') {
+    return null;
   }
 
   // --- RENDER: BUSCANDO RANKED -------------------------------------------
