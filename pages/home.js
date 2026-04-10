@@ -6601,21 +6601,20 @@ function TabTorneos({ user }) {
             const _isFinished = t.state === 3 || t.state === 4 || t.state === 'COMPLETED' || t.state === 'CANCELLED';
             return (
             <div key={t.id || t.slug} style={{ background: '#10101A', border: t._featured ? '1px solid rgba(255,140,0,0.35)' : '1px solid rgba(232,142,0,0.15)', borderRadius: 18, overflow: 'hidden', opacity: _isFinished ? 0.65 : 1 }}>
+              {/* 1. NOMBRE */}
+              <div style={{ padding: '14px 16px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>🏆</span>
+                <p style={{ margin: 0, fontWeight: 900, fontSize: 15, color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
+                {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>DEST.</span>}
+              </div>
+              {/* 2. IMAGEN */}
               {t.image && (
-                <div style={{ height: 100, background: `url(${t.image}) center/cover no-repeat`, borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
+                <div style={{ height: 160, background: `url(${t.image}) center/cover no-repeat` }} />
               )}
-              <div style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(135deg,rgba(232,142,0,0.25),rgba(232,80,0,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🏆</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</p>
-                      {t._featured && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', background: 'rgba(255,140,0,0.2)', color: '#FF8C00', borderRadius: 5, flexShrink: 0 }}>DEST.</span>}
-                    </div>
-                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+              {/* 3. INFO + BOTONES */}
+              <div style={{ padding: '12px 16px 14px', borderTop: t.image ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>📅 {formatStartggDate(t.startAt)}</p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                   {(() => {
                     if (_isFinished) return (
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8 }}>✔️ Finalizado</span>
@@ -6638,7 +6637,7 @@ function TabTorneos({ user }) {
                   const enrolled = enrolledEvents[e.id];
                   const checked = enrolled !== undefined;
                   return (
-                    <div key={e.id} style={{ marginTop: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '10px 12px' }}>
+                    <div key={e.id} style={{ marginTop: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '10px 12px' }}>
                       <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{e.name}</p>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <a href={eventUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', fontSize: 12, fontWeight: 700, color: '#fff', padding: '6px 14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>Ver evento ↗</a>
