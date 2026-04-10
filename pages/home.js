@@ -9990,41 +9990,6 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
         </>
       )}
 
-      {/* Cómo funciona */}
-      <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1 }}>¿Cómo funciona?</p>
-        {matchTypeMode === 'casual' ? (
-          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola Normal'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['🎮','A jugar','Partida casual, sin efecto en el rango']].map(([icon,t,d])=>(
-            <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
-              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-              <div>
-                <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
-              </div>
-            </div>
-          ))
-        ) : matchMode === '1v1' ? (
-          [['🎮','Elegí personaje','Seleccioná con quién querés jugar'],['🔍','Buscá rival','Elegí Switch o Parsec y entrá a la cola'],['✅','Ambos aceptan (15s)','Cuando se encuentre rival, los dos confirman'],['💬','Coordiná en el chat','Decidan quién crea la sala/hostea'],['⚔️','A jugar','Escenario aleatorio, reportan resultado al final']].map(([icon,t,d])=>(
-            <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
-              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-              <div>
-                <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
-              </div>
-            </div>
-          ))
-        ) : (
-          [['👥','Invitá a un amigo','Desde tu perfil, tocá 💬 y usá el botón 2v2'],['✅','Tu amigo acepta','Cuando acepte, el party estará listo'],['🔍','Buscar rivales','Entrá a la cola como equipo de 2'],['⚔️','Los 4 aceptan','Ambos equipos confirman la partida'],['🏆','Reportá el resultado','El equipo ganador reporta y sube de rango']].map(([icon,t,d])=>(
-            <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '4px 0' }}>
-              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-              <div>
-                <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{t}</p>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{d}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 }
