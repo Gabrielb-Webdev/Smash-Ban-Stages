@@ -1271,10 +1271,10 @@ export default function HomePage() {
         {/* ── PROFILE MENU OVERLAY ── */}
         {showMenu && (
           <>
-            <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }} />
+            <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }} />
             <div style={{
               position: 'fixed', top: 66, left: 'max(calc(50% - 240px + 12px), 12px)',
-              zIndex: 46,
+              zIndex: 9999,
               background: 'rgba(14,14,22,0.97)',
               backdropFilter: 'blur(40px) saturate(1.6)',
               WebkitBackdropFilter: 'blur(40px) saturate(1.6)',
