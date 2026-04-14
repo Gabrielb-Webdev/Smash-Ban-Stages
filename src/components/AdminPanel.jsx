@@ -25,6 +25,12 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
   const [notifSetup, setNotifSetup] = useState('Setup 1');
   const [notifSending, setNotifSending] = useState(false);
   const [notifSent, setNotifSent] = useState(null); // null | 'ok' | 'error'
+
+  // Broadcast push global
+  const [bcastTitle, setBcastTitle] = useState('');
+  const [bcastBody, setBcastBody] = useState('');
+  const [bcastSending, setBcastSending] = useState(false);
+  const [bcastResult, setBcastResult] = useState(null); // null | 'ok' | 'error'
   const [publishedTournaments, setPublishedTournaments] = useState([]);
   const [publishedLoading, setPublishedLoading] = useState(false);
   const [publishedError, setPublishedError] = useState('');
@@ -491,6 +497,29 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
     }
   };
 
+  const handleBroadcastPush = async () => {
+    if (!bcastTitle.trim() || !bcastBody.trim()) return;
+    setBcastSending(true);
+    setBcastResult(null);
+    try {
+      const r = await fetch('/api/admin/broadcast-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer afk-admin-2025' },
+        body: JSON.stringify({ title: bcastTitle.trim(), body: bcastBody.trim() }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'Error');
+      setBcastResult('ok');
+      setBcastTitle('');
+      setBcastBody('');
+    } catch {
+      setBcastResult('error');
+    } finally {
+      setBcastSending(false);
+      setTimeout(() => setBcastResult(null), 4000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-smash-darker via-smash-dark to-smash-purple p-8">
       <div className="max-w-6xl mx-auto">
@@ -602,6 +631,52 @@ export default function AdminPanel({ defaultCommunity = 'cordoba' }) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* ── BROADCAST PUSH ───────────────────────────────── */}
+        <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-2xl border border-white/20 mb-6">
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-white">📣 Notificación a todos los usuarios</h2>
+            <p className="text-white/50 text-sm mt-1">Envía una push notification a todos los que tienen la app instalada o activaron notificaciones.</p>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-white/70 text-sm font-semibold mb-1">Título</label>
+              <input
+                type="text"
+                maxLength={100}
+                value={bcastTitle}
+                onChange={e => setBcastTitle(e.target.value)}
+                placeholder="Ej: ¡Sistema de Ranked disponible!"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-orange-400 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm font-semibold mb-1">Mensaje</label>
+              <textarea
+                maxLength={300}
+                rows={3}
+                value={bcastBody}
+                onChange={e => setBcastBody(e.target.value)}
+                placeholder="Ej: Ya podés buscar partidas ranked 1v1 y 2v2 en la app ⚡"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-orange-400 text-sm resize-none"
+              />
+            </div>
+            <button
+              onClick={handleBroadcastPush}
+              disabled={bcastSending || !bcastTitle.trim() || !bcastBody.trim()}
+              className={`w-full py-3 font-bold text-base rounded-lg transition-all ${
+                bcastSending || !bcastTitle.trim() || !bcastBody.trim()
+                  ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:shadow-xl hover:scale-[1.02]'
+              }`}
+            >
+              {bcastSending ? '⏳ Enviando...' : bcastResult === 'ok' ? '✅ ¡Enviado a todos!' : '📣 Enviar a todos'}
+            </button>
+            {bcastResult === 'error' && (
+              <p className="text-red-400 text-sm text-center">Error al enviar. Intentá de nuevo.</p>
+            )}
+          </div>
         </div>
 
         {!currentSession || currentSession.phase === 'FINISHED' ? (
