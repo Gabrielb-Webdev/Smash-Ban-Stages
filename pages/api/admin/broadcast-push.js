@@ -1,16 +1,16 @@
 // POST /api/admin/broadcast-push
 // Envía una push notification a TODOS los usuarios suscritos.
-// Solo global admins pueden usarlo.
+// Solo admins (ADMIN_SECRET) pueden usarlo.
 
 import { sendPushToAll } from '../../../lib/push';
-import { getTicketUser } from '../../../lib/ticketAuth';
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'afk-admin-2025';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const tu = await getTicketUser(req);
-  if (!tu) return res.status(401).json({ error: 'No autenticado' });
-  if (!tu.isAdmin) return res.status(403).json({ error: 'Solo global admins pueden enviar broadcasts' });
+  const auth = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim();
+  if (auth !== ADMIN_SECRET) return res.status(401).json({ error: 'No autorizado' });
 
   const { title, body, tag } = req.body || {};
   if (!title || !body) return res.status(400).json({ error: 'title y body son requeridos' });
