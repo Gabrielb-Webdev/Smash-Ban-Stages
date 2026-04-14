@@ -23,6 +23,11 @@ export default function Home() {
   const [featuredPreviewLoading, setFeaturedPreviewLoading] = useState(false);
   const [markCompleting, setMarkCompleting]       = useState({});
   const [communityMap, setCommunityMap]           = useState({});
+  const [bcastTitle, setBcastTitle]               = useState('');
+  const [bcastBody, setBcastBody]                 = useState('');
+  const [bcastSending, setBcastSending]           = useState(false);
+  const [bcastResult, setBcastResult]             = useState(null); // null | 'ok' | 'error'
+  const [bcastOpen, setBcastOpen]                 = useState(false);
 
   useEffect(() => {
     verifySession().then(data => {
@@ -744,6 +749,88 @@ export default function Home() {
           </div>
           );
         })()}
+
+        {/* ── BROADCAST PUSH ── */}
+        {isAdmin && (
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden', maxWidth: 640, margin: '20px auto 0' }}>
+            <button
+              onClick={() => setBcastOpen(p => !p)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                📣 Notificar a todos los usuarios
+              </span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }}>{bcastOpen ? '▾' : '▸'}</span>
+            </button>
+
+            {bcastOpen && (
+              <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                  Envía una push notification a todos los usuarios que tienen la app instalada o activaron notificaciones.
+                </p>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 5, fontFamily: 'inherit' }}>Título</label>
+                  <input
+                    type="text"
+                    maxLength={100}
+                    value={bcastTitle}
+                    onChange={e => setBcastTitle(e.target.value)}
+                    placeholder="Ej: ¡Sistema de Ranked disponible!"
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 5, fontFamily: 'inherit' }}>Mensaje</label>
+                  <textarea
+                    maxLength={300}
+                    rows={3}
+                    value={bcastBody}
+                    onChange={e => setBcastBody(e.target.value)}
+                    placeholder="Ej: Ya podés buscar partidas ranked 1v1 y 2v2 en la app ⚡"
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!bcastTitle.trim() || !bcastBody.trim() || bcastSending) return;
+                    setBcastSending(true);
+                    setBcastResult(null);
+                    try {
+                      const r = await fetch('/api/admin/broadcast-push', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+                        body: JSON.stringify({ title: bcastTitle.trim(), body: bcastBody.trim() }),
+                      });
+                      const d = await r.json().catch(() => ({}));
+                      if (!r.ok) throw new Error(d.error || 'Error');
+                      setBcastResult('ok');
+                      setBcastTitle('');
+                      setBcastBody('');
+                    } catch {
+                      setBcastResult('error');
+                    } finally {
+                      setBcastSending(false);
+                      setTimeout(() => setBcastResult(null), 4000);
+                    }
+                  }}
+                  disabled={bcastSending || !bcastTitle.trim() || !bcastBody.trim()}
+                  style={{
+                    width: '100%', padding: '12px', borderRadius: 12, border: 'none',
+                    cursor: bcastSending || !bcastTitle.trim() || !bcastBody.trim() ? 'not-allowed' : 'pointer',
+                    background: bcastSending || !bcastTitle.trim() || !bcastBody.trim() ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg,#FF8C00,#E85D00)',
+                    color: bcastSending || !bcastTitle.trim() || !bcastBody.trim() ? 'rgba(255,255,255,0.3)' : '#fff',
+                    fontWeight: 900, fontSize: 14, fontFamily: 'inherit', transition: 'all 0.2s',
+                  }}
+                >
+                  {bcastSending ? '⏳ Enviando...' : bcastResult === 'ok' ? '✅ ¡Enviado a todos!' : '📣 Enviar a todos'}
+                </button>
+                {bcastResult === 'error' && (
+                  <p style={{ margin: 0, fontSize: 12, color: '#f87171', textAlign: 'center' }}>Error al enviar. Intentá de nuevo.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
     </>
