@@ -132,6 +132,34 @@ const TOUR_STEPS = [
 
 const VALID_TABS = ['rankings', 'torneos', 'tips', 'match', 'amigos', 'perfil'];
 
+const WHATS_NEW_KEY = 'whats_new_ranked_v1';
+const WHATS_NEW_ITEMS = [
+  {
+    emoji: '⚡',
+    color: '#FF8C00',
+    title: 'Sistema Ranked activo',
+    desc: 'Ya podés buscar partidas ranked 1v1 y 2v2. Te emparejamos con rivales de rango similar en tiempo real.',
+  },
+  {
+    emoji: '🎯',
+    color: '#7C3AED',
+    title: 'Clasificatorias',
+    desc: 'Jugá 5 partidas de posicionamiento para obtener tu rango inicial. Tu MMR oculto guía el emparejamiento desde el primer juego.',
+  },
+  {
+    emoji: '🏆',
+    color: '#E85D00',
+    title: 'Rankings actualizados en vivo',
+    desc: 'El leaderboard muestra RR, rango y tier en tiempo real. Los clasificatorios aparecen al fondo ordenados por victorias.',
+  },
+  {
+    emoji: '📊',
+    color: '#22C55E',
+    title: 'Historial y estadísticas',
+    desc: 'En tu perfil encontrás el historial completo de partidas con resultado, personajes usados y variación de RR por match.',
+  },
+];
+
 function getInitialTab() {
   if (typeof window === 'undefined') return 'rankings';
   const hash = window.location.hash.replace('#', '');
@@ -191,6 +219,9 @@ export default function HomePage() {
   // Tour de bienvenida
   const [showTour, setShowTour]   = useState(false);
   const [tourStep, setTourStep]   = useState(0);
+
+  // Modal de novedades
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   useEffect(() => {
     const stored = getStoredUser();
@@ -267,6 +298,17 @@ export default function HomePage() {
     try {
       if (!localStorage.getItem('tour_done')) {
         setTimeout(() => { setShowTour(true); setTourStep(0); }, 700);
+      }
+    } catch {}
+  }, [user?.id]);
+
+  // Novedades: mostrar una vez cuando el tour ya fue completado
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const tourDone = !!localStorage.getItem('tour_done');
+      if (tourDone && !localStorage.getItem(WHATS_NEW_KEY)) {
+        setTimeout(() => setShowWhatsNew(true), 900);
       }
     } catch {}
   }, [user?.id]);
@@ -1817,6 +1859,86 @@ export default function HomePage() {
           </div>
         );
       })()}
+
+      {/* ── WHATS NEW MODAL ── */}
+      {showWhatsNew && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+          <div
+            onClick={() => { setShowWhatsNew(false); try { localStorage.setItem(WHATS_NEW_KEY, '1'); } catch {} }}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)' }}
+          />
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', width: '100%', maxWidth: 420,
+              background: 'linear-gradient(160deg,#16162A,#111118)',
+              border: '1px solid rgba(255,140,0,0.22)',
+              borderRadius: 24, overflow: 'hidden',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)',
+              animation: 'scale-in 0.2s ease',
+            }}
+          >
+            {/* Barra de acento */}
+            <div style={{ height: 3, background: 'linear-gradient(90deg,#FF8C00,#7C3AED,#FF8C00)', backgroundSize: '200% 100%' }} />
+
+            {/* Header */}
+            <div style={{ padding: '20px 20px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                <span style={{ fontSize: 26 }}>🎮</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#FF8C00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Novedades</p>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>¡Ya está disponible!</h2>
+                </div>
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+                Todo lo que ya podés usar en la app por INC.
+              </p>
+            </div>
+
+            {/* Items */}
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {WHATS_NEW_ITEMS.map((item, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 13, alignItems: 'flex-start',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${item.color}22`,
+                  borderRadius: 14, padding: '12px 14px',
+                }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                    background: `${item.color}18`,
+                    border: `1px solid ${item.color}33`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20,
+                  }}>
+                    {item.emoji}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 3px', fontSize: 14, fontWeight: 800, color: '#fff' }}>{item.title}</p>
+                    <p style={{ margin: 0, fontSize: 12.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '0 20px 20px' }}>
+              <button
+                onClick={() => { setShowWhatsNew(false); try { localStorage.setItem(WHATS_NEW_KEY, '1'); } catch {} }}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(90deg,#FF8C00,#E85D00)',
+                  color: '#fff', fontWeight: 900, fontSize: 15,
+                  boxShadow: '0 6px 20px rgba(255,140,0,0.4)',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                ¡A jugar! ⚡
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
