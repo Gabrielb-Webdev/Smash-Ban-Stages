@@ -1442,13 +1442,13 @@ export default function HomePage() {
         {/* ── NOTIFICATION DRAWER ── */}
         {showNotifs && (
           <>
-            <div onClick={() => setShowNotifs(false)} style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+            <div onClick={() => setShowNotifs(false)} style={{ position: 'fixed', inset: 0, zIndex: 9996, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
             <div style={{
               position: 'fixed',
               bottom: 0,
               left: 'max(0px, calc(50% - 240px))',
               right: 'max(0px, calc(50% - 240px))',
-              zIndex: 46,
+              zIndex: 9997,
               background: '#0F0F18',
               borderRadius: '24px 24px 0 0',
               boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
