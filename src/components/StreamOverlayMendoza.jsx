@@ -176,9 +176,10 @@ export default function StreamOverlayMendoza({ sessionId }) {
 
       {/* ── FOOTER - Mendoza: fondo transparente + video de Team Anexo ── */}
       <footer
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-12"
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between"
         style={{
-          height: '150px',
+          height: 'clamp(160px, 20vh, 260px)',
+          paddingInline: 'clamp(16px, 3vw, 56px)',
           background: 'transparent',
           boxShadow: `0 -4px 20px ${THEME.colors.primary}40`,
         }}
@@ -210,15 +211,15 @@ export default function StreamOverlayMendoza({ sessionId }) {
               <img
                 src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
-                className="w-32 h-32 rounded-full"
-                style={{ objectFit: 'cover' }}
+                className="rounded-full"
+                style={{ objectFit: 'cover', width: 'clamp(64px, 12vh, 140px)', height: 'clamp(64px, 12vh, 140px)', flexShrink: 0 }}
               />
               <motion.div
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className="h-32 w-1 ml-4"
-                style={{ backgroundColor: THEME.colors.accent }}
+                className="w-1 ml-4"
+                style={{ backgroundColor: THEME.colors.accent, height: 'clamp(64px, 12vh, 140px)' }}
               />
             </motion.div>
 
@@ -234,14 +235,14 @@ export default function StreamOverlayMendoza({ sessionId }) {
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
-                className="h-32 w-1 mr-4"
-                style={{ backgroundColor: THEME.colors.accent }}
+                className="w-1 mr-4"
+                style={{ backgroundColor: THEME.colors.accent, height: 'clamp(64px, 12vh, 140px)' }}
               />
               <img
                 src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
-                className="w-32 h-32 rounded-full"
-                style={{ objectFit: 'cover' }}
+                className="rounded-full"
+                style={{ objectFit: 'cover', width: 'clamp(64px, 12vh, 140px)', height: 'clamp(64px, 12vh, 140px)', flexShrink: 0 }}
               />
             </motion.div>
           </>
@@ -254,8 +255,8 @@ export default function StreamOverlayMendoza({ sessionId }) {
             style={{ zIndex: 20 }}
           >
             <div
-              className="overflow-hidden h-24 flex items-center justify-center"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              className="overflow-hidden flex items-center justify-center"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', height: 'clamp(60px, 10vh, 120px)' }}
             >
               <AnimatePresence>
                 <motion.h2
@@ -266,7 +267,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
                   className="whitespace-nowrap"
                   style={{
                     fontFamily: 'Anton',
-                    fontSize: '5.5rem',
+                    fontSize: 'clamp(2.5rem, 6vh, 7rem)',
                     fontWeight: '400',
                     color: THEME.colors.accent,
                     textShadow: `2px 2px 0px ${THEME.colors.primary}, 4px 4px 8px rgba(0,0,0,0.8)`,
@@ -282,10 +283,10 @@ export default function StreamOverlayMendoza({ sessionId }) {
         {/* Imágenes de los stages */}
         {session.player1.character && session.player2.character && (
           <div
-            className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none px-44 ${
-              session.currentGame === 1 ? 'gap-3' : 'gap-4'
+            className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none ${
+              session.currentGame === 1 ? 'gap-[1.5vw]' : 'gap-[2vw]'
             }`}
-            style={{ zIndex: 15 }}
+            style={{ zIndex: 15, paddingInline: 'clamp(80px, 9vw, 200px)' }}
           >
             {getStagesForTournament(sessionId, session.currentGame).map((stage, index) => {
               const isBanned = session.bannedStages?.includes(stage.id);
@@ -293,7 +294,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
               const showBanOverlay = isBanned && (bannedStage?.id === stage.id ? showBanOnCard : true);
               const showSelectOverlay = isSelected && (selectedStage?.id === stage.id ? showSelectOnCard : true);
               const isGame1 = session.currentGame === 1;
-              const imageClass = isGame1 ? 'w-48 h-28' : 'w-32 h-20';
+              const imageClass = isGame1 ? 'w-[11vw] h-[6.5vw]' : 'w-[7.5vw] h-[4.5vw]';
               const borderRadius = isGame1 ? 'rounded-xl' : 'rounded-lg';
               const iconSize = isGame1 ? 'text-7xl' : 'text-5xl';
 
@@ -364,7 +365,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '150px' }}
+            style={{ height: 'clamp(160px, 20vh, 260px)' }}
           >
             <div className="absolute inset-0">
               <img
@@ -416,7 +417,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: '150px' }}
+            style={{ height: 'clamp(160px, 20vh, 260px)' }}
           >
             <div className="absolute inset-0">
               <img
