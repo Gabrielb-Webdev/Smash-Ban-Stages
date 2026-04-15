@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scoreboard Overlay v2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: transparent;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      overflow: hidden;
+    }
+
+    #sb {
+      position: absolute;
+      top: clamp(8px, 1.5vh, 20px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: clamp(550px, 70vw, 1300px);
+      aspect-ratio: 1000 / 120;
+    }
+
+    /* SVG shape layer */
+    .sb-svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Content layer */
+    .ct { position: absolute; inset: 0; overflow: visible; }
+
+    /* ── Round text ── */
+    .round-wrap {
+      position: absolute;
+      left: 50%;
+      top: 10%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: clamp(4px, 0.5vw, 8px);
+      white-space: nowrap;
+    }
+    .round-text {
+      color: #fff;
+      font-size: clamp(10px, 1.12vw, 20px);
+      font-weight: 800;
+      text-shadow: 1px 1px 3px rgba(0,0,0,.9);
+    }
+    .round-format {
+      color: #ffd700;
+      font-size: clamp(9px, 1vw, 18px);
+      font-weight: 800;
+      text-shadow: 1px 1px 3px rgba(0,0,0,.9);
+    }
+
+    /* ── Character icons ── */
+    .char-icon {
+      position: absolute;
+      width: clamp(22px, 10vw, 66px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      overflow: hidden;
+      top: 65%;
+      transform: translateY(-50%);
+    }
+    .char-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .char-icon.p1 { left: 5%; }
+    .char-icon.p2 { right: 5%; }
+
+    /* ── Scores ── */
+    .score {
+      position: absolute;
+      bottom: 5%;
+      font-size: clamp(38px, 10vw, 125px);
+      font-weight: 900;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      color: #fff;
+      line-height: 1;
+      text-shadow: 0 2px 6px rgba(0,0,0,.9), 0 0 6px rgba(255,255,255,.2);
+      transition: color .3s, text-shadow .3s;
+    }
+    .score.p1 { left: 17.5%; transform: translateX(-50%); }
+    .score.p2 { right: 16.5%; transform: translateX(50%); }
+    .score.winning {
+      color: #ffd700;
+      text-shadow: 0 2px 6px rgba(0,0,0,.9), 0 0 10px rgba(255,215,0,.45);
+    }
+
+    /* ── Player names ── */
+    .pname {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      top: 65%;
+      transform: translateY(-50%);
+      max-width: 28%;
+      gap: 0;
+    }
+    .pname.p1 { left: 22%; align-items: flex-start; }
+    .pname.p2 { right: 22%; align-items: flex-end; }
+    .pname .row {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 1px 1px 3px rgba(0,0,0,.9);
+      line-height: 1.15;
+      transform-origin: left center;
+    }
+    .pname.p2 .row { transform-origin: right center; }
+    .pname .row-tag {
+      font-size: clamp(10px, 4.5vw, 22px);
+      color: #ffd700;
+    }
+    .pname .row-name {
+      font-size: clamp(10px, 4.5vw, 22px);
+    }
+
+    .score, .round-text { transition: all .3s ease; }
+    .pname { transition: font-size .2s ease, transform .2s ease; }
+  </style>
+</head>
+<body>
+  <div id="sb">
+
+    <!-- SVG compound shape -->
+    <svg class="sb-svg" viewBox="-4 -4 1008 128" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#c93545"/>
+          <stop offset="42%" stop-color="#c93545"/>
+          <stop offset="58%" stop-color="#2a6dd4"/>
+          <stop offset="100%" stop-color="#2a6dd4"/>
+        </linearGradient>
+        <pattern id="stripes" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+          <rect width="7" height="14" fill="rgba(255,255,255,0.035)"/>
+        </pattern>
+        <clipPath id="sbClip">
+          <path d="
+            M 40,120 L 960,120
+            A 40,40 0 0,0 960,40
+            L 902,40 Q 902,14 890,14
+            L 822,14 Q 810,14 810,40
+            L 738,40 Q 738,0 725,0
+            L 288,0  Q 275,0 275,40
+            L 205,40 Q 205,14 193,14
+            L 116,14 Q 104,14 104,40
+            L 40,40  A 40,40 0 0,0 40,120 Z
+          "/>
+        </clipPath>
+      </defs>
+
+      <!-- Dark fill -->
+      <path d="
+        M 40,120 L 960,120
+        A 40,40 0 0,0 960,40
+        L 902,40 Q 902,14 890,14
+        L 822,14 Q 810,14 810,40
+        L 738,40 Q 738,0 725,0
+        L 288,0  Q 275,0 275,40
+        L 205,40 Q 205,14 193,14
+        L 116,14 Q 104,14 104,40
+        L 40,40  A 40,40 0 0,0 40,120 Z
+      " fill="#1e1e2e"/>
+
+      <!-- Logo watermark (clipped inside shape) -->
+      <g clip-path="url(#sbClip)">
+        <image href="http://localhost:3000/logo.png" x="275" y="-55" width="500" height="500" opacity="2" preserveAspectRatio="xMidYMid meet"></image>
+      </g>
+
+      <!-- Diagonal stripes overlay -->
+      <path d="
+        M 40,120 L 960,120
+        A 40,40 0 0,0 960,40
+        L 902,40 Q 902,14 890,14
+        L 822,14 Q 810,14 810,40
+        L 738,40 Q 738,0 725,0
+        L 288,0  Q 275,0 275,40
+        L 205,40 Q 205,14 193,14
+        L 116,14 Q 104,14 104,40
+        L 40,40  A 40,40 0 0,0 40,120 Z
+      " fill="url(#stripes)"/>
+
+      <!-- Gradient border -->
+      <path d="
+        M 40,120 L 960,120
+        A 40,40 0 0,0 960,40
+        L 902,40 Q 902,14 890,14
+        L 822,14 Q 810,14 810,40
+        L 738,40 Q 738,0 725,0
+        L 288,0  Q 275,0 275,40
+        L 205,40 Q 205,14 193,14
+        L 116,14 Q 104,14 104,40
+        L 40,40  A 40,40 0 0,0 40,120 Z
+      " fill="none" stroke="url(#grad)" stroke-width="5" stroke-linejoin="round"/>
+    </svg>
+
+    <!-- Content -->
+    <div class="ct">
+      <div class="round-wrap">
+        <span class="round-text" id="round-text">Winners Finals</span>
+        <span class="round-format" id="round-format"></span>
+      </div>
+
+      <div class="char-icon p1"><img id="p1-char" src="http://localhost:3000/Stock Icons V2/Mario/1.png" alt=""></div>
+      <span class="score p1" id="p1-score">0</span>
+      <div class="pname p1" id="p1-name">Player 1</div>
+
+      <div class="pname p2" id="p2-name">Player 2</div>
+      <span class="score p2" id="p2-score">0</span>
+      <div class="char-icon p2"><img id="p2-char" src="http://localhost:3000/Stock Icons V2/Mario/1.png" alt=""></div>
+    </div>
+  </div>
+
+  <script>
+    const roundText   = document.getElementById('round-text');
+    const roundFormat = document.getElementById('round-format');
+    const p1Score = document.getElementById('p1-score');
+    const p2Score = document.getElementById('p2-score');
+    const p1Name  = document.getElementById('p1-name');
+    const p2Name  = document.getElementById('p2-name');
+    const p1Char  = document.getElementById('p1-char');
+    const p2Char  = document.getElementById('p2-char');
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function formatName(el, tag, name) {
+      el.innerHTML = '';
+      if (tag) {
+        const rowTag = document.createElement('span');
+        rowTag.className = 'row row-tag';
+        rowTag.textContent = tag;
+        el.appendChild(rowTag);
+      }
+      if (name) {
+        const rowName = document.createElement('span');
+        rowName.className = 'row row-name';
+        rowName.textContent = name;
+        el.appendChild(rowName);
+      }
+      if (!tag && !name) {
+        const rowName = document.createElement('span');
+        rowName.className = 'row row-name';
+        rowName.textContent = '';
+        el.appendChild(rowName);
+      }
+    }
+
+    // ── Auto-fit por fila: shrink font; si aun desborda, comprimir horizontalmente ──
+    function fitRow(row, maxW) {
+      row.style.fontSize = '';
+      row.style.transform = '';
+      void row.offsetWidth;
+      let fs = parseFloat(getComputedStyle(row).fontSize);
+      const minFs = 10;
+      while (row.scrollWidth > maxW + 1 && fs > minFs) {
+        fs -= 0.5;
+        row.style.fontSize = fs + 'px';
+      }
+      if (row.scrollWidth > maxW + 1) {
+        const ratio = maxW / row.scrollWidth;
+        row.style.transform = 'scaleX(' + ratio + ')';
+      }
+    }
+
+    function fitText(el) {
+      const maxW = el.clientWidth;
+      el.querySelectorAll('.row').forEach(row => fitRow(row, maxW));
+    }
+
+    function updateOverlay(data) {
+      roundText.textContent   = data.round  || '';
+      roundFormat.textContent = data.format || '';
+
+      const s1 = parseInt(data.player1.score) || 0;
+      const s2 = parseInt(data.player2.score) || 0;
+      p1Score.textContent = s1;
+      p2Score.textContent = s2;
+      p1Score.classList.toggle('winning', s1 > s2);
+      p2Score.classList.toggle('winning', s2 > s1);
+
+      formatName(p1Name, data.player1.tag, data.player1.name);
+      formatName(p2Name, data.player2.tag, data.player2.name);
+
+      p1Char.src = 'http://localhost:3000/Stock Icons V2/' + (data.player1.character || 'Mario') + '/' + (data.player1.skin || 1) + '.png';
+      p2Char.src = 'http://localhost:3000/Stock Icons V2/' + (data.player2.character || 'Mario') + '/' + (data.player2.skin || 1) + '.png';
+
+      // Fit names: cada uno tan grande como su espacio le permita
+      fitText(p1Name);
+      fitText(p2Name);
+    }
+
+    function connectSSE() {
+      const es = new EventSource('http://localhost:3000/events');
+      es.onmessage = (e) => {
+        try { updateOverlay(JSON.parse(e.data)); }
+        catch (err) { console.error(err); }
+      };
+      es.onerror = () => { es.close(); setTimeout(connectSSE, 2000); };
+    }
+
+    connectSSE();
+  </script>
+</body>
+</html>

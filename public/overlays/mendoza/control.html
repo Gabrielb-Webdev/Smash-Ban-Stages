@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Scoreboard Control Panel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffffff;
+      font-size: 24px;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+
+    .subtitle a {
+      color: #6ea8fe;
+      text-decoration: none;
+    }
+
+    .subtitle a:hover { text-decoration: underline; }
+
+    /* Main layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      max-width: 1100px;
+      margin: 0 auto 20px auto;
+      align-items: start;
+    }
+
+    /* Player panels */
+    .player-panel {
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 20px;
+      border: 2px solid transparent;
+    }
+
+    .player-panel.p1 { border-color: #c93545; }
+    .player-panel.p2 { border-color: #2a6dd4; }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .p1 .dot { background: #c93545; }
+    .p2 .dot { background: #2a6dd4; }
+
+    /* Form elements */
+    label {
+      display: block;
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      background: #12121f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      border-color: #6ea8fe;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 8px;
+    }
+
+    /* Score controls */
+    .score-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .score-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid #444;
+      background: #1e1e35;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .score-btn:hover {
+      background: #2a2a50;
+      border-color: #666;
+      transform: scale(1.1);
+    }
+
+    .score-btn:active {
+      transform: scale(0.95);
+    }
+
+    .score-display {
+      font-size: 48px;
+      font-weight: 900;
+      color: #fff;
+      min-width: 60px;
+      text-align: center;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+    }
+
+    .p1 .score-display { color: #c93545; }
+    .p2 .score-display { color: #2a6dd4; }
+
+    /* Character selector */
+    .char-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .char-preview-img {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #12121f;
+      border: 2px solid #333;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .char-preview-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .char-controls {
+      flex: 1;
+    }
+
+    /* Skin selector */
+    .skin-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .skin-btn {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background: #12121f;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.15s;
+      padding: 2px;
+    }
+
+    .skin-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+
+    .skin-btn:hover {
+      border-color: #666;
+      transform: scale(1.05);
+    }
+
+    .skin-btn.active {
+      border-color: #ffd700;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+    }
+
+    /* Center column */
+    .center-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding-top: 20px;
+    }
+
+    /* Round section */
+    .round-panel {
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 1100px;
+      margin: 0 auto 16px auto;
+      border: 2px solid #444;
+    }
+
+    .round-panel .panel-title .dot { background: #ffd700; }
+
+    .round-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: end;
+    }
+
+    /* Action buttons */
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .btn {
+      padding: 12px 28px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #c93545, #2a6dd4);
+      color: #fff;
+      font-size: 17px;
+      padding: 14px 50px;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(42, 109, 212, 0.4);
+    }
+
+    .btn-swap {
+      background: #2a2a50;
+      color: #ffd700;
+      border: 2px solid #ffd700;
+    }
+
+    .btn-swap:hover {
+      background: #3a3a60;
+    }
+
+    .btn-reset {
+      background: #2a2a50;
+      color: #ff6b6b;
+      border: 2px solid #ff6b6b;
+    }
+
+    .btn-reset:hover {
+      background: #3a3a60;
+    }
+
+    /* Status indicator */
+    .status {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #666;
+      transition: color 0.3s;
+    }
+
+    .status.success { color: #4caf50; }
+    .status.error { color: #f44336; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .center-col {
+        flex-direction: row;
+        padding-top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Scoreboard Control</h1>
+  <p class="subtitle">
+    Overlay URL: <a href="/overlay" target="_blank">http://localhost:3000/overlay</a>
+  </p>
+
+  <!-- Round Section -->
+  <div class="round-panel">
+    <div class="panel-title"><span class="dot"></span> Ronda</div>
+    <div class="round-row">
+      <div>
+        <label>Tipo de Ronda</label>
+        <select id="round-select">
+          <optgroup label="Winners">
+            <option value="Winners Round 1">Winners Round 1</option>
+            <option value="Winners Round 2">Winners Round 2</option>
+            <option value="Winners Round 3">Winners Round 3</option>
+            <option value="Winners Quarters">Winners Quarters</option>
+            <option value="Winners Semis">Winners Semis</option>
+            <option value="Winners Finals" selected>Winners Finals</option>
+          </optgroup>
+          <optgroup label="Losers">
+            <option value="Losers Round 1">Losers Round 1</option>
+            <option value="Losers Round 2">Losers Round 2</option>
+            <option value="Losers Round 3">Losers Round 3</option>
+            <option value="Losers Round 4">Losers Round 4</option>
+            <option value="Losers Quarters">Losers Quarters</option>
+            <option value="Losers Semis">Losers Semis</option>
+            <option value="Losers Finals">Losers Finals</option>
+          </optgroup>
+          <optgroup label="Finals">
+            <option value="Grand Finals">Grand Finals</option>
+            <option value="Grand Finals Reset">Grand Finals Reset</option>
+          </optgroup>
+          <optgroup label="Otros">
+            <option value="Pools">Pools</option>
+            <option value="Money Match">Money Match</option>
+            <option value="Friendlies">Friendlies</option>
+            <option value="__custom__">✏️ Personalizado...</option>
+          </optgroup>
+        </select>
+      </div>
+      <div>
+        <label>Formato</label>
+        <select id="round-format">
+          <option value="">Sin formato</option>
+          <option value="BO3">BO3</option>
+          <option value="BO5">BO5</option>
+          <option value="BO7">BO7</option>
+        </select>
+      </div>
+      <div>
+        <label>Texto personalizado (opcional)</label>
+        <input type="text" id="round-custom" placeholder="Escribe el nombre de la ronda..." disabled>
+      </div>
+    </div>
+  </div>
+
+  <!-- Players Grid -->
+  <div class="main-grid">
+    <!-- Player 1 -->
+    <div class="player-panel p1">
+      <div class="panel-title"><span class="dot"></span> Jugador 1 (Izquierda)</div>
+
+      <div class="field-row">
+        <div>
+          <label>Tag / Equipo</label>
+          <input type="text" id="p1-tag" placeholder="ANX">
+        </div>
+        <div>
+          <label>Nombre</label>
+          <input type="text" id="p1-name" placeholder="Lukitas_011">
+        </div>
+      </div>
+
+      <label>Score</label>
+      <div class="score-section">
+        <button class="score-btn" onclick="changeScore(1, -1)">−</button>
+        <span class="score-display" id="p1-score-display">0</span>
+        <button class="score-btn" onclick="changeScore(1, 1)">+</button>
+      </div>
+
+      <label>Personaje</label>
+      <div class="char-preview">
+        <div class="char-preview-img">
+          <img id="p1-char-preview" src="/Stock Icons V2/Mario/1.png" alt="">
+        </div>
+        <div class="char-controls">
+          <select id="p1-char"></select>
+        </div>
+      </div>
+
+      <label>Skin</label>
+      <div class="skin-grid" id="p1-skins"></div>
+    </div>
+
+    <!-- Center actions -->
+    <div class="center-col">
+      <button class="btn btn-swap" onclick="swapPlayers()" title="Intercambiar jugadores">⇄ Swap</button>
+      <button class="btn btn-reset" onclick="resetScores()" title="Resetear scores a 0">↺ Reset</button>
+    </div>
+
+    <!-- Player 2 -->
+    <div class="player-panel p2">
+      <div class="panel-title"><span class="dot"></span> Jugador 2 (Derecha)</div>
+
+      <div class="field-row">
+        <div>
+          <label>Tag / Equipo</label>
+          <input type="text" id="p2-tag" placeholder="ANX">
+        </div>
+        <div>
+          <label>Nombre</label>
+          <input type="text" id="p2-name" placeholder="StA1t">
+        </div>
+      </div>
+
+      <label>Score</label>
+      <div class="score-section">
+        <button class="score-btn" onclick="changeScore(2, -1)">−</button>
+        <span class="score-display" id="p2-score-display">0</span>
+        <button class="score-btn" onclick="changeScore(2, 1)">+</button>
+      </div>
+
+      <label>Personaje</label>
+      <div class="char-preview">
+        <div class="char-preview-img">
+          <img id="p2-char-preview" src="/Stock Icons V2/Mario/1.png" alt="">
+        </div>
+        <div class="char-controls">
+          <select id="p2-char"></select>
+        </div>
+      </div>
+
+      <label>Skin</label>
+      <div class="skin-grid" id="p2-skins"></div>
+    </div>
+  </div>
+
+  <div class="status" id="status">Listo para usar</div>
+
+  <script>
+    // ===== CHARACTER DATA =====
+    const characters = [
+      { id: "Banjo & Kazooie", name: "Banjo & Kazooie" },
+      { id: "Bayonetta", name: "Bayonetta" },
+      { id: "Bowser", name: "Bowser" },
+      { id: "Bowser Jr", name: "Bowser Jr." },
+      { id: "Byleth", name: "Byleth" },
+      { id: "Captain Falcon", name: "Captain Falcon" },
+      { id: "Chrom", name: "Chrom" },
+      { id: "Cloud", name: "Cloud" },
+      { id: "Corrin", name: "Corrin" },
+      { id: "Daisy", name: "Daisy" },
+      { id: "Dark Pit", name: "Dark Pit" },
+      { id: "Dark Samus", name: "Dark Samus" },
+      { id: "Diddy Kong", name: "Diddy Kong" },
+      { id: "Donkey Kong", name: "Donkey Kong" },
+      { id: "Dr Mario", name: "Dr. Mario" },
+      { id: "Duck Hunt", name: "Duck Hunt" },
+      { id: "Falco", name: "Falco" },
+      { id: "Fox", name: "Fox" },
+      { id: "Ganondorf", name: "Ganondorf" },
+      { id: "Greninja", name: "Greninja" },
+      { id: "Hero", name: "Hero" },
+      { id: "Ice Climbers", name: "Ice Climbers" },
+      { id: "Ike", name: "Ike" },
+      { id: "Incineroar", name: "Incineroar" },
+      { id: "Inkling", name: "Inkling" },
+      { id: "Isabelle", name: "Isabelle" },
+      { id: "Jigglypuff", name: "Jigglypuff" },
+      { id: "Joker", name: "Joker" },
+      { id: "Kazuya", name: "Kazuya" },
+      { id: "Ken", name: "Ken" },
+      { id: "King Dedede", name: "King Dedede" },
+      { id: "King K Rool", name: "King K. Rool" },
+      { id: "Kirby", name: "Kirby" },
+      { id: "Link", name: "Link" },
+      { id: "Little Mac", name: "Little Mac" },
+      { id: "Lucario", name: "Lucario" },
+      { id: "Lucas", name: "Lucas" },
+      { id: "Lucina", name: "Lucina" },
+      { id: "Luigi", name: "Luigi" },
+      { id: "Mario", name: "Mario" },
+      { id: "Marth", name: "Marth" },
+      { id: "Mega Man", name: "Mega Man" },
+      { id: "Meta Knight", name: "Meta Knight" },
+      { id: "Mewtwo", name: "Mewtwo" },
+      { id: "Mii Brawler", name: "Mii Brawler" },
+      { id: "Mii Gunner", name: "Mii Gunner" },
+      { id: "Mii Swordfighter", name: "Mii Swordfighter" },
+      { id: "Min Min", name: "Min Min" },
+      { id: "Mr Game & Watch", name: "Mr. Game & Watch" },
+      { id: "Ness", name: "Ness" },
+      { id: "Olimar", name: "Olimar" },
+      { id: "Pac Man", name: "Pac-Man" },
+      { id: "Palutena", name: "Palutena" },
+      { id: "Peach", name: "Peach" },
+      { id: "Pichu", name: "Pichu" },
+      { id: "Pikachu", name: "Pikachu" },
+      { id: "Piranha Plant", name: "Piranha Plant" },
+      { id: "Pit", name: "Pit" },
+      { id: "Pokemon Trainer", name: "Pokémon Trainer" },
+      { id: "Pyra & Mythra", name: "Pyra & Mythra" },
+      { id: "Richter", name: "Richter" },
+      { id: "Ridley", name: "Ridley" },
+      { id: "Rob", name: "R.O.B." },
+      { id: "Robin", name: "Robin" },
+      { id: "Rosalina & Luma", name: "Rosalina & Luma" },
+      { id: "Roy", name: "Roy" },
+      { id: "Ryu", name: "Ryu" },
+      { id: "Samus", name: "Samus" },
+      { id: "Sephiroth", name: "Sephiroth" },
+      { id: "Sheik", name: "Sheik" },
+      { id: "Shulk", name: "Shulk" },
+      { id: "Simon", name: "Simon" },
+      { id: "Snake", name: "Snake" },
+      { id: "Sonic", name: "Sonic" },
+      { id: "Sora", name: "Sora" },
+      { id: "Steve", name: "Steve" },
+      { id: "Terry", name: "Terry" },
+      { id: "Toon Link", name: "Toon Link" },
+      { id: "Villager", name: "Villager" },
+      { id: "Wario", name: "Wario" },
+      { id: "Wii Fit Trainer", name: "Wii Fit Trainer" },
+      { id: "Wolf", name: "Wolf" },
+      { id: "Yoshi", name: "Yoshi" },
+      { id: "Young Link", name: "Young Link" },
+      { id: "Zelda", name: "Zelda" },
+      { id: "Zero Suit Samus", name: "Zero Suit Samus" }
+    ];
+
+    // ===== API BASE URL =====
+    const API = 'http://localhost:3000';
+
+    // ===== STATE =====
+    let state = {
+      player1: { tag: '', name: '', score: 0, character: 'Mario', skin: 1 },
+      player2: { tag: '', name: '', score: 0, character: 'Mario', skin: 1 },
+      round: 'Winners Finals',
+      format: ''
+    };
+
+    // ===== INIT =====
+    function init() {
+      populateCharacterSelects();
+      buildSkinGrids();
+      loadStateFromServer();
+      setupEventListeners();
+    }
+
+    function populateCharacterSelects() {
+      ['p1-char', 'p2-char'].forEach(id => {
+        const select = document.getElementById(id);
+        characters.forEach(ch => {
+          const opt = document.createElement('option');
+          opt.value = ch.id;
+          opt.textContent = ch.name;
+          select.appendChild(opt);
+        });
+      });
+    }
+
+    function buildSkinGrids() {
+      [1, 2].forEach(p => {
+        updateSkinGrid(p);
+      });
+    }
+
+    function updateSkinGrid(playerNum) {
+      const container = document.getElementById(`p${playerNum}-skins`);
+      const charId = state[`player${playerNum}`].character;
+      const currentSkin = state[`player${playerNum}`].skin;
+      container.innerHTML = '';
+
+      for (let i = 1; i <= 8; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'skin-btn' + (i === currentSkin ? ' active' : '');
+        btn.innerHTML = `<img src="/Stock Icons V2/${charId}/${i}.png" alt="Skin ${i}">`;
+        btn.onclick = () => selectSkin(playerNum, i);
+        container.appendChild(btn);
+      }
+    }
+
+    function selectSkin(playerNum, skinNum) {
+      state[`player${playerNum}`].skin = skinNum;
+      updateSkinGrid(playerNum);
+      updateCharPreview(playerNum);
+      sendUpdate();
+    }
+
+    function updateCharPreview(playerNum) {
+      const charId = state[`player${playerNum}`].character;
+      const skin = state[`player${playerNum}`].skin;
+      document.getElementById(`p${playerNum}-char-preview`).src =
+        `/Stock Icons V2/${charId}/${skin}.png`;
+    }
+
+    // Debounce para inputs de texto
+    let debounceTimer = null;
+    function debouncedUpdate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => sendUpdate(), 400);
+    }
+
+    function setupEventListeners() {
+      // Character select change
+      document.getElementById('p1-char').addEventListener('change', (e) => {
+        state.player1.character = e.target.value;
+        state.player1.skin = 1;
+        updateSkinGrid(1);
+        updateCharPreview(1);
+        sendUpdate();
+      });
+
+      document.getElementById('p2-char').addEventListener('change', (e) => {
+        state.player2.character = e.target.value;
+        state.player2.skin = 1;
+        updateSkinGrid(2);
+        updateCharPreview(2);
+        sendUpdate();
+      });
+
+      // Round select
+      document.getElementById('round-select').addEventListener('change', (e) => {
+        const custom = document.getElementById('round-custom');
+        if (e.target.value === '__custom__') {
+          custom.disabled = false;
+          custom.focus();
+        } else {
+          custom.disabled = true;
+          custom.value = '';
+          sendUpdate();
+        }
+      });
+
+      // Round custom text
+      document.getElementById('round-custom').addEventListener('input', debouncedUpdate);
+
+      // Formato
+      document.getElementById('round-format').addEventListener('change', sendUpdate);
+
+      // Tag y nombre - auto update con debounce
+      ['p1-tag', 'p1-name', 'p2-tag', 'p2-name'].forEach(id => {
+        document.getElementById(id).addEventListener('input', debouncedUpdate);
+      });
+    }
+
+    // ===== SCORE =====
+    function changeScore(playerNum, delta) {
+      const key = `player${playerNum}`;
+      state[key].score = Math.max(0, state[key].score + delta);
+      document.getElementById(`p${playerNum}-score-display`).textContent = state[key].score;
+      sendUpdate();
+    }
+
+    // ===== SWAP =====
+    function swapPlayers() {
+      const temp = { ...state.player1 };
+      state.player1 = { ...state.player2 };
+      state.player2 = temp;
+      syncUIFromState();
+      sendUpdate();
+    }
+
+    // ===== RESET SCORES =====
+    function resetScores() {
+      state.player1.score = 0;
+      state.player2.score = 0;
+      document.getElementById('p1-score-display').textContent = '0';
+      document.getElementById('p2-score-display').textContent = '0';
+      sendUpdate();
+    }
+
+    // ===== SYNC UI FROM STATE =====
+    function syncUIFromState() {
+      document.getElementById('p1-tag').value = state.player1.tag;
+      document.getElementById('p1-name').value = state.player1.name;
+      document.getElementById('p1-score-display').textContent = state.player1.score;
+      document.getElementById('p1-char').value = state.player1.character;
+      updateSkinGrid(1);
+      updateCharPreview(1);
+
+      document.getElementById('p2-tag').value = state.player2.tag;
+      document.getElementById('p2-name').value = state.player2.name;
+      document.getElementById('p2-score-display').textContent = state.player2.score;
+      document.getElementById('p2-char').value = state.player2.character;
+      updateSkinGrid(2);
+      updateCharPreview(2);
+
+      // Round
+      const roundSelect = document.getElementById('round-select');
+      const roundCustom = document.getElementById('round-custom');
+      const option = Array.from(roundSelect.options).find(o => o.value === state.round);
+      if (option) {
+        roundSelect.value = state.round;
+        roundCustom.disabled = true;
+        roundCustom.value = '';
+      } else {
+        roundSelect.value = '__custom__';
+        roundCustom.disabled = false;
+        roundCustom.value = state.round;
+      }
+      document.getElementById('round-format').value = state.format || '';
+    }
+
+    // ===== COLLECT STATE FROM UI =====
+    function collectStateFromUI() {
+      state.player1.tag = document.getElementById('p1-tag').value.trim();
+      state.player1.name = document.getElementById('p1-name').value.trim();
+
+      state.player2.tag = document.getElementById('p2-tag').value.trim();
+      state.player2.name = document.getElementById('p2-name').value.trim();
+
+      const roundSelect = document.getElementById('round-select');
+      const roundCustom = document.getElementById('round-custom');
+      state.round = roundSelect.value === '__custom__'
+        ? roundCustom.value.trim()
+        : roundSelect.value;
+      state.format = document.getElementById('round-format').value;
+    }
+
+    // ===== SEND UPDATE =====
+    async function sendUpdate() {
+      collectStateFromUI();
+      const statusEl = document.getElementById('status');
+
+      try {
+        const res = await fetch(`${API}/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state)
+        });
+
+        if (res.ok) {
+          statusEl.textContent = '✅ Overlay actualizado';
+          statusEl.className = 'status success';
+        } else {
+          statusEl.textContent = '❌ Error al actualizar';
+          statusEl.className = 'status error';
+        }
+      } catch (e) {
+        statusEl.textContent = '❌ Sin conexión al servidor';
+        statusEl.className = 'status error';
+      }
+
+      setTimeout(() => {
+        statusEl.textContent = 'Listo para usar';
+        statusEl.className = 'status';
+      }, 2000);
+    }
+
+    // ===== LOAD STATE FROM SERVER =====
+    async function loadStateFromServer() {
+      try {
+        const res = await fetch(`${API}/state`);
+        if (res.ok) {
+          const data = await res.json();
+          state = data;
+          syncUIFromState();
+        }
+      } catch (e) {
+        // Use default state
+      }
+    }
+
+    // ===== START =====
+    init();
+  </script>
+</body>
+</html>

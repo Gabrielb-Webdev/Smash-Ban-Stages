@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scoreboard Overlay</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: transparent;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      overflow: hidden;
+    }
+
+    /* Full 1920x1080 canvas, scales with browser width */
+    #scoreboard {
+      position: relative;
+      width: 100vw;
+      aspect-ratio: 1920 / 1080;
+      max-width: 1920px;
+    }
+
+    /* ── IMAGE LAYERS ── */
+    .layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .bg-shape   { z-index: 0; }
+    .border-shape { z-index: 1; }
+    .logo-wm {
+      position: absolute;
+      z-index: 2;
+      /* center of bar: x=940/1920=49%, y=518/1080=48% */
+      left: 49%;
+      top: 48%;
+      transform: translate(-50%, -50%);
+      height: 14%;  /* ~150px in 1080 */
+      opacity: 0.14;
+    }
+
+    /* ── CONTENT ── */
+    .content { position: absolute; inset: 0; z-index: 3; }
+
+    /* All positions as % of 1920x1080 */
+
+    /* ── ROUND TEXT ── center bump top=430, center x=950, bump spans 628..1270 */
+    .round-text {
+      position: absolute;
+      left: 49.5%;       /* 950/1920 */
+      top: 39.8%;        /* 430/1080 */
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: clamp(11px, 1.15vw, 22px);
+      font-weight: 800;
+      white-space: nowrap;
+      text-shadow: 1px 1px 3px rgba(0,0,0,.9);
+    }
+
+    /* ── CHAR ICONS ── circles at x=282,1610 center, y center=547 */
+    .char-icon {
+      position: absolute;
+      width: 5%;    /* ~48px */
+      aspect-ratio: 1;
+      <!-- border-radius: 50%; -->
+      overflow: hidden;
+      top: 46.8%;     /* (547-24)/1080 */
+    }
+    .char-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .char-icon.p1 { left: 13%;  }   /* (282-24)/1920 */
+    .char-icon.p2 { right: 15%; }   /* 1920-1610-24 -> right */
+
+    /* ── SCORES ── bumps at x≈425 and x≈1460, top=451, bottom=605 */
+    /* Number anchored to BOTTOM of bump, not centered */
+    .score {
+      position: absolute;
+      bottom: 45%;     /* 100 - 605/1080*100 = 44% from bottom */
+      font-size: clamp(50px, 9vw, 100px);
+      font-weight: 900;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      color: #fff;
+      line-height: 1;
+      text-shadow: 0 2px 6px rgba(0,0,0,.9), 0 0 8px rgba(255,255,255,.25);
+      transition: color .3s, text-shadow .3s;
+    }
+    .score.p1 {
+      left: 21.4%;     /* ~410/1920 center */
+      transform: translateX(-50%);
+    }
+    .score.p2 {
+      right: 23.5%;
+      transform: translateX(50%);
+    }
+    .score.winning {
+      color: #ffd700;
+      text-shadow: 0 2px 6px rgba(0,0,0,.9), 0 0 10px rgba(255,215,0,.5);
+    }
+
+    /* ── PLAYER NAMES ── in the flat bar between score bump and center bump */
+    /* P1 name: x=500..628, y center=547 of bar */
+    /* P2 name: x=1270..1350, y center=547 */
+    .player-name {
+      position: absolute;
+      top: 50%;       /* 524/1080 */
+      font-size: clamp(15px, 6.2vw, 25px);
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 1px 1px 4px rgba(0,0,0,.9);
+      transform: translateY(-50%);
+    }
+    .player-name.p1 {
+      left: 27%;        /* 518/1920 */
+      max-width: 20%;
+    }
+    .player-name.p2 {
+      right: 27%;
+      max-width: 20%;
+      text-align: right;
+    }
+    .player-name .tag { color: #ffd700; }
+
+    .score, .player-name, .round-text { transition: all .3s ease; }
+  </style>
+</head>
+<body>
+  <div id="scoreboard">
+    <img class="layer bg-shape" src="http://localhost:3000/image.png" alt="">
+    <img class="layer border-shape" src="http://localhost:3000/image copy 3.png" alt="">
+    <img class="logo-wm" src="http://localhost:3000/logo.png" alt="">
+
+    <div class="content">
+      <span class="round-text" id="round-text">Winners Finals</span>
+
+      <div class="char-icon p1"><img id="p1-char" src="http://localhost:3000/Stock Icons V2/Mario/1.png" alt=""></div>
+      <span class="score p1" id="p1-score">0</span>
+      <span class="player-name p1" id="p1-name">Player 1</span>
+
+      <span class="player-name p2" id="p2-name">Player 2</span>
+      <span class="score p2" id="p2-score">0</span>
+      <div class="char-icon p2"><img id="p2-char" src="http://localhost:3000/Stock Icons V2/Mario/1.png" alt=""></div>
+    </div>
+  </div>
+
+  <script>
+    const roundText = document.getElementById('round-text');
+    const p1Score  = document.getElementById('p1-score');
+    const p2Score  = document.getElementById('p2-score');
+    const p1Name   = document.getElementById('p1-name');
+    const p2Name   = document.getElementById('p2-name');
+    const p1Char   = document.getElementById('p1-char');
+    const p2Char   = document.getElementById('p2-char');
+
+    function escapeHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    function formatName(tag, name) {
+      if (tag && name) return '<span class="tag">'+escapeHtml(tag)+'|</span>'+escapeHtml(name);
+      if (tag) return '<span class="tag">'+escapeHtml(tag)+'</span>';
+      return escapeHtml(name||'');
+    }
+
+    function updateOverlay(data) {
+      roundText.textContent = data.round || '';
+      const s1 = parseInt(data.player1.score) || 0;
+      const s2 = parseInt(data.player2.score) || 0;
+      p1Score.textContent = s1;
+      p2Score.textContent = s2;
+      p1Score.classList.toggle('winning', s1 > s2);
+      p2Score.classList.toggle('winning', s2 > s1);
+      p1Name.innerHTML = formatName(data.player1.tag, data.player1.name);
+      p2Name.innerHTML = formatName(data.player2.tag, data.player2.name);
+      p1Char.src = 'http://localhost:3000/Stock Icons V2/' + (data.player1.character||'Mario') + '/' + (data.player1.skin||1) + '.png';
+      p2Char.src = 'http://localhost:3000/Stock Icons V2/' + (data.player2.character||'Mario') + '/' + (data.player2.skin||1) + '.png';
+    }
+
+    function connectSSE() {
+      const es = new EventSource('http://localhost:3000/events');
+      es.onmessage = (e) => { try { updateOverlay(JSON.parse(e.data)); } catch(er) { console.error(er); } };
+      es.onerror = () => { es.close(); setTimeout(connectSSE, 2000); };
+    }
+    connectSSE();
+  </script>
+</body>
+</html>

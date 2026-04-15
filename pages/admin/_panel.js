@@ -4,7 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import io from 'socket.io-client';
 import { getStoredUser, logout, verifySession } from '../../src/utils/auth';
-import { getStockIconPath } from '../../src/utils/constants';
+import { getStockIconPath, CHARACTERS, getSkinCount } from '../../src/utils/constants';
 import dynamic from 'next/dynamic';
 
 const TournamentBracket = dynamic(
@@ -168,6 +168,17 @@ export default function TestAdminPage() {
 
   // Log de reportes Start.gg: [{ time, setId, players, type }]
   const [reportLog, setReportLog] = useState([]);
+
+  // ── Scoreboard Mendoza ────────────────────────────────────────────────────
+  const [mendozaSB, setMendozaSB] = useState({
+    player1: { tag: '', name: '', score: 0, character: 'mario', skin: 1 },
+    player2: { tag: '', name: '', score: 0, character: 'mario', skin: 1 },
+    round: 'Winners Finals',
+    format: '',
+  });
+  const [mendozaSBStatus, setMendozaSBStatus] = useState('idle'); // 'idle'|'saving'|'ok'|'error'
+  const [mendozaSBOpen, setMendozaSBOpen] = useState(true);
+  const mendozaSBDebounceRef = useRef(null);
 
   // DQ: setupId en proceso de DQ
   const [dqingSetup, setDqingSetup] = useState(null);
@@ -676,6 +687,17 @@ export default function TestAdminPage() {
       .catch(() => {})
       .finally(() => setFeaturedLoading(false));
   }, []);
+
+  // Cargar estado del scoreboard de Mendoza al montar
+  useEffect(() => {
+    if (community !== 'mendoza') return;
+    fetch('/api/mendoza/scoreboard-state')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.empty) setMendozaSB(d);
+      })
+      .catch(() => {});
+  }, [community]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (checking || !selectedSlug) return;
@@ -1469,6 +1491,23 @@ export default function TestAdminPage() {
         }),
       }).catch(() => {});
     }
+    // Para torneos Mendoza: auto-populate scoreboard con jugadores y ronda
+    if (community === 'mendoza' && isStreamSetup) {
+      fetch('/api/mendoza/scoreboard-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify({
+          autoPopulate: true,
+          player1: players[0] || 'Jugador 1',
+          player2: players[1] || 'Jugador 2',
+          round: set.fullRoundText || set.round || '',
+          format,
+        }),
+      })
+        .then(r => r.json())
+        .then(d => { if (d.state) setMendozaSB(d.state); })
+        .catch(() => {});
+    }
     // Para torneos AFk Multi: sincronizar con overlay control
     if (community === 'afk-multi' && isStreamSetup) {
       fetch('/api/afk/score-state', {
@@ -1524,6 +1563,42 @@ export default function TestAdminPage() {
 
   async function callAllAssigned() {
     await Promise.all(setupsPendingCall.map(setup => callMatch(setup.id)));
+  }
+
+  // ── Scoreboard Mendoza: send/update ──────────────────────────────────────
+  async function sendMendozaScoreboard(state) {
+    setMendozaSBStatus('saving');
+    try {
+      const r = await fetch('/api/mendoza/scoreboard-state', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+        body: JSON.stringify(state),
+      });
+      if (r.ok) {
+        setMendozaSBStatus('ok');
+        setTimeout(() => setMendozaSBStatus('idle'), 1800);
+      } else {
+        setMendozaSBStatus('error');
+        setTimeout(() => setMendozaSBStatus('idle'), 3000);
+      }
+    } catch {
+      setMendozaSBStatus('error');
+      setTimeout(() => setMendozaSBStatus('idle'), 3000);
+    }
+  }
+
+  function updateMendozaSBField(patch, debounce = false) {
+    setMendozaSB(prev => {
+      const next = { ...prev, ...patch };
+      if (patch.player1) next.player1 = { ...prev.player1, ...patch.player1 };
+      if (patch.player2) next.player2 = { ...prev.player2, ...patch.player2 };
+      if (!debounce) sendMendozaScoreboard(next);
+      else {
+        clearTimeout(mendozaSBDebounceRef.current);
+        mendozaSBDebounceRef.current = setTimeout(() => sendMendozaScoreboard(next), 450);
+      }
+      return next;
+    });
   }
 
   if (checking) return (
@@ -1974,6 +2049,185 @@ export default function TestAdminPage() {
             </div>
           )}
             </div>{/* /torneo info strip */}
+
+          {/* ── SCOREBOARD MENDOZA (solo cuando community = mendoza) ── */}
+          {community === 'mendoza' && (() => {
+            const sbStatusColor = mendozaSBStatus === 'ok' ? '#22C55E' : mendozaSBStatus === 'error' ? '#F87171' : mendozaSBStatus === 'saving' ? '#FBBF24' : 'rgba(255,255,255,0.25)';
+            const sbStatusText  = mendozaSBStatus === 'ok' ? '✅ Overlay actualizado' : mendozaSBStatus === 'error' ? '❌ Error al actualizar' : mendozaSBStatus === 'saving' ? '⏳ Actualizando...' : '';
+            const roundOptions = [
+              { group: 'Winners', opts: ['Winners Round 1','Winners Round 2','Winners Round 3','Winners Quarters','Winners Semis','Winners Finals'] },
+              { group: 'Losers',  opts: ['Losers Round 1','Losers Round 2','Losers Round 3','Losers Round 4','Losers Quarters','Losers Semis','Losers Finals'] },
+              { group: 'Finals',  opts: ['Grand Finals','Grand Finals Reset'] },
+              { group: 'Otros',   opts: ['Pools','Money Match','Friendlies'] },
+            ];
+            const isCustomRound = !roundOptions.flatMap(g => g.opts).includes(mendozaSB.round);
+
+            function PlayerPanel({ pKey, borderColor }) {
+              const p = mendozaSB[pKey];
+              const skinCount = getSkinCount(p.character);
+              return (
+                <div style={{ flex: 1, background: '#1a1a2e', borderRadius: 12, padding: '14px', border: `2px solid ${borderColor}` }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    <div style={{ flex: '0 0 90px' }}>
+                      <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Tag</p>
+                      <input
+                        value={p.tag}
+                        onChange={e => updateMendozaSBField({ [pKey]: { tag: e.target.value } }, true)}
+                        placeholder="ANX"
+                        style={{ width: '100%', background: '#12121f', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, padding: '7px 9px', color: '#fff', fontSize: 12, fontFamily: "'Outfit',sans-serif", outline: 'none' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Nombre</p>
+                      <input
+                        value={p.name}
+                        onChange={e => updateMendozaSBField({ [pKey]: { name: e.target.value } }, true)}
+                        placeholder="Jugador"
+                        style={{ width: '100%', background: '#12121f', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, padding: '7px 9px', color: '#fff', fontSize: 12, fontFamily: "'Outfit',sans-serif", outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                  {/* Score */}
+                  <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Score</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 }}>
+                    <button
+                      onClick={() => updateMendozaSBField({ [pKey]: { score: Math.max(0, p.score - 1) } })}
+                      style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', background: '#1e1e35', color: '#fff', fontSize: 20, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}
+                    >−</button>
+                    <span style={{ fontSize: 44, fontWeight: 900, color: borderColor, fontFamily: "'Impact','Arial Black',sans-serif", minWidth: 50, textAlign: 'center', lineHeight: 1 }}>{p.score}</span>
+                    <button
+                      onClick={() => updateMendozaSBField({ [pKey]: { score: p.score + 1 } })}
+                      style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', background: '#1e1e35', color: '#fff', fontSize: 20, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}
+                    >+</button>
+                  </div>
+                  {/* Personaje */}
+                  <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Personaje</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#12121f', border: '2px solid rgba(255,255,255,0.1)', overflow: 'hidden', flexShrink: 0 }}>
+                      <img src={getStockIconPath(p.character, p.skin) || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <select
+                      value={p.character}
+                      onChange={e => updateMendozaSBField({ [pKey]: { character: e.target.value, skin: 1 } })}
+                      style={{ flex: 1, background: '#12121f', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, padding: '7px 9px', color: '#fff', fontSize: 12, fontFamily: "'Outfit',sans-serif", outline: 'none', cursor: 'pointer' }}
+                    >
+                      {CHARACTERS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  {/* Skin grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 3 }}>
+                    {Array.from({ length: skinCount }, (_, i) => i + 1).map(skinNum => (
+                      <button
+                        key={skinNum}
+                        onClick={() => updateMendozaSBField({ [pKey]: { skin: skinNum } })}
+                        style={{ aspectRatio: '1', borderRadius: 6, border: `2px solid ${p.skin === skinNum ? '#ffd700' : 'rgba(255,255,255,0.1)'}`, background: '#12121f', cursor: 'pointer', overflow: 'hidden', padding: 2, boxShadow: p.skin === skinNum ? '0 0 6px rgba(255,215,0,0.35)' : 'none' }}
+                      >
+                        <img src={getStockIconPath(p.character, skinNum) || ''} alt={`Skin ${skinNum}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ marginTop: 12, background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 16, overflow: 'hidden' }}>
+                {/* Header colapsable */}
+                <button
+                  onClick={() => setMendozaSBOpen(v => !v)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15 }}>🎮</span>
+                    <span style={{ fontWeight: 800, fontSize: 13, color: '#A78BFA' }}>Scoreboard Stream</span>
+                    <a
+                      href="/stream/mendoza/scoreboard"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{ fontSize: 9, fontWeight: 700, color: '#8B5CF6', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 6, padding: '2px 7px', textDecoration: 'none' }}
+                    >
+                      Ver overlay →
+                    </a>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {sbStatusText && <span style={{ fontSize: 11, color: sbStatusColor, fontWeight: 600 }}>{sbStatusText}</span>}
+                    <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.3)' }}>{mendozaSBOpen ? '▾' : '▸'}</span>
+                  </div>
+                </button>
+
+                {mendozaSBOpen && (
+                  <div style={{ padding: '0 16px 16px' }}>
+                    {/* Ronda */}
+                    <div style={{ background: '#1a1a2e', borderRadius: 12, padding: '12px 14px', marginBottom: 12, border: '2px solid rgba(255,215,0,0.2)' }}>
+                      <p style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,215,0,0.7)', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 8 }}>⚡ Ronda</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'end' }}>
+                        <div>
+                          <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Tipo</p>
+                          <select
+                            value={isCustomRound ? '__custom__' : mendozaSB.round}
+                            onChange={e => {
+                              if (e.target.value !== '__custom__') updateMendozaSBField({ round: e.target.value });
+                              else updateMendozaSBField({ round: '' });
+                            }}
+                            style={{ width: '100%', background: '#12121f', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, padding: '7px 9px', color: '#fff', fontSize: 12, fontFamily: "'Outfit',sans-serif", outline: 'none', cursor: 'pointer' }}
+                          >
+                            {roundOptions.map(g => (
+                              <optgroup key={g.group} label={g.group}>
+                                {g.opts.map(o => <option key={o} value={o}>{o}</option>)}
+                              </optgroup>
+                            ))}
+                            <option value="__custom__">✏️ Personalizado...</option>
+                          </select>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Formato</p>
+                          <select
+                            value={mendozaSB.format}
+                            onChange={e => updateMendozaSBField({ format: e.target.value })}
+                            style={{ background: '#12121f', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, padding: '7px 9px', color: '#fff', fontSize: 12, fontFamily: "'Outfit',sans-serif", outline: 'none', cursor: 'pointer' }}
+                          >
+                            <option value="">Sin formato</option>
+                            <option value="BO3">BO3</option>
+                            <option value="BO5">BO5</option>
+                            <option value="BO7">BO7</option>
+                          </select>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Personalizado</p>
+                          <input
+                            value={isCustomRound ? mendozaSB.round : ''}
+                            disabled={!isCustomRound}
+                            onChange={e => updateMendozaSBField({ round: e.target.value }, true)}
+                            placeholder="Nombre de ronda..."
+                            style={{ width: '100%', background: isCustomRound ? '#12121f' : 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '7px 9px', color: isCustomRound ? '#fff' : 'rgba(255,255,255,0.2)', fontSize: 12, fontFamily: "'Outfit',sans-serif", outline: 'none' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Players */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 10, alignItems: 'start' }}>
+                      <PlayerPanel pKey="player1" borderColor="#c93545" />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 16 }}>
+                        <button
+                          onClick={() => updateMendozaSBField({ player1: mendozaSB.player2, player2: mendozaSB.player1 })}
+                          title="Intercambiar jugadores"
+                          style={{ background: '#2a2a50', color: '#ffd700', border: '2px solid #ffd700', borderRadius: 9, padding: '8px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' }}
+                        >⇄ Swap</button>
+                        <button
+                          onClick={() => updateMendozaSBField({ player1: { ...mendozaSB.player1, score: 0 }, player2: { ...mendozaSB.player2, score: 0 } })}
+                          title="Resetear scores a 0"
+                          style={{ background: '#2a2a50', color: '#ff6b6b', border: '2px solid #ff6b6b', borderRadius: 9, padding: '8px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' }}
+                        >↺ Reset</button>
+                      </div>
+                      <PlayerPanel pKey="player2" borderColor="#2a6dd4" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           </div>{/* /columna izquierda */}
 
