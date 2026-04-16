@@ -2050,8 +2050,8 @@ export default function TestAdminPage() {
           )}
             </div>{/* /torneo info strip */}
 
-          {/* ── SCOREBOARD MENDOZA (solo cuando community = mendoza) ── */}
-          {community === 'mendoza' && (() => {
+          {/* ── SCOREBOARD MENDOZA (solo en /overlays/mendoza/control.html) ── */}
+          {false && community === 'mendoza' && (() => {
             const sbStatusColor = mendozaSBStatus === 'ok' ? '#22C55E' : mendozaSBStatus === 'error' ? '#F87171' : mendozaSBStatus === 'saving' ? '#FBBF24' : 'rgba(255,255,255,0.25)';
             const sbStatusText  = mendozaSBStatus === 'ok' ? '✅ Overlay actualizado' : mendozaSBStatus === 'error' ? '❌ Error al actualizar' : mendozaSBStatus === 'saving' ? '⏳ Actualizando...' : '';
             const roundOptions = [
