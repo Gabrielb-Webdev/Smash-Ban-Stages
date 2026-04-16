@@ -268,7 +268,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
                   className="whitespace-nowrap"
                   style={{
                     fontFamily: 'Anton',
-                    fontSize: 'clamp(2.5rem, 6vh, 7rem)',
+                    fontSize: 'clamp(2.5rem, 9vh, 25rem)',
                     fontWeight: '400',
                     color: THEME.colors.accent,
                     textShadow: `2px 2px 0px ${THEME.colors.primary}, 4px 4px 8px rgba(0,0,0,0.8)`,
@@ -306,7 +306,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
                   initial={{ scale: 0, opacity: 0, y: 100, rotate: -180 }}
                   animate={{ scale: 1, opacity: isBanned && showBanOverlay ? 0.5 : 1, y: 0, rotate: 0 }}
                   transition={{ duration: 0.6, delay: 3.5 + index * 0.1, type: 'spring', stiffness: 250, damping: 18 }}
-                  className="relative"
+                  className="relative flex flex-col items-center"
                 >
                   <img
                     src={stage.image}
@@ -320,6 +320,16 @@ export default function StreamOverlayMendoza({ sessionId }) {
                       borderStyle: 'solid',
                     }}
                   />
+                  <span style={{
+                    marginTop: 4,
+                    fontSize: isGame1 ? '0.7vw' : '0.6vw',
+                    fontWeight: 700,
+                    color: isBanned && showBanOverlay ? 'rgba(255,255,255,0.35)' : '#fff',
+                    textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'center',
+                    letterSpacing: '0.02em',
+                  }}>{stage.name}</span>
                   {showBanOverlay && (
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
@@ -367,7 +377,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: 'clamp(160px, 20vh, 260px)' }}
+            style={{ height: 'clamp(160px, 20vh, 500px)' }}
           >
             <div className="absolute inset-0">
               <img
@@ -419,7 +429,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: 'clamp(160px, 20vh, 260px)' }}
+            style={{ height: 'clamp(160px, 20vh, 500px)' }}
           >
             <div className="absolute inset-0">
               <img

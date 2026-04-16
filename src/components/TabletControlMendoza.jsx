@@ -1,7 +1,7 @@
 // ============================================================
 // TABLET CONTROL - AFK MENDOZA (Team Anexo)
 // Archivo exclusivo para Mendoza. No tocar para Córdoba.
-// Stages Game 1: Small Battlefield, Town and City, Pokemon Stadium 2, Smashville, Battlefield
+// Stages Game 1: Battlefield, Town and City, Small Battlefield, Pokemon Stadium 2, Smashville
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
