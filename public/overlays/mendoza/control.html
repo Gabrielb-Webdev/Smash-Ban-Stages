@@ -421,7 +421,7 @@
       <label>Personaje</label>
       <div class="char-preview">
         <div class="char-preview-img">
-          <img id="p1-char-preview" src="/images/Stock Icons V2/Mario/1.png" alt="">
+          <img id="p1-char-preview" src="/overlays/mendoza/Stock Icons V2/Mario/1.png" alt="">
         </div>
         <div class="char-controls">
           <select id="p1-char"></select>
@@ -463,7 +463,7 @@
       <label>Personaje</label>
       <div class="char-preview">
         <div class="char-preview-img">
-          <img id="p2-char-preview" src="/images/Stock Icons V2/Mario/1.png" alt="">
+          <img id="p2-char-preview" src="/overlays/mendoza/Stock Icons V2/Mario/1.png" alt="">
         </div>
         <div class="char-controls">
           <select id="p2-char"></select>
@@ -616,7 +616,7 @@
       for (let i = 1; i <= 8; i++) {
         const btn = document.createElement('button');
         btn.className = 'skin-btn' + (i === currentSkin ? ' active' : '');
-        btn.innerHTML = `<img src="/images/Stock Icons V2/${charId}/${i}.png" alt="Skin ${i}">`;
+        btn.innerHTML = `<img src="/overlays/mendoza/Stock Icons V2/${charId}/${i}.png" alt="Skin ${i}">`;
         btn.onclick = () => selectSkin(playerNum, i);
         container.appendChild(btn);
       }
@@ -633,7 +633,7 @@
       const charId = state[`player${playerNum}`].character;
       const skin = state[`player${playerNum}`].skin;
       document.getElementById(`p${playerNum}-char-preview`).src =
-        `/images/Stock Icons V2/${charId}/${skin}.png`;
+        `/overlays/mendoza/Stock Icons V2/${charId}/${skin}.png`;
     }
 
     // Debounce para inputs de texto
