@@ -262,8 +262,8 @@ export default function StreamOverlayMendoza({ sessionId }) {
               <AnimatePresence>
                 <motion.h2
                   key="stage-bans-text"
-                  initial={{ y: 96 }}
-                  animate={{ y: [96, 0, 0, -96] }}
+                  initial={{ y: 125 }}
+                  animate={{ y: [96, 0, 0, -125] }}
                   transition={{ duration: 3, times: [0, 0.3, 0.6, 1], ease: 'easeInOut', delay: 0.8 }}
                   className="whitespace-nowrap"
                   style={{
