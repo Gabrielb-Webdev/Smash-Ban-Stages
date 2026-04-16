@@ -291,8 +291,8 @@
       formatName(p1Name, data.player1.tag, data.player1.name);
       formatName(p2Name, data.player2.tag, data.player2.name);
 
-      p1Char.src = '/overlays/mendoza/Stock Icons V2/' + (data.player1.character || 'Mario') + '/' + (data.player1.skin || 1) + '.png';
-      p2Char.src = '/overlays/mendoza/Stock Icons V2/' + (data.player2.character || 'Mario') + '/' + (data.player2.skin || 1) + '.png';
+      p1Char.src = '/overlays/mendoza/Stock Icons V2/' + charToFolder(data.player1.character || 'mario') + '/' + (data.player1.skin || 1) + '.png';
+      p2Char.src = '/overlays/mendoza/Stock Icons V2/' + charToFolder(data.player2.character || 'mario') + '/' + (data.player2.skin || 1) + '.png';
 
       // Fit names: cada uno tan grande como su espacio le permita
       fitText(p1Name);
@@ -301,6 +301,34 @@
 
     const POLL_API = 'https://smash-ban-stages.vercel.app/api/mendoza/scoreboard-state';
     let lastUpdatedAt = null;
+
+    // Kebab IDs (del panel) → nombre de carpeta en Stock Icons V2
+    const CHAR_FOLDER = {
+      'banjo-kazooie':'Banjo & Kazooie','bayonetta':'Bayonetta','bowser':'Bowser',
+      'bowser-jr':'Bowser Jr','byleth':'Byleth','captain-falcon':'Captain Falcon',
+      'chrom':'Chrom','cloud':'Cloud','corrin':'Corrin','daisy':'Daisy',
+      'dark-pit':'Dark Pit','dark-samus':'Dark Samus','diddy-kong':'Diddy Kong',
+      'donkey-kong':'Donkey Kong','dr-mario':'Dr Mario','duck-hunt':'Duck Hunt',
+      'falco':'Falco','fox':'Fox','ganondorf':'Ganondorf','greninja':'Greninja',
+      'hero':'Hero','ice-climbers':'Ice Climbers','ike':'Ike','incineroar':'Incineroar',
+      'inkling':'Inkling','isabelle':'Isabelle','jigglypuff':'Jigglypuff','joker':'Joker',
+      'kazuya':'Kazuya','ken':'Ken','king-dedede':'King Dedede','king-k-rool':'King K Rool',
+      'kirby':'Kirby','link':'Link','little-mac':'Little Mac','lucario':'Lucario',
+      'lucas':'Lucas','lucina':'Lucina','luigi':'Luigi','mario':'Mario','marth':'Marth',
+      'mega-man':'Mega Man','meta-knight':'Meta Knight','mewtwo':'Mewtwo',
+      'mii-brawler':'Mii Brawler','mii-gunner':'Mii Gunner','mii-swordfighter':'Mii Swordfighter',
+      'min-min':'Min Min','mr-game-and-watch':'Mr Game & Watch','ness':'Ness','olimar':'Olimar',
+      'pac-man':'Pac Man','palutena':'Palutena','peach':'Peach','pichu':'Pichu',
+      'pikachu':'Pikachu','piranha-plant':'Piranha Plant','pit':'Pit',
+      'pokemon-trainer':'Pokemon Trainer','pyra-mythra':'Pyra & Mythra','rob':'Rob',
+      'richter':'Richter','ridley':'Ridley','robin':'Robin','rosalina':'Rosalina & Luma',
+      'roy':'Roy','ryu':'Ryu','samus':'Samus','sephiroth':'Sephiroth','sheik':'Sheik',
+      'shulk':'Shulk','simon':'Simon','snake':'Snake','sonic':'Sonic','sora':'Sora',
+      'steve':'Steve','terry':'Terry','toon-link':'Toon Link','villager':'Villager',
+      'wario':'Wario','wii-fit-trainer':'Wii Fit Trainer','wolf':'Wolf','yoshi':'Yoshi',
+      'young-link':'Young Link','zelda':'Zelda','zero-suit-samus':'Zero Suit Samus',
+    };
+    function charToFolder(id) { return CHAR_FOLDER[id] || id; }
 
     async function poll() {
       try {

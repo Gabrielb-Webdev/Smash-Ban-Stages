@@ -573,6 +573,34 @@
     const SCOREBOARD_API = '/api/mendoza/scoreboard-state';
     const ADMIN_TOKEN = 'afk-admin-2025';
 
+    // ===== KEBAB ID → FOLDER NAME =====
+    const CHAR_FOLDER = {
+      'banjo-kazooie':'Banjo & Kazooie','bayonetta':'Bayonetta','bowser':'Bowser',
+      'bowser-jr':'Bowser Jr','byleth':'Byleth','captain-falcon':'Captain Falcon',
+      'chrom':'Chrom','cloud':'Cloud','corrin':'Corrin','daisy':'Daisy',
+      'dark-pit':'Dark Pit','dark-samus':'Dark Samus','diddy-kong':'Diddy Kong',
+      'donkey-kong':'Donkey Kong','dr-mario':'Dr Mario','duck-hunt':'Duck Hunt',
+      'falco':'Falco','fox':'Fox','ganondorf':'Ganondorf','greninja':'Greninja',
+      'hero':'Hero','ice-climbers':'Ice Climbers','ike':'Ike','incineroar':'Incineroar',
+      'inkling':'Inkling','isabelle':'Isabelle','jigglypuff':'Jigglypuff','joker':'Joker',
+      'kazuya':'Kazuya','ken':'Ken','king-dedede':'King Dedede','king-k-rool':'King K Rool',
+      'kirby':'Kirby','link':'Link','little-mac':'Little Mac','lucario':'Lucario',
+      'lucas':'Lucas','lucina':'Lucina','luigi':'Luigi','mario':'Mario','marth':'Marth',
+      'mega-man':'Mega Man','meta-knight':'Meta Knight','mewtwo':'Mewtwo',
+      'mii-brawler':'Mii Brawler','mii-gunner':'Mii Gunner','mii-swordfighter':'Mii Swordfighter',
+      'min-min':'Min Min','mr-game-and-watch':'Mr Game & Watch','ness':'Ness','olimar':'Olimar',
+      'pac-man':'Pac Man','palutena':'Palutena','peach':'Peach','pichu':'Pichu',
+      'pikachu':'Pikachu','piranha-plant':'Piranha Plant','pit':'Pit',
+      'pokemon-trainer':'Pokemon Trainer','pyra-mythra':'Pyra & Mythra','rob':'Rob',
+      'richter':'Richter','ridley':'Ridley','robin':'Robin','rosalina':'Rosalina & Luma',
+      'roy':'Roy','ryu':'Ryu','samus':'Samus','sephiroth':'Sephiroth','sheik':'Sheik',
+      'shulk':'Shulk','simon':'Simon','snake':'Snake','sonic':'Sonic','sora':'Sora',
+      'steve':'Steve','terry':'Terry','toon-link':'Toon Link','villager':'Villager',
+      'wario':'Wario','wii-fit-trainer':'Wii Fit Trainer','wolf':'Wolf','yoshi':'Yoshi',
+      'young-link':'Young Link','zelda':'Zelda','zero-suit-samus':'Zero Suit Samus',
+    };
+    function charToFolder(id) { return CHAR_FOLDER[id] || id; }
+
     // ===== STATE =====
     let state = {
       player1: { tag: '', name: '', score: 0, character: 'Mario', skin: 1 },
@@ -616,7 +644,7 @@
       for (let i = 1; i <= 8; i++) {
         const btn = document.createElement('button');
         btn.className = 'skin-btn' + (i === currentSkin ? ' active' : '');
-        btn.innerHTML = `<img src="/overlays/mendoza/Stock Icons V2/${charId}/${i}.png" alt="Skin ${i}">`;
+        btn.innerHTML = `<img src="/overlays/mendoza/Stock Icons V2/${charToFolder(charId)}/${i}.png" alt="Skin ${i}">`;
         btn.onclick = () => selectSkin(playerNum, i);
         container.appendChild(btn);
       }
@@ -633,7 +661,7 @@
       const charId = state[`player${playerNum}`].character;
       const skin = state[`player${playerNum}`].skin;
       document.getElementById(`p${playerNum}-char-preview`).src =
-        `/overlays/mendoza/Stock Icons V2/${charId}/${skin}.png`;
+        `/overlays/mendoza/Stock Icons V2/${charToFolder(charId)}/${skin}.png`;
     }
 
     // Debounce para inputs de texto
@@ -797,6 +825,9 @@
         if (res.ok) {
           const data = await res.json();
           state = data;
+          // Normalizar IDs kebab-case (del panel) a nombres de carpeta
+          if (state.player1) state.player1.character = charToFolder(state.player1.character || 'Mario');
+          if (state.player2) state.player2.character = charToFolder(state.player2.character || 'Mario');
           syncUIFromState();
         }
       } catch (e) {
