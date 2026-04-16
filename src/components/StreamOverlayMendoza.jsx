@@ -178,7 +178,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
       <footer
         className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between"
         style={{
-          height: 'clamp(160px, 20vh, 260px)',
+          height: 'clamp(160px, 20vh, 500px)',
           paddingInline: 'clamp(16px, 3vw, 56px)',
           background: 'transparent',
           boxShadow: `0 -4px 20px ${THEME.colors.primary}40`,
@@ -212,14 +212,14 @@ export default function StreamOverlayMendoza({ sessionId }) {
                 src={getStockIconPath(session.player1.character, session.player1.skin || 1) || getCharacterData(session.player1.character)?.image}
                 alt={getCharacterData(session.player1.character)?.name}
                 className="rounded-full"
-                style={{ objectFit: 'cover', width: 'clamp(64px, 12vh, 140px)', height: 'clamp(64px, 12vh, 140px)', flexShrink: 0 }}
+                style={{ objectFit: 'cover', width: 'clamp(64px, 12vh, 350px)', height: 'clamp(64px, 12vh, 350px)', flexShrink: 0 }}
               />
               <motion.div
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
                 className="w-1 ml-4"
-                style={{ backgroundColor: THEME.colors.accent, height: 'clamp(64px, 12vh, 140px)' }}
+                style={{ backgroundColor: THEME.colors.accent, height: 'clamp(64px, 12vh, 350px)' }}
               />
             </motion.div>
 
@@ -236,13 +236,13 @@ export default function StreamOverlayMendoza({ sessionId }) {
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.4, delay: 0.5 }}
                 className="w-1 mr-4"
-                style={{ backgroundColor: THEME.colors.accent, height: 'clamp(64px, 12vh, 140px)' }}
+                style={{ backgroundColor: THEME.colors.accent, height: 'clamp(64px, 12vh, 350px)' }}
               />
               <img
                 src={getStockIconPath(session.player2.character, session.player2.skin || 1) || getCharacterData(session.player2.character)?.image}
                 alt={getCharacterData(session.player2.character)?.name}
                 className="rounded-full"
-                style={{ objectFit: 'cover', width: 'clamp(64px, 12vh, 140px)', height: 'clamp(64px, 12vh, 140px)', flexShrink: 0 }}
+                style={{ objectFit: 'cover', width: 'clamp(64px, 12vh, 350px)', height: 'clamp(64px, 12vh, 350px)', flexShrink: 0 }}
               />
             </motion.div>
           </>

@@ -39,6 +39,14 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.errors) {
+      // "Set is already started" no es un error real — el set ya está ACTIVE, tratar como éxito
+      const alreadyStarted = data.errors.some(e =>
+        /already started/i.test(e.message) || /already in progress/i.test(e.message)
+      );
+      if (alreadyStarted) {
+        console.log(`ℹ️ start.gg set ${setId} ya estaba ACTIVE — ignorando error`);
+        return res.status(200).json({ ok: true, set: { id: setId, state: 2 }, stateLabel: 'ACTIVE' });
+      }
       console.warn('⚠️ start.gg markSetInProgress errors:', JSON.stringify(data.errors));
       return res.status(400).json({ error: data.errors[0]?.message || 'Error de start.gg', details: data.errors });
     }
