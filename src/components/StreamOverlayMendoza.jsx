@@ -257,13 +257,13 @@ export default function StreamOverlayMendoza({ sessionId }) {
           >
             <div
               className="overflow-hidden flex items-center justify-center"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', height: 'clamp(60px, 10vh, 120px)' }}
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', height: 'clamp(60px, 10vh, 300px)' }}
             >
               <AnimatePresence>
                 <motion.h2
                   key="stage-bans-text"
-                  initial={{ y: 125 }}
-                  animate={{ y: [96, 0, 0, -125] }}
+                  initial={{ y: 300 }}
+                  animate={{ y: [96, 0, 0, -300] }}
                   transition={{ duration: 3, times: [0, 0.3, 0.6, 1], ease: 'easeInOut', delay: 0.8 }}
                   className="whitespace-nowrap"
                   style={{
@@ -306,30 +306,38 @@ export default function StreamOverlayMendoza({ sessionId }) {
                   initial={{ scale: 0, opacity: 0, y: 100, rotate: -180 }}
                   animate={{ scale: 1, opacity: isBanned && showBanOverlay ? 0.5 : 1, y: 0, rotate: 0 }}
                   transition={{ duration: 0.6, delay: 3.5 + index * 0.1, type: 'spring', stiffness: 250, damping: 18 }}
-                  className="relative flex flex-col items-center"
+                  className={`relative overflow-hidden ${borderRadius} shadow-2xl`}
+                  style={{
+                    borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
+                    borderColor: isSelected && showSelectOverlay ? '#4ADE80' : THEME.colors.accent,
+                    borderStyle: 'solid',
+                    filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
+                  }}
                 >
                   <img
                     src={stage.image}
                     alt={stage.name}
-                    className={`${imageClass} object-cover ${borderRadius} shadow-2xl`}
-                    style={{
-                      objectFit: 'cover',
-                      borderWidth: isSelected && showSelectOverlay ? (isGame1 ? '5px' : '4px') : (isGame1 ? '4px' : '3px'),
-                      borderColor: isSelected && showSelectOverlay ? '#4ADE80' : THEME.colors.accent,
-                      filter: isBanned && showBanOverlay ? 'grayscale(100%)' : 'none',
-                      borderStyle: 'solid',
-                    }}
+                    className={`${imageClass} object-cover block`}
+                    style={{ objectFit: 'cover', display: 'block' }}
                   />
-                  <span style={{
-                    marginTop: 4,
-                    fontSize: isGame1 ? '0.7vw' : '0.6vw',
-                    fontWeight: 700,
-                    color: isBanned && showBanOverlay ? 'rgba(255,255,255,0.35)' : '#fff',
-                    textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
-                    whiteSpace: 'nowrap',
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    background: 'rgba(0,0,0,0.72)',
+                    padding: isGame1 ? '3px 4px' : '2px 3px',
                     textAlign: 'center',
-                    letterSpacing: '0.02em',
-                  }}>{stage.name}</span>
+                  }}>
+                    <span style={{
+                      fontSize: isGame1 ? '0.65vw' : '0.55vw',
+                      fontWeight: 700,
+                      color: '#fff',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '0.02em',
+                      display: 'block',
+                    }}>{stage.name}</span>
+                  </div>
                   {showBanOverlay && (
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
