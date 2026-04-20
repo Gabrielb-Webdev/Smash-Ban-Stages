@@ -76,6 +76,25 @@ function syncSantaFeScoreboard(session) {
   }
 }
 
+// Sync Mendoza scoreboard → Redis vía API de Vercel (para control.html)
+function syncMendozaScoreboard(session) {
+  if (!session) return;
+  try {
+    const vercelUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smash-ban-stages.vercel.app';
+    const adminSecret = process.env.ADMIN_SECRET || 'afk-admin-2025';
+    fetch(`${vercelUrl}/api/mendoza/scoreboard-state`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminSecret}` },
+      body: JSON.stringify({
+        player1: { score: session.player1?.score ?? 0 },
+        player2: { score: session.player2?.score ?? 0 },
+      }),
+    }).catch(e => console.error('⚠️ Error sync Mendoza scoreboard:', e.message));
+  } catch (e) {
+    console.error('⚠️ Error sincronizando scoreboard Mendoza:', e.message);
+  }
+}
+
 function isSantaFe(sessionId) {
   if (!sessionId) return false;
   const s = sessionId.toLowerCase();
@@ -551,6 +570,10 @@ const httpServer = createServer(async (req, res) => {
           sessions.set(sessionId, session);
           console.log('📝 Sesión pre-creada (CHECKIN) desde /session-meta:', sessionId);
           if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
+          if (sessionId === 'mendoza-tablet') {
+            io.to('mendoza-stream').emit('session-updated', { session });
+            syncMendozaScoreboard(session);
+          }
         } else if (session) {
           // Si la sesión ya tiene progreso y no viene forceReset, solo actualizar metadata
           const hasProgress = session.phase !== 'CHECKIN' || (session.player1?.score || 0) > 0 || (session.player2?.score || 0) > 0 || session.currentGame > 1;
@@ -605,6 +628,10 @@ const httpServer = createServer(async (req, res) => {
           io.to(sessionId).emit('session-updated', { session: freshSession });
           console.log('🔄 Sesión reseteada (CHECKIN) desde /session-meta:', sessionId);
           if (isSantaFe(sessionId)) syncSantaFeScoreboard(freshSession);
+          if (sessionId === 'mendoza-tablet') {
+            io.to('mendoza-stream').emit('session-updated', { session: freshSession });
+            syncMendozaScoreboard(freshSession);
+          }
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -950,6 +977,17 @@ io.on('connection', (socket) => {
     }
     if (session) {
       socket.join(sessionId);
+      // MIRROR: mendoza-stream también se suscribe al room mendoza-tablet
+      // para recibir todos los eventos del tablet en tiempo real automáticamente
+      if (sessionId === 'mendoza-stream') {
+        socket.join('mendoza-tablet');
+        const tabletSession = sessions.get('mendoza-tablet');
+        if (tabletSession && tabletSession.phase && tabletSession.phase !== 'IDLE') {
+          socket.emit('session-joined', { session: tabletSession });
+          console.log('Cliente unido a mendoza-stream → recibiendo estado de mendoza-tablet');
+          return;
+        }
+      }
       socket.emit('session-joined', { session });
       console.log('Cliente unido a sesión:', sessionId);
     } else {
@@ -1538,6 +1576,7 @@ io.on('connection', (socket) => {
     sessions.set(sessionId, session);
     io.to(sessionId).emit('session-updated', { session });
     if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
+    if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
 
     console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
     if (session.startggSetId && seriesFinished) {
