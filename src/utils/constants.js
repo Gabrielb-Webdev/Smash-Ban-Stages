@@ -271,7 +271,7 @@ export const getStagesForTournament = (sessionId, currentGame) => {
 
   if (sessionId) {
     const s = String(sessionId).toLowerCase();
-    if (s === 'mendoza' || s.endsWith('-mendoza') || s.includes('/mendoza')) {
+    if (s === 'mendoza' || s.startsWith('mendoza-') || s.endsWith('-mendoza') || s.includes('/mendoza')) {
       tournamentId = 'mendoza';
     } else if (s === 'afk' || s.startsWith('afk-') || s.includes('/afk')) {
       tournamentId = 'afk';

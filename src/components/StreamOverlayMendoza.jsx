@@ -250,7 +250,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
 
         {/* Texto "STAGE BANS" en el centro */}
         {session.player1.character && session.player2.character &&
-          session.phase !== 'PLAYING' && session.phase !== 'FINISHED' && (
+          (session.phase === 'STAGE_BAN' || session.phase === 'STAGE_SELECT') && (
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{ zIndex: 20 }}
@@ -283,7 +283,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
 
         {/* Imágenes de los stages */}
         {session.player1.character && session.player2.character &&
-          session.phase !== 'PLAYING' && session.phase !== 'FINISHED' && (
+          (session.phase === 'STAGE_BAN' || session.phase === 'STAGE_SELECT') && (
           <div
             className={`absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none ${
               session.currentGame === 1 ? 'gap-[1.5vw]' : 'gap-[2vw]'

@@ -1551,6 +1551,16 @@ io.on('connection', (socket) => {
       io.to(sessionId).emit('series-finished', { winner, session });
       // Guardar en historial de torneo (Redis vía Vercel API)
       saveTournamentHistory(session, winner);
+      // Cuando termina un tablet de mendoza: limpiar mendoza-stream a IDLE
+      if (sessionId === 'mendoza-tablet') {
+        const streamSess = sessions.get('mendoza-tablet'); // usar mismo objeto ya actualizado
+        const idleStream = {
+          sessionId: 'mendoza-stream', phase: 'IDLE',
+          player1: { name: '', score: 0, character: null, wonStages: [] },
+          player2: { name: '', score: 0, character: null, wonStages: [] },
+        };
+        setTimeout(() => io.to('mendoza-stream').emit('session-updated', { session: idleStream }), 8000);
+      }
     } else {
       // Guardar datos del stage actual para ofrecer repetir en el próximo game
       session.previousStageData = {
