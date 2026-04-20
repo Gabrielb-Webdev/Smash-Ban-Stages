@@ -192,45 +192,40 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
     });
   }, [session?.phase, session?.currentTurn]);
 
-  // Detectar cambios de fase/turno para mostrar modal de anuncio (solo singleDeviceMode)
+  // Detectar cambios de fase/turno → modal bloqueante que requiere confirmación manual
   useEffect(() => {
-    if (!session || !session.singleDeviceMode) return;
+    if (!session) return;
     if (isFirstRender.current) {
       isFirstRender.current = false;
       prevPhaseRef.current = session.phase;
-      prevTurnRef.current = session.currentTurn;
+      prevTurnRef.current  = session.currentTurn;
       return;
     }
     const prevPhase = prevPhaseRef.current;
-    const prevTurn = prevTurnRef.current;
-    const turn = session.currentTurn;
-    const name = turn ? session[turn]?.name : '';
+    const prevTurn  = prevTurnRef.current;
+    const turn      = session.currentTurn;
+    const name      = turn ? (session[turn]?.name || turn) : '';
+    const bans      = session.bansRemaining || 0;
+    const bansLabel = bans === 1 ? '1 stage' : `${bans} stages`;
+
     if (prevPhase !== session.phase) {
-      if (session.phase === 'STAGE_BAN' && turn) {
-        setTurnModal({ icon: '\u{1F6AB}', subtitle: 'Le toca BANEAR stage a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
+      if (session.phase === 'CHARACTER_SELECT' && turn) {
+        setTurnModal({ icon: '🎮', playerName: name, forPlayer: turn, actionText: 'elegir personaje', gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+      } else if (session.phase === 'STAGE_BAN' && turn) {
+        setTurnModal({ icon: '🚫', playerName: name, forPlayer: turn, actionText: `banear ${bansLabel}`, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
       } else if (session.phase === 'STAGE_SELECT' && turn) {
-        setTurnModal({ icon: '\u{1F3AF}', subtitle: 'Le toca ELEGIR stage a', playerName: name, gradient: 'linear-gradient(160deg,#020d1a 0%,#0c2340 50%,#1d4ed8 100%)', accent: '#60a5fa' });
-      } else if (session.phase === 'CHARACTER_SELECT' && turn) {
-        setTurnModal({ icon: '\u{1F3AE}', subtitle: 'Elige tu personaje', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+        setTurnModal({ icon: '🎯', playerName: name, forPlayer: turn, actionText: 'elegir el stage final', gradient: 'linear-gradient(160deg,#020d1a 0%,#0c2340 50%,#1d4ed8 100%)', accent: '#60a5fa' });
       }
     } else if (prevTurn !== turn && turn && session.phase !== 'RPS') {
-      if (session.phase === 'STAGE_BAN') {
-        setTurnModal({ icon: '\u{1F6AB}', subtitle: 'Ahora le toca BANEAR a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
-      } else if (session.phase === 'CHARACTER_SELECT') {
-        setTurnModal({ icon: '\u{1F3AE}', subtitle: 'Ahora te toca elegir a vos', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+      if (session.phase === 'CHARACTER_SELECT') {
+        setTurnModal({ icon: '🎮', playerName: name, forPlayer: turn, actionText: 'elegir personaje', gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+      } else if (session.phase === 'STAGE_BAN') {
+        setTurnModal({ icon: '🚫', playerName: name, forPlayer: turn, actionText: `banear ${bansLabel}`, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
       }
     }
     prevPhaseRef.current = session.phase;
-    prevTurnRef.current = session.currentTurn;
-  }, [session?.phase, session?.currentTurn, session?.singleDeviceMode]);
-
-  // Auto-dismiss del modal de turno despu\u00e9s de 4s
-  useEffect(() => {
-    if (turnModal) {
-      const t = setTimeout(() => setTurnModal(null), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [turnModal]);
+    prevTurnRef.current  = session.currentTurn;
+  }, [session?.phase, session?.currentTurn, session?.bansRemaining]);
 
   // Auto-cerrar pantalla FINISHED después de 5 segundos
   useEffect(() => {
@@ -1179,6 +1174,70 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
             </div>
           </div>
         )}
+
+        {/* ── Modal de turno: anuncio de paso (bloqueante, requiere confirmar) ── */}
+        {(() => {
+          if (!turnModal) return null;
+          // En modo 2 dispositivos: mostrar solo al jugador cuyo turno es
+          const shouldShow = !effectivePlayer || !turnModal.forPlayer || turnModal.forPlayer === effectivePlayer;
+          if (!shouldShow) return null;
+          const isMyTurn = !!(effectivePlayer && turnModal.forPlayer === effectivePlayer);
+          return (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+              style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)' }}
+            >
+              <div
+                className="rounded-3xl shadow-2xl border border-white/20 max-w-sm w-full text-center"
+                style={{ background: turnModal.gradient, padding: '40px 28px 32px' }}
+              >
+                <div style={{ fontSize: 68, lineHeight: 1, marginBottom: 20 }}>{turnModal.icon}</div>
+
+                {isMyTurn ? (
+                  <>
+                    <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 10 }}>⚡ ¡Es tu turno!</p>
+                    <p style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: '0 0 8px', fontFamily: 'Anton, sans-serif', textShadow: '2px 2px 0 rgba(0,0,0,0.5)', lineHeight: 1.1 }}>
+                      {turnModal.playerName}
+                    </p>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: turnModal.accent, margin: '0 0 32px', textShadow: '1px 1px 3px rgba(0,0,0,0.6)' }}>
+                      Tenés que <strong>{turnModal.actionText}</strong>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 10 }}>Le toca a...</p>
+                    <p style={{ fontSize: 26, fontWeight: 900, color: turnModal.accent, margin: '0 0 8px', fontFamily: 'Anton, sans-serif', textShadow: '2px 2px 0 rgba(0,0,0,0.5)', lineHeight: 1.1 }}>
+                      {turnModal.playerName}
+                    </p>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 32px', textShadow: '1px 1px 3px rgba(0,0,0,0.6)' }}>
+                      {turnModal.actionText.charAt(0).toUpperCase() + turnModal.actionText.slice(1)}
+                    </p>
+                  </>
+                )}
+
+                <button
+                  onClick={() => setTurnModal(null)}
+                  style={{
+                    width: '100%',
+                    padding: '14px 0',
+                    borderRadius: 14,
+                    background: turnModal.accent,
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 900,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: `0 4px 20px ${turnModal.accent}66`,
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  ✅ Entendido
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Modal: Confirmación de acción ── */}
         {pendingAction && (
