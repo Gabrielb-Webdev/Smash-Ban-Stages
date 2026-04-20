@@ -415,16 +415,6 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
             </div>
           </div>
 
-          {/* Powered By GSH - Solo Mendoza */}
-          <div className="mt-4 flex items-center justify-center gap-4 opacity-90">
-            <span className="text-white/80 text-2xl sm:text-4xl font-bold tracking-wide">POWERED BY:</span>
-            <img
-              src="/images/Logo_GSH.png"
-              alt="GSH Logo"
-              className="h-24 sm:h-36 object-contain filter drop-shadow-xl"
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-          </div>
         </div>
 
       {/* ── Contenido scrollable ── */}
@@ -869,12 +859,21 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
           <div className="rounded-xl border border-white/20">
             {/* Sub-header sticky */}
             <div className="sticky top-[72px] sm:top-[88px] z-30 backdrop-blur-md px-2 sm:px-4 pt-2 sm:pt-3 pb-2 border-b border-white/20 rounded-t-xl" style={{ background: 'rgba(0,0,0,0.92)' }}>
-              <div className="flex justify-between items-center mb-1.5 sm:mb-2">
-                <div>
+              <div className="flex justify-between items-start mb-1.5 sm:mb-2 gap-2">
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-2xl font-bold text-white">👤 Seleccionar Personaje</h3>
                   <p className={`text-xs sm:text-base font-semibold truncate ${myPlayer && myPlayer === session.currentTurn ? 'text-yellow-400 font-black' : 'text-white'}`}>
                     {myPlayer && myPlayer === session.currentTurn ? `⚡ ¡Elegí tu personaje! | Stage: ${getStageData(session.selectedStage)?.name}` : `Turno: ${session[session.currentTurn]?.name} | Stage: ${getStageData(session.selectedStage)?.name}`}
                   </p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0 opacity-80">
+                  <span className="text-white/70 text-[10px] sm:text-xs font-bold tracking-wide whitespace-nowrap">POWERED BY:</span>
+                  <img
+                    src="/images/Logo_GSH.png"
+                    alt="GSH Logo"
+                    className="h-10 sm:h-14 object-contain filter drop-shadow-lg"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
                 </div>
               </div>
               {/* Banner: el rival ya eligió su personaje */}
