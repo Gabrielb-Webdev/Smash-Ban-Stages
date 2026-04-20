@@ -364,7 +364,10 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
       case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin, session?.matchToken); break;
-      case 'winner':    proposeGameWinner(sessionId, pendingAction.winner, myPlayer, session?.matchToken); break;
+      case 'winner':    myPlayer
+        ? proposeGameWinner(sessionId, pendingAction.winner, myPlayer, session?.matchToken)
+        : setGameWinner(sessionId, pendingAction.winner, session?.matchToken);
+        break;
     }
     setPendingAction(null);
     setClickedItemId(null);
