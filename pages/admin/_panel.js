@@ -25,7 +25,7 @@ const COMMUNITY_META = {
 
 function getCommunitySetups(comunidad) {
   const p = comunidad || 'test';
-  return [
+  const base = [
     { id: `${p}-stream`, label: 'Stream',  icon: '📡', color: '#DC2626' },
     { id: `${p}-1`,     label: 'Setup 1', icon: '🎮', color: '#7C3AED' },
     { id: `${p}-2`,     label: 'Setup 2', icon: '🎮', color: '#2563EB' },
@@ -33,6 +33,11 @@ function getCommunitySetups(comunidad) {
     { id: `${p}-4`,     label: 'Setup 4', icon: '🎮', color: '#D97706' },
     { id: `${p}-5`,     label: 'Setup 5', icon: '🎮', color: '#DB2777' },
   ];
+  // Setup tablet exclusivo para Mendoza (envía datos al overlay igual que stream)
+  if (p === 'mendoza') {
+    base.splice(1, 0, { id: `${p}-tablet`, label: 'Tablet', icon: '📱', color: '#8B5CF6' });
+  }
+  return base;
 }
 // Clave localStorage con namespace de comunidad (backward-compat: 'test' usa claves legacy)
 function lsk(base, c) { return c === 'test' ? `afk_${base}` : `${c}_${base}`; }
@@ -1320,15 +1325,23 @@ export default function TestAdminPage() {
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
     const format = setupFormats[setupId] || 'BO3';
-    // Para el setup de stream se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
+    // Para el setup de stream/tablet se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
     const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream', 'santafe': 'santafe-stream' };
+    const COMMUNITY_TABLET_IDS = { 'mendoza': 'mendoza-tablet' };
     const isStreamSetup = setupId.endsWith('-stream');
+    const isTabletSetup = setupId.endsWith('-tablet');
     const sessionId = isStreamSetup
       ? (COMMUNITY_STREAM_IDS[community] || setupId)
-      : `${community}-${setupId.replace(`${community}-`, '')}-${Date.now().toString(36)}`;
+      : isTabletSetup
+        ? (COMMUNITY_TABLET_IDS[community] || setupId)
+        : `${community}-${setupId.replace(`${community}-`, '')}-${Date.now().toString(36)}`;
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smash-ban-stages.vercel.app';
-    const banUrl  = `${origin}/tablet/${sessionId}`;
+    // Setup tablet Mendoza usa /tablet/mendoza/[sessionId] (URL pública, sin login)
+    const tabletBase = isTabletSetup && community === 'mendoza'
+      ? `${origin}/tablet/mendoza/${sessionId}`
+      : `${origin}/tablet/${sessionId}`;
+    const banUrl  = tabletBase;
     const banUrl1 = `${banUrl}?p=player1`;
     const banUrl2 = `${banUrl}?p=player2`;
 
@@ -1491,8 +1504,8 @@ export default function TestAdminPage() {
         }),
       }).catch(() => {});
     }
-    // Para torneos Mendoza: auto-populate scoreboard con jugadores y ronda
-    if (community === 'mendoza' && isStreamSetup) {
+    // Para torneos Mendoza: auto-populate scoreboard con jugadores y ronda (stream Y tablet)
+    if (community === 'mendoza' && (isStreamSetup || isTabletSetup)) {
       fetch('/api/mendoza/scoreboard-state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
@@ -1944,6 +1957,20 @@ export default function TestAdminPage() {
                             >
                               ✕ Cancelar
                             </button>
+                            {/* Links públicos del setup tablet (Mendoza) */}
+                            {setup.id.endsWith('-tablet') && assigned?.banUrl1 && (
+                              <div style={{ marginTop: 7, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <a href={assigned.banUrl1} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
+                                  📱 Player 1 →
+                                </a>
+                                <a href={assigned.banUrl2} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
+                                  📱 Player 2 →
+                                </a>
+                                <a href={`/stream/mendoza/${assigned.sessionId}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
+                                  📺 Overlay OBS →
+                                </a>
+                              </div>
+                            )}
                             {/* Live game info compacto */}
                             {(() => {
                               const st = sessionStatuses[setup.id];
