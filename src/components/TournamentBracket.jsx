@@ -573,7 +573,7 @@ function MatchManageModal({ set, onClose, onResultSaved }) {
                     </div>
                   ) : (
                     <>
-                  {/* ── Winner buttons ── */}}
+                  {/* ── Winner buttons ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {[
                       { id: p1Id, name: p1Name, char: p1Char, isWon: p1Won },
