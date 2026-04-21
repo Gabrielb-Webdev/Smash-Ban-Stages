@@ -250,6 +250,22 @@ function MatchManageModal({ set, onClose }) {
   const [successMsg, setSuccessMsg]     = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting]       = useState(false);
+  const [p1History, setP1History]       = useState([]);
+  const [p2History, setP2History]       = useState([]);
+
+  // Cargar historial persistente de personajes por jugador al abrir el modal
+  useEffect(() => {
+    const load = async (name, setter) => {
+      if (!name || name === 'Jugador 1' || name === 'Jugador 2') return;
+      try {
+        const r = await fetch(`/api/tournaments/player-chars?name=${encodeURIComponent(name)}`);
+        const d = await r.json();
+        if (Array.isArray(d.chars)) setter(d.chars);
+      } catch {}
+    };
+    load(p1Name, setP1History);
+    load(p2Name, setP2History);
+  }, [p1Name, p2Name]);
 
   const p1Score         = games.filter(g => g.winnerId === p1Id).length;
   const p2Score         = games.filter(g => g.winnerId === p2Id).length;
@@ -295,6 +311,26 @@ function MatchManageModal({ set, onClose }) {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || 'Error al guardar');
+
+      // Guardar historial de personajes en Redis (fire & forget)
+      const saveChars = (name, charSlugs) => {
+        const unique = [...new Set(charSlugs.filter(Boolean))];
+        if (!name || name === 'Jugador 1' || name === 'Jugador 2' || !unique.length) return;
+        fetch('/api/tournaments/player-chars', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, chars: unique }),
+        }).then(res => res.json()).then(d => {
+          if (d.ok) {
+            // Actualizar historial local con los nuevos personajes
+            setP1History(prev => [...new Set([...unique.filter(c => games.some(g => g.char0 === c)), ...prev])]);
+            setP2History(prev => [...new Set([...unique.filter(c => games.some(g => g.char1 === c)), ...prev])]);
+          }
+        }).catch(() => {});
+      };
+      saveChars(p1Name, games.map(g => g.char0));
+      saveChars(p2Name, games.map(g => g.char1));
+
       setSuccessMsg(isFinal ? '✅ Resultado enviado a Start.GG' : '✅ Progreso guardado');
       if (isFinal) setTimeout(onClose, 1800);
     } catch (e) {
@@ -511,13 +547,16 @@ function MatchManageModal({ set, onClose }) {
                   {/* ── Character pickers ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {[
-                      { field: 'char0', label: p1Name, char: p1Char, hist: p1Hist },
-                      { field: 'char1', label: p2Name, char: p2Char, hist: p2Hist },
-                    ].map(({ field, label, char, hist }) => (
+                      { field: 'char0', label: p1Name, char: p1Char, hist: p1Hist, persisted: p1History },
+                      { field: 'char1', label: p2Name, char: p2Char, hist: p2Hist, persisted: p2History },
+                    ].map(({ field, label, char, hist, persisted }) => {
+                      // Combinar historial del match actual + historial persistente (sin duplicados)
+                      const mergedSuggestions = [...new Set([...hist, ...persisted])];
+                      return (
                       <div key={field}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
                         <div style={{ marginBottom: hist.length ? 6 : 0 }}>
-                          <CharacterPicker value={game[field]} onChange={val => updateGame(idx, field, val)} suggestions={hist} />
+                          <CharacterPicker value={game[field]} onChange={val => updateGame(idx, field, val)} suggestions={mergedSuggestions} />
                         </div>
                         {/* ── History chips ── */}
                         {hist.length > 0 && (
