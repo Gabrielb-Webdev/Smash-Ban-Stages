@@ -250,6 +250,23 @@ function MatchManageModal({ set, onClose, onResultSaved }) {
   const [resetting, setResetting]       = useState(false);
   const [p1History, setP1History]       = useState([]);
   const [p2History, setP2History]       = useState([]);
+  // Juegos colapsados: Set de índices. Al editar, colapsar todos los ya registrados excepto el último.
+  const [collapsedGames, setCollapsedGames] = useState(() => {
+    if (isEditingCompleted) {
+      const existing = set?.games;
+      if (existing?.length > 1) {
+        // colapsar todos menos el último
+        return new Set(existing.slice(0, -1).map((_, i) => i));
+      }
+    }
+    return new Set();
+  });
+
+  const toggleCollapse = (idx) => setCollapsedGames(prev => {
+    const next = new Set(prev);
+    next.has(idx) ? next.delete(idx) : next.add(idx);
+    return next;
+  });
 
   // Cargar historial persistente de personajes por jugador al abrir el modal
   useEffect(() => {
@@ -513,8 +530,11 @@ function MatchManageModal({ set, onClose, onResultSaved }) {
 
             return (
               <div key={idx} style={{ background: isGWon ? 'rgba(34,197,94,0.04)' : 'rgba(255,255,255,0.025)', border: `1px solid ${isGWon ? 'rgba(34,197,94,0.22)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.2s, background 0.2s' }}>
-                {/* Game header row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', background: 'rgba(0,0,0,0.18)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                {/* Game header row – clickable para colapsar/expandir */}
+                <div
+                  onClick={() => toggleCollapse(idx)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', background: 'rgba(0,0,0,0.18)', borderBottom: collapsedGames.has(idx) ? 'none' : '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', userSelect: 'none' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Juego {game.gameNum}</span>
                     {isGWon && <span style={{ fontSize: 9, fontWeight: 800, color: '#4ADE80', background: 'rgba(34,197,94,0.14)', borderRadius: 99, padding: '1px 7px' }}>✓ Registrado</span>}
@@ -525,12 +545,34 @@ function MatchManageModal({ set, onClose, onResultSaved }) {
                       </span>
                     )}
                   </div>
-                  {games.length > 1 && (
-                    <button onClick={() => removeGame(idx)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>×</button>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', transition: 'transform 0.2s', display: 'inline-block', transform: collapsedGames.has(idx) ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▾</span>
+                    {games.length > 1 && (
+                      <button
+                        onClick={e => { e.stopPropagation(); removeGame(idx); }}
+                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}
+                      >×</button>
+                    )}
+                  </div>
+                </div>
                 </div>
 
                 <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Collapsed summary */}
+                  {collapsedGames.has(idx) ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                      {[{ id: p1Id, name: p1Name, char: p1Char, won: p1Won }, { id: p2Id, name: p2Name, char: p2Char, won: p2Won }].map(({ id, name, char, won }) => (
+                        <div key={id || name} style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, opacity: won ? 1 : 0.4 }}>
+                          {char
+                            ? <img src={`/images/characters/${char.img}`} alt={char.name} style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 4 }} onError={e => { e.target.style.display='none'; }} />
+                            : <div style={{ width: 20, height: 20, borderRadius: 4, background: 'rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>?</div>
+                          }
+                          <span style={{ fontSize: 11, fontWeight: won ? 800 : 500, color: won ? '#4ADE80' : 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                          {won && <span style={{ fontSize: 10 }}>🏆</span>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                   {/* ── Winner buttons ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {[
@@ -616,6 +658,7 @@ function MatchManageModal({ set, onClose, onResultSaved }) {
                       })}
                     </div>
                   </div>
+                  )} {/* end collapsedGames check */}
                 </div>
               </div>
             );
