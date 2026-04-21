@@ -310,11 +310,36 @@ export default async function handler(req, res) {
 
     // ─── accept ───────────────────────────────────────────
     if (action === 'accept') {
-      const found = await getUserRoom(cleanUserId);
-      if (!found) return res.status(400).json({ error: 'No estás en ninguna sala' });
+      let found = await getUserRoom(cleanUserId);
+
+      // Fallback: si userRoomKey fue evicted pero el cliente envió code, buscar directo
+      if (!found && req.body?.code) {
+        const cleanCode = sanitize(String(req.body.code || '')).toUpperCase();
+        if (cleanCode) {
+          const roomByCode = await redis.get(roomKey(cleanCode));
+          if (roomByCode) {
+            const isInRoom = roomByCode.mode === '2v2'
+              ? [roomByCode.team1?.player1?.userId, roomByCode.team1?.player2?.userId,
+                 roomByCode.team2?.player1?.userId, roomByCode.team2?.player2?.userId].includes(cleanUserId)
+              : (roomByCode.host?.userId === cleanUserId || roomByCode.guest?.userId === cleanUserId);
+            if (isInRoom) {
+              // Restaurar el vínculo userId→room
+              await redis.set(userRoomKey(cleanUserId), cleanCode);
+              found = { code: cleanCode, room: roomByCode };
+              console.log('[room accept] Restored userRoomKey via code fallback for userId:', cleanUserId);
+            }
+          }
+        }
+      }
+
+      if (!found) {
+        console.error('[room accept] getUserRoom null for userId:', cleanUserId, 'code sent:', req.body?.code || 'none');
+        return res.status(400).json({ error: 'No estás en ninguna sala' });
+      }
       const { code, room } = found;
 
       if (room.status !== 'pending_accept') {
+        console.warn('[room accept] room.status is', room.status, 'for userId:', cleanUserId);
         return res.status(400).json({ error: 'No hay partida pendiente de aceptar' });
       }
 

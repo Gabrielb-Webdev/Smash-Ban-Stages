@@ -86,8 +86,18 @@ function syncMendozaScoreboard(session) {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminSecret}` },
       body: JSON.stringify({
-        player1: { score: session.player1?.score ?? 0 },
-        player2: { score: session.player2?.score ?? 0 },
+        player1: {
+          name:      session.player1?.name      ?? '',
+          score:     session.player1?.score     ?? 0,
+          character: session.player1?.character ?? 'mario',
+          skin:      session.player1?.skin      ?? 1,
+        },
+        player2: {
+          name:      session.player2?.name      ?? '',
+          score:     session.player2?.score     ?? 0,
+          character: session.player2?.character ?? 'mario',
+          skin:      session.player2?.skin      ?? 1,
+        },
       }),
     }).catch(e => console.error('⚠️ Error sync Mendoza scoreboard:', e.message));
   } catch (e) {
@@ -1476,11 +1486,13 @@ io.on('connection', (socket) => {
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
         if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
+        if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
       } else {
         // Ambos han seleccionado, cambiar a STAGE_BAN (delay para animación VS)
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
         if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
+        if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
         
         const phaseDelay = 2500;
         setTimeout(() => {

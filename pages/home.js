@@ -710,6 +710,9 @@ export default function HomePage() {
         if (m) {
           const validTabs = ['match', 'torneos', 'rankings', 'tips', 'perfil'];
           if (validTabs.includes(m[1])) setTab(m[1]);
+        } else if (url && url.startsWith('/') && !url.startsWith('/home')) {
+          // Path externo (ej: /tablet/...) — navegar vía router
+          router.push(url);
         }
       }
     };
@@ -777,12 +780,21 @@ export default function HomePage() {
         const data = await r.json();
         setBgMM(prev => prev ? { ...prev, status: data.matchStatus, room: data.room || { ...prev.room, status: data.matchStatus } } : prev);
       } else {
+        // Evitar double-click: si ya está en acceptedBy, no reenviar
+        if (bgMM?.room?.acceptedBy?.includes(uid)) return;
+        // Optimistic update inmediato para feedback visual
+        setBgMM(prev => prev ? {
+          ...prev,
+          room: prev.room ? { ...prev.room, acceptedBy: [...(prev.room.acceptedBy || []), uid] } : prev.room,
+        } : prev);
         const r = await fetch('/api/matchmaking/room', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'accept', userId: uid, userName: uName }),
+          body: JSON.stringify({ action: 'accept', userId: uid, userName: uName, code: bgMM?.code }),
         });
         const data = await r.json();
-        setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room || prev.room, timeLeft: data.timeLeft } : prev);
+        if (r.ok) {
+          setBgMM(prev => prev ? { ...prev, status: data.status, room: data.room || prev.room, timeLeft: data.timeLeft } : prev);
+        }
       }
     } catch {}
   };
@@ -1023,6 +1035,7 @@ export default function HomePage() {
             const pct      = acceptCountdown / 15;
             const isUrgent = acceptCountdown <= 5;
             const oppChar  = !is2v2 && opponent?.charId ? CHARACTERS.find(c => c.id === opponent.charId) : null;
+            const iDidAccept = bgMM.room?.acceptedBy?.includes(uid);
             return (
               <div style={{
                 position: 'fixed', inset: 0, zIndex: 200,
@@ -1038,7 +1051,21 @@ export default function HomePage() {
                   animation: 'scale-in 0.2s ease-out',
                 }}>
                   <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: pData?.from || '#FF8C00', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{pData?.icon} {pData?.label} · {is2v2 ? '2v2' : '1v1'}</p>
-                  <p style={{ margin: '0 0 20px', fontSize: 26, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
+                  <p style={{ margin: '0 0 16px', fontSize: 26, fontWeight: 900, color: '#fff' }}>¡Partida encontrada!</p>
+                  {/* Rival info */}
+                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px', marginBottom: 16 }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{is2v2 ? 'Equipo rival' : 'Tu rival'}</p>
+                    {is2v2 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                        {(enemyTeam2 || []).map(p => <p key={p.userId} style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#fff' }}>{p.userName}</p>)}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                        {oppChar && <img src={stockIconPath(oppChar, opponent?.charAlt || 1)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 6 }} onError={e => { e.target.style.display = 'none'; }} />}
+                        <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{opponent?.userName || '—'}</p>
+                      </div>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
                     <svg width={80} height={80}>
                       <circle cx={40} cy={40} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={5} />
@@ -1049,12 +1076,12 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                    <button onClick={handleDeclineMatch} style={{ flex: 1, padding: '14px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; }}
+                    <button onClick={handleDeclineMatch} disabled={iDidAccept} style={{ flex: 1, padding: '14px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: iDidAccept ? 'rgba(239,68,68,0.3)' : '#EF4444', fontWeight: 800, fontSize: 14, cursor: iDidAccept ? 'default' : 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+                      onMouseEnter={e => { if (!iDidAccept) { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; } }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
                     >✕ Rechazar</button>
-                    <button onClick={handleAcceptMatch} disabled={bgMM.accepted} style={{ flex: 2, padding: '14px', borderRadius: 14, border: 'none', background: bgMM.accepted ? 'rgba(52,211,153,0.15)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: '#fff', fontWeight: 900, fontSize: 15, cursor: bgMM.accepted ? 'default' : 'pointer', boxShadow: bgMM.accepted ? 'none' : `0 4px 24px ${pData?.from || '#FF8C00'}50`, transition: 'transform 0.15s, box-shadow 0.15s' }}>
-                      {bgMM.accepted ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar partida'}
+                    <button onClick={iDidAccept ? undefined : handleAcceptMatch} disabled={iDidAccept} style={{ flex: 2, padding: '14px', borderRadius: 14, border: iDidAccept ? '1px solid rgba(52,211,153,0.35)' : 'none', background: iDidAccept ? 'rgba(52,211,153,0.12)' : `linear-gradient(135deg,${pData?.from || '#FF8C00'},${pData?.to || '#E85D00'})`, color: iDidAccept ? '#22C55E' : '#fff', fontWeight: 900, fontSize: 15, cursor: iDidAccept ? 'default' : 'pointer', boxShadow: iDidAccept ? 'none' : `0 4px 24px ${pData?.from || '#FF8C00'}50`, transition: 'transform 0.15s, box-shadow 0.15s' }}>
+                      {iDidAccept ? '✅ Aceptado — Esperando rival…' : '⚡ Aceptar partida'}
                     </button>
                   </div>
                 </div>

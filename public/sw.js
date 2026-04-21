@@ -21,19 +21,30 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   var url = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/home';
   var targetUrl = url.startsWith('http') ? url : (self.location.origin + url);
+  var urlPath = url.split('?')[0].split('#')[0];
+  var isHomePath = urlPath === '/home' || urlPath === '' || urlPath === '/';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      var appClient = null;
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
-        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-          // Navegar a la URL correcta en la ventana existente
-          if ('navigate' in client) {
-            return client.navigate(targetUrl).then(function(c) { return c && c.focus(); });
-          }
-          // Fallback: postMessage para que la página navegue
-          client.postMessage({ type: 'NOTIF_NAVIGATE', url: url });
-          return client.focus();
+        if (client.url && client.url.startsWith(self.location.origin)) {
+          appClient = client;
+          break;
         }
+      }
+
+      if (appClient) {
+        // Siempre mandar postMessage para que la página maneje navegación in-app
+        try { appClient.postMessage({ type: 'NOTIF_NAVIGATE', url: url }); } catch (e) {}
+        // Si no es el home, navegar a la URL externa (ej: /tablet/...)
+        if (!isHomePath && 'navigate' in appClient) {
+          return appClient.navigate(targetUrl).then(function (c) {
+            if (c && 'focus' in c) return c.focus();
+          }).catch(function () { return appClient.focus(); });
+        }
+        return appClient.focus();
       }
       return clients.openWindow(targetUrl);
     })

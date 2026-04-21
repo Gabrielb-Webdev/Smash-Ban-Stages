@@ -293,10 +293,9 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
 
   const isStreamSession = sessionId && sessionId.toLowerCase().includes('stream');
 
-  const startCooldown = () => {
-    if (!isStreamSession) return; // Sin cooldown para setups no-stream
+  const startCooldown = (seconds = 2) => {
     setIsActionBlocked(true);
-    setCooldown(3);
+    setCooldown(seconds);
     const interval = setInterval(() => {
       setCooldown(prev => {
         if (prev <= 1) { clearInterval(interval); setIsActionBlocked(false); return 0; }
@@ -323,6 +322,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
       setClickedItemId(stageId);
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'select', stageId, stageName: stage?.name || stageId, player: effectivePlayer || session.currentTurn });
+      startCooldown(2);
     }
   };
 
