@@ -485,7 +485,10 @@ export default function HomePage() {
         const r = await fetch(`/api/tournament/sessions-player?name=${encodeURIComponent(playerName)}`);
         if (!r.ok) return;
         const list = await r.json();
-        const active = Array.isArray(list) ? list.find(s => s.phase !== 'FINISHED' && s.phase !== 'CANCELLED' && s.phase !== 'POSTPONED') : null;
+        const active = Array.isArray(list) ? list.find(s =>
+          s.phase !== 'FINISHED' && s.phase !== 'CANCELLED' && s.phase !== 'POSTPONED'
+          && !String(s.sessionId || '').includes('-tablet')
+        ) : null;
         setActiveTournamentMatch(active || null);
       } catch {}
     };
@@ -958,6 +961,7 @@ export default function HomePage() {
                   dismissNotif={dismissNotif} dismissAllNotifs={dismissAllNotifs} router={router}
                   setPendingFriendTab={setPendingFriendTab}
                   desktopStats={desktopStats}
+                  activeTournamentMatch={activeTournamentMatch}
                 />
               )}
             </div>
@@ -1971,7 +1975,7 @@ export default function HomePage() {
 }
 
 /* ─── DESKTOP RIGHT PANEL ───────────────────────── */
-function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismissNotif, dismissAllNotifs, router, setPendingFriendTab, desktopStats }) {
+function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismissNotif, dismissAllNotifs, router, setPendingFriendTab, desktopStats, activeTournamentMatch }) {
   const displayName = user?.name || user?.username || '';
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -2082,6 +2086,43 @@ function DesktopRightPanel({ user, uid, bgMM, setTab, notifs, unreadCount, dismi
             )}
           </div>
         </div>
+      )}
+
+      {/* Banner match activo de torneo */}
+      {activeTournamentMatch && (
+        <button
+          onClick={() => {
+            const uName = (user?.name || '').toLowerCase().trim();
+            const p1Name = (activeTournamentMatch.player1 || '').toLowerCase().trim();
+            const p2Name = (activeTournamentMatch.player2 || '').toLowerCase().trim();
+            let pParam = '';
+            if (uName && p1Name && (p1Name === uName || p1Name.includes(uName) || uName.includes(p1Name))) pParam = '?p=player1';
+            else if (uName && p2Name && (p2Name === uName || p2Name.includes(uName) || uName.includes(p2Name))) pParam = '?p=player2';
+            router.push(`/tablet/${activeTournamentMatch.sessionId}${pParam}`);
+          }}
+          style={{
+            background: activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+            border: `1px solid ${activeTournamentMatch.phase === 'CHECKIN' ? 'rgba(239,68,68,0.35)' : 'rgba(34,197,94,0.3)'}`,
+            borderRadius: 14, padding: '12px 14px', cursor: 'pointer', width: '100%',
+            display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+          }}
+        >
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: activeTournamentMatch.phase === 'CHECKIN' ? 'linear-gradient(135deg,#EF4444,#B91C1C)' : 'linear-gradient(135deg,#22C55E,#16A34A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+            {activeTournamentMatch.phase === 'CHECKIN' ? '🔔' : '⚔️'}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, color: activeTournamentMatch.phase === 'CHECKIN' ? '#F87171' : '#4ADE80' }}>
+              {activeTournamentMatch.phase === 'CHECKIN' ? '¡Hacé check-in!' : '¡Match activo!'}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {activeTournamentMatch.player1} vs {activeTournamentMatch.player2}
+            </div>
+            {activeTournamentMatch.phase === 'CHECKIN' && (
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>Check-in: {(activeTournamentMatch.checkIns || []).length}/2</div>
+            )}
+          </div>
+          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>›</span>
+        </button>
       )}
 
       {/* Match activo banner */}

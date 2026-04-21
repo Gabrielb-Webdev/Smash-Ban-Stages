@@ -1,4 +1,16 @@
 ﻿import { Component, useState, useCallback } from 'react';
+import { CHARACTERS } from '../../lib/characters';
+
+const TOURNAMENT_STAGES = [
+  { id: 'battlefield',       name: 'Battlefield' },
+  { id: 'small-battlefield', name: 'Small Battlefield' },
+  { id: 'final-destination', name: 'Final Destination' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2' },
+  { id: 'smashville',        name: 'Smashville' },
+  { id: 'town-and-city',     name: 'Town & City' },
+  { id: 'kalos',             name: 'Kalos' },
+  { id: 'hollow-bastion',    name: 'Hollow Bastion' },
+];
 
 const SET_STATE_STYLE_DEFAULT = {
   COMPLETED: { bg: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,0.3)',    text: '#4ADE80' },
@@ -39,7 +51,201 @@ function getRoundPriority(name) {
   return 60;
 }
 
-function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal }) {
+function MatchManageModal({ set, onClose }) {
+  const slots = set?.slots || [];
+  const p1Entrant = slots[0]?.entrant || null;
+  const p2Entrant = slots[1]?.entrant || null;
+  const p1Id   = p1Entrant?.id ? String(p1Entrant.id) : null;
+  const p2Id   = p2Entrant?.id ? String(p2Entrant.id) : null;
+  const p1Name = p1Entrant?.name || 'Jugador 1';
+  const p2Name = p2Entrant?.name || 'Jugador 2';
+  const maxGames = set?.totalGames || 5;
+  const winsNeeded = Math.ceil((maxGames + 1) / 2);
+
+  const [games, setGames] = useState([
+    { gameNum: 1, winnerId: null, char0: '', char1: '', stageId: '' },
+  ]);
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  const p1Score = games.filter(g => g.winnerId === p1Id).length;
+  const p2Score = games.filter(g => g.winnerId === p2Id).length;
+  const overallWinnerId = p1Score >= winsNeeded ? p1Id : p2Score >= winsNeeded ? p2Id : null;
+
+  const updateGame = (idx, field, val) =>
+    setGames(prev => prev.map((g, i) => i === idx ? { ...g, [field]: val } : g));
+
+  const addGame = () => {
+    if (games.length >= maxGames) return;
+    setGames(prev => [...prev, { gameNum: prev.length + 1, winnerId: null, char0: '', char1: '', stageId: '' }]);
+  };
+
+  const removeGame = (idx) =>
+    setGames(prev => prev.filter((_, i) => i !== idx).map((g, i) => ({ ...g, gameNum: i + 1 })));
+
+  const handleSave = async (isFinal) => {
+    setSaving(true); setError(null); setSuccessMsg(null);
+    try {
+      const gamesWithWinner = games.filter(g => g.winnerId);
+      const gameData = gamesWithWinner.map((g, i) => ({
+        gameNum: i + 1,
+        winnerId: g.winnerId,
+        char1Slug:    g.char0 || null,
+        char2Slug:    g.char1 || null,
+        p1EntrantId:  p1Id,
+        p2EntrantId:  p2Id,
+        stageId:      g.stageId || null,
+      }));
+      const r = await fetch('/api/tournaments/report-set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: set.id, winnerId: isFinal ? overallWinnerId : null, gameData }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Error al guardar');
+      setSuccessMsg(isFinal ? '✅ Resultado enviado a Start.GG' : '✅ Progreso guardado');
+      if (isFinal) setTimeout(onClose, 2000);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectStyle = {
+    width: '100%',
+    background: '#1a1a2e',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    padding: '6px 8px',
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontFamily: 'Outfit, sans-serif',
+    cursor: 'pointer',
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 580, maxHeight: '90vh', background: '#0F0F1A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.85)', overflow: 'hidden' }}
+      >
+        {/* Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{set?.round || 'Gestionar partido'}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 14, fontWeight: 900, color: '#fff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p1Name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 22, fontWeight: 900, color: p1Score > p2Score ? '#4ADE80' : p1Score === p2Score && p1Score === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)' }}>{p1Score}</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>—</span>
+                <span style={{ fontSize: 22, fontWeight: 900, color: p2Score > p1Score ? '#4ADE80' : p1Score === p2Score && p2Score === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)' }}>{p2Score}</span>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 900, color: '#fff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p2Name}</span>
+            </div>
+            {overallWinnerId && (
+              <p style={{ margin: '5px 0 0', fontSize: 12, color: '#4ADE80', fontWeight: 700 }}>🏆 {overallWinnerId === p1Id ? p1Name : p2Name} gana la serie</p>
+            )}
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {games.map((game, idx) => (
+            <div key={idx} style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${game.winnerId ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Juego {game.gameNum}</span>
+                {games.length > 1 && (
+                  <button onClick={() => removeGame(idx)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 18, padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>×</button>
+                )}
+              </div>
+
+              {/* Winner */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                {[{ id: p1Id, name: p1Name }, { id: p2Id, name: p2Name }].map(({ id, name }) => (
+                  <button
+                    key={id || name}
+                    onClick={() => updateGame(idx, 'winnerId', game.winnerId === id ? null : id)}
+                    style={{ flex: 1, padding: '7px 10px', borderRadius: 10, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 12, transition: 'all 0.12s', background: game.winnerId === id ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.04)', border: `1px solid ${game.winnerId === id ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.08)'}`, color: game.winnerId === id ? '#4ADE80' : 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {game.winnerId === id ? '🏆 ' : ''}{name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Characters */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                {[{ field: 'char0', label: p1Name }, { field: 'char1', label: p2Name }].map(({ field, label }) => (
+                  <div key={field}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+                    <select value={game[field]} onChange={e => updateGame(idx, field, e.target.value)} style={selectStyle}>
+                      <option value="">— personaje</option>
+                      {CHARACTERS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Stage */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 6 }}>Stage</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {TOURNAMENT_STAGES.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => updateGame(idx, 'stageId', game.stageId === s.id ? '' : s.id)}
+                      style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 11, fontWeight: 700, transition: 'all 0.12s', background: game.stageId === s.id ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${game.stageId === s.id ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.07)'}`, color: game.stageId === s.id ? '#C4B5FD' : 'rgba(255,255,255,0.4)' }}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {games.length < maxGames && (
+            <button
+              onClick={addGame}
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}
+            >
+              + Agregar juego
+            </button>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+          {error      && <p style={{ margin: 0, fontSize: 11, color: '#F87171', fontWeight: 700 }}>{error}</p>}
+          {successMsg && <p style={{ margin: 0, fontSize: 11, color: '#4ADE80', fontWeight: 700 }}>{successMsg}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              style={{ flex: 1, padding: '10px', borderRadius: 12, cursor: saving ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: saving ? 0.6 : 1 }}
+            >
+              {saving ? '…' : '💾 Guardar progreso'}
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={saving || !overallWinnerId}
+              style={{ flex: 1, padding: '10px', borderRadius: 12, cursor: (saving || !overallWinnerId) ? 'not-allowed' : 'pointer', background: overallWinnerId ? 'linear-gradient(135deg,#7C3AED,#6D28D9)' : 'rgba(255,255,255,0.04)', border: `1px solid ${overallWinnerId ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.08)'}`, color: overallWinnerId ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 13, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: saving ? 0.6 : 1 }}
+            >
+              {saving ? '…' : '🏆 Enviar resultado'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal, onManageClick }) {
   const isDone     = set.stateLabel === 'COMPLETED';
   const isBye      = set.stateLabel === 'BYE';
   const isActive   = set.stateLabel === 'ACTIVE' || set.stateLabel === 'CALLED';
@@ -58,12 +264,17 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
       draggable={!isDone && !isBye && !isLocked}
       onDragStart={!isDone && !isBye && !isLocked ? e => onDragStart(set, e) : undefined}
       onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
+      onClick={!isBye && onManageClick ? (e) => {
+        if (!e.target.closest('button') && !e.target.closest('.assign-dropdown-wrap')) {
+          onManageClick(set);
+        }
+      } : undefined}
       style={{
         background: isActive ? 'rgba(255,140,0,0.06)' : isDone ? 'rgba(255,255,255,0.025)' : '#13131E',
         border: `1px solid ${aSetup ? aSetup.color + '66' : isActive ? 'rgba(255,140,0,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`,
         borderRadius: 10,
         opacity: isDragging ? 0.35 : 1,
-        cursor: isDone || isBye ? 'default' : isLocked ? 'not-allowed' : 'grab',
+        cursor: isBye ? 'default' : isLocked ? 'not-allowed' : 'pointer',
         overflow: 'hidden',
         boxShadow: isActive ? '0 0 0 1px rgba(255,140,0,0.2), 0 4px 12px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.3)',
         transition: 'opacity 0.15s',
@@ -138,6 +349,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
 
   const [modalSet, setModalSet] = useState(null);   // set que se va a asignar
   const [modalCurrentSetup, setModalCurrentSetup] = useState(null);
+  const [manageSet, setManageSet] = useState(null); // set para gestión de resultado
 
   const handleOpenModal = useCallback((set, currentSetup) => {
     setModalSet(set);
@@ -155,7 +367,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
   }, [modalSet, onAssignToSetup, handleCloseModal]);
 
   const sStyle = extStyle || SET_STATE_STYLE_DEFAULT;
-  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal: handleOpenModal };
+  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal: handleOpenModal, onManageClick: setManageSet };
 
   // Agrupar por ronda y ordenar
   const roundsMap = {};
@@ -305,6 +517,11 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
           </div>
         </div>
       </div>
+    )}
+
+    {/* ── MODAL GESTIÓN DE RESULTADO ── */}
+    {manageSet && (
+      <MatchManageModal set={manageSet} onClose={() => setManageSet(null)} />
     )}
     </>
   );
