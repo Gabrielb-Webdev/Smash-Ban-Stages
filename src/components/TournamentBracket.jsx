@@ -207,7 +207,7 @@ function CharacterPicker({ value, onChange, suggestions = [] }) {
   );
 }
 
-function MatchManageModal({ set, onClose }) {
+function MatchManageModal({ set, onClose, onResultSaved }) {
   const slots     = set?.slots || [];
   const p1Entrant = slots[0]?.entrant || null;
   const p2Entrant = slots[1]?.entrant || null;
@@ -219,11 +219,9 @@ function MatchManageModal({ set, onClose }) {
   const isEditingCompleted = set?.stateLabel === 'COMPLETED';
   const inferredMax        = set?.totalGames;
 
-  // Format: infer from set data, otherwise show picker
-  const [formatChosen, setFormatChosen] = useState(
-    isEditingCompleted || inferredMax === 5 || inferredMax === 3
-  );
-  const [format, setFormat] = useState(inferredMax === 5 ? 'bo5' : 'bo3');
+  // Siempre mostrar el picker de formato primero (incluso al editar)
+  const [formatChosen, setFormatChosen] = useState(false);
+  const [format, setFormat] = useState('bo3');
 
   const maxGames   = format === 'bo5' ? 5 : 3;
   const winsNeeded = format === 'bo5' ? 3 : 2;
@@ -294,6 +292,17 @@ function MatchManageModal({ set, onClose }) {
   const handleSave = async (isFinal) => {
     setSaving(true); setError(null); setSuccessMsg(null);
     try {
+      // Si estamos editando un set ya completado, hay que resetearlo primero en Start.GG
+      // (la API no permite reportBracketSet sobre un set COMPLETED)
+      if (isEditingCompleted) {
+        const resetR = await fetch('/api/tournaments/reset-set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setId: set.id }),
+        });
+        const resetData = await resetR.json();
+        if (!resetR.ok) throw new Error(resetData.error || 'Error al resetear el set');
+      }
       const gamesWithWinner = games.filter(g => g.winnerId);
       const gameData = gamesWithWinner.map((g, i) => ({
         gameNum: i + 1,
@@ -332,6 +341,8 @@ function MatchManageModal({ set, onClose }) {
       saveChars(p2Name, games.map(g => g.char1));
 
       setSuccessMsg(isFinal ? '✅ Resultado enviado a Start.GG' : '✅ Progreso guardado');
+      // Refrescar el bracket inmediatamente (sin esperar el polling de 10s)
+      if (onResultSaved) setTimeout(onResultSaved, 800);
       if (isFinal) setTimeout(onClose, 1800);
     } catch (e) {
       setError(e.message);
@@ -588,7 +599,7 @@ function MatchManageModal({ set, onClose }) {
                   {/* ── Stage picker ── */}
                   <div>
                     <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 7 }}>Stage</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
                       {TOURNAMENT_STAGES.map(s => {
                         const isSel = game.stageId === s.id;
                         return (
@@ -596,10 +607,10 @@ function MatchManageModal({ set, onClose }) {
                             key={s.id}
                             className="mm-stage-btn"
                             onClick={() => updateGame(idx, 'stageId', isSel ? '' : s.id)}
-                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '5px 7px', borderRadius: 9, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 10, fontWeight: 700, background: isSel ? 'rgba(124,58,237,0.22)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isSel ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.07)'}`, color: isSel ? '#C4B5FD' : 'rgba(255,255,255,0.42)', transition: 'all 0.12s' }}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '5px 4px', borderRadius: 9, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 9, fontWeight: 700, background: isSel ? 'rgba(124,58,237,0.22)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isSel ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.07)'}`, color: isSel ? '#C4B5FD' : 'rgba(255,255,255,0.42)', transition: 'all 0.12s' }}
                           >
-                            <img src={s.img} alt={s.name} style={{ width: 48, height: 27, objectFit: 'cover', borderRadius: 5, opacity: isSel ? 1 : 0.55 }} onError={e => { e.target.style.display = 'none'; }} />
-                            <span style={{ whiteSpace: 'nowrap' }}>{s.name}</span>
+                            <img src={s.img} alt={s.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 5, opacity: isSel ? 1 : 0.55 }} onError={e => { e.target.style.display = 'none'; }} />
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textAlign: 'center' }}>{s.name}</span>
                           </button>
                         );
                       })}
@@ -779,7 +790,7 @@ function RoundCol({ roundName, sets, accentColor, lockedSets, toggleLock, ...mat
   );
 }
 
-function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted }) {
+function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onResultSaved }) {
   if (!Array.isArray(bracketSets) || bracketSets.length === 0) return null;
 
   const [modalSet, setModalSet] = useState(null);   // set que se va a asignar
@@ -956,7 +967,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
 
     {/* ── MODAL GESTIÓN DE RESULTADO ── */}
     {manageSet && (
-      <MatchManageModal set={manageSet} onClose={() => setManageSet(null)} />
+      <MatchManageModal set={manageSet} onClose={() => setManageSet(null)} onResultSaved={onResultSaved} />
     )}
     </>
   );

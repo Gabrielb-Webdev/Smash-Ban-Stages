@@ -199,6 +199,12 @@ export default function TestAdminPage() {
   const [featuredOpen, setFeaturedOpen]       = useState(false);
   const prevCompletedIdsRef = useRef(new Set());
   const autoCompletedTournamentsRef = useRef(new Set());
+  const refreshBracketRef = useRef(null); // referencia estable para acceder desde props
+
+  const refreshBracket = (silent = false) => {
+    if (!refreshBracketRef.current) return;
+    refreshBracketRef.current(silent);
+  };
 
   // --- Persistencia localStorage (con namespace de comunidad) ---
   useEffect(() => {
@@ -739,20 +745,10 @@ export default function TestAdminPage() {
     if (checking || !selectedPhaseGroupId || !selectedSlug) return;
     setBracketLoading(true);
     setBracketSets([]);
-    fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.sets) {
-          setBracketSets(d.sets);
-          setPhaseName(d.phaseName || '');
-          if (d.phaseGroupState >= 2) setPhaseStarted(true);
-          checkAutoComplete(d.sets, selectedSlug);
-        }
-      })
-      .finally(() => setBracketLoading(false));
-    // Polling automático del bracket cada 10 segundos
-    const iv = setInterval(() => {
-      fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
+
+    const doRefresh = (silent = false) => {
+      if (!silent) setBracketLoading(true);
+      return fetch(`/api/tournaments/bracket?phaseGroupId=${selectedPhaseGroupId}`)
         .then(r => r.json())
         .then(d => {
           if (d.sets) {
@@ -773,12 +769,19 @@ export default function TestAdminPage() {
               }
             });
             prevCompletedIdsRef.current = new Set(d.sets.filter(s => s.stateLabel === 'COMPLETED').map(s => s.id));
-            // Auto-finalizar torneo si todos los sets están completados
             checkAutoComplete(d.sets, selectedSlug);
           }
         })
-        .catch(() => {});
-    }, 10000);
+        .finally(() => { if (!silent) setBracketLoading(false); });
+    };
+
+    // Guardar referencia estable para que onResultSaved pueda llamarla
+    refreshBracketRef.current = doRefresh;
+
+    doRefresh();
+
+    // Polling automático del bracket cada 10 segundos
+    const iv = setInterval(() => doRefresh(true), 10000);
     return () => clearInterval(iv);
   }, [checking, selectedPhaseGroupId]);
 
@@ -2314,6 +2317,7 @@ export default function TestAdminPage() {
                 toggleLock={toggleLock}
                 onAssignToSetup={assignToSetupDirectly}
                 tournamentStarted={tournamentStarted}
+                onResultSaved={() => refreshBracket(true)}
               />
             )}
           </div>{/* bracket content */}
