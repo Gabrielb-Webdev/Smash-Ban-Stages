@@ -2,14 +2,14 @@
 import { CHARACTERS } from '../../lib/characters';
 
 const TOURNAMENT_STAGES = [
-  { id: 'battlefield',       name: 'Battlefield' },
-  { id: 'small-battlefield', name: 'Small Battlefield' },
-  { id: 'final-destination', name: 'Final Destination' },
-  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2' },
-  { id: 'smashville',        name: 'Smashville' },
-  { id: 'town-and-city',     name: 'Town & City' },
-  { id: 'kalos',             name: 'Kalos' },
-  { id: 'hollow-bastion',    name: 'Hollow Bastion' },
+  { id: 'battlefield',       name: 'Battlefield',       img: '/images/stages/Battlefield.png' },
+  { id: 'small-battlefield', name: 'Small Battlefield', img: '/images/stages/Small Battlefield.png' },
+  { id: 'final-destination', name: 'Final Destination', img: '/images/stages/Final Destination.png' },
+  { id: 'pokemon-stadium-2', name: 'Pokémon Stadium 2', img: '/images/stages/Pokemon Stadium 2.png' },
+  { id: 'smashville',        name: 'Smashville',        img: '/images/stages/Smashville.png' },
+  { id: 'town-and-city',     name: 'Town & City',       img: '/images/stages/Town and City.png' },
+  { id: 'kalos',             name: 'Kalos',             img: '/images/stages/Kalos.png' },
+  { id: 'hollow-bastion',    name: 'Hollow Bastion',    img: '/images/stages/Hollow Bastion.png' },
 ];
 
 const SET_STATE_STYLE_DEFAULT = {
@@ -52,33 +52,53 @@ function getRoundPriority(name) {
 }
 
 function MatchManageModal({ set, onClose }) {
-  const slots = set?.slots || [];
+  const slots     = set?.slots || [];
   const p1Entrant = slots[0]?.entrant || null;
   const p2Entrant = slots[1]?.entrant || null;
-  const p1Id   = p1Entrant?.id ? String(p1Entrant.id) : null;
-  const p2Id   = p2Entrant?.id ? String(p2Entrant.id) : null;
-  const p1Name = p1Entrant?.name || 'Jugador 1';
-  const p2Name = p2Entrant?.name || 'Jugador 2';
-  const maxGames = set?.totalGames || 5;
-  const winsNeeded = Math.ceil((maxGames + 1) / 2);
+  const p1Id      = p1Entrant?.id ? String(p1Entrant.id) : null;
+  const p2Id      = p2Entrant?.id ? String(p2Entrant.id) : null;
+  const p1Name    = p1Entrant?.name || 'Jugador 1';
+  const p2Name    = p2Entrant?.name || 'Jugador 2';
 
-  const [games, setGames] = useState([
-    { gameNum: 1, winnerId: null, char0: '', char1: '', stageId: '' },
-  ]);
-  const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
+  const isEditingCompleted = set?.stateLabel === 'COMPLETED';
+  const inferredMax        = set?.totalGames;
 
-  const p1Score = games.filter(g => g.winnerId === p1Id).length;
-  const p2Score = games.filter(g => g.winnerId === p2Id).length;
+  // Format: infer from set data, otherwise show picker
+  const [formatChosen, setFormatChosen] = useState(
+    isEditingCompleted || inferredMax === 5 || inferredMax === 3
+  );
+  const [format, setFormat] = useState(inferredMax === 5 ? 'bo5' : 'bo3');
+
+  const maxGames   = format === 'bo5' ? 5 : 3;
+  const winsNeeded = format === 'bo5' ? 3 : 2;
+
+  const makeGame = (n) => ({ gameNum: n, winnerId: null, char0: '', char1: '', stageId: '' });
+  const [games, setGames]               = useState([makeGame(1)]);
+  const [saving, setSaving]             = useState(false);
+  const [error, setError]               = useState(null);
+  const [successMsg, setSuccessMsg]     = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting]       = useState(false);
+
+  const p1Score         = games.filter(g => g.winnerId === p1Id).length;
+  const p2Score         = games.filter(g => g.winnerId === p2Id).length;
   const overallWinnerId = p1Score >= winsNeeded ? p1Id : p2Score >= winsNeeded ? p2Id : null;
+
+  const charById = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
+
+  // Characters a player used in OTHER games of this match
+  const charHistoryFor = (gameIdx, field) =>
+    games
+      .filter((g, i) => i !== gameIdx && g[field])
+      .map(g => g[field])
+      .filter((v, i, arr) => arr.indexOf(v) === i);
 
   const updateGame = (idx, field, val) =>
     setGames(prev => prev.map((g, i) => i === idx ? { ...g, [field]: val } : g));
 
   const addGame = () => {
     if (games.length >= maxGames) return;
-    setGames(prev => [...prev, { gameNum: prev.length + 1, winnerId: null, char0: '', char1: '', stageId: '' }]);
+    setGames(prev => [...prev, makeGame(prev.length + 1)]);
   };
 
   const removeGame = (idx) =>
@@ -90,12 +110,12 @@ function MatchManageModal({ set, onClose }) {
       const gamesWithWinner = games.filter(g => g.winnerId);
       const gameData = gamesWithWinner.map((g, i) => ({
         gameNum: i + 1,
-        winnerId: g.winnerId,
-        char1Slug:    g.char0 || null,
-        char2Slug:    g.char1 || null,
-        p1EntrantId:  p1Id,
-        p2EntrantId:  p2Id,
-        stageId:      g.stageId || null,
+        winnerId:    g.winnerId,
+        char1Slug:   g.char0 || null,
+        char2Slug:   g.char1 || null,
+        p1EntrantId: p1Id,
+        p2EntrantId: p2Id,
+        stageId:     g.stageId || null,
       }));
       const r = await fetch('/api/tournaments/report-set', {
         method: 'POST',
@@ -105,7 +125,7 @@ function MatchManageModal({ set, onClose }) {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || 'Error al guardar');
       setSuccessMsg(isFinal ? '✅ Resultado enviado a Start.GG' : '✅ Progreso guardado');
-      if (isFinal) setTimeout(onClose, 2000);
+      if (isFinal) setTimeout(onClose, 1800);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -113,137 +133,351 @@ function MatchManageModal({ set, onClose }) {
     }
   };
 
-  const selectStyle = {
-    width: '100%',
-    background: '#1a1a2e',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8,
-    padding: '6px 8px',
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
-    fontFamily: 'Outfit, sans-serif',
-    cursor: 'pointer',
+  const handleReset = async () => {
+    setResetting(true); setError(null);
+    try {
+      const r = await fetch('/api/tournaments/reset-set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: set.id }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Error al resetear');
+      setGames([makeGame(1)]);
+      setConfirmReset(false);
+      setSuccessMsg('✅ Match cancelado en Start.GG');
+      setTimeout(onClose, 1500);
+    } catch (e) {
+      setError(e.message);
+      setConfirmReset(false);
+    } finally {
+      setResetting(false);
+    }
   };
 
-  return (
-    <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 580, maxHeight: '90vh', background: '#0F0F1A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.85)', overflow: 'hidden' }}
-      >
-        {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-          <div>
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{set?.round || 'Gestionar partido'}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 14, fontWeight: 900, color: '#fff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p1Name}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 22, fontWeight: 900, color: p1Score > p2Score ? '#4ADE80' : p1Score === p2Score && p1Score === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)' }}>{p1Score}</span>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>—</span>
-                <span style={{ fontSize: 22, fontWeight: 900, color: p2Score > p1Score ? '#4ADE80' : p1Score === p2Score && p2Score === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)' }}>{p2Score}</span>
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 900, color: '#fff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p2Name}</span>
+  const OVERLAY_STYLE = {
+    position: 'fixed', inset: 0, zIndex: 10000,
+    background: 'rgba(0,0,0,0.87)', backdropFilter: 'blur(8px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 16, animation: 'mmFadeIn 0.18s ease-out',
+  };
+  const CONTAINER_STYLE = {
+    width: '100%', background: '#0F0F1A',
+    border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20,
+    display: 'flex', flexDirection: 'column',
+    boxShadow: '0 24px 80px rgba(0,0,0,0.85)', overflow: 'hidden',
+    animation: 'mmSlideUp 0.2s ease-out',
+  };
+  const ANIM_CSS = `
+    @keyframes mmFadeIn  { from { opacity:0 } to { opacity:1 } }
+    @keyframes mmSlideUp { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes mmPulse   { 0%,100% { opacity:1 } 50% { opacity:0.65 } }
+    .mm-win-btn:hover  { filter:brightness(1.12) !important; }
+    .mm-stage-btn:hover { opacity:0.85 !important; }
+    .mm-addgame:hover  { border-color:rgba(255,255,255,0.2) !important; color:rgba(255,255,255,0.5) !important; }
+  `;
+
+  /* ──────────────────────────────────────────────
+     FORMAT PICKER (shown before game list)
+  ────────────────────────────────────────────── */
+  if (!formatChosen) {
+    return (
+      <div onClick={onClose} style={OVERLAY_STYLE}>
+        <style>{ANIM_CSS}</style>
+        <div onClick={e => e.stopPropagation()} style={{ ...CONTAINER_STYLE, maxWidth: 400 }}>
+          {/* Header */}
+          <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{set?.round || 'Partido'}</p>
+              <p style={{ margin: '5px 0 0', fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', verticalAlign: 'bottom' }}>{p1Name}</span>
+                <span style={{ color: 'rgba(255,255,255,0.22)', margin: '0 8px' }}>vs</span>
+                <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', verticalAlign: 'bottom' }}>{p2Name}</span>
+              </p>
             </div>
-            {overallWinnerId && (
-              <p style={{ margin: '5px 0 0', fontSize: 12, color: '#4ADE80', fontWeight: 700 }}>🏆 {overallWinnerId === p1Id ? p1Name : p2Name} gana la serie</p>
-            )}
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+          {/* Picker */}
+          <div style={{ padding: '18px 20px 22px' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.38)' }}>Seleccioná el formato de la serie:</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[
+                { val: 'bo3', label: 'BO3', sub: 'Mejor de 3', detail: '2 wins para ganar' },
+                { val: 'bo5', label: 'BO5', sub: 'Mejor de 5', detail: '3 wins para ganar' },
+              ].map(({ val, label, sub, detail }) => (
+                <button
+                  key={val}
+                  onClick={() => { setFormat(val); setFormatChosen(true); }}
+                  style={{ flex: 1, padding: '20px 12px', borderRadius: 14, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', fontFamily: 'Outfit, sans-serif', textAlign: 'center', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.14)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.45)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                >
+                  <div style={{ fontSize: 28, fontWeight: 900, color: '#C4B5FD', marginBottom: 5, letterSpacing: '-0.5px' }}>{label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>{sub}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>{detail}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ──────────────────────────────────────────────
+     MAIN MODAL
+  ────────────────────────────────────────────── */
+  return (
+    <div onClick={onClose} style={OVERLAY_STYLE}>
+      <style>{ANIM_CSS}</style>
+      <div onClick={e => e.stopPropagation()} style={{ ...CONTAINER_STYLE, maxWidth: 600, maxHeight: '92vh' }}>
+
+        {/* ── EDIT MODE BANNER ── */}
+        {isEditingCompleted && (
+          <div style={{ padding: '7px 18px', background: 'rgba(255,140,0,0.1)', borderBottom: '1px solid rgba(255,140,0,0.22)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span style={{ fontSize: 12 }}>✏️</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#FB923C', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.06em' }}>EDITANDO RESULTADO YA ENVIADO</span>
+          </div>
+        )}
+
+        {/* ── HEADER ── */}
+        <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Round + format */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {set?.round || 'Gestionar partido'}
+                </span>
+                <span style={{ fontSize: 9, fontWeight: 800, color: '#C4B5FD', background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 99, padding: '1px 8px' }}>
+                  {format.toUpperCase()}
+                </span>
+                <button
+                  onClick={() => setFormatChosen(false)}
+                  style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.22)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'Outfit, sans-serif', textDecoration: 'underline' }}
+                >
+                  cambiar
+                </button>
+              </div>
+              {/* Live scoreboard */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 900, color: p1Score > p2Score ? '#fff' : 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.2s' }}>{p1Name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.05)', borderRadius: 11, padding: '4px 14px', flexShrink: 0 }}>
+                  <span style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, minWidth: 22, textAlign: 'center', color: p1Score > p2Score ? '#4ADE80' : 'rgba(255,255,255,0.38)', transition: 'color 0.2s' }}>{p1Score}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.15)' }}>—</span>
+                  <span style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, minWidth: 22, textAlign: 'center', color: p2Score > p1Score ? '#4ADE80' : 'rgba(255,255,255,0.38)', transition: 'color 0.2s' }}>{p2Score}</span>
+                </div>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 900, color: p2Score > p1Score ? '#fff' : 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', transition: 'color 0.2s' }}>{p2Name}</span>
+              </div>
+              {/* Winner announcement */}
+              {overallWinnerId && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '5px 12px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10 }}>
+                  <span style={{ fontSize: 13 }}>🏆</span>
+                  <span style={{ fontSize: 12, fontWeight: 900, color: '#4ADE80' }}>{overallWinnerId === p1Id ? p1Name : p2Name} gana la serie</span>
+                </div>
+              )}
+            </div>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+          </div>
         </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {games.map((game, idx) => (
-            <div key={idx} style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${game.winnerId ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Juego {game.gameNum}</span>
-                {games.length > 1 && (
-                  <button onClick={() => removeGame(idx)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 18, padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>×</button>
-                )}
-              </div>
+        {/* ── BODY ── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {games.map((game, idx) => {
+            const p1Char   = charById[game.char0];
+            const p2Char   = charById[game.char1];
+            const selStage = TOURNAMENT_STAGES.find(s => s.id === game.stageId);
+            const isGWon   = !!game.winnerId;
+            const p1Won    = game.winnerId === p1Id;
+            const p2Won    = game.winnerId === p2Id;
+            const p1Hist   = charHistoryFor(idx, 'char0');
+            const p2Hist   = charHistoryFor(idx, 'char1');
 
-              {/* Winner */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                {[{ id: p1Id, name: p1Name }, { id: p2Id, name: p2Name }].map(({ id, name }) => (
-                  <button
-                    key={id || name}
-                    onClick={() => updateGame(idx, 'winnerId', game.winnerId === id ? null : id)}
-                    style={{ flex: 1, padding: '7px 10px', borderRadius: 10, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 12, transition: 'all 0.12s', background: game.winnerId === id ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.04)', border: `1px solid ${game.winnerId === id ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.08)'}`, color: game.winnerId === id ? '#4ADE80' : 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  >
-                    {game.winnerId === id ? '🏆 ' : ''}{name}
-                  </button>
-                ))}
-              </div>
-
-              {/* Characters */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                {[{ field: 'char0', label: p1Name }, { field: 'char1', label: p2Name }].map(({ field, label }) => (
-                  <div key={field}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-                    <select value={game[field]} onChange={e => updateGame(idx, field, e.target.value)} style={selectStyle}>
-                      <option value="">— personaje</option>
-                      {CHARACTERS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+            return (
+              <div key={idx} style={{ background: isGWon ? 'rgba(34,197,94,0.04)' : 'rgba(255,255,255,0.025)', border: `1px solid ${isGWon ? 'rgba(34,197,94,0.22)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.2s, background 0.2s' }}>
+                {/* Game header row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', background: 'rgba(0,0,0,0.18)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Juego {game.gameNum}</span>
+                    {isGWon && <span style={{ fontSize: 9, fontWeight: 800, color: '#4ADE80', background: 'rgba(34,197,94,0.14)', borderRadius: 99, padding: '1px 7px' }}>✓ Registrado</span>}
+                    {selStage && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, color: '#C4B5FD' }}>
+                        <img src={selStage.img} alt="" style={{ width: 18, height: 11, objectFit: 'cover', borderRadius: 3, opacity: 0.85 }} onError={e => { e.target.style.display = 'none'; }} />
+                        {selStage.name}
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
+                  {games.length > 1 && (
+                    <button onClick={() => removeGame(idx)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>×</button>
+                  )}
+                </div>
 
-              {/* Stage */}
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 6 }}>Stage</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {TOURNAMENT_STAGES.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => updateGame(idx, 'stageId', game.stageId === s.id ? '' : s.id)}
-                      style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 11, fontWeight: 700, transition: 'all 0.12s', background: game.stageId === s.id ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${game.stageId === s.id ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.07)'}`, color: game.stageId === s.id ? '#C4B5FD' : 'rgba(255,255,255,0.4)' }}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
+                <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* ── Winner buttons ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {[
+                      { id: p1Id, name: p1Name, char: p1Char, isWon: p1Won },
+                      { id: p2Id, name: p2Name, char: p2Char, isWon: p2Won },
+                    ].map(({ id, name, char, isWon }) => (
+                      <button
+                        key={id || name}
+                        className="mm-win-btn"
+                        onClick={() => updateGame(idx, 'winnerId', isWon ? null : id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 11, cursor: 'pointer', border: `1px solid ${isWon ? 'rgba(34,197,94,0.55)' : 'rgba(255,255,255,0.08)'}`, background: isWon ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.04)', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 12, color: isWon ? '#4ADE80' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s', textAlign: 'left' }}
+                      >
+                        {char
+                          ? <img src={`/images/characters/${char.img}`} alt={char.name} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+                          : <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>?</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                          {isWon && <div style={{ fontSize: 9, color: '#4ADE80', fontWeight: 700, marginTop: 2 }}>🏆 Ganador</div>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* ── Character pickers ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {[
+                      { field: 'char0', label: p1Name, char: p1Char, hist: p1Hist },
+                      { field: 'char1', label: p2Name, char: p2Char, hist: p2Hist },
+                    ].map(({ field, label, char, hist }) => (
+                      <div key={field}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: hist.length ? 6 : 0 }}>
+                          {char && (
+                            <img src={`/images/characters/${char.img}`} alt={char.name} style={{ width: 26, height: 26, objectFit: 'contain', borderRadius: 6, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+                          )}
+                          <select
+                            value={game[field]}
+                            onChange={e => updateGame(idx, field, e.target.value)}
+                            style={{ flex: 1, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 7px', color: game[field] ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'Outfit, sans-serif', cursor: 'pointer', minWidth: 0 }}
+                          >
+                            <option value="">— personaje</option>
+                            {CHARACTERS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        {/* ── History chips ── */}
+                        {hist.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'Outfit, sans-serif' }}>Usados:</span>
+                            {hist.map(cId => {
+                              const hc = charById[cId];
+                              if (!hc) return null;
+                              const isCurr = game[field] === cId;
+                              return (
+                                <button
+                                  key={cId}
+                                  title={hc.name}
+                                  onClick={() => updateGame(idx, field, cId)}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px 2px 3px', background: isCurr ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isCurr ? 'rgba(124,58,237,0.45)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 99, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 10, fontWeight: 700, color: isCurr ? '#C4B5FD' : 'rgba(255,255,255,0.38)' }}
+                                >
+                                  <img src={`/images/characters/${hc.img}`} alt={hc.name} style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3 }} onError={e => { e.target.style.display = 'none'; }} />
+                                  {hc.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Stage picker ── */}
+                  <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 7 }}>Stage</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {TOURNAMENT_STAGES.map(s => {
+                        const isSel = game.stageId === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            className="mm-stage-btn"
+                            onClick={() => updateGame(idx, 'stageId', isSel ? '' : s.id)}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '5px 7px', borderRadius: 9, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 10, fontWeight: 700, background: isSel ? 'rgba(124,58,237,0.22)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isSel ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.07)'}`, color: isSel ? '#C4B5FD' : 'rgba(255,255,255,0.42)', transition: 'all 0.12s' }}
+                          >
+                            <img src={s.img} alt={s.name} style={{ width: 48, height: 27, objectFit: 'cover', borderRadius: 5, opacity: isSel ? 1 : 0.55 }} onError={e => { e.target.style.display = 'none'; }} />
+                            <span style={{ whiteSpace: 'nowrap' }}>{s.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          {games.length < maxGames && (
+          {/* Add game */}
+          {games.length < maxGames && !overallWinnerId && (
             <button
+              className="mm-addgame"
               onClick={addGame}
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.28)', transition: 'all 0.15s' }}
             >
               + Agregar juego
             </button>
           )}
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-          {error      && <p style={{ margin: 0, fontSize: 11, color: '#F87171', fontWeight: 700 }}>{error}</p>}
-          {successMsg && <p style={{ margin: 0, fontSize: 11, color: '#4ADE80', fontWeight: 700 }}>{successMsg}</p>}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => handleSave(false)}
-              disabled={saving}
-              style={{ flex: 1, padding: '10px', borderRadius: 12, cursor: saving ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: saving ? 0.6 : 1 }}
-            >
-              {saving ? '…' : '💾 Guardar progreso'}
-            </button>
-            <button
-              onClick={() => handleSave(true)}
-              disabled={saving || !overallWinnerId}
-              style={{ flex: 1, padding: '10px', borderRadius: 12, cursor: (saving || !overallWinnerId) ? 'not-allowed' : 'pointer', background: overallWinnerId ? 'linear-gradient(135deg,#7C3AED,#6D28D9)' : 'rgba(255,255,255,0.04)', border: `1px solid ${overallWinnerId ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.08)'}`, color: overallWinnerId ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 13, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: saving ? 0.6 : 1 }}
-            >
-              {saving ? '…' : '🏆 Enviar resultado'}
-            </button>
-          </div>
+        {/* ── FOOTER ── */}
+        <div style={{ padding: '10px 14px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+          {/* Confirm reset */}
+          {confirmReset ? (
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.28)', borderRadius: 12, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#F87171' }}>⚠️ ¿Cancelar el match? Esto lo reseteará en Start.GG y se perderá el progreso.</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleReset}
+                  disabled={resetting}
+                  style={{ flex: 1, padding: '8px', borderRadius: 9, cursor: resetting ? 'not-allowed' : 'pointer', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#F87171', fontSize: 12, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: resetting ? 0.5 : 1 }}
+                >
+                  {resetting ? '…' : 'Sí, cancelar'}
+                </button>
+                <button
+                  onClick={() => setConfirmReset(false)}
+                  style={{ flex: 1, padding: '8px', borderRadius: 9, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}
+                >
+                  Volver
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {error      && <p style={{ margin: 0, fontSize: 11, color: '#F87171', fontWeight: 700 }}>{error}</p>}
+              {successMsg && <p style={{ margin: 0, fontSize: 11, color: '#4ADE80', fontWeight: 700, animation: 'mmPulse 1.5s ease-in-out' }}>{successMsg}</p>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  title="Cancelar match (reset en Start.GG)"
+                  onClick={() => setConfirmReset(true)}
+                  style={{ padding: '10px 13px', borderRadius: 12, cursor: 'pointer', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', color: 'rgba(239,68,68,0.65)', fontSize: 13, fontFamily: 'Outfit, sans-serif', flexShrink: 0 }}
+                >
+                  🗑️
+                </button>
+                <button
+                  onClick={() => handleSave(false)}
+                  disabled={saving}
+                  style={{ flex: 1, padding: '10px', borderRadius: 12, cursor: saving ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: saving ? 0.55 : 1 }}
+                >
+                  {saving ? '…' : '💾 Guardar progreso'}
+                </button>
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={saving || !overallWinnerId}
+                  style={{ flex: 1, padding: '10px', borderRadius: 12, cursor: (saving || !overallWinnerId) ? 'not-allowed' : 'pointer', background: overallWinnerId ? 'linear-gradient(135deg,#7C3AED,#6D28D9)' : 'rgba(255,255,255,0.04)', border: `1px solid ${overallWinnerId ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.08)'}`, color: overallWinnerId ? '#fff' : 'rgba(255,255,255,0.22)', fontSize: 12, fontWeight: 800, fontFamily: 'Outfit, sans-serif', opacity: saving ? 0.55 : 1 }}
+                >
+                  {saving ? '…' : '🏆 Enviar resultado'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
 
 function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal, onManageClick }) {
   const isDone     = set.stateLabel === 'COMPLETED';
