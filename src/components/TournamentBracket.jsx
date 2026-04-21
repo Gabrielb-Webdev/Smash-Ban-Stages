@@ -1,4 +1,4 @@
-﻿import { Component, useState, useCallback } from 'react';
+﻿import { Component, useState, useCallback, useRef, useEffect } from 'react';
 import { CHARACTERS } from '../../lib/characters';
 
 const TOURNAMENT_STAGES = [
@@ -51,6 +51,137 @@ function getRoundPriority(name) {
   return 60;
 }
 
+/* ─────────────────────────────────────────────────────────
+   Custom character picker: buscador + imágenes, overlay fijo
+───────────────────────────────────────────────────────── */
+function CharacterPicker({ value, onChange }) {
+  const [open, setOpen]       = useState(false);
+  const [query, setQuery]     = useState('');
+  const triggerRef            = useRef(null);
+  const dropdownRef           = useRef(null);
+  const inputRef              = useRef(null);
+  const [rect, setRect]       = useState(null);
+
+  const selected = CHARACTERS.find(c => c.id === value) || null;
+
+  const filtered = query.trim()
+    ? CHARACTERS.filter(c => c.name.toLowerCase().includes(query.toLowerCase()))
+    : CHARACTERS;
+
+  const openPicker = () => {
+    if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
+    setOpen(true);
+    setQuery('');
+    setTimeout(() => inputRef.current?.focus(), 40);
+  };
+
+  const pick = (id) => {
+    onChange(id);
+    setOpen(false);
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (!dropdownRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Recalc position on scroll/resize
+  useEffect(() => {
+    if (!open) return;
+    const recalc = () => { if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect()); };
+    window.addEventListener('scroll', recalc, true);
+    window.addEventListener('resize', recalc);
+    return () => { window.removeEventListener('scroll', recalc, true); window.removeEventListener('resize', recalc); };
+  }, [open]);
+
+  // Dropdown position: prefer below, flip to above if no space
+  const dropTop  = rect ? (rect.bottom + 6 + 280 > window.innerHeight ? rect.top - 280 - 6 : rect.bottom + 6) : 0;
+  const dropLeft = rect ? Math.min(rect.left, window.innerWidth - 240 - 8) : 0;
+
+  return (
+    <>
+      {/* Trigger button */}
+      <button
+        ref={triggerRef}
+        onClick={openPicker}
+        style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', textAlign: 'left', transition: 'border-color 0.15s' }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(124,58,237,0.45)'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+      >
+        {selected
+          ? <img src={`/images/characters/${selected.img}`} alt={selected.name} style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+          : <div style={{ width: 22, height: 22, borderRadius: 4, background: 'rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>?</div>
+        }
+        <span style={{ flex: 1, fontSize: 11, fontWeight: selected ? 700 : 400, color: selected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {selected ? selected.name : '— personaje'}
+        </span>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>▾</span>
+      </button>
+
+      {/* Floating dropdown rendered via portal-like approach */}
+      {open && rect && (
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: dropTop, left: dropLeft, width: 240, maxHeight: 280, zIndex: 99999, background: '#12121F', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        >
+          {/* Search input */}
+          <div style={{ padding: '8px 8px 6px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 7, padding: '5px 8px' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>🔍</span>
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Buscar personaje…"
+                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: '#fff', fontFamily: 'Outfit, sans-serif' }}
+              />
+              {query && (
+                <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+              )}
+            </div>
+          </div>
+
+          {/* List */}
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {/* Clear option */}
+            {!query && (
+              <button
+                onClick={() => pick('')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', background: !value ? 'rgba(124,58,237,0.12)' : 'none', border: 'none', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
+                — ninguno
+              </button>
+            )}
+            {filtered.map(c => (
+              <button
+                key={c.id}
+                onClick={() => pick(c.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '5px 10px', background: value === c.id ? 'rgba(124,58,237,0.18)' : 'none', border: 'none', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: value === c.id ? 800 : 500, color: value === c.id ? '#C4B5FD' : 'rgba(255,255,255,0.75)', textAlign: 'left', transition: 'background 0.1s' }}
+                onMouseEnter={e => { if (value !== c.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseLeave={e => { if (value !== c.id) e.currentTarget.style.background = 'none'; }}
+              >
+                <img src={`/images/characters/${c.img}`} alt={c.name} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 5, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+                {c.name}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div style={{ padding: '16px 12px', textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Sin resultados</div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function MatchManageModal({ set, onClose }) {
   const slots     = set?.slots || [];
   const p1Entrant = slots[0]?.entrant || null;
@@ -73,7 +204,22 @@ function MatchManageModal({ set, onClose }) {
   const winsNeeded = format === 'bo5' ? 3 : 2;
 
   const makeGame = (n) => ({ gameNum: n, winnerId: null, char0: '', char1: '', stageId: '' });
-  const [games, setGames]               = useState([makeGame(1)]);
+
+  // Pre-cargar con datos existentes de Start.GG al editar un resultado completado
+  const initialGames = (() => {
+    const existing = set?.games;
+    if (isEditingCompleted && existing?.length > 0) {
+      return existing.map(g => ({
+        gameNum:  g.gameNum,
+        winnerId: g.winnerId || null,
+        char0:    g.char0 || '',
+        char1:    g.char1 || '',
+        stageId:  g.stageId || '',
+      }));
+    }
+    return [makeGame(1)];
+  })();
+  const [games, setGames]               = useState(initialGames);
   const [saving, setSaving]             = useState(false);
   const [error, setError]               = useState(null);
   const [successMsg, setSuccessMsg]     = useState(null);
@@ -345,18 +491,8 @@ function MatchManageModal({ set, onClose }) {
                     ].map(({ field, label, char, hist }) => (
                       <div key={field}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: hist.length ? 6 : 0 }}>
-                          {char && (
-                            <img src={`/images/characters/${char.img}`} alt={char.name} style={{ width: 26, height: 26, objectFit: 'contain', borderRadius: 6, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
-                          )}
-                          <select
-                            value={game[field]}
-                            onChange={e => updateGame(idx, field, e.target.value)}
-                            style={{ flex: 1, background: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 7px', color: game[field] ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'Outfit, sans-serif', cursor: 'pointer', minWidth: 0 }}
-                          >
-                            <option value="">— personaje</option>
-                            {CHARACTERS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
+                        <div style={{ marginBottom: hist.length ? 6 : 0 }}>
+                          <CharacterPicker value={game[field]} onChange={val => updateGame(idx, field, val)} />
                         </div>
                         {/* ── History chips ── */}
                         {hist.length > 0 && (
