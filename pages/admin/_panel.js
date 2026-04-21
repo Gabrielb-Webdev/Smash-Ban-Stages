@@ -2329,7 +2329,7 @@ export default function TestAdminPage() {
                   limpiar
                 </button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 140, overflowY: 'auto' }}>
                 {reportLog.map((entry, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 12 }}>
                     <span style={{ color: entry.called ? '#FBBF24' : '#22C55E', flexShrink: 0 }}>

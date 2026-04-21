@@ -581,7 +581,8 @@ function MatchManageModal({ set, onClose }) {
                           </div>
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
 
                   {/* ── Stage picker ── */}
