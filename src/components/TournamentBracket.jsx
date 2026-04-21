@@ -54,7 +54,7 @@ function getRoundPriority(name) {
 /* ─────────────────────────────────────────────────────────
    Custom character picker: buscador + imágenes, overlay fijo
 ───────────────────────────────────────────────────────── */
-function CharacterPicker({ value, onChange }) {
+function CharacterPicker({ value, onChange, suggestions = [] }) {
   const [open, setOpen]       = useState(false);
   const [query, setQuery]     = useState('');
   const triggerRef            = useRef(null);
@@ -67,6 +67,11 @@ function CharacterPicker({ value, onChange }) {
   const filtered = query.trim()
     ? CHARACTERS.filter(c => c.name.toLowerCase().includes(query.toLowerCase()))
     : CHARACTERS;
+
+  // Personajes sugeridos (usados en otros juegos por este jugador)
+  const suggestedChars = suggestions
+    .map(id => CHARACTERS.find(c => c.id === id))
+    .filter(Boolean);
 
   const openPicker = () => {
     if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
@@ -159,6 +164,26 @@ function CharacterPicker({ value, onChange }) {
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
                 — ninguno
               </button>
+            )}
+            {/* Suggested characters section */}
+            {!query && suggestedChars.length > 0 && (
+              <>
+                <div style={{ padding: '6px 10px 3px', fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Usados</div>
+                {suggestedChars.map(c => (
+                  <button
+                    key={`sug-${c.id}`}
+                    onClick={() => pick(c.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '5px 10px', background: value === c.id ? 'rgba(124,58,237,0.22)' : 'rgba(124,58,237,0.06)', border: 'none', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', fontSize: 12, fontWeight: value === c.id ? 800 : 600, color: value === c.id ? '#C4B5FD' : 'rgba(255,255,255,0.85)', textAlign: 'left', transition: 'background 0.1s' }}
+                    onMouseEnter={e => { if (value !== c.id) e.currentTarget.style.background = 'rgba(124,58,237,0.14)'; }}
+                    onMouseLeave={e => { if (value !== c.id) e.currentTarget.style.background = 'rgba(124,58,237,0.06)'; }}
+                  >
+                    <img src={`/images/characters/${c.img}`} alt={c.name} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 5, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+                    {c.name}
+                  </button>
+                ))}
+                <div style={{ margin: '4px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }} />
+                <div style={{ padding: '4px 10px 3px', fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Todos</div>
+              </>
             )}
             {filtered.map(c => (
               <button
@@ -492,7 +517,7 @@ function MatchManageModal({ set, onClose }) {
                       <div key={field}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
                         <div style={{ marginBottom: hist.length ? 6 : 0 }}>
-                          <CharacterPicker value={game[field]} onChange={val => updateGame(idx, field, val)} />
+                          <CharacterPicker value={game[field]} onChange={val => updateGame(idx, field, val)} suggestions={hist} />
                         </div>
                         {/* ── History chips ── */}
                         {hist.length > 0 && (
