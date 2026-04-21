@@ -35,10 +35,22 @@ export default function StreamOverlayMendoza({ sessionId }) {
   const [showBanOnCard, setShowBanOnCard] = useState(false);
   const [showSelectOnCard, setShowSelectOnCard] = useState(false);
 
-  // Reproducir video de Team Anexo extremadamente lento
+  // Forzar fondo transparente en body/html para permitir chroma key en OBS
+  useEffect(() => {
+    const prevBodyBg = document.body.style.backgroundColor;
+    const prevHtmlBg = document.documentElement.style.backgroundColor;
+    document.body.style.backgroundColor = 'transparent';
+    document.documentElement.style.backgroundColor = 'transparent';
+    return () => {
+      document.body.style.backgroundColor = prevBodyBg;
+      document.documentElement.style.backgroundColor = prevHtmlBg;
+    };
+  }, []);
+
+  // Reproducir video de fondo del footer
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.067;
+      videoRef.current.playbackRate = 1;
     }
   }, []);
 
@@ -194,7 +206,7 @@ export default function StreamOverlayMendoza({ sessionId }) {
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 1, objectFit: 'cover', objectPosition: 'center bottom' }}
         >
-          <source src="/images/Team_Anexo/barra_de_abajo.mp4?v=1.2" type="video/mp4" />
+          <source src="/overlays/mendoza/gris_infinito.mp4" type="video/mp4" />
         </video>
 
         {/* Personajes - entran girando cuando ambos seleccionaron */}
