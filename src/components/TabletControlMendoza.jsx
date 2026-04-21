@@ -311,7 +311,6 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
       setClickedItemId(stageId);
       const stage = getAllStages().find(s => s.id === stageId);
       setPendingAction({ type: 'ban', stageId, stageName: stage?.name || stageId, player: session.currentTurn });
-      startCooldown();
     }
   };
 
@@ -361,7 +360,7 @@ export default function TabletControlMendoza({ sessionId, playerName, playerInde
     if (!pendingAction || !sessionId) return;
     switch (pendingAction.type) {
       case 'rps':       selectRPSWinner(sessionId, pendingAction.winner, pendingAction.proposedBy); break;
-      case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
+      case 'ban':       banStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); startCooldown(); break;
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'character': selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin, session?.matchToken); break;
       case 'winner':    myPlayer

@@ -2725,11 +2725,12 @@ function CommPlayerRow({ position, player, onPlayerClick, onNoProfile }) {
 }
 
 function RankedPlayerRow({ position, player, onPlayerClick }) {
-  const isSmasher   = player.rank === 'SMASHer';
-  const rankObj     = RANKS.find(r => r.name === player.rank) || RANKS[0];
-  const inPlacement = !player.placementDone;
-  const wins  = player.wins || 0;
-  const losses = player.losses || 0;
+  const isSmasher      = player.rank === 'SMASHer';
+  const rankObj        = RANKS.find(r => r.name === player.rank) || RANKS[0];
+  const inPlacement    = !player.placementDone;
+  const wins           = player.wins || 0;
+  const losses         = player.losses || 0;
+  const positionDelta  = player.positionDelta ?? null;
   const total  = wins + losses;
   const winPct = total > 0 ? Math.round(wins / total * 100) : 0;
 
@@ -2762,7 +2763,7 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
       {/* Position badge */}
       <div style={{
         width: isTop3 ? 52 : 44, flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         background: tc ? 'rgba(255,255,255,0.25)' : 'rgba(124,58,237,0.15)',
         alignSelf: 'stretch',
       }}>
@@ -2770,7 +2771,17 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
           fontSize: isTop3 ? 24 : 18, fontWeight: 900,
           color: tc ? tc.posColor : '#A78BFA',
           fontFamily: "'Outfit', sans-serif",
+          lineHeight: 1,
         }}>{position}</span>
+        {positionDelta !== null && positionDelta > 0 && (
+          <span style={{ fontSize: 8, lineHeight: 1.2, marginTop: 1 }}>🔺</span>
+        )}
+        {positionDelta !== null && positionDelta < 0 && (
+          <span style={{ fontSize: 8, lineHeight: 1.2, marginTop: 1 }}>🔻</span>
+        )}
+        {positionDelta !== null && positionDelta === 0 && (
+          <span style={{ fontSize: 8, lineHeight: 1.2, marginTop: 1, fontWeight: 900, color: tc ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)' }}>—</span>
+        )}
       </div>
 
       {/* Name + score */}
@@ -2808,13 +2819,13 @@ function RankedPlayerRow({ position, player, onPlayerClick }) {
         )}
       </div>
 
-      {/* W/L stats (non-top3) */}
-      {!isTop3 && !inPlacement && (
+      {/* W/L stats — todos los jugadores rankeados (incluyendo top-3) */}
+      {!inPlacement && (
         <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: charSrc ? 4 : 14 }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 800 }}>
-            <span style={{ color: '#22C55E' }}>{wins}W</span>
-            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 3px' }}>·</span>
-            <span style={{ color: '#EF4444' }}>{losses}L</span>
+          <p style={{ margin: 0, fontSize: isTop3 ? 13 : 12, fontWeight: 800 }}>
+            <span style={{ color: tc ? '#15803D' : '#22C55E' }}>{wins}W</span>
+            <span style={{ color: tc ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)', margin: '0 3px' }}>·</span>
+            <span style={{ color: tc ? '#B91C1C' : '#EF4444' }}>{losses}L</span>
           </p>
         </div>
       )}

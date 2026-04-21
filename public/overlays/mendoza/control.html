@@ -827,8 +827,8 @@
           const data = await res.json();
           state = data;
           // Normalizar IDs kebab-case (del panel) a nombres de carpeta
-          if (state.player1) state.player1.character = charToFolder(state.player1.character || 'Mario');
-          if (state.player2) state.player2.character = charToFolder(state.player2.character || 'Mario');
+          if (state.player1) state.player1.character = charToFolder(state.player1.character || 'Random');
+          if (state.player2) state.player2.character = charToFolder(state.player2.character || 'Random');
           syncUIFromState();
         }
       } catch (e) {

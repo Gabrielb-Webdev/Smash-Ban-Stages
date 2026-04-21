@@ -1435,27 +1435,30 @@ export default function TestAdminPage() {
 
     // Notificar a cada jugador con su URL específica (para identificación automática sin login)
     // Ambas notificaciones se envían en paralelo para máxima velocidad
+    // El setup tablet de Mendoza no envía notificaciones push (los jugadores están presentes físicamente)
     const setupLabel = SETUPS.find(s => s.id === setupId)?.label || setupId.replace(`${community}-`, '').replace('stream', 'Stream');
     const notifTitle = `📢 ¡Te toca match!`;
     const notifBody  = `${players.join(' vs ')} — ${setupLabel} — ¡Tienen 5 min para hacer check-in!`;
     const notifPromises = [];
-    if (players[0]) {
-      notifPromises.push(
-        fetch('/api/notifications/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-          body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[0]], data: { url: banUrl1WithToken } }),
-        }).catch(() => {})
-      );
-    }
-    if (players[1]) {
-      notifPromises.push(
-        fetch('/api/notifications/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-          body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[1]], data: { url: banUrl2WithToken } }),
-        }).catch(() => {})
-      );
+    if (!isTabletSetup) {
+      if (players[0]) {
+        notifPromises.push(
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+            body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[0]], data: { url: banUrl1WithToken } }),
+          }).catch(() => {})
+        );
+      }
+      if (players[1]) {
+        notifPromises.push(
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+            body: JSON.stringify({ title: notifTitle, body: notifBody, targetUserNames: [players[1]], data: { url: banUrl2WithToken } }),
+          }).catch(() => {})
+        );
+      }
     }
 
     await Promise.allSettled(notifPromises);

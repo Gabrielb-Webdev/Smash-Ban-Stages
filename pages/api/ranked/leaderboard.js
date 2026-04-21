@@ -102,5 +102,31 @@ export default async function handler(req, res) {
       return (b.wins || 0) - (a.wins || 0);
     });
 
-  return res.status(200).json({ players: leaderboard, total: total || leaderboard.length });
+  // ── Position change snapshot ──────────────────────────────────────
+  // Guarda posiciones en ranked:pos:snapshot:{mode}{platform} cada 24h.
+  // Permite mostrar si el jugador subió, bajó o se mantuvo.
+  const snapshotKey = `ranked:pos:snapshot:${isDoubles ? 'doubles:' : ''}${platform}`;
+  let prevSnapshot = null;
+  try { prevSnapshot = await redis.get(snapshotKey); } catch {}
+  const prevPositions = prevSnapshot?.positions || null;
+
+  const leaderboardFinal = leaderboard.map((p, i) => {
+    const currentPos = i + 1;
+    const prevPos    = prevPositions ? (prevPositions[String(p.userId)] ?? null) : null;
+    // positivo = subió, negativo = bajó, 0 = igual, null = sin datos previos
+    const positionDelta = prevPos !== null ? prevPos - currentPos : null;
+    return { ...p, positionDelta };
+  });
+
+  // Actualizar snapshot si tiene más de 24h o no existe
+  const snapshotAge = prevSnapshot?.savedAt
+    ? Date.now() - new Date(prevSnapshot.savedAt).getTime()
+    : Infinity;
+  if (snapshotAge > 86400000) {
+    const newPositions = {};
+    leaderboard.forEach((p, i) => { newPositions[String(p.userId)] = i + 1; });
+    redis.set(snapshotKey, { positions: newPositions, savedAt: new Date().toISOString() }).catch(() => {});
+  }
+
+  return res.status(200).json({ players: leaderboardFinal, total: total || leaderboard.length });
 }
