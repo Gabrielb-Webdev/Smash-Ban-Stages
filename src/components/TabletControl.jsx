@@ -79,6 +79,13 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
 
+  // Seguridad: detectar si el usuario pertenece al match activo
+  const lastMatchTokenRef = useRef(null);
+  const [skipPlayerIndex, setSkipPlayerIndex] = useState(false);
+  const [wrongMatch, setWrongMatch] = useState(false);
+  const [wrongMatchCountdown, setWrongMatchCountdown] = useState(3);
+  const [endPhaseCountdown, setEndPhaseCountdown] = useState(null);
+
   // Identidad manual: guardada en sessionStorage para persistir en la pestaña sin login
   const [manualIdentity, setManualIdentity] = useState(() => {
     if (typeof window === 'undefined') return null;
@@ -87,6 +94,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   const chooseIdentity = (p) => {
     try { sessionStorage.setItem(`tablet_identity_${sessionId}`, p); } catch {}
     setManualIdentity(p);
+    setSkipPlayerIndex(false); // Re-habilitar playerIndex al re-identificarse manualmente
   };
 
   // Guardar personajes cuando ambos han seleccionado (se ejecuta al terminar CHARACTER_SELECT)
@@ -243,6 +251,86 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
     return () => clearTimeout(t);
   }, [session?.phase]);
 
+  // ── SEGURIDAD: Verificación de identidad por match activo ──
+  // Detecta si el usuario pertenece al match activo y redirige si no corresponde
+  useEffect(() => {
+    if (!session?.matchToken) return;
+    if (manualIdentity === 'spectator') { setWrongMatch(false); return; }
+
+    const newToken = session.matchToken;
+    const isNewMatch = lastMatchTokenRef.current !== null && lastMatchTokenRef.current !== newToken;
+
+    if (isNewMatch) {
+      // Nuevo match detectado en el mismo setup — limpiar identidad guardada del match anterior
+      try { sessionStorage.removeItem(`tablet_identity_${sessionId}`); } catch {}
+      setManualIdentity(null);
+      setSkipPlayerIndex(true); // Ignorar ?p= de URL hasta que el usuario se re-identifique
+    }
+
+    lastMatchTokenRef.current = newToken;
+
+    // Verificar usuario logueado contra jugadores del match actual
+    if (playerName && session.player1?.name && session.player2?.name) {
+      const uLow = playerName.toLowerCase().trim();
+      const p1Low = session.player1.name.toLowerCase().trim();
+      const p2Low = session.player2.name.toLowerCase().trim();
+      const isAuth =
+        (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) ||
+        (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low)));
+      if (!isAuth) {
+        setWrongMatch(true);
+        return;
+      }
+    }
+
+    // Verificar matchToken de URL (?mt=) contra el del match activo
+    if (matchToken && matchToken !== newToken) {
+      setWrongMatch(true);
+      return;
+    }
+
+    setWrongMatch(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.matchToken, session?.player1?.name, session?.player2?.name, playerName, matchToken, sessionId]);
+
+  // Countdown de redirección al home cuando se detecta match incorrecto
+  useEffect(() => {
+    if (!wrongMatch) { setWrongMatchCountdown(3); return; }
+    setWrongMatchCountdown(3);
+    const iv = setInterval(() => {
+      setWrongMatchCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(iv);
+          if (typeof window !== 'undefined') window.location.href = '/home';
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [wrongMatch]);
+
+  // Auto-redirigir al home cuando el match termina o se cancela (3 segundos)
+  // No aplica a espectadores/admins para no interrumpir su flujo de trabajo
+  useEffect(() => {
+    const phase = session?.phase;
+    const isEndPhase = phase === 'FINISHED' || phase === 'CANCELLED' || phase === 'POSTPONED';
+    if (!isEndPhase || manualIdentity === 'spectator') { setEndPhaseCountdown(null); return; }
+    setEndPhaseCountdown(3);
+    const iv = setInterval(() => {
+      setEndPhaseCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(iv);
+          if (typeof window !== 'undefined') window.location.href = '/home';
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.phase, manualIdentity]);
+
   const handleRepeatCharacter = (player, repeat) => {
     console.log(`Player ${player} ${repeat ? 'repitió' : 'no repitió'} personaje`);
     setShowRepeatModal({ player1: false, player2: false });
@@ -257,7 +345,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   // Identidad del jugador en este dispositivo (null = admin / espectador)
   // Prioridad: URL param (?p=) → sessionStorage (elección manual) → nombre de login
   // 'spectator' en sessionStorage = sin restricciones (admin mode)
-  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
+  const _rawIdentity = (!skipPlayerIndex && playerIndex) || manualIdentity || (session && playerName
     ? (() => {
         const uLow = playerName.toLowerCase().trim();
         const p1Low = (session.player1?.name || '').toLowerCase().trim();
@@ -544,6 +632,77 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
               👁️ Entrar como espectador / admin
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Pantalla de match incorrecto ──
+  // Se muestra cuando el usuario logueado / token de URL no coincide con el match activo
+  if (wrongMatch && manualIdentity !== 'spectator') {
+    const bgStyle = {
+      background: theme.customBackground
+        ? `url(${theme.customBackground}) center center / cover no-repeat fixed, #1a1a2e`
+        : useOriginalStyles
+        ? 'url(/images/paperbg.jpg) center center / cover no-repeat fixed'
+        : `linear-gradient(${theme.colors.gradient}), url(/images/paperbg.jpg) center center / cover no-repeat`,
+      fontFamily: 'Anton, sans-serif',
+      minHeight: '100dvh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+    };
+    return (
+      <div style={bgStyle}>
+        <div style={{
+          background: 'rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(16px)',
+          borderRadius: 24,
+          padding: 36,
+          maxWidth: 380,
+          width: '100%',
+          border: '2px solid rgba(239,68,68,0.4)',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🚫</div>
+          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 10px', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
+            Este match no te corresponde
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, margin: '0 0 28px', lineHeight: 1.5 }}>
+            Se asignó un nuevo match a este setup y vos no sos uno de los jugadores activos.
+          </p>
+          {session?.player1?.name && session?.player2?.name && (
+            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: '14px 18px', marginBottom: 24, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '0 0 6px', letterSpacing: '0.05em' }}>MATCH ACTIVO</p>
+              <p style={{ color: '#fff', fontSize: 16, fontWeight: 900, margin: 0, textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
+                {session.player1.name} vs {session.player2.name}
+              </p>
+            </div>
+          )}
+          <div style={{ background: 'rgba(239,68,68,0.12)', borderRadius: 12, padding: '12px 16px', marginBottom: 20, border: '1px solid rgba(239,68,68,0.3)' }}>
+            <p style={{ color: '#F87171', fontSize: 13, fontWeight: 700, margin: 0 }}>
+              Redirigiendo al home en {wrongMatchCountdown}s...
+            </p>
+          </div>
+          <button
+            onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
+            style={{
+              width: '100%',
+              padding: '14px 24px',
+              borderRadius: 14,
+              border: '2px solid rgba(255,255,255,0.2)',
+              background: 'linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.06))',
+              color: '#fff',
+              fontSize: 15,
+              fontWeight: 900,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+            }}
+          >
+            🏠 Ir al Home ahora
+          </button>
         </div>
       </div>
     );
@@ -2538,7 +2697,9 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
             </p>
             <div className="bg-smash-purple/20 rounded-lg p-4 border border-smash-purple/50">
               <p className="text-white/90 text-base">
-                ⏳ Esta pantalla se cerrará en 5 segundos...
+                {endPhaseCountdown !== null
+                  ? `⏳ Redirigiendo al home en ${endPhaseCountdown}s...`
+                  : '⏳ Esta pantalla se cerrará en 5 segundos...'}
               </p>
             </div>
             <button
@@ -2564,12 +2725,20 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
             <div className="text-7xl mb-4">⚠️</div>
             <h3 className="text-3xl font-bold text-white mb-3">Match cancelado</h3>
             <p className="text-white/60 text-base mb-6">El administrador canceló o pospuso este match.</p>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <p className="text-white/70 text-sm">Esperá instrucciones del admin para continuar.</p>
-            </div>
+            {endPhaseCountdown !== null ? (
+              <div className="bg-red-500/15 rounded-lg p-4 border border-red-500/30 mb-6">
+                <p className="text-red-300 text-sm font-bold">
+                  ⏳ Redirigiendo al home en {endPhaseCountdown}s...
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10 mb-6">
+                <p className="text-white/70 text-sm">Esperá instrucciones del admin para continuar.</p>
+              </div>
+            )}
             <button
               onClick={() => { if (typeof window !== 'undefined') window.location.href = '/home'; }}
-              className="mt-6 w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 touch-manipulation transition-all border-2 border-white/20"
+              className="w-full py-4 rounded-2xl font-black text-white text-lg active:scale-95 touch-manipulation transition-all border-2 border-white/20"
               style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))', cursor: 'pointer', fontFamily: 'inherit' }}
             >
               🏠 Volver al Home

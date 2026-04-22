@@ -48,6 +48,8 @@ async function getUserRoom(userId) {
 
 async function cleanupRoom(code, room) {
   await redis.del(roomKey(code));
+  // Quitar del sorted set de rooms activas (para el contador online)
+  await redis.zrem('mm:active-rooms', code);
   if (room?.mode === '2v2') {
     // Limpiar 4 jugadores en 2v2
     for (const team of [room.team1, room.team2]) {
@@ -173,8 +175,8 @@ export default async function handler(req, res) {
     // ── Lazy-init activeAt ────────────────────────────────────
     if (room.status === 'active' && !room.activeAt) {
       room.activeAt = new Date().toISOString();
-      await redis.set(roomKey(code), room);
-    }
+      await redis.set(roomKey(code), room);      // Registrar room como activa para el contador de jugadores online
+      await redis.zadd('mm:active-rooms', { score: Date.now(), member: code });    }
 
     // ── Chat AFK: detectar si alguien no se presentó en 15 min ─
     if (room.status === 'active' && room.activeAt && !room.chatAfkWin && !room.mode) {
