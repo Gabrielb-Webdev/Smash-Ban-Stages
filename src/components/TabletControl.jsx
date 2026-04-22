@@ -357,6 +357,9 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
       })()
     : null);
   const myPlayer = (_rawIdentity === 'spectator') ? null : _rawIdentity;
+  // Si el usuario está logueado y no coincide con ningún jugador del match → kick inmediato sin preguntar
+  const isNameMismatch = !!(playerName && session?.player1?.name && session?.player2?.name
+    && !_rawIdentity && manualIdentity !== 'spectator');
   // En modo 1 dispositivo los controles de turno no se restringen por jugador
   const effectivePlayer = session?.singleDeviceMode ? null : myPlayer;
 
@@ -595,8 +598,9 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   );
 
   // Pantalla de identificación: si la sesión cargó, hay dos jugadores, y este dispositivo no está identificado
-  // Se muestra antes de cualquier otra cosa para forzar que cada jugador sepa quién es
-  if (session && session.player1?.name && session.player2?.name && !myPlayer) {
+  // Solo se muestra cuando el usuario NO está logueado (sin nick conocido).
+  // Si está logueado y no coincide → isNameMismatch=true → va directo al kick sin preguntar.
+  if (session && session.player1?.name && session.player2?.name && !_rawIdentity && !isNameMismatch) {
     const bgStyle = {
       background: theme.customBackground
         ? `url(${theme.customBackground}) center center / cover no-repeat fixed, #1a1a2e`
@@ -639,7 +643,8 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
 
   // ── Pantalla de match incorrecto ──
   // Se muestra cuando el usuario logueado / token de URL no coincide con el match activo
-  if (wrongMatch && manualIdentity !== 'spectator') {
+  // isNameMismatch es síncrono → evita el flash de pantalla de identidad antes del kick
+  if ((wrongMatch || isNameMismatch) && manualIdentity !== 'spectator') {
     const bgStyle = {
       background: theme.customBackground
         ? `url(${theme.customBackground}) center center / cover no-repeat fixed, #1a1a2e`
