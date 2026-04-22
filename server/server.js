@@ -205,6 +205,9 @@ class PersistentSessionMap {
 const panelStates = new Map();
 const PANEL_STATE_TTL = 24 * 60 * 60;
 
+// ── Estado del panel de control Mendoza (sync RT entre múltiples usuarios) ────
+let mendozaControlState = null;
+
 async function redisPanelStateSet(community, state) {
   if (!REDIS_URL || !REDIS_TOKEN) return;
   try {
@@ -1795,6 +1798,29 @@ io.on('connection', (socket) => {
     // reciban la versión consistente incluyendo los matches activos preservados
     socket.to(room).emit('panel:state-update', { state: merged });
     console.log(`🔄 Panel state sync [${community}]:`, Object.keys(state).join(', '));
+  });
+
+  // ── Control Panel Mendoza: sync en tiempo real entre múltiples usuarios ─────
+  // Cualquier usuario que abra control.html se une a este room y recibe/envía cambios
+  socket.on('mendoza-control:join', () => {
+    socket.join('mendoza-control');
+    console.log(`🎮 Control Mendoza: ${socket.id} unido (total: ${(io.sockets.adapter.rooms.get('mendoza-control')?.size || 1)})`);
+    // Enviar estado actual al nuevo cliente para que quede sincronizado al instante
+    if (mendozaControlState) {
+      socket.emit('mendoza-control:state', mendozaControlState);
+    }
+  });
+
+  socket.on('mendoza-control:update', (state) => {
+    if (!state || typeof state !== 'object') return;
+    // Guardar como último estado conocido (last-write-wins)
+    mendozaControlState = { ...state, _ts: Date.now() };
+    // Broadcast al resto del room (el emisor ya tiene el estado aplicado)
+    socket.to('mendoza-control').emit('mendoza-control:state', mendozaControlState);
+    const roomSize = io.sockets.adapter.rooms.get('mendoza-control')?.size || 1;
+    if (roomSize > 1) {
+      console.log(`🔄 Control Mendoza sync → ${roomSize} usuario(s) conectados`);
+    }
   });
 
   socket.on('disconnect', () => {

@@ -476,6 +476,7 @@
   </div>
 
   <div class="status" id="status">Listo para usar</div>
+  <div class="status" id="sync-status" style="font-size:12px; margin-top:4px;">🟡 Conectando sync...</div>
 
   <script>
     // ===== CHARACTER DATA =====
@@ -574,6 +575,82 @@
     const SCOREBOARD_API = '/api/mendoza/scoreboard-state';
     const ADMIN_TOKEN = 'afk-admin-2025';
 
+    // ===== SYNC EN TIEMPO REAL (Socket.IO) =====
+    let _syncSocket = null;
+    let _applyingRemote = false; // evita loop: remote update → UI change → re-emit
+
+    async function connectSyncSocket() {
+      try {
+        const cfg = await fetch('/api/mendoza/config').then(r => r.json());
+        const socketUrl = cfg.socketUrl || 'http://localhost:3001';
+
+        // Cargar socket.io.js dinámicamente desde el servidor WS
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = `${socketUrl}/socket.io/socket.io.js`;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+
+        _syncSocket = io(socketUrl, {
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionDelay: 2000,
+          reconnectionAttempts: Infinity,
+        });
+
+        _syncSocket.on('connect', () => {
+          console.log('🔌 Control sync conectado:', _syncSocket.id);
+          _syncSocket.emit('mendoza-control:join');
+          updateSyncIndicator(true);
+        });
+
+        _syncSocket.on('disconnect', () => {
+          console.log('⚡ Control sync desconectado');
+          updateSyncIndicator(false);
+        });
+
+        // Recibir estado de otro usuario → aplicar a la UI
+        _syncSocket.on('mendoza-control:state', (remoteState) => {
+          if (!remoteState) return;
+          _applyingRemote = true;
+          try {
+            state = {
+              player1: { tag: '', name: '', score: 0, character: 'Random', skin: 1, ...remoteState.player1 },
+              player2: { tag: '', name: '', score: 0, character: 'Random', skin: 1, ...remoteState.player2 },
+              round:  remoteState.round  ?? state.round,
+              format: remoteState.format ?? state.format,
+            };
+            syncUIFromState();
+          } finally {
+            _applyingRemote = false;
+          }
+        });
+
+      } catch (e) {
+        console.warn('⚠️ No se pudo conectar al socket de sync:', e.message);
+      }
+    }
+
+    function updateSyncIndicator(connected) {
+      const statusEl = document.getElementById('sync-status');
+      if (!statusEl) return;
+      statusEl.textContent = connected ? '🟢 Sync activo' : '🔴 Sync desconectado';
+      statusEl.style.color = connected ? '#4caf50' : '#f44336';
+    }
+
+    function emitSyncUpdate() {
+      if (_syncSocket && _syncSocket.connected) {
+        _syncSocket.emit('mendoza-control:update', {
+          player1: { ...state.player1 },
+          player2: { ...state.player2 },
+          round:  state.round,
+          format: state.format,
+        });
+      }
+    }
+
     // ===== KEBAB ID → FOLDER NAME =====
     const CHAR_FOLDER = {
       'banjo-kazooie':'Banjo & Kazooie','bayonetta':'Bayonetta','bowser':'Bowser',
@@ -616,6 +693,7 @@
       buildSkinGrids();
       loadStateFromServer();
       setupEventListeners();
+      connectSyncSocket();
     }
 
     function populateCharacterSelects() {
@@ -791,8 +869,14 @@
 
     // ===== SEND UPDATE =====
     async function sendUpdate() {
+      // Si el cambio viene de un update remoto, no re-emitir (evita loop)
+      if (_applyingRemote) return;
+
       collectStateFromUI();
       const statusEl = document.getElementById('status');
+
+      // Emitir inmediatamente por socket para mínima latencia entre usuarios
+      emitSyncUpdate();
 
       try {
         const res = await fetch(SCOREBOARD_API, {
