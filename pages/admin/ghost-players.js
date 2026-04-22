@@ -16,24 +16,35 @@ const PLATFORMS = [
 ];
 
 const PRESETS = [
-  { label: 'Vacío',     values: { ranked1v1: { switch: 0, parsec: 0 }, ranked2v2: { switch: 0, parsec: 0 }, casual1v1: { switch: 0, parsec: 0 }, casual2v2: { switch: 0, parsec: 0 } } },
-  { label: 'Poco',      values: { ranked1v1: { switch: 2, parsec: 1 }, ranked2v2: { switch: 0, parsec: 0 }, casual1v1: { switch: 1, parsec: 0 }, casual2v2: { switch: 0, parsec: 0 } } },
-  { label: 'Moderado',  values: { ranked1v1: { switch: 5, parsec: 3 }, ranked2v2: { switch: 1, parsec: 1 }, casual1v1: { switch: 3, parsec: 2 }, casual2v2: { switch: 1, parsec: 0 } } },
-  { label: 'Activo',    values: { ranked1v1: { switch: 10, parsec: 7 }, ranked2v2: { switch: 3, parsec: 2 }, casual1v1: { switch: 6, parsec: 4 }, casual2v2: { switch: 2, parsec: 1 } } },
+  { label: 'Vacío',    values: { ranked1v1: { switch: 0, parsec: 0 }, ranked2v2: { switch: 0, parsec: 0 }, casual1v1: { switch: 0, parsec: 0 }, casual2v2: { switch: 0, parsec: 0 } } },
+  { label: 'Poco',     values: { ranked1v1: { switch: 2, parsec: 1 }, ranked2v2: { switch: 0, parsec: 0 }, casual1v1: { switch: 1, parsec: 0 }, casual2v2: { switch: 0, parsec: 0 } } },
+  { label: 'Moderado', values: { ranked1v1: { switch: 5, parsec: 3 }, ranked2v2: { switch: 1, parsec: 1 }, casual1v1: { switch: 3, parsec: 2 }, casual2v2: { switch: 1, parsec: 0 } } },
+  { label: 'Activo',   values: { ranked1v1: { switch: 10, parsec: 7 }, ranked2v2: { switch: 3, parsec: 2 }, casual1v1: { switch: 6, parsec: 4 }, casual2v2: { switch: 2, parsec: 1 } } },
 ];
 
-const stored = typeof window !== 'undefined' ? getStoredUser() : null;
-const AUTH   = stored?.access_token || 'afk-admin-2025';
+const INTERVAL_OPTIONS = [
+  { label: '30 seg', value: 30 },
+  { label: '1 min',  value: 60 },
+  { label: '2 min',  value: 120 },
+  { label: '5 min',  value: 300 },
+  { label: '10 min', value: 600 },
+];
+
+const DEFAULT_AUTO = Object.fromEntries(
+  CATEGORIES.map(c => [c.key, { enabled: false, min: 4, max: 18, intervalSec: 60 }])
+);
 
 export default function GhostPlayersAdmin() {
-  const router   = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [config, setConfig]     = useState(null);
-  const [draft, setDraft]       = useState(null);
-  const [online, setOnline]     = useState(null);
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [error, setError]       = useState('');
+  const router = useRouter();
+  const [checking, setChecking]     = useState(true);
+  const [config, setConfig]         = useState(null);
+  const [draft, setDraft]           = useState(null);
+  const [autoConfig, setAutoConfig] = useState(null);
+  const [autoDraft, setAutoDraft]   = useState(null);
+  const [online, setOnline]         = useState(null);
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
+  const [error, setError]           = useState('');
 
   // Auth check
   useEffect(() => {
@@ -63,9 +74,12 @@ export default function GhostPlayersAdmin() {
       const cfgData    = await cfgRes.json();
       const onlineData = await onlineRes.json();
       setConfig(cfgData.config);
-      setDraft(JSON.parse(JSON.stringify(cfgData.config))); // deep clone
+      setDraft(JSON.parse(JSON.stringify(cfgData.config)));
+      const ac = { ...DEFAULT_AUTO, ...(cfgData.autoConfig || {}) };
+      setAutoConfig(ac);
+      setAutoDraft(JSON.parse(JSON.stringify(ac)));
       setOnline(onlineData);
-    } catch (e) {
+    } catch {
       setError('Error cargando configuración');
     }
   }
@@ -82,22 +96,50 @@ export default function GhostPlayersAdmin() {
     setDraft(prev => ({ ...prev, [cat]: { ...prev[cat], [plat]: n } }));
   }
 
+  function setAutoField(cat, field, val) {
+    setAutoDraft(prev => ({ ...prev, [cat]: { ...prev[cat], [field]: val } }));
+  }
+
   function applyPreset(preset) {
     setDraft(JSON.parse(JSON.stringify(preset.values)));
+  }
+
+  function isGhostDirty() {
+    if (!config || !draft) return false;
+    return JSON.stringify(config) !== JSON.stringify(draft);
+  }
+  function isAutoDirty() {
+    if (!autoConfig || !autoDraft) return false;
+    return JSON.stringify(autoConfig) !== JSON.stringify(autoDraft);
   }
 
   async function save() {
     setSaving(true);
     setError('');
     try {
-      const r = await fetch('/api/admin/ghost-players', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer afk-admin-2025' },
-        body: JSON.stringify(draft),
-      });
-      const d = await r.json();
-      if (!d.ok) throw new Error(d.error || 'Error al guardar');
-      setConfig(d.config);
+      const calls = [];
+      if (isGhostDirty()) {
+        calls.push(
+          fetch('/api/admin/ghost-players', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer afk-admin-2025' },
+            body: JSON.stringify(draft),
+          }).then(r => r.json())
+        );
+      }
+      if (isAutoDirty()) {
+        calls.push(
+          fetch('/api/admin/ghost-players', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer afk-admin-2025' },
+            body: JSON.stringify({ auto: autoDraft }),
+          }).then(r => r.json())
+        );
+      }
+      const results = await Promise.all(calls);
+      for (const d of results) { if (!d.ok) throw new Error(d.error || 'Error al guardar'); }
+      if (isGhostDirty())  setConfig(JSON.parse(JSON.stringify(draft)));
+      if (isAutoDirty())   setAutoConfig(JSON.parse(JSON.stringify(autoDraft)));
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
       loadOnline();
@@ -134,10 +176,7 @@ export default function GhostPlayersAdmin() {
     return CATEGORIES.reduce((sum, c) => sum + (draft[c.key]?.switch || 0) + (draft[c.key]?.parsec || 0), 0);
   }
 
-  function isDirty() {
-    if (!config || !draft) return false;
-    return JSON.stringify(config) !== JSON.stringify(draft);
-  }
+  function isDirty() { return isGhostDirty() || isAutoDirty(); }
 
   if (checking) return (
     <div style={{ minHeight: '100vh', background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -197,7 +236,7 @@ export default function GhostPlayersAdmin() {
 
           {/* Presets */}
           <div style={{ marginBottom: 20 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presets rápidos</p>
+            <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Presets rápidos (conteos manuales)</p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {PRESETS.map(p => (
                 <button
@@ -215,61 +254,135 @@ export default function GhostPlayersAdmin() {
             </div>
           </div>
 
-          {/* Grilla de inputs */}
-          {draft && (
+          {/* Categorías */}
+          {draft && autoDraft && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-              {CATEGORIES.map(cat => (
-                <div key={cat.key} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '16px 18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                    <span style={{ fontSize: 18 }}>{cat.icon}</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cat.accent }}>{cat.label}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
-                      Total: {(draft[cat.key]?.switch || 0) + (draft[cat.key]?.parsec || 0)}
-                    </span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    {PLATFORMS.map(plat => (
-                      <div key={plat.key}>
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: plat.color, marginBottom: 6, letterSpacing: '0.04em' }}>
-                          {plat.icon} {plat.label}
-                        </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button
-                            onClick={() => setDraftValue(cat.key, plat.key, (draft[cat.key]?.[plat.key] || 0) - 1)}
-                            style={{ width: 32, height: 40, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-                          >−</button>
-                          <input
-                            type="number"
-                            min={0}
-                            max={999}
-                            value={draft[cat.key]?.[plat.key] ?? 0}
-                            onChange={e => setDraftValue(cat.key, plat.key, e.target.value)}
-                            style={{
-                              flex: 1, height: 40, borderRadius: 8, border: `1px solid ${plat.color}44`,
-                              background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 20, fontWeight: 900,
-                              textAlign: 'center', outline: 'none', padding: 0,
-                            }}
-                          />
-                          <button
-                            onClick={() => setDraftValue(cat.key, plat.key, (draft[cat.key]?.[plat.key] || 0) + 1)}
-                            style={{ width: 32, height: 40, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-                          >+</button>
+              {CATEGORIES.map(cat => {
+                const autoOn = autoDraft[cat.key]?.enabled;
+                return (
+                  <div
+                    key={cat.key}
+                    style={{
+                      background: autoOn ? 'rgba(124,58,237,0.07)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${autoOn ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                      borderRadius: 16, padding: '16px 18px', transition: 'border-color 0.2s, background 0.2s',
+                    }}
+                  >
+                    {/* Cabecera */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <span style={{ fontSize: 18 }}>{cat.icon}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: cat.accent }}>{cat.label}</span>
+                      {autoOn && (
+                        <span style={{ fontSize: 10, fontWeight: 800, color: '#A78BFA', background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: 99, padding: '2px 8px', letterSpacing: '0.04em' }}>🤖 AUTO</span>
+                      )}
+                      <span style={{ marginLeft: 'auto', fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+                        Total: {(draft[cat.key]?.switch || 0) + (draft[cat.key]?.parsec || 0)}
+                      </span>
+                    </div>
+
+                    {/* Inputs de plataforma (deshabilitados en modo auto) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14, opacity: autoOn ? 0.4 : 1, pointerEvents: autoOn ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
+                      {PLATFORMS.map(plat => (
+                        <div key={plat.key}>
+                          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: plat.color, marginBottom: 6, letterSpacing: '0.04em' }}>
+                            {plat.icon} {plat.label}
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                              onClick={() => setDraftValue(cat.key, plat.key, (draft[cat.key]?.[plat.key] || 0) - 1)}
+                              style={{ width: 32, height: 40, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                            >−</button>
+                            <input
+                              type="number" min={0} max={999}
+                              value={draft[cat.key]?.[plat.key] ?? 0}
+                              onChange={e => setDraftValue(cat.key, plat.key, e.target.value)}
+                              style={{ flex: 1, height: 40, borderRadius: 8, border: `1px solid ${plat.color}44`, background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 20, fontWeight: 900, textAlign: 'center', outline: 'none', padding: 0 }}
+                            />
+                            <button
+                              onClick={() => setDraftValue(cat.key, plat.key, (draft[cat.key]?.[plat.key] || 0) + 1)}
+                              style={{ width: 32, height: 40, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                            >+</button>
+                          </div>
                         </div>
+                      ))}
+                    </div>
+
+                    {/* Panel de automatización */}
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: autoOn ? 12 : 0 }}>
+                        <button
+                          onClick={() => setAutoField(cat.key, 'enabled', !autoOn)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 7, padding: '6px 14px',
+                            borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                            border: autoOn ? '1px solid rgba(124,58,237,0.6)' : '1px solid rgba(255,255,255,0.12)',
+                            background: autoOn ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)',
+                            color: autoOn ? '#C4B5FD' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s',
+                          }}
+                        >
+                          <span style={{ fontSize: 14 }}>🤖</span>
+                          {autoOn ? 'Automatización ON' : 'Automatizar'}
+                        </button>
+                        {autoOn && (
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                            varía entre {autoDraft[cat.key].min}–{autoDraft[cat.key].max} cada {INTERVAL_OPTIONS.find(o => o.value === autoDraft[cat.key].intervalSec)?.label || `${autoDraft[cat.key].intervalSec}s`}
+                          </span>
+                        )}
                       </div>
-                    ))}
+
+                      {autoOn && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.3fr', gap: 10 }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mínimo</label>
+                            <input
+                              type="number" min={0} max={998}
+                              value={autoDraft[cat.key]?.min ?? 4}
+                              onChange={e => setAutoField(cat.key, 'min', Math.max(0, Math.min(998, parseInt(e.target.value, 10) || 0)))}
+                              style={{ width: '100%', height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: '#fff', fontSize: 15, fontWeight: 900, textAlign: 'center', outline: 'none', padding: 0 }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Máximo</label>
+                            <input
+                              type="number" min={1} max={999}
+                              value={autoDraft[cat.key]?.max ?? 18}
+                              onChange={e => setAutoField(cat.key, 'max', Math.max(1, Math.min(999, parseInt(e.target.value, 10) || 1)))}
+                              style={{ width: '100%', height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: '#fff', fontSize: 15, fontWeight: 900, textAlign: 'center', outline: 'none', padding: 0 }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Intervalo</label>
+                            <select
+                              value={autoDraft[cat.key]?.intervalSec ?? 60}
+                              onChange={e => setAutoField(cat.key, 'intervalSec', parseInt(e.target.value, 10))}
+                              style={{ width: '100%', height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: '#1a1a2e', color: '#fff', fontSize: 13, fontWeight: 700, outline: 'none', padding: '0 8px' }}
+                            >
+                              {INTERVAL_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
-          {/* Resumen del draft */}
+          {/* Resumen */}
           {draft && (
             <div style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 20 }}>👻</span>
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#A78BFA' }}>
                   {totalDraft()} ghost players configurados
+                  {autoDraft && CATEGORIES.some(c => autoDraft[c.key]?.enabled) && (
+                    <span style={{ marginLeft: 8, fontSize: 11, color: '#C4B5FD', fontWeight: 700 }}>
+                      · {CATEGORIES.filter(c => autoDraft[c.key]?.enabled).length} sección(es) en auto
+                    </span>
+                  )}
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
                   Aparecen en el contador pero no pueden matchear con jugadores reales
@@ -313,7 +426,7 @@ export default function GhostPlayersAdmin() {
                 color: '#F87171', fontSize: 14, fontWeight: 800, cursor: 'pointer',
               }}
             >
-              🗑️ Resetear
+              🗑️ Resetear conteos
             </button>
           </div>
 

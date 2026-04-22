@@ -9,8 +9,21 @@ import redis, { mmQueueKey, mmQueueDoublesKey, casualQueueKey } from '../../../l
 const QUEUE_TTL_MS   = 10 * 60 * 1000;
 const ROOM_TTL_MS    = 30 * 60 * 1000; // mismo TTL que rooms en room.js
 const GHOST_KEY      = 'mm:ghost:config';
+const AUTO_KEY       = 'mm:ghost:auto';
 const ACTIVE_ROOMS_KEY = 'mm:active-rooms';
 const casualQueue2v2Key = (platform) => `mm:casual:queue:2v2:${platform}`;
+
+const CATS = ['ranked1v1', 'ranked2v2', 'casual1v1', 'casual2v2'];
+
+// Deriva el valor un poco hacia arriba o abajo (±1-3), manteniéndose en [min, max]
+function driftValue(current, min, max) {
+  if (current < min || current > max) {
+    // Fuera de rango → saltar directo a un valor aleatorio en rango
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+  const delta = Math.floor(Math.random() * 5) - 2; // -2 a +2
+  return Math.max(min, Math.min(max, current + delta));
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,22 +44,57 @@ export default async function handler(req, res) {
     casualQueue2v2Key('parsec'),    // casual 2v2 parsec
   ];
 
-  // Cargar colas + ghost config + rooms activas en paralelo
-  const [results, ghostCfg, activeRoomsRaw] = await Promise.all([
+  // Cargar colas + ghost config + auto config + rooms activas en paralelo
+  const [results, ghostCfgRaw, autoCfgRaw, activeRoomsRaw] = await Promise.all([
     redis.mget(...keys),
     redis.get(GHOST_KEY),
+    redis.get(AUTO_KEY),
     // Limpiar rooms expiradas (>30min) del sorted set y devolver el count restante
     redis.zremrangebyscore(ACTIVE_ROOMS_KEY, 0, now - ROOM_TTL_MS)
       .then(() => redis.zcard(ACTIVE_ROOMS_KEY))
       .catch(() => 0),
   ]);
 
+  // ── Automatización: disparar ticks pendientes ─────────────────
+  // Funciona como "serverless cron": cada vez que se consulta online.js se
+  // comprueban los intervalos de cada categoría. Si pasó el tiempo, se
+  // actualiza el ghost count y se agenda el próximo tick.
+  const g = { ...(ghostCfgRaw || {}) };
+  const autoConf = autoCfgRaw || {};
+  let ghostDirty = false;
+  const updatedAuto = {};
+
+  for (const cat of CATS) {
+    const a = autoConf[cat];
+    if (!a?.enabled) continue;
+    if (now < (a.nextFireAt || 0)) continue;
+
+    // ¡Tick! Derivar switch y parsec independientemente
+    const min = a.min ?? 4;
+    const max = a.max ?? 18;
+    if (!g[cat]) g[cat] = { switch: 0, parsec: 0 };
+    g[cat] = {
+      switch: driftValue(g[cat].switch ?? 0, min, max),
+      parsec: driftValue(g[cat].parsec ?? 0, min, max),
+    };
+    updatedAuto[cat] = { ...a, nextFireAt: now + (a.intervalSec ?? 60) * 1000 };
+    ghostDirty = true;
+  }
+
+  if (ghostDirty) {
+    // Persistir ghost config actualizado y próximos nextFireAt en Redis
+    const newAutoConf = { ...autoConf, ...updatedAuto };
+    await Promise.all([
+      redis.set(GHOST_KEY, g),
+      redis.set(AUTO_KEY, newAutoConf),
+    ]);
+  }
+
   const [r1sw, r1pc, r2sw, r2pc, c1sw, c1pc, c2sw, c2pc] = results.map(q =>
     (q || []).filter(e => now - new Date(e.joinedAt).getTime() < QUEUE_TTL_MS).length
   );
 
   // Ghost players por categoría (default: 0)
-  const g = ghostCfg || {};
   const gr1sw = (g.ranked1v1?.switch || 0);
   const gr1pc = (g.ranked1v1?.parsec || 0);
   const gr2sw = (g.ranked2v2?.switch || 0);
