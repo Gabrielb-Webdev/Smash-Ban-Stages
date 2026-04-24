@@ -20,6 +20,20 @@ query TournamentInfo($slug: String!) {
 
 const STATE_LABELS = { 1: 'CREATED', 2: 'ACTIVE', 3: 'COMPLETED', 4: 'CANCELLED' };
 
+const fetchWithTimeout = async (url, options, timeoutMs = 10000) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeout);
+    return response;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -33,16 +47,26 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: 'START_GG_API_TOKEN no configurado' });
 
   try {
-    const sgRes = await fetch(STARTGG_API, {
+    const sgRes = await fetchWithTimeout(STARTGG_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ query: QUERY, variables: { slug } }),
     });
 
-    if (!sgRes.ok) return res.status(502).json({ error: 'Error consultando start.gg' });
+    if (!sgRes.ok) {
+      const errorText = await sgRes.text();
+      console.error(`Start.gg API error: ${sgRes.status} - ${errorText}`);
+      return res.status(sgRes.status === 401 || sgRes.status === 403 ? 401 : 502).json({ 
+        error: 'Error consultando start.gg',
+        status: sgRes.status,
+      });
+    }
 
     const body = await sgRes.json();
-    if (body.errors) return res.status(502).json({ error: body.errors[0].message });
+    if (body.errors) {
+      console.error('Start.gg GraphQL errors:', body.errors);
+      return res.status(400).json({ error: body.errors[0]?.message || 'GraphQL error' });
+    }
 
     const t = body.data?.tournament;
     if (!t) return res.status(404).json({ error: 'Torneo no encontrado' });
@@ -70,6 +94,11 @@ export default async function handler(req, res) {
       })),
     });
   } catch (err) {
+    if (err.name === 'AbortError') {
+      console.error('Start.gg API timeout');
+      return res.status(504).json({ error: 'API timeout - intentelo nuevamente' });
+    }
+    console.error('Handler error:', err);
     return res.status(500).json({ error: 'Error interno', detail: err.message });
   }
 }

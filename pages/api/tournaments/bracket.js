@@ -80,6 +80,20 @@ const STAGE_ID_TO_SLUG = Object.fromEntries(Object.entries(STARTGG_STAGE_IDS).ma
 // start.gg set states: 1=CREATED 2=STARTED 3=COMPLETED 6=BYE 7=CALLED(called to setup)
 const SET_STATE_LABELS = { 1: 'CREATED', 2: 'ACTIVE', 3: 'COMPLETED', 6: 'BYE', 7: 'CALLED' };
 
+const fetchWithTimeout = async (url, options, timeoutMs = 10000) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeout);
+    return response;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -99,16 +113,26 @@ export default async function handler(req, res) {
     let phaseGroupState = 1;
 
     while (page <= totalPages) {
-      const resp = await fetch(STARTGG_API, {
+      const resp = await fetchWithTimeout(STARTGG_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ query: SETS_QUERY, variables: { phaseGroupId: String(phaseGroupId), page } }),
       });
 
-      if (!resp.ok) return res.status(502).json({ error: 'Error consultando start.gg' });
+      if (!resp.ok) {
+        const errorText = await resp.text().catch(() => 'unknown');
+        console.error(`Start.gg API error (page ${page}): ${resp.status} - ${errorText}`);
+        return res.status(resp.status === 401 || resp.status === 403 ? 401 : 502).json({ 
+          error: 'Error consultando start.gg',
+          status: resp.status,
+        });
+      }
 
       const body = await resp.json();
-      if (body.errors) return res.status(502).json({ error: body.errors[0].message });
+      if (body.errors) {
+        console.error('Start.gg GraphQL errors:', body.errors);
+        return res.status(400).json({ error: body.errors[0]?.message || 'GraphQL error' });
+      }
 
       const pg = body.data?.phaseGroup;
       if (!pg) return res.status(404).json({ error: 'Phase group no encontrado' });
@@ -187,6 +211,11 @@ export default async function handler(req, res) {
       }),
     });
   } catch (err) {
+    if (err.name === 'AbortError') {
+      console.error('Start.gg API timeout');
+      return res.status(504).json({ error: 'API timeout - intentelo nuevamente' });
+    }
+    console.error('Handler error:', err);
     return res.status(500).json({ error: 'Error interno', detail: err.message });
   }
 }
