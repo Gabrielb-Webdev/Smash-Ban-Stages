@@ -1,10 +1,15 @@
 // GET /api/tournaments/bracket?phaseGroupId=3244687
 // Devuelve los sets de un phaseGroup de start.gg
 
-import redis from '../../../lib/redis';
+let redis = null;
+try {
+  redis = require('../../../lib/redis').default;
+} catch (err) {
+  console.warn('Redis no disponible, funcionando sin caché');
+}
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
-const CACHE_TTL = 300; // 5 minutos para bracket (cambia más frecuentemente)
+const CACHE_TTL = 300; // 5 minutos para bracket
 
 const SETS_QUERY = `
 query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
@@ -111,10 +116,16 @@ export default async function handler(req, res) {
   try {
     // Intenta obtener del caché primero
     const cacheKey = `tournament:bracket:${phaseGroupId}`;
-    const cached = await redis.get(cacheKey).catch(() => null);
-    if (cached) {
-      console.log(`[Cache HIT] ${cacheKey}`);
-      return res.status(200).json(JSON.parse(cached));
+    if (redis) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          console.log(`[Cache HIT] ${cacheKey}`);
+          return res.status(200).json(JSON.parse(cached));
+        }
+      } catch (err) {
+        console.warn(`Redis get error: ${err.message}`);
+      }
     }
 
     const allSets = [];
@@ -237,8 +248,14 @@ export default async function handler(req, res) {
       }),
     };
 
-    // Guardar en caché
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result)).catch(() => null);
+    // Guardar en caché si está disponible
+    if (redis) {
+      try {
+        await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+      } catch (err) {
+        console.warn(`Redis setex error: ${err.message}`);
+      }
+    }
 
     return res.status(200).json(result);
   } catch (err) {
