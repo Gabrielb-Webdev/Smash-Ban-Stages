@@ -18,7 +18,7 @@ query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
     state
     displayIdentifier
     phase { name }
-    sets(page: $page, perPage: 50, sortType: CALL_ORDER) {
+    sets(page: $page, perPage: 15, sortType: CALL_ORDER) {
       pageInfo { total totalPages }
       nodes {
         id
