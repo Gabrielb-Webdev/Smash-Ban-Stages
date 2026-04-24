@@ -1,7 +1,10 @@
 // GET /api/tournaments/info?slug=tournament/asd3
 // Devuelve datos de un torneo de start.gg por slug
 
+import redis from '../../../lib/redis';
+
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
+const CACHE_TTL = 3600; // 1 hora en segundos
 
 const QUERY = `
 query TournamentInfo($slug: String!) {
@@ -47,6 +50,14 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: 'START_GG_API_TOKEN no configurado' });
 
   try {
+    // Intenta obtener del caché primero
+    const cacheKey = `tournament:info:${slug}`;
+    const cached = await redis.get(cacheKey).catch(() => null);
+    if (cached) {
+      console.log(`[Cache HIT] ${cacheKey}`);
+      return res.status(200).json(JSON.parse(cached));
+    }
+
     const sgRes = await fetchWithTimeout(STARTGG_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -56,7 +67,22 @@ export default async function handler(req, res) {
     if (!sgRes.ok) {
       const errorText = await sgRes.text();
       console.error(`Start.gg API error: ${sgRes.status} - ${errorText}`);
-      return res.status(sgRes.status === 401 || sgRes.status === 403 ? 401 : 502).json({ 
+      
+      // Pass through specific status codes
+      if (sgRes.status === 429) {
+        return res.status(429).json({ 
+          error: 'Rate limit de start.gg alcanzado. Intenta de nuevo en unos minutos.',
+          status: 429,
+        });
+      }
+      if (sgRes.status === 401 || sgRes.status === 403) {
+        return res.status(401).json({ 
+          error: 'Token de start.gg inválido',
+          status: sgRes.status,
+        });
+      }
+      
+      return res.status(502).json({ 
         error: 'Error consultando start.gg',
         status: sgRes.status,
       });
@@ -71,7 +97,7 @@ export default async function handler(req, res) {
     const t = body.data?.tournament;
     if (!t) return res.status(404).json({ error: 'Torneo no encontrado' });
 
-    return res.status(200).json({
+    const result = {
       id: String(t.id),
       name: t.name,
       slug: t.slug,
@@ -92,7 +118,12 @@ export default async function handler(req, res) {
         game: e.videogame?.name || null,
         gameImage: e.videogame?.images?.find(i => i.type === 'profile')?.url || e.videogame?.images?.[0]?.url || null,
       })),
-    });
+    };
+
+    // Guardar en caché
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result)).catch(() => null);
+
+    return res.status(200).json(result);
   } catch (err) {
     if (err.name === 'AbortError') {
       console.error('Start.gg API timeout');

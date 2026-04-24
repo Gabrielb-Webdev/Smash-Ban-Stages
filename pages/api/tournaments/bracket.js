@@ -1,7 +1,10 @@
 // GET /api/tournaments/bracket?phaseGroupId=3244687
 // Devuelve los sets de un phaseGroup de start.gg
 
+import redis from '../../../lib/redis';
+
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
+const CACHE_TTL = 300; // 5 minutos para bracket (cambia más frecuentemente)
 
 const SETS_QUERY = `
 query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
@@ -106,6 +109,14 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: 'START_GG_API_TOKEN no configurado' });
 
   try {
+    // Intenta obtener del caché primero
+    const cacheKey = `tournament:bracket:${phaseGroupId}`;
+    const cached = await redis.get(cacheKey).catch(() => null);
+    if (cached) {
+      console.log(`[Cache HIT] ${cacheKey}`);
+      return res.status(200).json(JSON.parse(cached));
+    }
+
     const allSets = [];
     let page = 1;
     let totalPages = 1;
@@ -122,7 +133,22 @@ export default async function handler(req, res) {
       if (!resp.ok) {
         const errorText = await resp.text().catch(() => 'unknown');
         console.error(`Start.gg API error (page ${page}): ${resp.status} - ${errorText}`);
-        return res.status(resp.status === 401 || resp.status === 403 ? 401 : 502).json({ 
+        
+        // Pass through specific status codes
+        if (resp.status === 429) {
+          return res.status(429).json({ 
+            error: 'Rate limit de start.gg alcanzado. Intenta de nuevo en unos minutos.',
+            status: 429,
+          });
+        }
+        if (resp.status === 401 || resp.status === 403) {
+          return res.status(401).json({ 
+            error: 'Token de start.gg inválido',
+            status: resp.status,
+          });
+        }
+        
+        return res.status(502).json({ 
           error: 'Error consultando start.gg',
           status: resp.status,
         });
@@ -159,7 +185,7 @@ export default async function handler(req, res) {
       });
     });
 
-    return res.status(200).json({
+    const result = {
       phaseGroupId: String(phaseGroupId),
       phaseName,
       phaseGroupState,
@@ -209,7 +235,12 @@ export default async function handler(req, res) {
           })),
         };
       }),
-    });
+    };
+
+    // Guardar en caché
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result)).catch(() => null);
+
+    return res.status(200).json(result);
   } catch (err) {
     if (err.name === 'AbortError') {
       console.error('Start.gg API timeout');
