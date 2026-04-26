@@ -32,6 +32,9 @@ function getCommunitySetups(comunidad) {
     { id: `${p}-3`,     label: 'Setup 3', icon: '🎮', color: '#059669' },
     { id: `${p}-4`,     label: 'Setup 4', icon: '🎮', color: '#D97706' },
     { id: `${p}-5`,     label: 'Setup 5', icon: '🎮', color: '#DB2777' },
+    { id: `${p}-6`,     label: 'Setup 6', icon: '🎮', color: '#0891B2' },
+    { id: `${p}-7`,     label: 'Setup 7', icon: '🎮', color: '#65A30D' },
+    { id: `${p}-8`,     label: 'Setup 8', icon: '🎮', color: '#9333EA' },
   ];
   // Setup tablet exclusivo para Mendoza (envía datos al overlay igual que stream)
   if (p === 'mendoza') {
