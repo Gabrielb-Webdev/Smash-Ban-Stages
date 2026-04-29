@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Scoreboard Control Panel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,900&family=Bebas+Neue&display=swap');
+  :root {
+    --bg:#0d0d12; --surface:#16161f; --surface2:#1e1e2a;
+    --border:rgba(255,255,255,0.08); --accent:#c9184a; --gold:#f8b500;
+    --text:#f0f0f0; --muted:#888; --p1:#4361ee; --p2:#c9184a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Lato',sans-serif; min-height:100vh; padding:24px; }
+
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+  header h1 { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:3px; color:var(--gold); }
+  header p { font-size:13px; color:var(--muted); margin-top:2px; }
+  .status-dot { width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;display:inline-block;margin-right:6px;animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .main-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1200px; margin:0 auto; }
+  .event-section { grid-column:1/-1; }
+
+  .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .panel-title { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .panel.p1 .panel-title { color:var(--p1); border-color:var(--p1); }
+  .panel.p2 .panel-title { color:var(--p2); border-color:var(--p2); }
+  .panel.event .panel-title { color:var(--gold); border-color:var(--gold); }
+
+  .field { margin-bottom:14px; }
+  .field:last-child { margin-bottom:0; }
+  .field label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:6px; }
+  .field input[type="text"], .field select {
+    width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:10px 14px; font-family:'Lato',sans-serif; font-size:14px; font-weight:700; transition:border-color 0.2s; outline:none;
+  }
+  .field input:focus, .field select:focus { border-color:var(--gold); }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  .flag-row { display:flex; align-items:center; gap:10px; }
+  .flag-row input { flex:1; }
+  .flag-preview { width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;background:var(--surface2); }
+
+  .score-row { display:flex; align-items:center; gap:12px; margin-top:4px; }
+  .score-val { font-family:'Bebas Neue',sans-serif; font-size:48px; color:var(--gold); min-width:40px; text-align:center; line-height:1; }
+  .btn { border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; cursor:pointer; transition:all 0.15s; padding:8px 18px; }
+  .btn:active { transform:scale(0.93); }
+  .btn-plus { background:var(--gold); color:#000; }
+  .btn-minus { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .btn-plus:hover { filter:brightness(1.15); }
+
+  /* ── Alt selector ── */
+  .char-selected-preview { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
+  .char-selected-preview img { width:54px; height:54px; object-fit:contain; }
+  .char-selected-preview span { font-size:13px; color:var(--muted); font-weight:700; }
+  .char-selected-preview strong { display:block; font-size:15px; color:var(--text); }
+
+  .char-search { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:7px 12px; font-family:'Lato',sans-serif; font-size:13px; outline:none; margin-bottom:6px; }
+  .char-search:focus { border-color:var(--gold); }
+
+  .char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(58px,1fr)); gap:6px; max-height:220px; overflow-y:auto; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .char-thumb { width:100%; aspect-ratio:1; object-fit:contain; border-radius:6px; cursor:pointer; background:rgba(255,255,255,0.04); border:2px solid transparent; transition:all 0.15s; padding:2px; }
+  .char-thumb:hover  { border-color:var(--gold); background:rgba(248,181,0,0.1); }
+  .char-thumb.active { border-color:var(--gold); background:rgba(248,181,0,0.18); }
+  .char-label { font-size:9px; text-align:center; color:var(--muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Alt strip */
+  .alt-strip { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+  .alt-thumb { width:40px; height:40px; object-fit:contain; border-radius:4px; cursor:pointer; border:2px solid transparent; background:rgba(255,255,255,0.04); transition:all 0.12s; }
+  .alt-thumb:hover  { border-color:var(--gold); }
+  .alt-thumb.active { border-color:var(--gold); background:rgba(248,181,0,0.15); }
+  .alt-label { font-size:10px; color:var(--muted); margin-bottom:4px; font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+
+  /* Actions */
+  .actions { grid-column:1/-1; display:flex; gap:12px; flex-wrap:wrap; }
+  .action-btn { border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1.5px; cursor:pointer; padding:12px 28px; transition:all 0.2s; flex:1; min-width:160px; }
+  .action-btn:hover { transform:translateY(-2px); }
+  .btn-reset  { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .btn-swap   { background:linear-gradient(135deg,var(--p1),#2b3eb5); color:#fff; }
+  .btn-update { background:linear-gradient(135deg,var(--gold),#e09800); color:#000; box-shadow:0 4px 16px rgba(248,181,0,0.3); }
+  .btn-update:hover { box-shadow:0 6px 20px rgba(248,181,0,0.5); }
+
+  .shortcuts { grid-column:1/-1; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; }
+  .shortcuts h3 { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; color:var(--muted); margin-bottom:10px; }
+  .shortcut-list { display:flex; flex-wrap:wrap; gap:8px; }
+  .shortcut { display:flex; align-items:center; gap:6px; background:var(--surface2); border-radius:6px; padding:5px 10px; font-size:12px; color:var(--muted); }
+  kbd { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:2px 7px; font-size:12px; font-family:monospace; color:var(--gold); }
+
+  #toast { position:fixed; bottom:30px; right:30px; background:#22c55e; color:#000; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; padding:12px 24px; border-radius:8px; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; z-index:999; }
+  #toast.show { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚔ Smash Scoreboard Control</h1>
+    <p><span class="status-dot"></span>En vivo — los cambios se reflejan en el overlay al instante</p>
+  </div>
+  <div style="text-align:right;font-size:12px;color:var(--muted);line-height:1.8;">
+    Personajes: <strong style="color:var(--text);">./Render SSBU/alts/{nombre}/{nombre}_alt01.png</strong>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <!-- EVENT -->
+  <div class="panel event event-section">
+    <div class="panel-title">🏆 Información del Evento</div>
+    <div class="field-row">
+      <div class="field"><label>Nombre Torneo (línea 1)</label><input type="text" id="c-event-name1" value="Checkmate Showdown:"></div>
+      <div class="field"><label>Nombre Torneo (línea 2)</label><input type="text" id="c-event-name2" value="Knights Knockout"></div>
+      <div class="field"><label>Ronda</label><input type="text" id="c-event-round" value="TOP 8 QUALIFIER"></div>
+      <div class="field"><label>Bracket</label><input type="text" id="c-event-bracket" value="TOP 16"></div>
+    </div>
+  </div>
+
+  <!-- P1 -->
+  <div class="panel p1">
+    <div class="panel-title">🔵 Jugador 1 — Izquierda</div>
+    <div class="field"><label>Sponsor / Tag</label><input type="text" id="c-p1-name" value="RRT4/INC Nostradamus"></div>
+    <div class="field-row">
+      <div class="field"><label>País (ej: Esp)</label><input type="text" id="c-p1-country" value="Esp" oninput="updateFlag(1)"></div>
+      <div class="field"><label>Código bandera (ej: es)</label>
+        <div class="flag-row">
+          <input type="text" id="c-p1-flagcode" value="es" oninput="updateFlag(1)">
+          <img class="flag-preview" id="c-p1-flagpreview" src="https://flagcdn.com/w80/es.png" alt="">
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Twitter / Red social</label><input type="text" id="c-p1-twitter" value="FRSNOSTRA"></div>
+      <div class="field"><label>Seed</label><input type="text" id="c-p1-seed" value="SEED 2"></div>
+    </div>
+    <div class="field">
+      <label>Score</label>
+      <div class="score-row">
+        <button class="btn btn-minus" onclick="changeScore(1,-1)">−</button>
+        <div class="score-val" id="c-p1-score">1</div>
+        <button class="btn btn-plus"  onclick="changeScore(1,+1)">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Personaje</label>
+      <div class="char-selected-preview">
+        <img id="c-p1-char-preview" src="" alt="" style="opacity:0" onerror="this.style.opacity=0.2" onload="this.style.opacity=1">
+        <div><span>Seleccionado</span><strong id="c-p1-char-name">Ninguno</strong></div>
+      </div>
+      <input class="char-search" id="search-p1" placeholder="Buscar personaje..." oninput="renderCharGrid(1)">
+      <div class="char-grid" id="char-grid-p1"></div>
+      <div style="margin-top:8px;" id="alt-section-p1" style="display:none">
+        <div class="alt-label">Seleccionar skin (alt):</div>
+        <div class="alt-strip" id="alt-strip-p1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- P2 -->
+  <div class="panel p2">
+    <div class="panel-title">🔴 Jugador 2 — Derecha</div>
+    <div class="field"><label>Sponsor / Tag</label><input type="text" id="c-p2-name" value="RRT4/INC iiori"></div>
+    <div class="field-row">
+      <div class="field"><label>País (ej: Arg)</label><input type="text" id="c-p2-country" value="Arg" oninput="updateFlag(2)"></div>
+      <div class="field"><label>Código bandera (ej: ar)</label>
+        <div class="flag-row">
+          <input type="text" id="c-p2-flagcode" value="ar" oninput="updateFlag(2)">
+          <img class="flag-preview" id="c-p2-flagpreview" src="https://flagcdn.com/w80/ar.png" alt="">
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Twitter / Red social</label><input type="text" id="c-p2-twitter" value="INCFORLIFE"></div>
+      <div class="field"><label>Seed</label><input type="text" id="c-p2-seed" value="SEED 1"></div>
+    </div>
+    <div class="field">
+      <label>Score</label>
+      <div class="score-row">
+        <button class="btn btn-minus" onclick="changeScore(2,-1)">−</button>
+        <div class="score-val" id="c-p2-score">2</div>
+        <button class="btn btn-plus"  onclick="changeScore(2,+1)">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Personaje</label>
+      <div class="char-selected-preview">
+        <img id="c-p2-char-preview" src="" alt="" style="opacity:0" onerror="this.style.opacity=0.2" onload="this.style.opacity=1">
+        <div><span>Seleccionado</span><strong id="c-p2-char-name">Ninguno</strong></div>
+      </div>
+      <input class="char-search" id="search-p2" placeholder="Buscar personaje..." oninput="renderCharGrid(2)">
+      <div class="char-grid" id="char-grid-p2"></div>
+      <div style="margin-top:8px;" id="alt-section-p2" style="display:none">
+        <div class="alt-label">Seleccionar skin (alt):</div>
+        <div class="alt-strip" id="alt-strip-p2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="action-btn btn-reset"  onclick="resetScores()">🔄 Reset Scores</button>
+    <button class="action-btn btn-swap"   onclick="swapPlayers()">⇄ Swap Jugadores</button>
+    <button class="action-btn btn-update" onclick="pushAll()">📡 Enviar al Overlay</button>
+  </div>
+
+  <!-- SHORTCUTS -->
+  <div class="shortcuts">
+    <h3>⌨ Atajos de Teclado</h3>
+    <div class="shortcut-list">
+      <div class="shortcut"><kbd>1</kbd> Score P1 +1</div>
+      <div class="shortcut"><kbd>Q</kbd> Score P1 −1</div>
+      <div class="shortcut"><kbd>2</kbd> Score P2 +1</div>
+      <div class="shortcut"><kbd>W</kbd> Score P2 −1</div>
+      <div class="shortcut"><kbd>R</kbd> Reset scores</div>
+      <div class="shortcut"><kbd>S</kbd> Swap jugadores</div>
+      <div class="shortcut"><kbd>Enter</kbd> Enviar al overlay</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">✓ Overlay actualizado</div>
+
+<script>
+const CHANNEL   = 'smash-scoreboard-v2';
+const CHAR_BASE = './Render SSBU/alts/';
+
+// Nombres de carpeta dentro de Render SSBU/alts/
+// Deben coincidir EXACTAMENTE con los nombres de las carpetas en tu disco
+const CHARACTERS = [
+  // { folder: carpeta en alts/, render: archivo en Render SSBU/, label: nombre a mostrar }
+  { folder:'banjo_and_kazooie',  render:'Banjo Render SSBU.png',            label:'Banjo & Kazooie' },
+  { folder:'bayonetta',          render:'Bayonetta.png',                     label:'Bayonetta' },
+  { folder:'bowser',             render:'Bowser.png',                        label:'Bowser' },
+  { folder:'bowser_jr',          render:'Bowser Jr..png',                    label:'Bowser Jr' },
+  { folder:'byleth',             render:'Byleth.png',                        label:'Byleth' },
+  { folder:'captain_falcon',     render:'Captain Falcon.png',                label:'Captain Falcon' },
+  { folder:'chrom',              render:'Chrom.png',                         label:'Chrom' },
+  { folder:'cloud',              render:'Cloud.png',                         label:'Cloud' },
+  { folder:'corrin',             render:'Corrin.png',                        label:'Corrin' },
+  { folder:'daisy',              render:'Daisy.png',                         label:'Daisy' },
+  { folder:'dark_pit',           render:'Dark Pit.png',                      label:'Dark Pit' },
+  { folder:'dark_samus',         render:'Dark Samus.png',                    label:'Dark Samus' },
+  { folder:'diddy_kong',         render:'Diddy Kong.png',                    label:'Diddy Kong' },
+  { folder:'donkey_kong',        render:'Donkey Kong.png',                   label:'Donkey Kong' },
+  { folder:'dr_mario',           render:'Dr. Mario.png',                     label:'Dr. Mario' },
+  { folder:'duck_hunt',          render:'Duck Hunt.png',                     label:'Duck Hunt' },
+  { folder:'falco',              render:'Falco.png',                         label:'Falco' },
+  { folder:'fox',                render:'Fox.png',                           label:'Fox' },
+  { folder:'ganondorf',          render:'Ganondorf.png',                     label:'Ganondorf' },
+  { folder:'greninja',           render:'Greninja.png',                      label:'Greninja' },
+  { folder:'dq_hero',            render:'Hero.png',                          label:'Hero' },
+  { folder:'ice_climbers',       render:'Ice Climbers.png',                  label:'Ice Climbers' },
+  { folder:'ike',                render:'Ike.png',                           label:'Ike' },
+  { folder:'incineroar',         render:'Incineroar.png',                    label:'Incineroar' },
+  { folder:'inkling',            render:'Inkling.png',                       label:'Inkling' },
+  { folder:'isabelle',           render:'Isabelle.png',                      label:'Isabelle' },
+  { folder:'jigglypuff',         render:'Jiggly.png',                    label:'Jigglypuff' },
+  { folder:'joker',              render:'Joker.png',                         label:'Joker' },
+  { folder:'ken',                render:'Ken.png',                           label:'Ken' },
+  { folder:'king_dedede',        render:'King Dedede.png',                   label:'King Dedede' },
+  { folder:'king_k_rool',        render:'King K. Rool.png',                  label:'King K Rool' },
+  { folder:'kirby',              render:'Kirby.png',                         label:'Kirby' },
+  { folder:'link',               render:'Link.png',                          label:'Link' },
+  { folder:'little_mac',         render:'Little Mac.png',                    label:'Little Mac' },
+  { folder:'lucario',            render:'Lucario.png',                       label:'Lucario' },
+  { folder:'lucas',              render:'Lucas.png',                         label:'Lucas' },
+  { folder:'lucina',             render:'Lucina.png',                        label:'Lucina' },
+  { folder:'luigi',              render:'Luigi.png',                         label:'Luigi' },
+  { folder:'mario',              render:'Mario.png',                         label:'Mario' },
+  { folder:'marth',              render:'Marth.png',                         label:'Marth' },
+  { folder:'mega_man',           render:'Megaman.png',                      label:'Mega Man' },
+  { folder:'meta_knight',        render:'Meta Knight.png',                   label:'Meta Knight' },
+  { folder:'Mewtoo',             render:'Mewtoo.png',                        label:'Mewtwo' },
+  { folder:'mii_brawler',        render:'Mii Brawler.png',                   label:'Mii Brawler' },
+  { folder:'mii_gunner',         render:'Mii Gunner.png',                    label:'Mii Gunner' },
+  { folder:'mii_swordfighter',   render:'Mii Swordfighter.png',              label:'Mii Swordfighter' },
+  { folder:'min_min',            render:'Min Min.png',                       label:'Min Min' },
+  { folder:'mr_game_and_watch',  render:'Mr. Game & Watch.png',              label:'Mr. Game & Watch' },
+  { folder:'ness',               render:'Ness.png',                          label:'Ness' },
+  { folder:'olimar',             render:'Olimar.png',                        label:'Olimar' },
+  { folder:'pac_man',             render:'Pacman.png',                       label:'Pac-Man' },
+  { folder:'palutena',           render:'Palutena.png',                      label:'Palutena' },
+  { folder:'peach',              render:'Peach.png',                         label:'Peach' },
+  { folder:'pichu',              render:'Pichu.png',                         label:'Pichu' },
+  { folder:'pikachu',            render:'Pikachu.png',                       label:'Pikachu' },
+  { folder:'piranha_plant',      render:'Piranha Plant.png',                 label:'Piranha Plant' },
+  { folder:'pit',                render:'Pit.png',                           label:'Pit' },
+  { folder:'pokemon_trainer',    render:'Pokemon Trainer.png',               label:'Pokemon Trainer' },
+  { folder:'pyra',               render:'Pyra & Mythra.png',                 label:'Pyra & Mythra' },
+  { folder:'richter',            render:'Richter.png',                       label:'Richter' },
+  { folder:'ridley',             render:'Ridley.png',                        label:'Ridley' },
+  { folder:'rob',                render:'R.O.B..png',                        label:'R.O.B.' },
+  { folder:'robin',              render:'Robin.png',                         label:'Robin' },
+  { folder:'rosalina_and_luma',  render:'Rosalina.png',                      label:'Rosalina' },
+  { folder:'roy',                render:'Roy.png',                           label:'Roy' },
+  { folder:'ryu',                render:'Ryu.png',                           label:'Ryu' },
+  { folder:'samus',              render:'Samus.png',                         label:'Samus' },
+  { folder:'sephiroth',          render:'Sephiroth.png',                     label:'Sephiroth' },
+  { folder:'sheik',              render:'Sheik.png',                         label:'Sheik' },
+  { folder:'shulk',              render:'Shulk.png',                         label:'Shulk' },
+  { folder:'simon',              render:'Simon Belmont.png',                 label:'Simon' },
+  { folder:'snake',              render:'Snake.png',                         label:'Snake' },
+  { folder:'sonic',              render:'Sonic.png',                         label:'Sonic' },
+  { folder:'sora',               render:'Sora.png',                          label:'Sora' },
+  { folder:'steve',              render:'Steve.png',                         label:'Steve' },
+  { folder:'terry',              render:'Terry.png',                         label:'Terry' },
+  { folder:'toon_link',          render:'Toon Link.png',                     label:'Toon Link' },
+  { folder:'villager',           render:'Villager.png',                      label:'Villager' },
+  { folder:'wario',              render:'Wario.png',                         label:'Wario' },
+  { folder:'wii_fit_trainer',    render:'Wii Fit Trainer.png',               label:'Wii Fit Trainer' },
+  { folder:'wolf',               render:'Wolf.png',                          label:'Wolf' },
+  { folder:'yoshi',              render:'Yoshi.png',                         label:'Yoshi' },
+  { folder:'young_link',         render:'Link niño.png',                     label:'Young Link' },
+  { folder:'zelda',              render:'Zelda.png',                         label:'Zelda' },
+  { folder:'zero_suit_samus',    render:'Zero Suit Samus.png',               label:'Zero Suit Samus' },
+  { folder:'kazuya',             render:'Kazuya.png',                        label:'Kazuya' },
+];
+
+// Estado
+const state = {
+  'event-name':'Checkmate Showdown:\nKnights Knockout',
+  'event-round':'TOP 8 QUALIFIER','event-bracket':'TOP 16',
+  'p1-name':'RRT4/INC Nostradamus','p1-country':'Esp','p1-flag':'es',
+  'p1-twitter':'FRSNOSTRA','p1-seed':'SEED 2','p1-score':1,
+  'p1-char':'', // formato: "banjo_and_kazooie/banjo_and_kazooie_alt01.png"
+  'p2-name':'RRT4/INC iiori','p2-country':'Arg','p2-flag':'ar',
+  'p2-twitter':'INCFORLIFE','p2-seed':'SEED 1','p2-score':2,
+  'p2-char':'',
+};
+
+// Alt actual por personaje por jugador
+const selectedChar = { 1: '', 2: '' };
+const selectedAlt  = { 1: 2,  2: 2  }; // alts empiezan en alt02
+
+let ch;
+try { ch = new BroadcastChannel(CHANNEL); } catch(e) {}
+
+// ── PUSH ──────────────────────────────────
+function buildPayload() {
+  return {
+    'event-name':    document.getElementById('c-event-name1').value + '\n' + document.getElementById('c-event-name2').value,
+    'event-round':   document.getElementById('c-event-round').value,
+    'event-bracket': document.getElementById('c-event-bracket').value,
+    'p1-name':    document.getElementById('c-p1-name').value,
+    'p1-country': document.getElementById('c-p1-country').value,
+    'p1-flag':    document.getElementById('c-p1-flagcode').value,
+    'p1-twitter': document.getElementById('c-p1-twitter').value,
+    'p1-seed':    document.getElementById('c-p1-seed').value,
+    'p1-score':   state['p1-score'],
+    'p1-char':    state['p1-char'],
+    'p2-name':    document.getElementById('c-p2-name').value,
+    'p2-country': document.getElementById('c-p2-country').value,
+    'p2-flag':    document.getElementById('c-p2-flagcode').value,
+    'p2-twitter': document.getElementById('c-p2-twitter').value,
+    'p2-seed':    document.getElementById('c-p2-seed').value,
+    'p2-score':   state['p2-score'],
+    'p2-char':    state['p2-char'],
+  };
+}
+
+function pushAll() {
+  const payload = buildPayload();
+  if (ch) ch.postMessage(payload);
+  try { localStorage.setItem(CHANNEL, JSON.stringify(payload)); } catch(e) {}
+  showToast();
+}
+
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ── SCORES ────────────────────────────────
+function changeScore(p, d) {
+  state[`p${p}-score`] = Math.max(0, state[`p${p}-score`] + d);
+  document.getElementById(`c-p${p}-score`).textContent = state[`p${p}-score`];
+  pushAll();
+}
+
+function resetScores() {
+  state['p1-score'] = 0; state['p2-score'] = 0;
+  document.getElementById('c-p1-score').textContent = 0;
+  document.getElementById('c-p2-score').textContent = 0;
+  pushAll();
+}
+
+// ── SWAP ──────────────────────────────────
+function swapPlayers() {
+  const pairs = [
+    ['c-p1-name','c-p2-name'],['c-p1-country','c-p2-country'],
+    ['c-p1-flagcode','c-p2-flagcode'],['c-p1-twitter','c-p2-twitter'],['c-p1-seed','c-p2-seed']
+  ];
+  pairs.forEach(([a,b]) => {
+    const va = document.getElementById(a).value;
+    document.getElementById(a).value = document.getElementById(b).value;
+    document.getElementById(b).value = va;
+  });
+  [state['p1-score'], state['p2-score']] = [state['p2-score'], state['p1-score']];
+  document.getElementById('c-p1-score').textContent = state['p1-score'];
+  document.getElementById('c-p2-score').textContent = state['p2-score'];
+
+  [state['p1-char'], state['p2-char']] = [state['p2-char'], state['p1-char']];
+  [selectedChar[1], selectedChar[2]] = [selectedChar[2], selectedChar[1]];
+  [selectedAlt[1],  selectedAlt[2]]  = [selectedAlt[2],  selectedAlt[1]];
+
+  updateFlag(1); updateFlag(2);
+  refreshCharUI(1); refreshCharUI(2);
+  renderCharGrid(1); renderCharGrid(2);
+  pushAll();
+}
+
+// ── FLAGS ─────────────────────────────────
+function updateFlag(p) {
+  const code = document.getElementById(`c-p${p}-flagcode`).value.trim().toLowerCase();
+  document.getElementById(`c-p${p}-flagpreview`).src = code ? `https://flagcdn.com/w80/${code}.png` : '';
+}
+
+// ── CHARACTER GRID ────────────────────────
+// Helpers
+function charByFolder(folder) { return CHARACTERS.find(c => c.folder === folder); }
+function renderSrc(folder) {
+  const c = charByFolder(folder);
+  return c ? `./Render SSBU/${c.render}` : '';
+}
+function altSrc(folder, alt) {
+  return `${CHAR_BASE}${folder}/${folder}_alt${String(alt).padStart(2,'0')}.png`;
+}
+
+function renderCharGrid(p) {
+  const query   = document.getElementById(`search-p${p}`).value.toLowerCase();
+  const grid    = document.getElementById(`char-grid-p${p}`);
+  const current = selectedChar[p];
+  const filtered = CHARACTERS.filter(c => c.label.toLowerCase().includes(query));
+
+  grid.innerHTML = '';
+  filtered.forEach(c => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+
+    const img = document.createElement('img');
+    img.className = 'char-thumb' + (current === c.folder ? ' active' : '');
+    // Thumbnail = render principal
+    img.src   = `./Render SSBU/${c.render}`;
+    img.title = c.label;
+    img.onerror = () => { img.style.opacity = '0.15'; };
+    img.onclick = () => selectChar(p, c.folder, 2); // alts empiezan en 02
+
+    const lbl = document.createElement('div');
+    lbl.className = 'char-label';
+    lbl.textContent = c.label;
+
+    wrap.appendChild(img); wrap.appendChild(lbl);
+    grid.appendChild(wrap);
+  });
+}
+
+// Seleccionar personaje — overlay usa el render principal, alts para skins
+function selectChar(p, folder, altNum) {
+  selectedChar[p] = folder;
+  selectedAlt[p]  = altNum;
+  // overlay muestra el render principal
+  state[`p${p}-char`] = folder; // solo el folder; overlay resuelve la ruta
+
+  refreshCharUI(p);
+  renderCharGrid(p);
+  buildAltStrip(p, folder);
+  pushAll();
+}
+
+function refreshCharUI(p) {
+  const folder = selectedChar[p];
+  const altNum = selectedAlt[p] || 2;
+  const prev   = document.getElementById(`c-p${p}-char-preview`);
+  const lbl    = document.getElementById(`c-p${p}-char-name`);
+  if (folder) {
+    const c = charByFolder(folder);
+    prev.src        = `./Render SSBU/${c ? c.render : ''}`;
+    prev.style.opacity = 1;
+    lbl.textContent = (c ? c.label : folder) + ` · alt${String(altNum).padStart(2,'0')}`;
+  } else {
+    prev.src        = '';
+    prev.style.opacity = 0;
+    lbl.textContent = 'Ninguno';
+  }
+}
+
+// Strip de alts — empieza en alt02
+function buildAltStrip(p, folder) {
+  const sec   = document.getElementById(`alt-section-p${p}`);
+  const strip = document.getElementById(`alt-strip-p${p}`);
+  sec.style.display = 'block';
+  strip.innerHTML = '';
+
+  for (let i = 2; i <= 8; i++) {
+    const img = document.createElement('img');
+    img.className = 'alt-thumb' + (selectedAlt[p] === i ? ' active' : '');
+    img.src       = altSrc(folder, i);
+    img.title     = `Alt ${i}`;
+    img.onerror   = () => img.remove();
+    img.onclick   = () => {
+      selectedAlt[p] = i;
+      // Al elegir un alt, el overlay muestra ESE alt en vez del render principal
+      state[`p${p}-char`] = folder + '|alt' + String(i).padStart(2,'0');
+      strip.querySelectorAll('.alt-thumb').forEach((t, idx) => t.classList.toggle('active', idx + 2 === i));
+      refreshCharUI(p);
+      pushAll();
+    };
+    strip.appendChild(img);
+  }
+}
+
+// ── KEYBOARD ──────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === '1')                  changeScore(1,+1);
+  if (e.key === 'q'||e.key === 'Q')  changeScore(1,-1);
+  if (e.key === '2')                  changeScore(2,+1);
+  if (e.key === 'w'||e.key === 'W')  changeScore(2,-1);
+  if (e.key === 'r'||e.key === 'R')  resetScores();
+  if (e.key === 's'||e.key === 'S')  swapPlayers();
+  if (e.key === 'Enter')             pushAll();
+});
+
+// ── INIT ──────────────────────────────────
+renderCharGrid(1); renderCharGrid(2);
+
+// Restaurar estado guardado
+try {
+  const saved = localStorage.getItem(CHANNEL);
+  if (saved) {
+    const d = JSON.parse(saved);
+    const textFields = ['p1-name','p1-country','p1-flag','p1-twitter','p1-seed',
+                        'p2-name','p2-country','p2-flag','p2-twitter','p2-seed',
+                        'event-round','event-bracket'];
+    textFields.forEach(k => {
+      const el = document.getElementById('c-' + k);
+      if (el && d[k] !== undefined) el.value = d[k];
+    });
+    if (d['event-name']) {
+      const pts = d['event-name'].split('\n');
+      document.getElementById('c-event-name1').value = pts[0]||'';
+      document.getElementById('c-event-name2').value = pts[1]||'';
+    }
+    ['p1','p2'].forEach(px => {
+      const sc = d[`${px}-score`];
+      if (sc !== undefined) {
+        state[`${px}-score`] = sc;
+        document.getElementById(`c-${px}-score`).textContent = sc;
+      }
+      const charVal = d[`${px}-char`];
+      if (charVal) {
+        state[`${px}-char`] = charVal;
+        const pNum = px === 'p1' ? 1 : 2;
+        let folder, altNum;
+        if (charVal.includes('|alt')) {
+          [folder, altNum] = charVal.split('|alt');
+          altNum = parseInt(altNum);
+        } else {
+          folder = charVal;
+          altNum = 2;
+        }
+        selectedChar[pNum] = folder;
+        selectedAlt[pNum]  = altNum;
+        refreshCharUI(pNum);
+        renderCharGrid(pNum);
+        buildAltStrip(pNum, folder);
+      }
+    });
+    updateFlag(1); updateFlag(2);
+  }
+} catch(e) {}
+</script>
+</body>
+</html>
