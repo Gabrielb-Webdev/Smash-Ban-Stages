@@ -201,6 +201,7 @@
     <button class="action-btn btn-reset"  onclick="resetScores()">🔄 Reset Scores</button>
     <button class="action-btn btn-swap"   onclick="swapPlayers()">⇄ Swap Jugadores</button>
     <button class="action-btn btn-update" onclick="pushAll()">📡 Enviar al Overlay</button>
+    <button class="action-btn btn-sync" id="sync-toggle" onclick="toggleSync()" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#000;">⟳ Sync ON</button>
   </div>
 
   <!-- SHORTCUTS -->
@@ -521,6 +522,175 @@ document.addEventListener('keydown', e => {
   if (e.key === 's'||e.key === 'S')  swapPlayers();
   if (e.key === 'Enter')             pushAll();
 });
+
+// ── SESSION SYNC ──────────────────────────
+// Maps WebSocket character IDs (kebab-case) → control.html folder names (underscore)
+const SESSION_CHAR_MAP = {
+  'banjo-kazooie':      'banjo_and_kazooie',
+  'bayonetta':          'bayonetta',
+  'bowser':             'bowser',
+  'bowser-jr':          'bowser_jr',
+  'byleth':             'byleth',
+  'captain-falcon':     'captain_falcon',
+  'chrom':              'chrom',
+  'cloud':              'cloud',
+  'corrin':             'corrin',
+  'daisy':              'daisy',
+  'dark-pit':           'dark_pit',
+  'dark-samus':         'dark_samus',
+  'diddy-kong':         'diddy_kong',
+  'donkey-kong':        'donkey_kong',
+  'dr-mario':           'dr_mario',
+  'duck-hunt':          'duck_hunt',
+  'falco':              'falco',
+  'fox':                'fox',
+  'ganondorf':          'ganondorf',
+  'greninja':           'greninja',
+  'hero':               'dq_hero',
+  'ice-climbers':       'ice_climbers',
+  'ike':                'ike',
+  'incineroar':         'incineroar',
+  'inkling':            'inkling',
+  'isabelle':           'isabelle',
+  'jigglypuff':         'jigglypuff',
+  'joker':              'joker',
+  'kazuya':             'kazuya',
+  'ken':                'ken',
+  'king-dedede':        'king_dedede',
+  'king-k-rool':        'king_k_rool',
+  'kirby':              'kirby',
+  'link':               'link',
+  'little-mac':         'little_mac',
+  'lucario':            'lucario',
+  'lucas':              'lucas',
+  'lucina':             'lucina',
+  'luigi':              'luigi',
+  'mario':              'mario',
+  'marth':              'marth',
+  'mega-man':           'mega_man',
+  'meta-knight':        'meta_knight',
+  'mewtwo':             'Mewtoo',
+  'mii-brawler':        'mii_brawler',
+  'mii-gunner':         'mii_gunner',
+  'mii-swordfighter':   'mii_swordfighter',
+  'min-min':            'min_min',
+  'mr-game-and-watch':  'mr_game_and_watch',
+  'ness':               'ness',
+  'olimar':             'olimar',
+  'pac-man':            'pac_man',
+  'palutena':           'palutena',
+  'peach':              'peach',
+  'pichu':              'pichu',
+  'pikachu':            'pikachu',
+  'piranha-plant':      'piranha_plant',
+  'pit':                'pit',
+  'pokemon-trainer':    'pokemon_trainer',
+  'pyra-mythra':        'pyra',
+  'rob':                'rob',
+  'richter':            'richter',
+  'ridley':             'ridley',
+  'robin':              'robin',
+  'rosalina':           'rosalina_and_luma',
+  'roy':                'roy',
+  'ryu':                'ryu',
+  'samus':              'samus',
+  'sephiroth':          'sephiroth',
+  'sheik':              'sheik',
+  'shulk':              'shulk',
+  'simon':              'simon',
+  'snake':              'snake',
+  'sonic':              'sonic',
+  'sora':               'sora',
+  'steve':              'steve',
+  'terry':              'terry',
+  'toon-link':          'toon_link',
+  'villager':           'villager',
+  'wario':              'wario',
+  'wii-fit-trainer':    'wii_fit_trainer',
+  'wolf':               'wolf',
+  'yoshi':              'yoshi',
+  'young-link':         'young_link',
+  'zelda':              'zelda',
+  'zero-suit-samus':    'zero_suit_samus',
+};
+
+let autoSync     = true;
+let lastSyncHash = '';
+
+function toggleSync() {
+  autoSync = !autoSync;
+  const btn = document.getElementById('sync-toggle');
+  if (autoSync) {
+    btn.textContent = '⟳ Sync ON';
+    btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+  } else {
+    btn.textContent = '⏸ Sync OFF';
+    btn.style.background = 'var(--surface2)';
+    btn.style.color = 'var(--text)';
+  }
+}
+
+function applyCharFromSession(p, charId, skin) {
+  const folder = SESSION_CHAR_MAP[charId];
+  if (!folder) return;
+  const skinNum = (typeof skin === 'number' && skin >= 1) ? skin : 1;
+  selectedChar[p] = folder;
+  selectedAlt[p]  = skinNum >= 2 ? skinNum : 1;
+  state[`p${p}-char`] = skinNum >= 2
+    ? (folder + '|alt' + String(skinNum).padStart(2, '0'))
+    : folder;
+  refreshCharUI(p);
+  renderCharGrid(p);
+  buildAltStrip(p, folder);
+}
+
+async function syncFromSession() {
+  if (!autoSync) return;
+  try {
+    const res = await fetch('/api/santa-fe/stream-session');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.ok) return;
+
+    const hash = JSON.stringify([
+      data.player1, data.player2,
+      data.score1,  data.score2,
+      data.char1,   data.char2,
+      data.skin1,   data.skin2,
+      data.round,   data.tournamentName,
+    ]);
+    if (hash === lastSyncHash) return;
+    lastSyncHash = hash;
+
+    if (data.player1) document.getElementById('c-p1-name').value = data.player1;
+    if (data.player2) document.getElementById('c-p2-name').value = data.player2;
+
+    if (data.round) document.getElementById('c-event-round').value = data.round;
+    if (data.tournamentName) {
+      const parts = data.tournamentName.split('\n');
+      document.getElementById('c-event-name1').value = parts[0] || data.tournamentName;
+      document.getElementById('c-event-name2').value = parts[1] || '';
+    }
+
+    if (typeof data.score1 === 'number') {
+      state['p1-score'] = data.score1;
+      document.getElementById('c-p1-score').textContent = data.score1;
+    }
+    if (typeof data.score2 === 'number') {
+      state['p2-score'] = data.score2;
+      document.getElementById('c-p2-score').textContent = data.score2;
+    }
+
+    if (data.char1) applyCharFromSession(1, data.char1, data.skin1);
+    if (data.char2) applyCharFromSession(2, data.char2, data.skin2);
+
+    pushAll();
+  } catch (e) {
+    // servidor dormido u offline — ignorar silenciosamente
+  }
+}
+
+setInterval(syncFromSession, 1500);
 
 // ── INIT ──────────────────────────────────
 renderCharGrid(1); renderCharGrid(2);
