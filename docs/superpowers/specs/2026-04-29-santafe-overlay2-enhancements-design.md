@@ -156,6 +156,70 @@ When `p1-char` has a value and it differs from the currently displayed char → 
 
 ---
 
+---
+
+## Section 5 — `overlay2.html` Integration
+
+### What overlay2.html displays
+
+Two pill rows (one per player), each with:
+- Pronoun pill (e.g. "He/him")
+- Seed pill (e.g. "SEED 2")
+- Flag + country pill (flag image + ISO-3 text, e.g. "🇦🇷 ARG")
+
+Currently all values are hardcoded. After this change they update live from `control.html`.
+
+### Mechanism
+
+`overlay2.html` subscribes to the same `BroadcastChannel('smash-scoreboard-v2')` already used by `overlay.html`. It also reads from `localStorage` on load (for cross-tab/cross-browser support), exactly like `overlay.html` does.
+
+### New fields in `control.html`
+
+Two pronoun inputs added to the player panels (below Twitter/Red social):
+
+| Field ID        | Label       | Default  |
+|----------------|-------------|----------|
+| `c-p1-pronoun` | Pronombres  | He/him   |
+| `c-p2-pronoun` | Pronombres  | He/him   |
+
+These are included in `buildPayload()`:
+```js
+'p1-pronoun': document.getElementById('c-p1-pronoun').value,
+'p2-pronoun': document.getElementById('c-p2-pronoun').value,
+```
+
+Swap players also swaps pronouns.
+
+### overlay2.html DOM updates on payload receive
+
+```js
+// Pronombres
+ov2p1pronoun.textContent = d['p1-pronoun'] || 'He/him';
+ov2p2pronoun.textContent = d['p2-pronoun'] || 'He/him';
+// Seed
+ov2p1seed.textContent = d['p1-seed'] || '';
+ov2p2seed.textContent = d['p2-seed'] || '';
+// Bandera + país
+ov2p1flag.src = d['p1-flag'] ? `https://flagcdn.com/w80/${d['p1-flag']}.png` : '';
+ov2p1country.textContent = d['p1-country'] || '';
+ov2p2flag.src = d['p2-flag'] ? `https://flagcdn.com/w80/${d['p2-flag']}.png` : '';
+ov2p2country.textContent = d['p2-country'] || '';
+```
+
+IDs are added to the existing pill elements in `overlay2.html`.
+
+---
+
+## Files Changed (updated)
+
+| File | Changes |
+|------|---------|
+| `public/overlays/Santa-fe/Overlay 2/control.html` | syncFromSession + flag dropdown + pronoun fields |
+| `public/overlays/Santa-fe/Overlay 2/overlay.html` | GSAP reveal + glitch state |
+| `public/overlays/Santa-fe/Overlay 2/overlay2.html` | BroadcastChannel listener + dynamic IDs |
+
+---
+
 ## Out of Scope
 
 - No changes to admin panel `_panel.js`
@@ -169,6 +233,7 @@ When `p1-char` has a value and it differs from the currently displayed char → 
 
 - No TBDs or incomplete sections
 - Architecture is consistent across all sections
-- Scope is limited to 2 HTML files
+- Scope is 3 HTML files, all within the same directory
 - ISO-3 codes are deterministic (standard ISO 3166-1 alpha-3)
 - GSAP is already available locally — no CDN dependency added
+- `overlay2.html` reuses the existing BroadcastChannel — no new communication layer needed
