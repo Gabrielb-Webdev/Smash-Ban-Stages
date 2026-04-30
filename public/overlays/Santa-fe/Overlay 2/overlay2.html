@@ -6,185 +6,204 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1280px; height: 720px; overflow: hidden; background: transparent; font-family: 'Lato', sans-serif; }
-  body::before { content: ''; position: fixed; inset: 0; background: #f0f0f0; z-index: -1; }
-  body.obs-mode::before { display: none; }
+  body { background: transparent; }
 
-  /* ══ CONTENEDOR GENERAL ══ */
   .everything {
     position: absolute;
-    top: 2.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 50%;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 40px 60px;
   }
 
-  /* ══ FILA 1: franja + cuadro rojo + triángulo ══ */
   .row-bar {
     width: 100%;
+    max-width: 1100px;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .side-bar {
+    flex: 1;
+    min-height: 90px;
+    background: #100610;
+    border: 2px solid #ad1b45;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .bar-left, .bar-right {
+    padding: 8px 18px;
     position: relative;
-    height: 50px;
-    background: #16081f;
-    flex: 1;
   }
 
-  .name-block {
+  .side-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  .name-box {
+    position: relative;
+    z-index: 1;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    text-align: center;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .name-box span {
+    color: #f8b500;
+  }
+
+  .center-red {
+    width: 360px;
+    min-height: 110px;
+    background: #ad1b45;
+    border: 2px solid #ad1b45;
+    border-radius: 20px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+  }
+
+  .triangle-container {
     position: absolute;
     top: -24px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 8px 14px;
-    background: #100610;
-    border: 1px solid #ad1b45;
-    border-radius: 999px;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.8px;
-    white-space: nowrap;
+    width: 120px;
+    height: 120px;
+    z-index: 1;
   }
 
-  .center-red {
-    width: 40%;
-    height: 70px;
-    background: #ad1b45;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
+  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35)); }
 
   .score-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 28px;
     position: relative;
-    z-index: 1;
+    z-index: 2;
   }
 
   .score-number {
-    font-family: 'Lato', sans-serif;
+    font-size: 44px;
     font-weight: 900;
-    font-size: 32px;
     color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    line-height: 1;
   }
 
-  .triangle-container {
-    position: absolute;
-    width: 120px;
-    height: 120px;
+  .score-divider {
+    width: 2px;
+    height: 50px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
   }
-  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
 
-  /* ══ FILA 2: pills ══ */
   .row-pills {
     width: 100%;
+    max-width: 1100px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 6px;
-    gap: 0;
+    gap: 10px;
   }
 
   .pills-left, .pills-right {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 10px;
   }
-  .pills-left  { justify-content: flex-end; padding-right: 12px; }
-  .pills-right { justify-content: flex-start; padding-left: 12px; }
 
-  /* Spacer center para alinear con el triángulo */
-  .pills-center-gap {
-    width: 40%;
-    flex-shrink: 0;
-  }
+  .pills-left { justify-content: flex-end; padding-right: 24px; }
+  .pills-right { justify-content: flex-start; padding-left: 24px; }
 
   .pill {
     display: flex;
     align-items: center;
-    gap: 4px;
-    background: #0d0208;
+    gap: 6px;
+    background: #100610;
     border: 2px solid #ad1b45;
     border-radius: 999px;
-    padding: 4px 12px;
-    font-size: 11px;
+    padding: 8px 14px;
+    font-size: 12px;
     font-weight: 900;
-    color: #fff;
-    letter-spacing: 0.5px;
+    color: #ffffff;
+    letter-spacing: 0.6px;
     white-space: nowrap;
   }
 
   .flag-img {
-    width: 14px; height: 14px;
-    border-radius: 50%; object-fit: cover;
-    border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.2);
   }
-  .x-icon { width: 9px; height: 9px; fill: #fff; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <div class="everything">
-
-  <!-- FILA 1: barra + triángulo -->
   <div class="row-bar">
-    <div class="bar-left">
-      <div class="name-block" id="ov-p1-name">RRT4/INC Nostradamus</div>
+    <div class="side-bar">
+      <div class="name-box" id="ov-p1-name">RRT4/INC Nostradamus</div>
     </div>
+
     <div class="center-red">
       <div class="triangle-container">
         <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
+          <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4" />
         </svg>
       </div>
       <div class="score-container">
         <div class="score-number" id="ov-p1-score">1</div>
+        <div class="score-divider"></div>
         <div class="score-number" id="ov-p2-score">2</div>
       </div>
     </div>
-    <div class="bar-right">
-      <div class="name-block" id="ov-p2-name">RRT4/INC iiori</div>
+
+    <div class="side-bar">
+      <div class="name-box" id="ov-p2-name">CBA Floripundo</div>
     </div>
   </div>
 
-  <!-- FILA 2: pills -->
   <div class="row-pills">
-    <!-- Pills izquierda (P1) -->
     <div class="pills-left">
       <div class="pill" id="ov-p1-twitter">He/him</div>
       <div class="pill" id="ov-p1-seed">SEED 2</div>
       <div class="pill" id="ov-p1-country"><img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">Esp</div>
     </div>
-
-    <div class="pills-center-gap"></div>
-
-    <!-- Pills derecha (P2) -->
     <div class="pills-right">
       <div class="pill" id="ov-p2-twitter">He/him</div>
       <div class="pill" id="ov-p2-seed">SEED 1</div>
-      <div class="pill" id="ov-p2-country"><img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">Ven</div>
+      <div class="pill" id="ov-p2-country"><img class="flag-img" src="https://flagcdn.com/w80/ar.png" alt="">Arg</div>
     </div>
   </div>
-
 </div>
 
 <script>
 const CHANNEL = 'smash-scoreboard-v2';
 let ch;
-try { ch = new BroadcastChannel(CHANNEL); } catch(e) {}
+try { ch = new BroadcastChannel(CHANNEL); } catch (e) {}
 
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -192,7 +211,7 @@ function setText(id, text) {
   el.textContent = text;
 }
 
-function setFlag(id, flagCode, countryLabel) {
+function setFlagPill(id, flagCode, countryLabel) {
   const el = document.getElementById(id);
   if (!el || countryLabel === undefined) return;
   const code = flagCode ? flagCode.toLowerCase() : 'xx';
@@ -202,16 +221,16 @@ function setFlag(id, flagCode, countryLabel) {
 function applyData(d) {
   if (!d) return;
   setText('ov-p1-name', d['p1-name'] || '');
-  setText('ov-p1-twitter', d['p1-twitter'] || '-');
-  setText('ov-p1-seed', d['p1-seed'] || 'SEED ?');
   setText('ov-p1-score', d['p1-score'] !== undefined ? d['p1-score'] : '');
-  setFlag('ov-p1-country', d['p1-flag'], d['p1-country'] || '');
+  setText('ov-p1-twitter', d['p1-twitter'] || '');
+  setText('ov-p1-seed', d['p1-seed'] || '');
+  setFlagPill('ov-p1-country', d['p1-flag'], d['p1-country'] || '');
 
   setText('ov-p2-name', d['p2-name'] || '');
-  setText('ov-p2-twitter', d['p2-twitter'] || '-');
-  setText('ov-p2-seed', d['p2-seed'] || 'SEED ?');
   setText('ov-p2-score', d['p2-score'] !== undefined ? d['p2-score'] : '');
-  setFlag('ov-p2-country', d['p2-flag'], d['p2-country'] || '');
+  setText('ov-p2-twitter', d['p2-twitter'] || '');
+  setText('ov-p2-seed', d['p2-seed'] || '');
+  setFlagPill('ov-p2-country', d['p2-flag'], d['p2-country'] || '');
 }
 
 if (ch) ch.onmessage = (e) => applyData(e.data);
