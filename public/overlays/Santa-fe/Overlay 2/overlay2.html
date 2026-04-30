@@ -5,248 +5,145 @@
 <title>Overlay 2 - Step 7</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; font-family: 'Lato', sans-serif; }
-  body { background: transparent; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: transparent; font-family: 'Lato', sans-serif; }
+  body::before { content: ''; position: fixed; inset: 0; background: #f0f0f0; z-index: -1; }
+  body.obs-mode::before { display: none; }
 
+  /* ══ CONTENEDOR GENERAL ══ */
   .everything {
     position: absolute;
-    inset: 0;
+    top: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 0 80px;
   }
 
+  /* ══ FILA 1: franja + cuadro rojo + triángulo ══ */
   .row-bar {
     width: 100%;
-    max-width: 1680px;
-    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bar-left, .bar-right {
+    height: 50px;
     background: #16081f;
-    border-radius: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 0 24px;
-  }
-
-  .row-bar::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 28px;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
-    pointer-events: none;
-  }
-
-  .name-area {
     flex: 1;
-    min-width: 420px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    z-index: 2;
-  }
-
-  .name-box {
-    background: #100610;
-    border: 2px solid #ad1b45;
-    border-radius: 18px;
-    padding: 12px 18px;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 0.6px;
-    text-align: center;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .name-box span {
-    color: #f8b500;
   }
 
   .center-red {
-    width: 420px;
-    min-height: 160px;
+    width: 40%;
+    height: 70px;
     background: #ad1b45;
-    border: 2px solid #ad1b45;
-    border-radius: 24px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 34px;
-    z-index: 2;
+    flex-shrink: 0;
   }
 
   .triangle-container {
     position: absolute;
-    top: -24px;
-    left: 50%;
-    transform: translateX(-50%);
     width: 120px;
     height: 120px;
-    z-index: 1;
   }
+  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
 
-  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35)); }
-
-  .score-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    position: relative;
-    z-index: 2;
-  }
-
-  .score-number {
-    font-size: 44px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-    line-height: 1;
-  }
-
-  .score-divider {
-    width: 2px;
-    height: 50px;
-    background: rgba(255,255,255,0.18);
-    border-radius: 999px;
-  }
-
+  /* ══ FILA 2: pills ══ */
   .row-pills {
     width: 100%;
-    max-width: 1100px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    margin-top: 6px;
+    gap: 0;
   }
 
   .pills-left, .pills-right {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
   }
+  .pills-left  { justify-content: flex-end; padding-right: 12px; }
+  .pills-right { justify-content: flex-start; padding-left: 12px; }
 
-  .pills-left { justify-content: flex-end; padding-right: 24px; }
-  .pills-right { justify-content: flex-start; padding-left: 24px; }
+  /* Spacer center para alinear con el triángulo */
+  .pills-center-gap {
+    width: 40%;
+    flex-shrink: 0;
+  }
 
   .pill {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: #100610;
+    gap: 4px;
+    background: #0d0208;
     border: 2px solid #ad1b45;
     border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 12px;
+    padding: 4px 12px;
+    font-size: 11px;
     font-weight: 900;
-    color: #ffffff;
-    letter-spacing: 0.6px;
+    color: #fff;
+    letter-spacing: 0.5px;
     white-space: nowrap;
   }
 
   .flag-img {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid rgba(255,255,255,0.2);
+    width: 14px; height: 14px;
+    border-radius: 50%; object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;
   }
+  .x-icon { width: 9px; height: 9px; fill: #fff; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <div class="everything">
+
+  <!-- FILA 1: barra + triángulo -->
   <div class="row-bar">
-      <div class="name-area">
-        <div class="name-box" id="ov-p1-name">RRT4/INC Nostradamus</div>
+    <div class="bar-left"></div>
+    <div class="center-red">
+      <div class="triangle-container">
+        <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
+        </svg>
       </div>
-
-      <div class="center-red">
-        <div class="triangle-container">
-          <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4" />
-          </svg>
-        </div>
-        <div class="score-container">
-          <div class="score-number" id="ov-p1-score">1</div>
-          <div class="score-divider"></div>
-          <div class="score-number" id="ov-p2-score">2</div>
-        </div>
-      </div>
-
-      <div class="name-area">
+    </div>
+    <div class="bar-right"></div>
   </div>
 
+  <!-- FILA 2: pills -->
   <div class="row-pills">
+    <!-- Pills izquierda (P1) -->
     <div class="pills-left">
-      <div class="pill" id="ov-p1-twitter">He/him</div>
-      <div class="pill" id="ov-p1-seed">SEED 2</div>
-      <div class="pill" id="ov-p1-country"><img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">Esp</div>
+      <div class="pill">He/him</div>
+      <div class="pill">SEED 2</div>
+      <div class="pill">
+        <img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">
+        Esp
+      </div>
     </div>
+
+    <div class="pills-center-gap"></div>
+
+    <!-- Pills derecha (P2) -->
     <div class="pills-right">
-      <div class="pill" id="ov-p2-twitter">He/him</div>
-      <div class="pill" id="ov-p2-seed">SEED 1</div>
-      <div class="pill" id="ov-p2-country"><img class="flag-img" src="https://flagcdn.com/w80/ar.png" alt="">Arg</div>
+      <div class="pill">He/him</div>
+      <div class="pill">SEED 1</div>
+      <div class="pill">
+        <img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">
+        Ven
+      </div>
     </div>
   </div>
+
 </div>
-
-<script>
-const CHANNEL = 'smash-scoreboard-v2';
-let ch;
-try { ch = new BroadcastChannel(CHANNEL); } catch (e) {}
-
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (!el || text === undefined) return;
-  el.textContent = text;
-}
-
-function setFlagPill(id, flagCode, countryLabel) {
-  const el = document.getElementById(id);
-  if (!el || countryLabel === undefined) return;
-  const code = flagCode ? flagCode.toLowerCase() : 'xx';
-  el.innerHTML = `<img class="flag-img" src="https://flagcdn.com/w80/${code}.png" alt="">${countryLabel}`;
-}
-
-function applyData(d) {
-  if (!d) return;
-  setText('ov-p1-name', d['p1-name'] || '');
-  setText('ov-p1-score', d['p1-score'] !== undefined ? d['p1-score'] : '');
-  setText('ov-p1-twitter', d['p1-twitter'] || '');
-  setText('ov-p1-seed', d['p1-seed'] || '');
-  setFlagPill('ov-p1-country', d['p1-flag'], d['p1-country'] || '');
-
-  setText('ov-p2-name', d['p2-name'] || '');
-  setText('ov-p2-score', d['p2-score'] !== undefined ? d['p2-score'] : '');
-  setText('ov-p2-twitter', d['p2-twitter'] || '');
-  setText('ov-p2-seed', d['p2-seed'] || '');
-  setFlagPill('ov-p2-country', d['p2-flag'], d['p2-country'] || '');
-}
-
-if (ch) ch.onmessage = (e) => applyData(e.data);
-
-window.addEventListener('storage', (e) => {
-  if (e.key !== CHANNEL || !e.newValue) return;
-  try { applyData(JSON.parse(e.newValue)); } catch (_) {}
-});
-
-try {
-  const raw = localStorage.getItem(CHANNEL);
-  if (raw) applyData(JSON.parse(raw));
-} catch (_) {}
-</script>
 
 </body>
 </html>
