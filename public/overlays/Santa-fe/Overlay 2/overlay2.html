@@ -2,15 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Overlay 2 - Step 8</title>
+<title>Overlay 2 - Step 9</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Lato:wght@700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,900;1,900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 1280px; height: 720px; overflow: hidden; background: transparent; font-family: 'Lato', sans-serif; }
-  body::before { content: ''; position: fixed; inset: 0; background: #f0f0f0; z-index: -1; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; font-family: 'Lato', sans-serif; }
+  body::before { content: ''; position: fixed; inset: 0; z-index: -1; }
   body.obs-mode::before { display: none; }
 
-  /* ══ CONTENEDOR GENERAL ══ */
   .everything {
     position: absolute;
     top: 2.5rem;
@@ -22,24 +21,20 @@
     align-items: center;
   }
 
-  /* ══ FILA 1: franja + cuadro rojo + triángulo ══ */
+  /* ══ FILA 1 ══ */
   .row-bar {
-    width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
   }
 
-  /* Las franjas se ajustan al contenido del nombre */
+  /* Franja oscura con nombre */
   .bar-left, .bar-right {
     height: 50px;
     background: #16081f;
     display: flex;
     align-items: center;
     padding: 0 16px;
-    /* shrink/grow según el nombre */
   }
-
   .bar-left  { justify-content: flex-end; }
   .bar-right { justify-content: flex-start; }
 
@@ -49,13 +44,30 @@
     color: #fff;
     white-space: nowrap;
   }
+  .sponsor { color: #f8b500; margin-right: 4px; }
 
-  .sponsor {
-    color: #f8b500;
-    margin-right: 4px;
+  /* Score rojo a los lados del triángulo */
+  .score-red {
+    height: 70px;
+    background: #ad1b45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 22px;
+    flex-shrink: 0;
   }
 
-  .center-red {
+  .score {
+    font-size: 32px;
+    font-weight: 900;
+    font-style: italic;
+    color: #fff;
+    line-height: 1;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+  }
+
+  /* Triángulo central */
+  .center-tri {
     height: 70px;
     background: #ad1b45;
     position: relative;
@@ -63,22 +75,22 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 140px; /* ancho fijo para el triángulo */
+    width: 50px;
   }
 
   .triangle-container {
     position: absolute;
     width: 120px;
     height: 120px;
+    z-index: 2;
   }
-  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
+  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 
   /* ══ FILA 2: pills ══ */
   .row-pills {
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
     margin-top: 6px;
   }
 
@@ -91,7 +103,8 @@
   .pills-left  { justify-content: flex-end; padding-right: 12px; }
   .pills-right { justify-content: flex-start; padding-left: 12px; }
 
-  .pills-center-gap { width: 140px; flex-shrink: 0; }
+  /* gap alineado con score-red + triangle + score-red */
+  .pills-center-gap { width: calc(110px + 22px*2 + 34px*2); flex-shrink: 0; }
 
   .pill {
     display: flex;
@@ -107,7 +120,6 @@
     letter-spacing: 0.5px;
     white-space: nowrap;
   }
-
   .flag-img {
     width: 14px; height: 14px;
     border-radius: 50%; object-fit: cover;
@@ -119,15 +131,19 @@
 
 <div class="everything">
 
-  <!-- FILA 1: barra + triángulo -->
+  <!-- FILA 1 -->
   <div class="row-bar">
     <div class="bar-left">
-      <span class="player-name">
-        <span class="sponsor">RRT4/INC</span>Nostradamus
-      </span>
+      <span class="player-name"><span class="sponsor">RRT4/INC</span>Nostradamus</span>
     </div>
 
-    <div class="center-red">
+    <!-- Score P1 -->
+    <div class="score-red">
+      <div class="score" id="ov2-p1-score">1</div>
+    </div>
+
+    <!-- Triángulo -->
+    <div class="center-tri">
       <div class="triangle-container">
         <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
           <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
@@ -135,10 +151,13 @@
       </div>
     </div>
 
+    <!-- Score P2 -->
+    <div class="score-red">
+      <div class="score" id="ov2-p2-score">2</div>
+    </div>
+
     <div class="bar-right">
-      <span class="player-name">
-        <span class="sponsor">CBA</span>Floripundo
-      </span>
+      <span class="player-name"><span class="sponsor">CBA</span>Floripundo</span>
     </div>
   </div>
 
@@ -147,17 +166,13 @@
     <div class="pills-left">
       <div class="pill">He/him</div>
       <div class="pill">SEED 2</div>
-      <div class="pill">
-        <img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">Esp
-      </div>
+      <div class="pill"><img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">Esp</div>
     </div>
     <div class="pills-center-gap"></div>
     <div class="pills-right">
       <div class="pill">He/him</div>
       <div class="pill">SEED 1</div>
-      <div class="pill">
-        <img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">Ven
-      </div>
+      <div class="pill"><img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">Ven</div>
     </div>
   </div>
 
