@@ -30,9 +30,26 @@
   }
 
   .bar-left, .bar-right {
+    position: relative;
     height: 50px;
     background: #16081f;
     flex: 1;
+  }
+
+  .name-block {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    background: #100610;
+    border: 1px solid #ad1b45;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
   }
 
   .center-red {
@@ -44,6 +61,23 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+  }
+
+  .score-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .score-number {
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   }
 
   .triangle-container {
@@ -107,15 +141,23 @@
 
   <!-- FILA 1: barra + triángulo -->
   <div class="row-bar">
-    <div class="bar-left"></div>
+    <div class="bar-left">
+      <div class="name-block" id="ov-p1-name">RRT4/INC Nostradamus</div>
+    </div>
     <div class="center-red">
       <div class="triangle-container">
         <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
           <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
         </svg>
       </div>
+      <div class="score-container">
+        <div class="score-number" id="ov-p1-score">1</div>
+        <div class="score-number" id="ov-p2-score">2</div>
+      </div>
     </div>
-    <div class="bar-right"></div>
+    <div class="bar-right">
+      <div class="name-block" id="ov-p2-name">RRT4/INC iiori</div>
+    </div>
   </div>
 
   <!-- FILA 2: pills -->
@@ -159,12 +201,16 @@ function setFlag(id, flagCode, countryLabel) {
 
 function applyData(d) {
   if (!d) return;
-  setText('ov-p1-twitter', d['p1-twitter'] || '—');
+  setText('ov-p1-name', d['p1-name'] || '');
+  setText('ov-p1-twitter', d['p1-twitter'] || '-');
   setText('ov-p1-seed', d['p1-seed'] || 'SEED ?');
+  setText('ov-p1-score', d['p1-score'] !== undefined ? d['p1-score'] : '');
   setFlag('ov-p1-country', d['p1-flag'], d['p1-country'] || '');
 
-  setText('ov-p2-twitter', d['p2-twitter'] || '—');
+  setText('ov-p2-name', d['p2-name'] || '');
+  setText('ov-p2-twitter', d['p2-twitter'] || '-');
   setText('ov-p2-seed', d['p2-seed'] || 'SEED ?');
+  setText('ov-p2-score', d['p2-score'] !== undefined ? d['p2-score'] : '');
   setFlag('ov-p2-country', d['p2-flag'], d['p2-country'] || '');
 }
 
