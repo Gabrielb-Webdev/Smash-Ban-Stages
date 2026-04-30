@@ -6,16 +6,17 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,900;1,900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 1280px; height: 720px; overflow: hidden; font-family: 'Lato', sans-serif; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Lato', sans-serif; }
   body::before { content: ''; position: fixed; inset: 0; z-index: -1; }
   body.obs-mode::before { display: none; }
 
   .everything {
     position: absolute;
-    top: 2.5rem;
+    top: 4rem;
     left: 50%;
     transform: translateX(-50%);
-    width: 70%;
+    width: 80%;
+    max-width: 1760px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -34,10 +35,10 @@
     top: 10px;
     display: inline-flex;
     align-items: center;
-    height: 50px;
+    height: 70px;
     background: #16081f;
-    padding: 0 18px;
-    max-width: calc(50% - 110px);
+    padding: 0 28px;
+    max-width: calc(50% - 140px);
     overflow: hidden;
     white-space: nowrap;
   }
@@ -58,7 +59,7 @@
   }
 
   .player-name {
-    font-size: 14px;
+    font-size: 24px;
     font-weight: 900;
     color: #fff;
     white-space: nowrap;
@@ -76,17 +77,17 @@
 
   /* Score rojo a los lados del triángulo */
   .score-red {
-    height: 70px;
+    height: 90px;
     background: #ad1b45;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 22px;
+    padding: 0 32px;
     flex-shrink: 0;
   }
 
   .score {
-    font-size: 32px;
+    font-size: 54px;
     font-weight: 900;
     font-style: italic;
     color: #fff;
@@ -96,20 +97,20 @@
 
   /* Triángulo central */
   .center-tri {
-    height: 70px;
+    height: 90px;
     background: #ad1b45;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 50px;
+    width: 70px;
   }
 
   .triangle-container {
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 170px;
+    height: 170px;
     z-index: 2;
   }
   .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
@@ -119,7 +120,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    margin-top: 6px;
+    margin-top: 14px;
   }
 
   .pills-left, .pills-right {
@@ -132,24 +133,24 @@
   .pills-right { justify-content: flex-start; padding-left: 12px; }
 
   /* gap alineado con score-red + triangle + score-red */
-  .pills-center-gap { width: calc(110px + 22px*2 + 34px*2); flex-shrink: 0; }
+  .pills-center-gap { width: 440px; flex-shrink: 0; }
 
   .pill {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     background: #0d0208;
     border: 2px solid #ad1b45;
     border-radius: 999px;
-    padding: 4px 12px;
-    font-size: 11px;
+    padding: 8px 18px;
+    font-size: 14px;
     font-weight: 900;
     color: #fff;
     letter-spacing: 0.5px;
     white-space: nowrap;
   }
   .flag-img {
-    width: 14px; height: 14px;
+    width: 18px; height: 18px;
     border-radius: 50%; object-fit: cover;
     border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;
   }
