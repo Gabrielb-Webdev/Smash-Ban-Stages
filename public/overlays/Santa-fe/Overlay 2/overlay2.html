@@ -26,7 +26,7 @@
   .row-bar {
     position: relative;
     width: 100%;
-    min-height: 220px;
+    min-height: 300px;
   }
 
   /* Franja oscura con nombre */
@@ -35,15 +35,15 @@
     top: 10px;
     display: inline-flex;
     align-items: center;
-    height: 120px;
+    height: 160px;
     background: #16081f;
-    padding: 0 40px;
-    max-width: calc(50% - 280px);
+    padding: 0 50px;
+    max-width: calc(50% - 320px);
     overflow: hidden;
     white-space: nowrap;
   }
-  .bar-left  { right: calc(50% + 220px); justify-content: flex-end; }
-  .bar-right { left: calc(50% + 220px); justify-content: flex-start; }
+  .bar-left  { right: calc(50% + 280px); justify-content: flex-end; }
+  .bar-right { left: calc(50% + 280px); justify-content: flex-start; }
 
   .center-group {
     position: absolute;
@@ -59,7 +59,7 @@
   }
 
   .player-name {
-    font-size: 48px;
+    font-size: 64px;
     font-weight: 900;
     color: #fff;
     white-space: nowrap;
@@ -77,17 +77,17 @@
 
   /* Score rojo a los lados del triángulo */
   .score-red {
-    height: 140px;
+    height: 180px;
     background: #ad1b45;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 48px;
+    padding: 0 60px;
     flex-shrink: 0;
   }
 
   .score {
-    font-size: 96px;
+    font-size: 128px;
     font-weight: 900;
     font-style: italic;
     color: #fff;
@@ -97,20 +97,20 @@
 
   /* Triángulo central */
   .center-tri {
-    height: 140px;
+    height: 180px;
     background: #ad1b45;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 110px;
+    width: 140px;
   }
 
   .triangle-container {
     position: absolute;
-    width: 250px;
-    height: 250px;
+    width: 320px;
+    height: 320px;
     z-index: 2;
   }
   .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
@@ -120,37 +120,37 @@
     width: 100%;
     display: flex;
     align-items: center;
-    margin-top: 28px;
+    margin-top: 40px;
   }
 
   .pills-left, .pills-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     flex: 1;
   }
-  .pills-left  { justify-content: flex-end; padding-right: 24px; }
-  .pills-right { justify-content: flex-start; padding-left: 24px; }
+  .pills-left  { justify-content: flex-end; padding-right: 32px; }
+  .pills-right { justify-content: flex-start; padding-left: 32px; }
 
   /* gap alineado con score-red + triangle + score-red */
-  .pills-center-gap { width: 620px; flex-shrink: 0; }
+  .pills-center-gap { width: 760px; flex-shrink: 0; }
 
   .pill {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     background: #0d0208;
-    border: 2px solid #ad1b45;
+    border: 3px solid #ad1b45;
     border-radius: 999px;
-    padding: 14px 26px;
-    font-size: 18px;
+    padding: 18px 36px;
+    font-size: 20px;
     font-weight: 900;
     color: #fff;
     letter-spacing: 0.5px;
     white-space: nowrap;
   }
   .flag-img {
-    width: 26px; height: 26px;
+    width: 32px; height: 32px;
     border-radius: 50%; object-fit: cover;
     border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;
   }
