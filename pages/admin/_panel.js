@@ -1330,6 +1330,14 @@ export default function TestAdminPage() {
     const set = assignedSets[setupId];
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
+    const p1Entrant = set.slots?.[0]?.entrant || {};
+    const p2Entrant = set.slots?.[1]?.entrant || {};
+    const player1Country  = p1Entrant.country   || null;
+    const player1FlagCode = p1Entrant.flagCode   || null;
+    const player1Seed     = p1Entrant.seed       || null;
+    const player2Country  = p2Entrant.country   || null;
+    const player2FlagCode = p2Entrant.flagCode   || null;
+    const player2Seed     = p2Entrant.seed       || null;
     const format = setupFormats[setupId] || 'BO3';
     // Para el setup de stream/tablet se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
@@ -1428,6 +1436,8 @@ export default function TestAdminPage() {
           round: set.fullRoundText || set.round || '',
           tournamentName: tournament?.name || '',
           forceReset: true,
+          player1Country, player1FlagCode, player1Seed,
+          player2Country, player2FlagCode, player2Seed,
         }),
       });
       const metaData = await metaRes.json().catch(() => ({}));

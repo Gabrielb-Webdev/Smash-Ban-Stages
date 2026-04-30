@@ -536,7 +536,7 @@ const httpServer = createServer(async (req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName, forceReset } = JSON.parse(body);
+        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName, forceReset, player1Country, player1FlagCode, player1Seed, player2Country, player2FlagCode, player2Seed } = JSON.parse(body);
         if (!sessionId) { res.writeHead(400); res.end(JSON.stringify({ error: 'sessionId requerido' })); return; }
 
         // Guardar en pending (por si la sesión WebSocket todavía no se creó)
@@ -551,8 +551,8 @@ const httpServer = createServer(async (req, res) => {
             community: null,
             createdAt: Date.now(),
             matchToken: newMatchToken,
-            player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
-            player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
+            player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [], country: player1Country || null, flagCode: player1FlagCode || null, seed: player1Seed || null },
+            player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [], country: player2Country || null, flagCode: player2FlagCode || null, seed: player2Seed || null },
             format: format || 'BO3',
             currentGame: 1,
             phase: 'CHECKIN',
@@ -607,8 +607,8 @@ const httpServer = createServer(async (req, res) => {
             community: session.community || null,
             createdAt: Date.now(),
             matchToken: newMatchToken,
-            player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [] },
-            player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [] },
+            player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [], country: player1Country || null, flagCode: player1FlagCode || null, seed: player1Seed || null },
+            player2: { name: player2 || 'Jugador 2', score: 0, character: null, wonStages: [], country: player2Country || null, flagCode: player2FlagCode || null, seed: player2Seed || null },
             format: format || 'BO3',
             currentGame: 1,
             phase: 'CHECKIN',
@@ -702,6 +702,12 @@ const httpServer = createServer(async (req, res) => {
         char2: session.player2?.character || null,
         skin1: typeof session.player1?.skin === 'number' ? session.player1.skin : null,
         skin2: typeof session.player2?.skin === 'number' ? session.player2.skin : null,
+        country1: session.player1?.country || null,
+        flagCode1: session.player1?.flagCode || null,
+        seed1: session.player1?.seed || null,
+        country2: session.player2?.country || null,
+        flagCode2: session.player2?.flagCode || null,
+        seed2: session.player2?.seed || null,
         selectedStage: session.selectedStage || null,
         currentGame: session.currentGame || 1,
         format: session.format || 'BO3',

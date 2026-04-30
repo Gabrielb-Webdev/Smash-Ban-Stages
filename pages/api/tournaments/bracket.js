@@ -43,7 +43,14 @@ query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
           slotIndex
           prereqType
           prereqId
-          entrant { id name }
+          entrant {
+            id
+            name
+            initialSeedNum
+            participants {
+              user { location { country } }
+            }
+          }
           standing { placement stats { score { value } } }
         }
       }
@@ -51,6 +58,32 @@ query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
   }
 }
 `;
+
+// Country name (as returned by start.gg) → ISO 2-letter code
+const COUNTRY_TO_ISO = {
+  'Afghanistan':'af','Albania':'al','Algeria':'dz','Argentina':'ar','Armenia':'am',
+  'Australia':'au','Austria':'at','Azerbaijan':'az','Bahrain':'bh','Bangladesh':'bd',
+  'Belarus':'by','Belgium':'be','Bolivia':'bo','Bosnia and Herzegovina':'ba','Brazil':'br',
+  'Bulgaria':'bg','Canada':'ca','Chile':'cl','China':'cn','Colombia':'co',
+  'Costa Rica':'cr','Croatia':'hr','Cuba':'cu','Czech Republic':'cz','Denmark':'dk',
+  'Dominican Republic':'do','Ecuador':'ec','Egypt':'eg','El Salvador':'sv','Estonia':'ee',
+  'Ethiopia':'et','Finland':'fi','France':'fr','Georgia':'ge','Germany':'de',
+  'Ghana':'gh','Greece':'gr','Guatemala':'gt','Honduras':'hn','Hong Kong':'hk',
+  'Hungary':'hu','Iceland':'is','India':'in','Indonesia':'id','Iran':'ir',
+  'Iraq':'iq','Ireland':'ie','Israel':'il','Italy':'it','Jamaica':'jm',
+  'Japan':'jp','Jordan':'jo','Kazakhstan':'kz','Kenya':'ke','South Korea':'kr',
+  'Kuwait':'kw','Latvia':'lv','Lebanon':'lb','Lithuania':'lt','Luxembourg':'lu',
+  'Malaysia':'my','Mexico':'mx','Moldova':'md','Morocco':'ma','Netherlands':'nl',
+  'New Zealand':'nz','Nicaragua':'ni','Nigeria':'ng','North Macedonia':'mk','Norway':'no',
+  'Oman':'om','Pakistan':'pk','Panama':'pa','Paraguay':'py','Peru':'pe',
+  'Philippines':'ph','Poland':'pl','Portugal':'pt','Puerto Rico':'pr','Qatar':'qa',
+  'Romania':'ro','Russia':'ru','Saudi Arabia':'sa','Serbia':'rs','Singapore':'sg',
+  'Slovakia':'sk','Slovenia':'si','South Africa':'za','Spain':'es','Sweden':'se',
+  'Switzerland':'ch','Taiwan':'tw','Thailand':'th','Trinidad and Tobago':'tt',
+  'Tunisia':'tn','Turkey':'tr','Ukraine':'ua','United Arab Emirates':'ae',
+  'United Kingdom':'gb','United States':'us','Uruguay':'uy','Venezuela':'ve',
+  'Vietnam':'vn',
+};
 
 // Reverse-lookup maps: Start.GG ID → app slug
 const STARTGG_CHARACTER_IDS = {
@@ -237,13 +270,23 @@ export default async function handler(req, res) {
           completedAt:  s.completedAt ? new Date(s.completedAt * 1000).toISOString() : null,
           totalGames:   s.totalGames || null,
           games:        mappedGames,
-          slots: (s.slots || []).map(slot => ({
-            id:      slot.id,
-            index:   slot.slotIndex,
-            entrant: slot.entrant ? { id: String(slot.entrant.id), name: slot.entrant.name } : null,
-            score:   slot.standing?.stats?.score?.value ?? null,
-            placement: slot.standing?.placement ?? null,
-          })),
+          slots: (s.slots || []).map(slot => {
+            const countryName = slot.entrant?.participants?.[0]?.user?.location?.country || null;
+            const flagCode = countryName ? (COUNTRY_TO_ISO[countryName] || null) : null;
+            return {
+              id:      slot.id,
+              index:   slot.slotIndex,
+              entrant: slot.entrant ? {
+                id:        String(slot.entrant.id),
+                name:      slot.entrant.name,
+                seed:      slot.entrant.initialSeedNum || null,
+                country:   countryName,
+                flagCode:  flagCode,
+              } : null,
+              score:   slot.standing?.stats?.score?.value ?? null,
+              placement: slot.standing?.placement ?? null,
+            };
+          }),
         };
       }),
     };

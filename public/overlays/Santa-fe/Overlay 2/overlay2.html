@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Overlay 2 - Step 7</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: transparent; font-family: 'Lato', sans-serif; }
+  body::before { content: ''; position: fixed; inset: 0; background: #f0f0f0; z-index: -1; }
+  body.obs-mode::before { display: none; }
+
+  /* ══ CONTENEDOR GENERAL ══ */
+  .everything {
+    position: absolute;
+    top: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ══ FILA 1: franja + cuadro rojo + triángulo ══ */
+  .row-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bar-left, .bar-right {
+    height: 50px;
+    background: #16081f;
+    flex: 1;
+  }
+
+  .center-red {
+    width: 40%;
+    height: 70px;
+    background: #ad1b45;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .triangle-container {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+  }
+  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
+
+  /* ══ FILA 2: pills ══ */
+  .row-pills {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    gap: 0;
+  }
+
+  .pills-left, .pills-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pills-left  { justify-content: flex-end; padding-right: 12px; }
+  .pills-right { justify-content: flex-start; padding-left: 12px; }
+
+  /* Spacer center para alinear con el triángulo */
+  .pills-center-gap {
+    width: 40%;
+    flex-shrink: 0;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #0d0208;
+    border: 2px solid #ad1b45;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .flag-img {
+    width: 14px; height: 14px;
+    border-radius: 50%; object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;
+  }
+  .x-icon { width: 9px; height: 9px; fill: #fff; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="everything">
+
+  <!-- FILA 1: barra + triángulo -->
+  <div class="row-bar">
+    <div class="bar-left"></div>
+    <div class="center-red">
+      <div class="triangle-container">
+        <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bar-right"></div>
+  </div>
+
+  <!-- FILA 2: pills -->
+  <div class="row-pills">
+    <!-- Pills izquierda (P1) -->
+    <div class="pills-left">
+      <div class="pill">He/him</div>
+      <div class="pill">SEED 2</div>
+      <div class="pill">
+        <img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">
+        Esp
+      </div>
+    </div>
+
+    <div class="pills-center-gap"></div>
+
+    <!-- Pills derecha (P2) -->
+    <div class="pills-right">
+      <div class="pill">He/him</div>
+      <div class="pill">SEED 1</div>
+      <div class="pill">
+        <img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">
+        Ven
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
