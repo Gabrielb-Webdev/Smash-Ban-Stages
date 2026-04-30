@@ -1,212 +1,374 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Overlay 2 - Step 7</title>
+<title>Overlay 2</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 1280px; height: 720px; overflow: hidden; background: transparent; font-family: 'Lato', sans-serif; }
-  body::before { content: ''; position: fixed; inset: 0; background: #f0f0f0; z-index: -1; }
-  body.obs-mode::before { display: none; }
+  @import url('https://fonts.googleapis.com/css2?family=Lato:wght@700;900&display=swap');
 
-  /* ══ CONTENEDOR GENERAL ══ */
-  .everything {
-    position: absolute;
-    top: 2.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 50%;
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    padding: 40px;
+    font-family: 'Lato', sans-serif;
+  }
+
+  body.obs-mode {
+    background: transparent !important;
+    min-height: unset;
+    padding: 0;
+    gap: 0;
+    align-items: flex-end;
+    justify-content: flex-start;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+
+  .event-block {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 6px;
+    width: 320px;
   }
 
-  /* ══ FILA 1: franja + cuadro rojo + triángulo ══ */
-  .row-bar {
-    width: 100%;
+  .event-card {
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-radius: 6px;
+    padding: 10px 18px;
+    text-align: center;
+    color: #ffffff;
+    font-weight: 900;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -1px 0 rgba(0,0,0,0.08),
+      0 1px 2px rgba(0,0,0,0.15);
+  }
+
+  .event-name {
+    font-size: 14px;
+    line-height: 1.25;
+    letter-spacing: 0.3px;
+  }
+
+  .event-round {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .event-bracket {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .player-wrap {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 14px;
   }
 
-  .bar-left, .bar-right {
-    height: 50px;
-    background: #16081f;
-    flex: 1;
+  .player-card {
+    background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+    border: 2px solid #c9184a;
+    border-radius: 12px;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.05) inset,
+      0 4px 12px rgba(0,0,0,0.5);
   }
 
-  .center-red {
-    width: 40%;
-    height: 70px;
-    background: #ad1b45;
-    position: relative;
+  .player-row {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
+  }
+
+  .player-name {
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    font-size: 17px;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    padding-left: 4px;
+  }
+
+  .country {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .flag {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.2);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
     flex-shrink: 0;
   }
 
-  .triangle-container {
-    position: absolute;
-    width: 120px;
-    height: 120px;
-  }
-  .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
-
-  /* ══ FILA 2: pills ══ */
-  .row-pills {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 6px;
-    gap: 0;
-  }
-
-  .pills-left, .pills-right {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .pills-left  { justify-content: flex-end; padding-right: 12px; }
-  .pills-right { justify-content: flex-start; padding-left: 12px; }
-
-  /* Spacer center para alinear con el triángulo */
-  .pills-center-gap {
-    width: 40%;
-    flex-shrink: 0;
+  .country-name {
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   }
 
   .pill {
+    border-radius: 999px;
+    padding: 5px 14px;
     display: flex;
     align-items: center;
-    gap: 4px;
-    background: #0d0208;
-    border: 2px solid #ad1b45;
-    border-radius: 999px;
-    padding: 4px 12px;
-    font-size: 11px;
+    gap: 7px;
+    font-family: 'Lato', sans-serif;
     font-weight: 900;
-    color: #fff;
+    font-size: 13px;
+    color: #ffffff;
     letter-spacing: 0.5px;
-    white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.3);
   }
 
-  .flag-img {
-    width: 14px; height: 14px;
-    border-radius: 50%; object-fit: cover;
-    border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;
+  .pill-twitter {
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.12);
   }
-  .x-icon { width: 9px; height: 9px; fill: #fff; flex-shrink: 0; }
+
+  .pill-seed {
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #f0d8b0;
+  }
+
+  .x-icon {
+    width: 12px;
+    height: 12px;
+    fill: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .player-score {
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 42px;
+    color: #ffffff;
+    text-shadow:
+      0 0 8px rgba(255,255,255,0.3),
+      2px 2px 0 rgba(0,0,0,0.7),
+      0 2px 4px rgba(0,0,0,0.6);
+    line-height: 1;
+  }
+
+  .player-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    bottom: 5rem;
+  }
+  .player-block.p2 { align-items: flex-end; }
+
+  .char-render {
+    width: 200px;
+    height: 220px;
+    object-fit: contain;
+    object-position: bottom center;
+    filter: grayscale(1) opacity(0.25) drop-shadow(0 4px 14px rgba(0,0,0,0.6));
+    display: none;
+  }
+  .char-render.visible { display: block; }
+
+  @keyframes scorePop {
+    0%   { transform: scale(1);   color: #fff; }
+    40%  { transform: scale(1.4); color: #f8b500; }
+    100% { transform: scale(1);   color: #fff; }
+  }
+  .score-pop { animation: scorePop 0.4s ease-out; }
 </style>
 </head>
 <body>
 
-<div class="everything">
-
-  <!-- FILA 1: barra + triángulo -->
-  <div class="row-bar">
-    <div class="bar-left"></div>
-    <div class="center-red">
-      <div class="triangle-container">
-        <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
-        </svg>
-      </div>
-    </div>
-    <div class="bar-right"></div>
+<div class="event-block">
+  <div class="event-card event-name" id="ov-event-name">
+    Checkmate Showdown:<br>Knights Knockout
   </div>
+  <div class="event-card event-round" id="ov-event-round">
+    TOP 8 QUALIFIER
+  </div>
+  <div class="event-card event-bracket" id="ov-event-bracket">
+    TOP 16
+  </div>
+</div>
 
-  <!-- FILA 2: pills -->
-  <div class="row-pills">
-    <!-- Pills izquierda (P1) -->
-    <div class="pills-left">
-      <div class="pill">He/him</div>
-      <div class="pill">SEED 2</div>
-      <div class="pill">
-        <img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">
-        Esp
+<!-- P1 -->
+<div class="player-block p1">
+  <img class="char-render" id="ov-p1-char" src="" alt="">
+  <div class="player-wrap">
+    <div class="player-card">
+      <div class="player-row">
+        <div class="player-name" id="ov-p1-name">RRT4/INC Nostradamus</div>
+        <div class="country">
+          <img class="flag" id="ov-p1-flag" src="https://flagcdn.com/w80/es.png" alt="Esp">
+          <div class="country-name" id="ov-p1-country">Esp</div>
+        </div>
+      </div>
+      <div class="player-row">
+        <div class="pill pill-twitter">
+          <svg class="x-icon" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span id="ov-p1-twitter">FRSNOSTRA</span>
+        </div>
+        <div class="pill pill-seed" id="ov-p1-seed">SEED 2</div>
       </div>
     </div>
+    <div class="player-score" id="ov-p1-score">1</div>
+  </div>
+</div>
 
-    <div class="pills-center-gap"></div>
-
-    <!-- Pills derecha (P2) -->
-    <div class="pills-right">
-      <div class="pill">He/him</div>
-      <div class="pill">SEED 1</div>
-      <div class="pill">
-        <img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">
-        Ven
+<!-- P2 -->
+<div class="player-block p2">
+  <img class="char-render" id="ov-p2-char" src="" alt="" style="align-self:flex-end;">
+  <div class="player-wrap">
+    <div class="player-score" id="ov-p2-score">2</div>
+    <div class="player-card">
+      <div class="player-row">
+        <div class="player-name" id="ov-p2-name">RRT4/INC iiori</div>
+        <div class="country">
+          <img class="flag" id="ov-p2-flag" src="https://flagcdn.com/w80/ar.png" alt="Arg">
+          <div class="country-name" id="ov-p2-country">Arg</div>
+        </div>
+      </div>
+      <div class="player-row">
+        <div class="pill pill-twitter">
+          <svg class="x-icon" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span id="ov-p2-twitter">INCFORLIFE</span>
+        </div>
+        <div class="pill pill-seed" id="ov-p2-seed">SEED 1</div>
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-const CHANNEL = 'smash-scoreboard-v2';
-let broadcastChannel = null;
+const CHANNEL   = 'smash-scoreboard-v2';
+const CHAR_BASE = './Render SSBU/alts/';
 
-try { broadcastChannel = new BroadcastChannel(CHANNEL); } catch(e) {}
+const RENDER_MAP = {
+  'banjo_and_kazooie':'Banjo Render SSBU.png','bayonetta':'Bayonetta.png',
+  'bowser':'Bowser.png','bowser_jr':'Bowser Jr..png','byleth':'Byleth.png',
+  'captain_falcon':'Captain Falcon.png','chrom':'Chrom.png','cloud':'Cloud.png',
+  'corrin':'Corrin.png','daisy':'Daisy.png','dark_pit':'Dark Pit.png',
+  'dark_samus':'Dark Samus.png','diddy_kong':'Diddy Kong.png','donkey_kong':'Donkey Kong.png',
+  'dr_mario':'Dr. Mario.png','duck_hunt':'Duck Hunt.png','falco':'Falco.png',
+  'fox':'Fox.png','ganondorf':'Ganondorf.png','greninja':'Greninja.png',
+  'dq_hero':'Hero.png','ice_climbers':'Ice Climbers.png','ike':'Ike.png',
+  'incineroar':'Incineroar.png','inkling':'Inkling.png','isabelle':'Isabelle.png',
+  'Jiggly':'Jiggly.png','joker':'Joker.png','ken':'Ken.png',
+  'king_dedede':'King Dedede.png','king_k_rool':'King K. Rool.png','kirby':'Kirby.png',
+  'link':'Link.png','little_mac':'Little Mac.png','lucario':'Lucario.png',
+  'lucas':'Lucas.png','lucina':'Lucina.png','luigi':'Luigi.png',
+  'mario':'Mario.png','marth':'Marth.png','mega_man':'Mega Man.png',
+  'meta_knight':'Meta Knight.png','mewtoo':'Mewtoo.png','mii_brawler':'Mii Brawler.png',
+  'mii_gunner':'Mii Gunner.png','mii_swordfighter':'Mii Swordfighter.png',
+  'min_min':'Min Min.png','mr_game_and_watch':'Mr. Game & Watch.png','ness':'Ness.png',
+  'olimar':'Olimar.png','pac_man':'Pac-Man.png','palutena':'Palutena.png',
+  'peach':'Peach.png','pichu':'Pichu.png','pikachu':'Pikachu.png',
+  'piranha_plant':'Piranha Plant.png','pit':'Pit.png','pokemon_trainer':'Pokemon Trainer.png',
+  'pyra':'Pyra.png','mythra':'Mythra.png','richter':'Richter.png',
+  'ridley':'Ridley.png','rob':'R.O.B..png','robin':'Robin.png',
+  'rosalina_and_luma':'Rosalina & Luma.png','roy':'Roy.png','ryu':'Ryu.png',
+  'samus':'Samus.png','sephiroth':'Sephiroth.png','sheik':'Sheik.png',
+  'shulk':'Shulk.png','simon':'Simon.png','snake':'Snake.png',
+  'sonic':'Sonic.png','sora':'Sora.png','steve':'Steve.png',
+  'terry':'Terry.png','toon_link':'Toon Link.png','villager':'Villager.png',
+  'wario':'Wario.png','wii_fit_trainer':'Wii Fit Trainer.png','wolf':'Wolf.png',
+  'yoshi':'Yoshi.png','young_link':'Young Link.png','zelda':'Zelda.png',
+  'zero_suit_samus':'Zero Suit Samus.png','kazuya':'Kazuya.png',
+};
 
-// Escuchar cambios en BroadcastChannel
-if (broadcastChannel) {
-  broadcastChannel.onmessage = (e) => updateOverlay(e.data);
+if (new URLSearchParams(location.search).get('obs') === '1') {
+  document.body.classList.add('obs-mode');
 }
 
-// Escuchar cambios en localStorage
-window.addEventListener('storage', (e) => {
-  if (e.key === CHANNEL && e.newValue) {
-    try { updateOverlay(JSON.parse(e.newValue)); } catch(err) {}
-  }
-});
+let ch;
+try { ch = new BroadcastChannel(CHANNEL); } catch(e) {}
 
-// Al cargar la página, intentar obtener datos guardados
-window.addEventListener('load', () => {
-  const saved = localStorage.getItem(CHANNEL);
-  if (saved) {
-    try { updateOverlay(JSON.parse(saved)); } catch(err) {}
-  }
-});
+function applyData(d) {
+  const setText = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.textContent = v; };
+  const setHtml = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.innerHTML = v; };
+  const setSrc  = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.src = v; };
 
-function updateOverlay(data) {
-  if (!data) return;
+  if (d['event-name']    !== undefined) setHtml('ov-event-name',    d['event-name'].replace(/\n/g,'<br>'));
+  if (d['event-round']   !== undefined) setText('ov-event-round',   d['event-round']);
+  if (d['event-bracket'] !== undefined) setText('ov-event-bracket', d['event-bracket']);
 
-  // Actualizar pills izquierda (P1)
-  const pillsLeft = document.querySelector('.pills-left');
-  if (pillsLeft) {
-    pillsLeft.innerHTML = `
-      <div class="pill">${data['p1-twitter'] || 'N/A'}</div>
-      <div class="pill">${data['p1-seed'] || 'SEED ?'}</div>
-      <div class="pill">
-        <img class="flag-img" src="https://flagcdn.com/w80/${data['p1-flag'] || 'xx'}.png" alt="">
-        ${data['p1-country'] || 'N/A'}
-      </div>
-    `;
-  }
+  ['p1','p2'].forEach(p => {
+    if (d[`${p}-name`]    !== undefined) setText(`ov-${p}-name`,    d[`${p}-name`]);
+    if (d[`${p}-country`] !== undefined) setText(`ov-${p}-country`, d[`${p}-country`]);
+    if (d[`${p}-twitter`] !== undefined) setText(`ov-${p}-twitter`, d[`${p}-twitter`]);
+    if (d[`${p}-seed`]    !== undefined) setText(`ov-${p}-seed`,    d[`${p}-seed`]);
+    if (d[`${p}-flag`]    !== undefined) setSrc(`ov-${p}-flag`, d[`${p}-flag`] ? `https://flagcdn.com/w80/${d[`${p}-flag`].toLowerCase()}.png` : '');
 
-  // Actualizar pills derecha (P2)
-  const pillsRight = document.querySelector('.pills-right');
-  if (pillsRight) {
-    pillsRight.innerHTML = `
-      <div class="pill">${data['p2-twitter'] || 'N/A'}</div>
-      <div class="pill">${data['p2-seed'] || 'SEED ?'}</div>
-      <div class="pill">
-        <img class="flag-img" src="https://flagcdn.com/w80/${data['p2-flag'] || 'xx'}.png" alt="">
-        ${data['p2-country'] || 'N/A'}
-      </div>
-    `;
-  }
+    if (d[`${p}-score`] !== undefined) {
+      const el = document.getElementById(`ov-${p}-score`);
+      if (el) {
+        const changed = el.textContent !== String(d[`${p}-score`]);
+        el.textContent = d[`${p}-score`];
+        if (changed) { el.classList.remove('score-pop'); void el.offsetWidth; el.classList.add('score-pop'); }
+      }
+    }
+
+    if (d[`${p}-char`] !== undefined) {
+      const el = document.getElementById(`ov-${p}-char`);
+      if (el) {
+        const val = d[`${p}-char`];
+        if (!val) {
+          el.src = ''; el.classList.remove('visible');
+        } else if (val.includes('|alt')) {
+          const [folder, altNum] = val.split('|alt');
+          el.src = `${CHAR_BASE}${folder}/${folder}_alt${altNum}.png`;
+          el.classList.add('visible');
+        } else {
+          el.src = `./Render SSBU/${RENDER_MAP[val] || val + '.png'}`;
+          el.classList.add('visible');
+        }
+      }
+    }
+  });
 }
 
-// Cargar datos al inicializar
-const saved = localStorage.getItem(CHANNEL);
-if (saved) {
-  try { updateOverlay(JSON.parse(saved)); } catch(err) {}
-}
+if (ch) ch.onmessage = e => applyData(e.data);
+
+let lastRaw = '';
+setInterval(() => {
+  try {
+    const raw = localStorage.getItem(CHANNEL);
+    if (raw && raw !== lastRaw) { lastRaw = raw; applyData(JSON.parse(raw)); }
+  } catch(e) {}
+}, 500);
+
+try {
+  const raw = localStorage.getItem(CHANNEL);
+  if (raw) { lastRaw = raw; applyData(JSON.parse(raw)); }
+} catch(e) {}
 </script>
-
 </body>
 </html>
