@@ -23,12 +23,17 @@
 
   /* ══ FILA 1 ══ */
   .row-bar {
+    position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
+    width: 100%;
   }
 
   /* Franja oscura con nombre */
   .bar-left, .bar-right {
+    flex: 1;
+    min-width: 0;
     height: 50px;
     background: #16081f;
     display: flex;
@@ -37,6 +42,15 @@
   }
   .bar-left  { justify-content: flex-end; }
   .bar-right { justify-content: flex-start; }
+
+  .center-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap: 0;
+  }
 
   .player-name {
     font-size: 14px;
@@ -134,30 +148,32 @@
   <!-- FILA 1 -->
   <div class="row-bar">
     <div class="bar-left">
-      <span class="player-name"><span class="sponsor">RRT4/INC</span>Nostradamus</span>
+      <span class="player-name" id="ov2-p1-name">RRT4/INC Nostradamus</span>
     </div>
 
-    <!-- Score P1 -->
-    <div class="score-red">
-      <div class="score" id="ov2-p1-score">1</div>
-    </div>
+    <div class="center-group">
+      <!-- Score P1 -->
+      <div class="score-red">
+        <div class="score" id="ov2-p1-score">1</div>
+      </div>
 
-    <!-- Triángulo -->
-    <div class="center-tri">
-      <div class="triangle-container">
-        <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
-        </svg>
+      <!-- Triángulo -->
+      <div class="center-tri">
+        <div class="triangle-container">
+          <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Score P2 -->
+      <div class="score-red">
+        <div class="score" id="ov2-p2-score">2</div>
       </div>
     </div>
 
-    <!-- Score P2 -->
-    <div class="score-red">
-      <div class="score" id="ov2-p2-score">2</div>
-    </div>
-
     <div class="bar-right">
-      <span class="player-name"><span class="sponsor">CBA</span>Floripundo</span>
+      <span class="player-name" id="ov2-p2-name">CBA Floripundo</span>
     </div>
   </div>
 
@@ -165,18 +181,71 @@
   <div class="row-pills">
     <div class="pills-left">
       <div class="pill">He/him</div>
-      <div class="pill">SEED 2</div>
-      <div class="pill"><img class="flag-img" src="https://flagcdn.com/w80/es.png" alt="">Esp</div>
+      <div class="pill" id="ov2-p1-seed">SEED 2</div>
+      <div class="pill"><img class="flag-img" id="ov2-p1-flag" src="https://flagcdn.com/w80/es.png" alt="Esp"> <span id="ov2-p1-country">Esp</span></div>
     </div>
     <div class="pills-center-gap"></div>
     <div class="pills-right">
       <div class="pill">He/him</div>
-      <div class="pill">SEED 1</div>
-      <div class="pill"><img class="flag-img" src="https://flagcdn.com/w80/ve.png" alt="">Ven</div>
+      <div class="pill" id="ov2-p2-seed">SEED 1</div>
+      <div class="pill"><img class="flag-img" id="ov2-p2-flag" src="https://flagcdn.com/w80/ve.png" alt="Ven"> <span id="ov2-p2-country">Ven</span></div>
     </div>
   </div>
 
 </div>
+
+<script>
+const CHANNEL = 'smash-scoreboard-v2';
+let ch;
+try { ch = new BroadcastChannel(CHANNEL); } catch (e) {}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el && value !== undefined) el.textContent = value;
+}
+
+function setSrc(id, value) {
+  const el = document.getElementById(id);
+  if (el && value !== undefined) {
+    el.src = value;
+    el.alt = value;
+  }
+}
+
+function applyOverlay2Data(data) {
+  if (data['p1-name'] !== undefined) setText('ov2-p1-name', data['p1-name']);
+  if (data['p2-name'] !== undefined) setText('ov2-p2-name', data['p2-name']);
+  if (data['p1-score'] !== undefined) setText('ov2-p1-score', data['p1-score']);
+  if (data['p2-score'] !== undefined) setText('ov2-p2-score', data['p2-score']);
+  if (data['p1-seed'] !== undefined) setText('ov2-p1-seed', data['p1-seed']);
+  if (data['p2-seed'] !== undefined) setText('ov2-p2-seed', data['p2-seed']);
+  if (data['p1-country'] !== undefined) setText('ov2-p1-country', data['p1-country']);
+  if (data['p2-country'] !== undefined) setText('ov2-p2-country', data['p2-country']);
+  if (data['p1-flag'] !== undefined) setSrc('ov2-p1-flag', data['p1-flag'] ? `https://flagcdn.com/w80/${data['p1-flag'].toLowerCase()}.png` : '');
+  if (data['p2-flag'] !== undefined) setSrc('ov2-p2-flag', data['p2-flag'] ? `https://flagcdn.com/w80/${data['p2-flag'].toLowerCase()}.png` : '');
+}
+
+if (ch) ch.onmessage = e => applyOverlay2Data(e.data);
+
+let lastRaw = '';
+setInterval(() => {
+  try {
+    const raw = localStorage.getItem(CHANNEL);
+    if (raw && raw !== lastRaw) {
+      lastRaw = raw;
+      applyOverlay2Data(JSON.parse(raw));
+    }
+  } catch (e) {}
+}, 500);
+
+try {
+  const raw = localStorage.getItem(CHANNEL);
+  if (raw) {
+    lastRaw = raw;
+    applyOverlay2Data(JSON.parse(raw));
+  }
+} catch (e) {}
+</script>
 
 </body>
 </html>
