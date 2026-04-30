@@ -145,5 +145,68 @@
 
 </div>
 
+<script>
+const CHANNEL = 'smash-scoreboard-v2';
+let broadcastChannel = null;
+
+try { broadcastChannel = new BroadcastChannel(CHANNEL); } catch(e) {}
+
+// Escuchar cambios en BroadcastChannel
+if (broadcastChannel) {
+  broadcastChannel.onmessage = (e) => updateOverlay(e.data);
+}
+
+// Escuchar cambios en localStorage
+window.addEventListener('storage', (e) => {
+  if (e.key === CHANNEL && e.newValue) {
+    try { updateOverlay(JSON.parse(e.newValue)); } catch(err) {}
+  }
+});
+
+// Al cargar la página, intentar obtener datos guardados
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem(CHANNEL);
+  if (saved) {
+    try { updateOverlay(JSON.parse(saved)); } catch(err) {}
+  }
+});
+
+function updateOverlay(data) {
+  if (!data) return;
+
+  // Actualizar pills izquierda (P1)
+  const pillsLeft = document.querySelector('.pills-left');
+  if (pillsLeft) {
+    pillsLeft.innerHTML = `
+      <div class="pill">${data['p1-twitter'] || 'N/A'}</div>
+      <div class="pill">${data['p1-seed'] || 'SEED ?'}</div>
+      <div class="pill">
+        <img class="flag-img" src="https://flagcdn.com/w80/${data['p1-flag'] || 'xx'}.png" alt="">
+        ${data['p1-country'] || 'N/A'}
+      </div>
+    `;
+  }
+
+  // Actualizar pills derecha (P2)
+  const pillsRight = document.querySelector('.pills-right');
+  if (pillsRight) {
+    pillsRight.innerHTML = `
+      <div class="pill">${data['p2-twitter'] || 'N/A'}</div>
+      <div class="pill">${data['p2-seed'] || 'SEED ?'}</div>
+      <div class="pill">
+        <img class="flag-img" src="https://flagcdn.com/w80/${data['p2-flag'] || 'xx'}.png" alt="">
+        ${data['p2-country'] || 'N/A'}
+      </div>
+    `;
+  }
+}
+
+// Cargar datos al inicializar
+const saved = localStorage.getItem(CHANNEL);
+if (saved) {
+  try { updateOverlay(JSON.parse(saved)); } catch(err) {}
+}
+</script>
+
 </body>
 </html>
