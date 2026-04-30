@@ -38,6 +38,7 @@
     height: 160px;
     background: #16081f;
     padding: 0 50px;
+    width: auto;
     max-width: calc(50% - 320px);
     overflow: hidden;
     white-space: nowrap;
@@ -234,6 +235,14 @@ function setSrc(id, value) {
 }
 
 function applyOverlay2Data(data) {
+  function parseSponsorTag(value) {
+    const split = value.split('|').map(str => str.trim()).filter(Boolean);
+    if (split.length >= 2) {
+      return { sponsor: split[0], tag: split.slice(1).join(' | ') };
+    }
+    return { sponsor: value.trim(), tag: '' };
+  }
+
   if (data['p1-sponsor'] !== undefined) setText('ov2-p1-sponsor', data['p1-sponsor']);
   if (data['p1-tag'] !== undefined) setText('ov2-p1-tag', data['p1-tag']);
   if (data['p1-sponsor-color'] !== undefined) {
@@ -246,13 +255,15 @@ function applyOverlay2Data(data) {
     const el = document.getElementById('ov2-p2-sponsor');
     if (el) el.style.color = data['p2-sponsor-color'] || '#f8b500';
   }
-  if (data['p1-name'] !== undefined && !data['p1-sponsor'] && !data['p1-tag']) {
-    setText('ov2-p1-sponsor', data['p1-name']);
-    setText('ov2-p1-tag', '');
+  if ((data['p1-sponsor'] === undefined || data['p1-sponsor'] === '') && (data['p1-tag'] === undefined || data['p1-tag'] === '') && data['p1-name'] !== undefined) {
+    const parsed = parseSponsorTag(data['p1-name']);
+    setText('ov2-p1-sponsor', parsed.sponsor);
+    setText('ov2-p1-tag', parsed.tag);
   }
-  if (data['p2-name'] !== undefined && !data['p2-sponsor'] && !data['p2-tag']) {
-    setText('ov2-p2-sponsor', data['p2-name']);
-    setText('ov2-p2-tag', '');
+  if ((data['p2-sponsor'] === undefined || data['p2-sponsor'] === '') && (data['p2-tag'] === undefined || data['p2-tag'] === '') && data['p2-name'] !== undefined) {
+    const parsed = parseSponsorTag(data['p2-name']);
+    setText('ov2-p2-sponsor', parsed.sponsor);
+    setText('ov2-p2-tag', parsed.tag);
   }
   if (data['p1-score'] !== undefined) setText('ov2-p1-score', data['p1-score']);
   if (data['p2-score'] !== undefined) setText('ov2-p2-score', data['p2-score']);

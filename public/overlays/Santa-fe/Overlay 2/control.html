@@ -351,30 +351,45 @@ let ch;
 try { ch = new BroadcastChannel(CHANNEL); } catch(e) {}
 
 // ── PUSH ──────────────────────────────────
+function parseSponsorTag(value) {
+  const split = value.split('|').map(str => str.trim()).filter(Boolean);
+  if (split.length >= 2) {
+    return { sponsor: split[0], tag: split.slice(1).join(' | ') };
+  }
+  return { sponsor: value.trim(), tag: '' };
+}
+
 function buildPayload() {
-  const p1Sponsor = document.getElementById('c-p1-sponsor').value.trim();
-  const p1Tag = document.getElementById('c-p1-tag').value.trim();
-  const p2Sponsor = document.getElementById('c-p2-sponsor').value.trim();
-  const p2Tag = document.getElementById('c-p2-tag').value.trim();
+  let p1Sponsor = document.getElementById('c-p1-sponsor').value.trim();
+  let p1Tag = document.getElementById('c-p1-tag').value.trim();
+  let p2Sponsor = document.getElementById('c-p2-sponsor').value.trim();
+  let p2Tag = document.getElementById('c-p2-tag').value.trim();
+
+  if (!p1Tag && p1Sponsor.includes('|')) {
+    ({ sponsor: p1Sponsor, tag: p1Tag } = parseSponsorTag(p1Sponsor));
+  }
+  if (!p2Tag && p2Sponsor.includes('|')) {
+    ({ sponsor: p2Sponsor, tag: p2Tag } = parseSponsorTag(p2Sponsor));
+  }
 
   return {
     'event-name':    document.getElementById('c-event-name1').value + '\n' + document.getElementById('c-event-name2').value,
     'event-round':   document.getElementById('c-event-round').value,
     'event-bracket': document.getElementById('c-event-bracket').value,
-    'p1-sponsor': document.getElementById('c-p1-sponsor').value,
-    'p1-tag': document.getElementById('c-p1-tag').value,
+    'p1-sponsor': p1Sponsor,
+    'p1-tag': p1Tag,
     'p1-sponsor-color': document.getElementById('c-p1-sponsor-color').value,
-    'p1-name': p1Sponsor && p1Tag ? `${p1Sponsor} ${p1Tag}` : p1Sponsor || p1Tag,
+    'p1-name': p1Sponsor && p1Tag ? `${p1Sponsor} | ${p1Tag}` : p1Sponsor || p1Tag,
     'p1-country': document.getElementById('c-p1-country').value,
     'p1-flag':    document.getElementById('c-p1-flagcode').value,
     'p1-twitter': document.getElementById('c-p1-twitter').value,
     'p1-seed':    document.getElementById('c-p1-seed').value,
     'p1-score':   state['p1-score'],
     'p1-char':    state['p1-char'],
-    'p2-sponsor': document.getElementById('c-p2-sponsor').value,
-    'p2-tag': document.getElementById('c-p2-tag').value,
+    'p2-sponsor': p2Sponsor,
+    'p2-tag': p2Tag,
     'p2-sponsor-color': document.getElementById('c-p2-sponsor-color').value,
-    'p2-name': p2Sponsor && p2Tag ? `${p2Sponsor} ${p2Tag}` : p2Sponsor || p2Tag,
+    'p2-name': p2Sponsor && p2Tag ? `${p2Sponsor} | ${p2Tag}` : p2Sponsor || p2Tag,
     'p2-country': document.getElementById('c-p2-country').value,
     'p2-flag':    document.getElementById('c-p2-flagcode').value,
     'p2-twitter': document.getElementById('c-p2-twitter').value,
@@ -384,11 +399,11 @@ function buildPayload() {
   };
 }
 
-function pushAll() {
+function pushAll(showToastFlag = true) {
   const payload = buildPayload();
   if (ch) ch.postMessage(payload);
   try { localStorage.setItem(CHANNEL, JSON.stringify(payload)); } catch(e) {}
-  showToast();
+  if (showToastFlag) showToast();
 }
 
 function showToast() {
@@ -742,13 +757,19 @@ try {
       const el = document.getElementById('c-' + k);
       if (el && d[k] !== undefined) el.value = d[k];
     });
-    if (!d['p1-sponsor'] && d['p1-name']) {
-      const el = document.getElementById('c-p1-sponsor');
-      if (el) el.value = d['p1-name'];
+    if ((!d['p1-sponsor'] || !d['p1-tag']) && d['p1-name']) {
+      const parsed = parseSponsorTag(d['p1-name']);
+      const sponsorEl = document.getElementById('c-p1-sponsor');
+      const tagEl = document.getElementById('c-p1-tag');
+      if (sponsorEl) sponsorEl.value = parsed.sponsor;
+      if (tagEl) tagEl.value = parsed.tag;
     }
-    if (!d['p2-sponsor'] && d['p2-name']) {
-      const el = document.getElementById('c-p2-sponsor');
-      if (el) el.value = d['p2-name'];
+    if ((!d['p2-sponsor'] || !d['p2-tag']) && d['p2-name']) {
+      const parsed = parseSponsorTag(d['p2-name']);
+      const sponsorEl = document.getElementById('c-p2-sponsor');
+      const tagEl = document.getElementById('c-p2-tag');
+      if (sponsorEl) sponsorEl.value = parsed.sponsor;
+      if (tagEl) tagEl.value = parsed.tag;
     }
     if (d['event-name']) {
       const pts = d['event-name'].split('\n');
@@ -783,6 +804,19 @@ try {
     updateFlag(1); updateFlag(2);
   }
 } catch(e) {}
+
+function attachRealtimePush() {
+  const autoFields = ['c-event-name1','c-event-name2','c-event-round','c-event-bracket',
+                      'c-p1-sponsor','c-p1-tag','c-p1-sponsor-color','c-p1-country','c-p1-flagcode','c-p1-twitter','c-p1-seed',
+                      'c-p2-sponsor','c-p2-tag','c-p2-sponsor-color','c-p2-country','c-p2-flagcode','c-p2-twitter','c-p2-seed'];
+  autoFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => pushAll(false));
+  });
+}
+
+attachRealtimePush();
 </script>
 </body>
 </html>
