@@ -119,7 +119,14 @@
   <!-- P1 -->
   <div class="panel p1">
     <div class="panel-title">🔵 Jugador 1 — Izquierda</div>
-    <div class="field"><label>Sponsor / Tag</label><input type="text" id="c-p1-name" value="RRT4/INC Nostradamus"></div>
+    <div class="field-row">
+      <div class="field"><label>Sponsor</label><input type="text" id="c-p1-sponsor" value="RRT4/INC"></div>
+      <div class="field"><label>Tag</label><input type="text" id="c-p1-tag" value="Nostradamus"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Color Sponsor</label><input type="color" id="c-p1-sponsor-color" value="#f8b500"></div>
+      <div class="field"></div>
+    </div>
     <div class="field-row">
       <div class="field"><label>País (ej: Esp)</label><input type="text" id="c-p1-country" value="Esp" oninput="updateFlag(1)"></div>
       <div class="field"><label>Código bandera (ej: es)</label>
@@ -159,7 +166,14 @@
   <!-- P2 -->
   <div class="panel p2">
     <div class="panel-title">🔴 Jugador 2 — Derecha</div>
-    <div class="field"><label>Sponsor / Tag</label><input type="text" id="c-p2-name" value="RRT4/INC iiori"></div>
+    <div class="field-row">
+      <div class="field"><label>Sponsor</label><input type="text" id="c-p2-sponsor" value="RRT4/INC"></div>
+      <div class="field"><label>Tag</label><input type="text" id="c-p2-tag" value="iiori"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Color Sponsor</label><input type="color" id="c-p2-sponsor-color" value="#f8b500"></div>
+      <div class="field"></div>
+    </div>
     <div class="field-row">
       <div class="field"><label>País (ej: Arg)</label><input type="text" id="c-p2-country" value="Arg" oninput="updateFlag(2)"></div>
       <div class="field"><label>Código bandera (ej: ar)</label>
@@ -338,18 +352,29 @@ try { ch = new BroadcastChannel(CHANNEL); } catch(e) {}
 
 // ── PUSH ──────────────────────────────────
 function buildPayload() {
+  const p1Sponsor = document.getElementById('c-p1-sponsor').value.trim();
+  const p1Tag = document.getElementById('c-p1-tag').value.trim();
+  const p2Sponsor = document.getElementById('c-p2-sponsor').value.trim();
+  const p2Tag = document.getElementById('c-p2-tag').value.trim();
+
   return {
     'event-name':    document.getElementById('c-event-name1').value + '\n' + document.getElementById('c-event-name2').value,
     'event-round':   document.getElementById('c-event-round').value,
     'event-bracket': document.getElementById('c-event-bracket').value,
-    'p1-name':    document.getElementById('c-p1-name').value,
+    'p1-sponsor': document.getElementById('c-p1-sponsor').value,
+    'p1-tag': document.getElementById('c-p1-tag').value,
+    'p1-sponsor-color': document.getElementById('c-p1-sponsor-color').value,
+    'p1-name': p1Sponsor && p1Tag ? `${p1Sponsor} ${p1Tag}` : p1Sponsor || p1Tag,
     'p1-country': document.getElementById('c-p1-country').value,
     'p1-flag':    document.getElementById('c-p1-flagcode').value,
     'p1-twitter': document.getElementById('c-p1-twitter').value,
     'p1-seed':    document.getElementById('c-p1-seed').value,
     'p1-score':   state['p1-score'],
     'p1-char':    state['p1-char'],
-    'p2-name':    document.getElementById('c-p2-name').value,
+    'p2-sponsor': document.getElementById('c-p2-sponsor').value,
+    'p2-tag': document.getElementById('c-p2-tag').value,
+    'p2-sponsor-color': document.getElementById('c-p2-sponsor-color').value,
+    'p2-name': p2Sponsor && p2Tag ? `${p2Sponsor} ${p2Tag}` : p2Sponsor || p2Tag,
     'p2-country': document.getElementById('c-p2-country').value,
     'p2-flag':    document.getElementById('c-p2-flagcode').value,
     'p2-twitter': document.getElementById('c-p2-twitter').value,
@@ -389,8 +414,8 @@ function resetScores() {
 // ── SWAP ──────────────────────────────────
 function swapPlayers() {
   const pairs = [
-    ['c-p1-name','c-p2-name'],['c-p1-country','c-p2-country'],
-    ['c-p1-flagcode','c-p2-flagcode'],['c-p1-twitter','c-p2-twitter'],['c-p1-seed','c-p2-seed']
+    ['c-p1-sponsor','c-p2-sponsor'],['c-p1-tag','c-p2-tag'],['c-p1-sponsor-color','c-p2-sponsor-color'],
+    ['c-p1-country','c-p2-country'],['c-p1-flagcode','c-p2-flagcode'],['c-p1-twitter','c-p2-twitter'],['c-p1-seed','c-p2-seed']
   ];
   pairs.forEach(([a,b]) => {
     const va = document.getElementById(a).value;
@@ -662,8 +687,18 @@ async function syncFromSession() {
     if (hash === lastSyncHash) return;
     lastSyncHash = hash;
 
-    if (data.player1) document.getElementById('c-p1-name').value = data.player1;
-    if (data.player2) document.getElementById('c-p2-name').value = data.player2;
+    if (data.player1) {
+      const sponsorInput = document.getElementById('c-p1-sponsor');
+      const tagInput = document.getElementById('c-p1-tag');
+      if (sponsorInput) sponsorInput.value = data.player1;
+      if (tagInput) tagInput.value = '';
+    }
+    if (data.player2) {
+      const sponsorInput = document.getElementById('c-p2-sponsor');
+      const tagInput = document.getElementById('c-p2-tag');
+      if (sponsorInput) sponsorInput.value = data.player2;
+      if (tagInput) tagInput.value = '';
+    }
 
     if (data.round) document.getElementById('c-event-round').value = data.round;
     if (data.tournamentName) {
@@ -700,13 +735,21 @@ try {
   const saved = localStorage.getItem(CHANNEL);
   if (saved) {
     const d = JSON.parse(saved);
-    const textFields = ['p1-name','p1-country','p1-flag','p1-twitter','p1-seed',
-                        'p2-name','p2-country','p2-flag','p2-twitter','p2-seed',
+    const textFields = ['p1-sponsor','p1-tag','p1-sponsor-color','p1-country','p1-flag','p1-twitter','p1-seed',
+                        'p2-sponsor','p2-tag','p2-sponsor-color','p2-country','p2-flag','p2-twitter','p2-seed',
                         'event-round','event-bracket'];
     textFields.forEach(k => {
       const el = document.getElementById('c-' + k);
       if (el && d[k] !== undefined) el.value = d[k];
     });
+    if (!d['p1-sponsor'] && d['p1-name']) {
+      const el = document.getElementById('c-p1-sponsor');
+      if (el) el.value = d['p1-name'];
+    }
+    if (!d['p2-sponsor'] && d['p2-name']) {
+      const el = document.getElementById('c-p2-sponsor');
+      if (el) el.value = d['p2-name'];
+    }
     if (d['event-name']) {
       const pts = d['event-name'].split('\n');
       document.getElementById('c-event-name1').value = pts[0]||'';

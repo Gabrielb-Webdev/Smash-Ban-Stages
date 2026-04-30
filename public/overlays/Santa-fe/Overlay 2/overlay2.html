@@ -24,32 +24,37 @@
   /* ══ FILA 1 ══ */
   .row-bar {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
+    min-height: 70px;
   }
 
   /* Franja oscura con nombre */
   .bar-left, .bar-right {
-    flex: 1;
-    min-width: 0;
+    position: absolute;
+    top: 10px;
+    display: inline-flex;
+    align-items: center;
     height: 50px;
     background: #16081f;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
+    padding: 0 18px;
+    max-width: calc(50% - 110px);
+    overflow: hidden;
+    white-space: nowrap;
   }
-  .bar-left  { justify-content: flex-end; }
-  .bar-right { justify-content: flex-start; }
+  .bar-left  { right: calc(50% + 73px); justify-content: flex-end; }
+  .bar-right { left: calc(50% + 73px); justify-content: flex-start; }
 
   .center-group {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     gap: 0;
+    z-index: 1;
   }
 
   .player-name {
@@ -58,7 +63,16 @@
     color: #fff;
     white-space: nowrap;
   }
-  .sponsor { color: #f8b500; margin-right: 4px; }
+  .sponsor {
+    color: #f8b500;
+    margin-right: 8px;
+    font-weight: 900;
+  }
+  .player-tag {
+    color: #fff;
+    white-space: nowrap;
+    opacity: 0.9;
+  }
 
   /* Score rojo a los lados del triángulo */
   .score-red {
@@ -148,7 +162,10 @@
   <!-- FILA 1 -->
   <div class="row-bar">
     <div class="bar-left">
-      <span class="player-name" id="ov2-p1-name">RRT4/INC Nostradamus</span>
+      <span class="player-name">
+        <span class="sponsor" id="ov2-p1-sponsor">RRT4/INC</span>
+        <span class="player-tag" id="ov2-p1-tag">Nostradamus</span>
+      </span>
     </div>
 
     <div class="center-group">
@@ -173,7 +190,10 @@
     </div>
 
     <div class="bar-right">
-      <span class="player-name" id="ov2-p2-name">CBA Floripundo</span>
+      <span class="player-name">
+        <span class="sponsor" id="ov2-p2-sponsor">CBA</span>
+        <span class="player-tag" id="ov2-p2-tag">Floripundo</span>
+      </span>
     </div>
   </div>
 
@@ -213,8 +233,26 @@ function setSrc(id, value) {
 }
 
 function applyOverlay2Data(data) {
-  if (data['p1-name'] !== undefined) setText('ov2-p1-name', data['p1-name']);
-  if (data['p2-name'] !== undefined) setText('ov2-p2-name', data['p2-name']);
+  if (data['p1-sponsor'] !== undefined) setText('ov2-p1-sponsor', data['p1-sponsor']);
+  if (data['p1-tag'] !== undefined) setText('ov2-p1-tag', data['p1-tag']);
+  if (data['p1-sponsor-color'] !== undefined) {
+    const el = document.getElementById('ov2-p1-sponsor');
+    if (el) el.style.color = data['p1-sponsor-color'] || '#f8b500';
+  }
+  if (data['p2-sponsor'] !== undefined) setText('ov2-p2-sponsor', data['p2-sponsor']);
+  if (data['p2-tag'] !== undefined) setText('ov2-p2-tag', data['p2-tag']);
+  if (data['p2-sponsor-color'] !== undefined) {
+    const el = document.getElementById('ov2-p2-sponsor');
+    if (el) el.style.color = data['p2-sponsor-color'] || '#f8b500';
+  }
+  if (data['p1-name'] !== undefined && !data['p1-sponsor'] && !data['p1-tag']) {
+    setText('ov2-p1-sponsor', data['p1-name']);
+    setText('ov2-p1-tag', '');
+  }
+  if (data['p2-name'] !== undefined && !data['p2-sponsor'] && !data['p2-tag']) {
+    setText('ov2-p2-sponsor', data['p2-name']);
+    setText('ov2-p2-tag', '');
+  }
   if (data['p1-score'] !== undefined) setText('ov2-p1-score', data['p1-score']);
   if (data['p2-score'] !== undefined) setText('ov2-p2-score', data['p2-score']);
   if (data['p1-seed'] !== undefined) setText('ov2-p1-seed', data['p1-seed']);
