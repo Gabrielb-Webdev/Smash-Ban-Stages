@@ -403,7 +403,16 @@ function pushAll(showToastFlag = true) {
   const payload = buildPayload();
   if (ch) ch.postMessage(payload);
   try { localStorage.setItem(CHANNEL, JSON.stringify(payload)); } catch(e) {}
+  pushToServer(payload);
   if (showToastFlag) showToast();
+}
+
+function pushToServer(payload) {
+  fetch('/api/santa-fe/overlay2-state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
 }
 
 function showToast() {
