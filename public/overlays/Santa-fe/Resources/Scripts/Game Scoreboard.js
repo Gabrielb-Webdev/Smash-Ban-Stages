@@ -563,12 +563,9 @@ function updateBorder(bestOf) {
 	bestOfPrev = bestOf
 }
 
-//team logo change
+//team logo change — TeamLogos folder not present on server, skip all requests
 function updateTeamLogo(logoID, pTeam) {
-	const logoEL = document.getElementById(logoID);
-	if (!pTeam) { showNothing(logoEL); return; }
-	logoEL.onerror = () => showNothing(logoEL);
-	logoEL.setAttribute('src', 'Resources/TeamLogos/' + pTeam + '.png');
+	showNothing(document.getElementById(logoID));
 }
 
 //the logic behind the twitter/twitch constant change
