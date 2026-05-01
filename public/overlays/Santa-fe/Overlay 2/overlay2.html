@@ -43,8 +43,8 @@
     overflow: hidden;
     white-space: nowrap;
   }
-  .bar-left  { right: calc(50% + 280px); justify-content: flex-end; }
-  .bar-right { left: calc(50% + 280px); justify-content: flex-start; }
+  .bar-left  { right: calc(50% + 260px); justify-content: flex-end; }
+  .bar-right { left: calc(50% + 260px); justify-content: flex-start; }
 
   .center-group {
     position: absolute;
@@ -121,7 +121,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    margin-top: 40px;
+    margin-top: -75px;
   }
 
   .pills-left, .pills-right {
@@ -202,15 +202,15 @@
   <!-- FILA 2: pills -->
   <div class="row-pills">
     <div class="pills-left">
-      <div class="pill">He/him</div>
-      <div class="pill" id="ov2-p1-seed">SEED 2</div>
       <div class="pill"><img class="flag-img" id="ov2-p1-flag" src="https://flagcdn.com/w80/es.png" alt="Esp"> <span id="ov2-p1-country">Esp</span></div>
+      <div class="pill" id="ov2-p1-seed">SEED 2</div>
+      <div class="pill" id="ov2-p1-pronouns" style="display:none"></div>
     </div>
     <div class="pills-center-gap"></div>
     <div class="pills-right">
-      <div class="pill">He/him</div>
-      <div class="pill" id="ov2-p2-seed">SEED 1</div>
       <div class="pill"><img class="flag-img" id="ov2-p2-flag" src="https://flagcdn.com/w80/ve.png" alt="Ven"> <span id="ov2-p2-country">Ven</span></div>
+      <div class="pill" id="ov2-p2-seed">SEED 1</div>
+      <div class="pill" id="ov2-p2-pronouns" style="display:none"></div>
     </div>
   </div>
 
@@ -273,6 +273,14 @@ function applyOverlay2Data(data) {
   if (data['p2-country'] !== undefined) setText('ov2-p2-country', data['p2-country']);
   if (data['p1-flag'] !== undefined) setSrc('ov2-p1-flag', data['p1-flag'] ? `https://flagcdn.com/w80/${data['p1-flag'].toLowerCase()}.png` : '');
   if (data['p2-flag'] !== undefined) setSrc('ov2-p2-flag', data['p2-flag'] ? `https://flagcdn.com/w80/${data['p2-flag'].toLowerCase()}.png` : '');
+  if (data['p1-pronouns'] !== undefined) {
+    const el = document.getElementById('ov2-p1-pronouns');
+    if (el) { el.textContent = data['p1-pronouns']; el.style.display = data['p1-pronouns'] ? '' : 'none'; }
+  }
+  if (data['p2-pronouns'] !== undefined) {
+    const el = document.getElementById('ov2-p2-pronouns');
+    if (el) { el.textContent = data['p2-pronouns']; el.style.display = data['p2-pronouns'] ? '' : 'none'; }
+  }
 }
 
 if (ch) ch.onmessage = e => applyOverlay2Data(e.data);

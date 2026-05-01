@@ -48,7 +48,8 @@ query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
             name
             initialSeedNum
             participants {
-              user { location { country } }
+              prefix
+              user { location { country } pronouns }
             }
           }
           standing { placement stats { score { value } } }
@@ -273,6 +274,8 @@ export default async function handler(req, res) {
           slots: (s.slots || []).map(slot => {
             const countryName = slot.entrant?.participants?.[0]?.user?.location?.country || null;
             const flagCode = countryName ? (COUNTRY_TO_ISO[countryName] || null) : null;
+            const prefix   = slot.entrant?.participants?.[0]?.prefix || null;
+            const pronouns = slot.entrant?.participants?.[0]?.user?.pronouns || null;
             return {
               id:      slot.id,
               index:   slot.slotIndex,
@@ -282,6 +285,8 @@ export default async function handler(req, res) {
                 seed:      slot.entrant.initialSeedNum || null,
                 country:   countryName,
                 flagCode:  flagCode,
+                prefix:    prefix,
+                pronouns:  pronouns,
               } : null,
               score:   slot.standing?.stats?.score?.value ?? null,
               placement: slot.standing?.placement ?? null,
