@@ -829,8 +829,8 @@ async function syncFromSession() {
       data.score1,  data.score2,
       data.char1,   data.char2, data.skin1, data.skin2,
       data.round,   data.tournamentName, data.format,
-      data.player1Country, data.player1FlagCode, data.player1Seed, data.player1Pronouns, data.player1Prefix,
-      data.player2Country, data.player2FlagCode, data.player2Seed, data.player2Pronouns, data.player2Prefix,
+      data.player1Country, data.player1FlagCode, data.player1Seed, data.player1Prefix,
+      data.player2Country, data.player2FlagCode, data.player2Seed, data.player2Prefix,
     ]);
     if (hash === lastV3SyncHash) return;
     lastV3SyncHash = hash;
@@ -861,7 +861,6 @@ async function syncFromSession() {
       if (lbl) lbl.textContent = data.player1FlagCode.toUpperCase();
     }
     if (data.player1Seed != null) sv('v3-p1-seed', 'SEED ' + data.player1Seed);
-    if (data.player1Pronouns) sv('v3-p1-pron', data.player1Pronouns);
 
     const p2 = splitName(data.player2, data.player2Prefix);
     sv('v3-p2-sponsor', p2.sponsor);
@@ -875,7 +874,6 @@ async function syncFromSession() {
       if (lbl) lbl.textContent = data.player2FlagCode.toUpperCase();
     }
     if (data.player2Seed != null) sv('v3-p2-seed', 'SEED ' + data.player2Seed);
-    if (data.player2Pronouns) sv('v3-p2-pron', data.player2Pronouns);
 
     // Round & Tournament
     if (data.round) sv('v3-round', data.round);

@@ -9,6 +9,8 @@ let introDelay = .8; //all animations will get this delay when the html loads (u
 //to avoid the code constantly running the same method over and over
 let p1CharacterPrev, p1SkinPrev, p1ScorePrev, p1ColorPrev, p1wlPrev;
 let p2CharacterPrev, p2SkinPrev, p2ScorePrev, p2ColorPrev, p2wlPrev;
+let p1NamePrev = null, p1TeamPrev = null, p1PronPrev = null;
+let p2NamePrev = null, p2TeamPrev = null, p2PronPrev = null;
 let bestOfPrev;
 
 //max text sizes (used when resizing back)
@@ -43,18 +45,18 @@ function init() {
 }
 
 async function getData(scInfo) {
-	let p1Name = scInfo['p1Name'];
-	let p1Team = scInfo['p1Team'];
-	let p1Pron = scInfo['p1Pron'];
+	let p1Name = scInfo['p1Name'] || '';
+	let p1Team = scInfo['p1Team'] || '';
+	let p1Pron = scInfo['p1Pron'] || '';
 	let p1Score = scInfo['p1Score'];
 	let p1Color = scInfo['p1Color'];
 	let p1Character = scInfo['p1Character'];
 	let p1Skin = scInfo['p1Skin'];
 	let p1WL = scInfo['p1WL'];
-	
-	let p2Name = scInfo['p2Name'];
-	let p2Team = scInfo['p2Team'];
-	let p2Pron = scInfo['p2Pron'];
+
+	let p2Name = scInfo['p2Name'] || '';
+	let p2Team = scInfo['p2Team'] || '';
+	let p2Pron = scInfo['p2Pron'] || '';
 	let p2Score = scInfo['p2Score'];
 	let p2Color = scInfo['p2Color'];
 	let p2Character = scInfo['p2Character'];
@@ -158,8 +160,9 @@ async function getData(scInfo) {
 		//finally out of the intro, now lets start with player 1 first
 		//update player name and team name texts
 		updatePlayerName('p1Wrapper', 'p1Name', 'p1Team', 'p1Pron', p1Name, p1Team, p1Pron);
+		p1NamePrev = p1Name; p1TeamPrev = p1Team; p1PronPrev = p1Pron;
 		//sets the starting position for the player text, then fades in and moves the p1 text to the next keyframe
-		gsap.fromTo("#p1Wrapper", 
+		gsap.fromTo("#p1Wrapper",
 			{x: -pMove}, //from
 			{delay: introDelay+.1, x: 0, opacity: 1, ease: "power2.out", duration: fadeInTime}); //to
 
@@ -190,7 +193,8 @@ async function getData(scInfo) {
 
 		//took notes from player 1? well, this is exactly the same!
 		updatePlayerName('p2Wrapper', 'p2Name', 'p2Team', 'p2Pron', p2Name, p2Team, p2Pron);
-		gsap.fromTo("#p2Wrapper", 
+		p2NamePrev = p2Name; p2TeamPrev = p2Team; p2PronPrev = p2Pron;
+		gsap.fromTo("#p2Wrapper",
 			{x: pMove},
 			{delay: introDelay+.1, x: 0, opacity: 1, ease: "power2.out", duration: fadeInTime});
 
@@ -293,9 +297,7 @@ async function getData(scInfo) {
 	else {
 		
 	//player 1 time!
-	if (document.getElementById('p1Name').textContent != p1Name ||
-	document.getElementById('p1Team').textContent != p1Team ||
-	document.getElementById('p1Pron').textContent != p1Pron) {
+	if (p1NamePrev !== p1Name || p1TeamPrev !== p1Team || p1PronPrev !== p1Pron) {
 	//move and fade out the player 1's text
 	fadeOutMove("#p1Wrapper", -pMove, () => {
 		//now that nobody is seeing it, quick, change the text's content!
@@ -303,6 +305,7 @@ async function getData(scInfo) {
 		//fade the name back in with a sick movement
 		fadeInMove("#p1Wrapper");
 	});
+	p1NamePrev = p1Name; p1TeamPrev = p1Team; p1PronPrev = p1Pron;
 }
 
 		//player 1's character portrait change
@@ -350,7 +353,7 @@ async function getData(scInfo) {
 		}
 
 		//check if the team has a logo we can place on the overlay
-		if (document.getElementById('p1Team').textContent != p1Team) {
+		if (p1TeamPrev !== p1Team) {
 			fadeOut("#teamLogoP1", () => {
 				updateTeamLogo("teamLogoP1", p1Team);
 				fadeIn("#teamLogoP1");
@@ -359,13 +362,12 @@ async function getData(scInfo) {
 
 
 			//did you pay attention earlier? Well, this is the same as player 1!
-			if (document.getElementById('p2Name').textContent != p2Name ||
-			document.getElementById('p2Team').textContent != p2Team ||
-			document.getElementById('p2Pron').textContent != p2Pron) {
+			if (p2NamePrev !== p2Name || p2TeamPrev !== p2Team || p2PronPrev !== p2Pron) {
 			fadeOutMove("#p2Wrapper", pMove, () => {
 				updatePlayerName('p2Wrapper', 'p2Name', 'p2Team', 'p2Pron', p2Name, p2Team, p2Pron);
 				fadeInMove("#p2Wrapper");
 			});
+			p2NamePrev = p2Name; p2TeamPrev = p2Team; p2PronPrev = p2Pron;
 		}
 
 		if (p2CharacterPrev != p2Character || p2SkinPrev != p2Skin) {
