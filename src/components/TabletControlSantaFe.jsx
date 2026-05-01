@@ -371,6 +371,30 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
 
   const filteredCharacters = CHARACTERS.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // ── Bloquear jugadores que no pertenecen al match actual ──
+  // Si el dispositivo tiene playerName (es un jugador, no admin) pero no matchea
+  // con ninguno de los dos jugadores del match activo, mostrar pantalla de espera.
+  // Esto evita que jugadores de partidas anteriores interactúen con el match nuevo.
+  const isPlayerDevice = !!playerName;
+  const sessionHasPlayers = !!(session.player1?.name && session.player2?.name);
+  if (isPlayerDevice && !myPlayer && sessionHasPlayers && !session.singleDeviceMode) {
+    return (
+      <div style={{ background: SANTAFE_BG, fontFamily: 'Anton, sans-serif', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: 24, padding: '48px 32px', border: '2px solid rgba(255,255,255,0.1)', maxWidth: 380 }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>⏳</div>
+          <h2 style={{ margin: '0 0 10px', fontSize: 24, fontWeight: 900, color: '#fff', textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>Esperando tu match...</h2>
+          <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
+            Este match no es el tuyo.<br />
+            Quedate en esta pantalla — te va a aparecer cuando sea tu turno.
+          </p>
+          <p style={{ margin: '16px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+            Conectado como: <span style={{ color: '#F59E0B', fontWeight: 800 }}>{playerName}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Render ──────────────────────────────────────────────────
   return (
     <div style={{ background: SANTAFE_BG, fontFamily: 'Anton, sans-serif', minHeight: '100dvh' }}>
