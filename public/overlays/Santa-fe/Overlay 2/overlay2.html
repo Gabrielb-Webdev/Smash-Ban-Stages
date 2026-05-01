@@ -243,27 +243,41 @@ function applyOverlay2Data(data) {
     return { sponsor: value.trim(), tag: '' };
   }
 
-  if (data['p1-sponsor'] !== undefined) setText('ov2-p1-sponsor', data['p1-sponsor']);
-  if (data['p1-tag'] !== undefined) setText('ov2-p1-tag', data['p1-tag']);
-  if (data['p1-sponsor-color'] !== undefined) {
+  function applySponsor(pid, sponsor, tag, color) {
+    const sponsorEl = document.getElementById(`ov2-p${pid}-sponsor`);
+    const tagEl = document.getElementById(`ov2-p${pid}-tag`);
+    if (sponsorEl) {
+      sponsorEl.textContent = sponsor || '';
+      sponsorEl.style.display = sponsor ? '' : 'none';
+      sponsorEl.style.marginRight = sponsor ? '10px' : '0';
+      if (color) sponsorEl.style.color = color;
+    }
+    if (tagEl && tag !== undefined) tagEl.textContent = tag;
+  }
+
+  const p1Sponsor = data['p1-sponsor'];
+  const p1Tag     = data['p1-tag'];
+  const p2Sponsor = data['p2-sponsor'];
+  const p2Tag     = data['p2-tag'];
+
+  if (p1Sponsor !== undefined || p1Tag !== undefined) {
+    applySponsor(1, p1Sponsor || '', p1Tag !== undefined ? p1Tag : document.getElementById('ov2-p1-tag')?.textContent, data['p1-sponsor-color']);
+  } else if (data['p1-name'] !== undefined) {
+    const parsed = parseSponsorTag(data['p1-name']);
+    applySponsor(1, parsed.sponsor, parsed.tag, data['p1-sponsor-color']);
+  } else if (data['p1-sponsor-color'] !== undefined) {
     const el = document.getElementById('ov2-p1-sponsor');
     if (el) el.style.color = data['p1-sponsor-color'] || '#f8b500';
   }
-  if (data['p2-sponsor'] !== undefined) setText('ov2-p2-sponsor', data['p2-sponsor']);
-  if (data['p2-tag'] !== undefined) setText('ov2-p2-tag', data['p2-tag']);
-  if (data['p2-sponsor-color'] !== undefined) {
+
+  if (p2Sponsor !== undefined || p2Tag !== undefined) {
+    applySponsor(2, p2Sponsor || '', p2Tag !== undefined ? p2Tag : document.getElementById('ov2-p2-tag')?.textContent, data['p2-sponsor-color']);
+  } else if (data['p2-name'] !== undefined) {
+    const parsed = parseSponsorTag(data['p2-name']);
+    applySponsor(2, parsed.sponsor, parsed.tag, data['p2-sponsor-color']);
+  } else if (data['p2-sponsor-color'] !== undefined) {
     const el = document.getElementById('ov2-p2-sponsor');
     if (el) el.style.color = data['p2-sponsor-color'] || '#f8b500';
-  }
-  if ((data['p1-sponsor'] === undefined || data['p1-sponsor'] === '') && (data['p1-tag'] === undefined || data['p1-tag'] === '') && data['p1-name'] !== undefined) {
-    const parsed = parseSponsorTag(data['p1-name']);
-    setText('ov2-p1-sponsor', parsed.sponsor);
-    setText('ov2-p1-tag', parsed.tag);
-  }
-  if ((data['p2-sponsor'] === undefined || data['p2-sponsor'] === '') && (data['p2-tag'] === undefined || data['p2-tag'] === '') && data['p2-name'] !== undefined) {
-    const parsed = parseSponsorTag(data['p2-name']);
-    setText('ov2-p2-sponsor', parsed.sponsor);
-    setText('ov2-p2-tag', parsed.tag);
   }
   if (data['p1-score'] !== undefined) setText('ov2-p1-score', data['p1-score']);
   if (data['p2-score'] !== undefined) setText('ov2-p2-score', data['p2-score']);

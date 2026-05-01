@@ -49,7 +49,7 @@ query PhaseGroupSets($phaseGroupId: ID!, $page: Int!) {
             initialSeedNum
             participants {
               prefix
-              user { location { country } pronouns }
+              user { location { country } }
             }
           }
           standing { placement stats { score { value } } }
