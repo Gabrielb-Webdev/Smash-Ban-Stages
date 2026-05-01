@@ -376,10 +376,12 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   const filteredCharacters = CHARACTERS.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // ── Bloquear jugadores que no pertenecen al match actual ──
-  // Si el dispositivo tiene playerName (es un jugador, no admin) pero no matchea
-  // con ninguno de los dos jugadores del match activo, mostrar pantalla de espera.
+  // Si el dispositivo tiene playerName (login AFk) o playerIndex (?p=player1 en la URL)
+  // es un dispositivo de jugador. Si no matchea al match activo, mostrar pantalla de espera.
   // Esto evita que jugadores de partidas anteriores interactúen con el match nuevo.
-  const isPlayerDevice = !!playerName;
+  // IMPORTANTE: playerIndex solo sin playerName es el caso de tablets que no tienen login —
+  // el token inválido ya descartó playerIndex en _rawIdentity, entonces myPlayer = null → bloqueo.
+  const isPlayerDevice = !!playerName || !!playerIndex;
   const sessionHasPlayers = !!(session.player1?.name && session.player2?.name);
   if (isPlayerDevice && !myPlayer && sessionHasPlayers && !session.singleDeviceMode) {
     return (
