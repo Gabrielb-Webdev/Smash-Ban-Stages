@@ -222,11 +222,7 @@ async function getData(scInfo) {
 
 		updateFormat(format);
 		//update the best of text
-		if (bestOf == "Bo5") {
-			document.getElementById('bestOf').textContent = "First to ";
-		} else {
-			document.getElementById('bestOf').textContent = "Best of ";
-		}
+		document.getElementById('bestOf').textContent = "Best of ";
 		//fade them in (but only if round text is not empty)
 		if (format != "") {
 			gsap.to("#overlayFormat", 
@@ -424,7 +420,7 @@ async function getData(scInfo) {
 					{x: 0, opacity: 1, ease: "power2.out", duration: fadeInTime});
 				
 				fadeOut("#bestOf", () => {
-					document.getElementById('bestOf').textContent = "First to ";
+					document.getElementById('bestOf').textContent = "Best of ";
 					fadeIn("#bestOf");
 				});
 			} else {

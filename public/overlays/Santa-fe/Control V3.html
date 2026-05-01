@@ -772,11 +772,11 @@ function buildScoreboardPayload() {
   const p1 = parseChar(S.p1char), p2 = parseChar(S.p2char);
   return {
     p1Name: gv('v3-p1-tag'), p1Team: gv('v3-p1-sponsor'),
-    p1Pron: gv('v3-p1-pron'), p1Score: S.p1score, p1NScore: S.p1score,
+    p1Score: S.p1score, p1NScore: S.p1score,
     p1Character: p1.character, p1Skin: p1.skin,
     p1Color: S.p1color, p1WL: S.p1wl,
     p2Name: gv('v3-p2-tag'), p2Team: gv('v3-p2-sponsor'),
-    p2Pron: gv('v3-p2-pron'), p2Score: S.p2score, p2NScore: S.p2score,
+    p2Score: S.p2score, p2NScore: S.p2score,
     p2Character: p2.character, p2Skin: p2.skin,
     p2Color: S.p2color, p2WL: S.p2wl,
     round: gv('v3-round'), bestOf: S.format,
@@ -812,6 +812,121 @@ function pushAll(showToast = true) {
     setTimeout(() => t.classList.remove('show'), 1800);
   }
 }
+
+// ── SYNC FROM STREAM SESSION ──────────────────────────────────
+// Populated automatically when admin sends a match to stream from /admin/santafe
+let lastV3SyncHash = '';
+
+async function syncFromSession() {
+  try {
+    const res = await fetch('/api/santa-fe/stream-session', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.ok) return;
+
+    const hash = JSON.stringify([
+      data.player1, data.player2,
+      data.score1,  data.score2,
+      data.char1,   data.char2, data.skin1, data.skin2,
+      data.round,   data.tournamentName, data.format,
+      data.player1Country, data.player1FlagCode, data.player1Seed, data.player1Pronouns, data.player1Prefix,
+      data.player2Country, data.player2FlagCode, data.player2Seed, data.player2Pronouns, data.player2Prefix,
+    ]);
+    if (hash === lastV3SyncHash) return;
+    lastV3SyncHash = hash;
+
+    function splitName(full, prefix) {
+      if (!full) return { sponsor: '', tag: '' };
+      if (prefix) {
+        const tag = full.replace(/^\s*\S+\s*\|\s*/, '').trim() || full;
+        return { sponsor: prefix, tag };
+      }
+      const parts = full.split('|').map(s => s.trim()).filter(Boolean);
+      return parts.length >= 2
+        ? { sponsor: parts[0], tag: parts.slice(1).join(' | ') }
+        : { sponsor: '', tag: full.trim() };
+    }
+    function sv(id, val) { if (val == null) return; const el = document.getElementById(id); if (el) el.value = val; }
+
+    // Players
+    const p1 = splitName(data.player1, data.player1Prefix);
+    sv('v3-p1-sponsor', p1.sponsor);
+    sv('v3-p1-tag', p1.tag);
+    sv('v3-p1-country', data.player1Country);
+    if (data.player1FlagCode) {
+      sv('v3-p1-flagcode', data.player1FlagCode);
+      const prev = document.getElementById('v3-p1-flagprev');
+      if (prev) prev.src = `https://flagcdn.com/w80/${data.player1FlagCode}.png`;
+      const lbl = document.getElementById('v3-p1-flaglbl');
+      if (lbl) lbl.textContent = data.player1FlagCode.toUpperCase();
+    }
+    if (data.player1Seed != null) sv('v3-p1-seed', 'SEED ' + data.player1Seed);
+    if (data.player1Pronouns) sv('v3-p1-pron', data.player1Pronouns);
+
+    const p2 = splitName(data.player2, data.player2Prefix);
+    sv('v3-p2-sponsor', p2.sponsor);
+    sv('v3-p2-tag', p2.tag);
+    sv('v3-p2-country', data.player2Country);
+    if (data.player2FlagCode) {
+      sv('v3-p2-flagcode', data.player2FlagCode);
+      const prev = document.getElementById('v3-p2-flagprev');
+      if (prev) prev.src = `https://flagcdn.com/w80/${data.player2FlagCode}.png`;
+      const lbl = document.getElementById('v3-p2-flaglbl');
+      if (lbl) lbl.textContent = data.player2FlagCode.toUpperCase();
+    }
+    if (data.player2Seed != null) sv('v3-p2-seed', 'SEED ' + data.player2Seed);
+    if (data.player2Pronouns) sv('v3-p2-pron', data.player2Pronouns);
+
+    // Round & Tournament
+    if (data.round) sv('v3-round', data.round);
+    if (data.tournamentName) {
+      const parts = data.tournamentName.split('\n');
+      sv('v3-ename1', parts[0] || data.tournamentName);
+      sv('v3-ename2', parts[1] || '');
+    }
+
+    // Format (admin sends 'BO3' / 'BO5')
+    if (data.format) {
+      const fmt = data.format === 'BO5' ? 'Bo5' : data.format === 'FreePlays' ? 'FreePlays' : 'Bo3';
+      S.format = fmt;
+      ['Bo3','Bo5','FreePlays'].forEach(k => {
+        const b = document.getElementById(`fmt-${k}`);
+        if (b) b.classList.toggle('active', k === fmt);
+      });
+    }
+
+    // Scores
+    if (typeof data.score1 === 'number') {
+      S.p1score = data.score1;
+      const el = document.getElementById('sv-p1');
+      if (el) el.textContent = data.score1;
+    }
+    if (typeof data.score2 === 'number') {
+      S.p2score = data.score2;
+      const el = document.getElementById('sv-p2');
+      if (el) el.textContent = data.score2;
+    }
+
+    // Characters
+    if (data.char1) {
+      S.p1char = data.skin1 && data.skin1 > 1
+        ? `${data.char1}|alt${String(data.skin1).padStart(2,'0')}` : data.char1;
+      renderGrid(1); renderAlts(1); updateCharPreview(1);
+    }
+    if (data.char2) {
+      S.p2char = data.skin2 && data.skin2 > 1
+        ? `${data.char2}|alt${String(data.skin2).padStart(2,'0')}` : data.char2;
+      renderGrid(2); renderAlts(2); updateCharPreview(2);
+    }
+
+    pushAll(false);
+  } catch(e) {}
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  syncFromSession();
+  setInterval(syncFromSession, 1500);
+});
 </script>
 </body>
 </html>
