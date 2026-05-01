@@ -1459,6 +1459,32 @@ export default function TestAdminPage() {
           player2Seed, player2Country, player2FlagCode, player2Prefix, player2Pronouns,
         }),
       }).catch(() => {});
+
+      // Poblar overlay2-state para que overlay2.html se actualice automáticamente
+      // con jugadores, ronda y formato al llamar un nuevo match de stream
+      const formatLabel = format === 'BO5' ? 'BO5' : 'BO3';
+      fetch('/api/santa-fe/overlay2-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          'p1-name':      players[0] || '',
+          'p2-name':      players[1] || '',
+          'p1-score':     0,
+          'p2-score':     0,
+          'p1-char':      '',
+          'p2-char':      '',
+          'event-round':   set.fullRoundText || set.round || '',
+          'event-bracket': formatLabel,
+          'p1-flag':      player1FlagCode || 'ar',
+          'p1-country':   player1Country || '',
+          'p1-seed':      player1Seed ? `SEED ${player1Seed}` : '',
+          'p1-pronouns':  player1Pronouns || '',
+          'p2-flag':      player2FlagCode || 'ar',
+          'p2-country':   player2Country || '',
+          'p2-seed':      player2Seed ? `SEED ${player2Seed}` : '',
+          'p2-pronouns':  player2Pronouns || '',
+        }),
+      }).catch(() => {});
     }
 
     // Agregar matchToken a las URLs para validación de identidad

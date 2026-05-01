@@ -123,7 +123,11 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   const prevTurnRef = useRef(null);
 
   // Identidad del jugador en este dispositivo (null = admin / espectador)
-  const _rawIdentity = playerIndex || manualIdentity || (session && playerName
+  // Si el matchToken de la URL no coincide con el de la sesión actual, playerIndex está
+  // desactualizado (match anterior) y se ignora para evitar que jugadores de partidas
+  // previas sigan interactuando con el match nuevo.
+  const tokenIsValid = !matchToken || !session?.matchToken || matchToken === session.matchToken;
+  const _rawIdentity = (tokenIsValid ? playerIndex : null) || manualIdentity || (session && playerName
     ? (() => {
         const uLow = playerName.toLowerCase().trim();
         const p1Low = (session.player1?.name || '').toLowerCase().trim();

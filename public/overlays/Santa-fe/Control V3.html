@@ -759,11 +759,13 @@ function buildOverlayPayload() {
 
 function parseChar(val) {
   if (!val) return { character: '', skin: 1 };
+  let id = val, skin = 1;
   if (val.includes('|alt')) {
     const [f, s] = val.split('|alt');
-    return { character: f, skin: parseInt(s, 10) || 1 };
+    id = f; skin = parseInt(s, 10) || 1;
   }
-  return { character: val, skin: 1 };
+  const charDef = CHARS.find(c => c.id === id);
+  return { character: charDef ? charDef.folder : id, skin };
 }
 
 function buildScoreboardPayload() {
@@ -778,6 +780,7 @@ function buildScoreboardPayload() {
     p2Character: p2.character, p2Skin: p2.skin,
     p2Color: S.p2color, p2WL: S.p2wl,
     round: gv('v3-round'), bestOf: S.format,
+    format: S.format === 'Bo3' ? '3' : S.format === 'Bo5' ? '5' : '',
     tournamentName: (gv('v3-ename1') + ' ' + gv('v3-ename2')).trim(),
     caster1Name: gv('v3-c1name'), caster1Twitter: gv('v3-c1tw'), caster1Twitch: gv('v3-c1th'),
     caster2Name: gv('v3-c2name'), caster2Twitter: gv('v3-c2tw'), caster2Twitch: gv('v3-c2th'),
