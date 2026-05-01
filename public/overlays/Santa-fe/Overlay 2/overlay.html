@@ -399,6 +399,22 @@ try {
   const raw = localStorage.getItem(CHANNEL);
   if (raw) { lastRaw = raw; applyData(JSON.parse(raw)); }
 } catch(e) {}
+
+// Sincronización cross-browser via API (para OBS y otros contextos aislados)
+let lastServerUpdatedAt = '';
+async function pollServer() {
+  try {
+    const res = await fetch('/api/santa-fe/overlay2-state');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.updatedAt && data.updatedAt !== lastServerUpdatedAt) {
+      lastServerUpdatedAt = data.updatedAt;
+      applyData(data);
+    }
+  } catch (e) {}
+}
+pollServer();
+setInterval(pollServer, 1000);
 </script>
 </body>
 </html>

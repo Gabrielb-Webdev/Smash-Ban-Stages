@@ -754,65 +754,84 @@ setInterval(syncFromSession, 1500);
 // ── INIT ──────────────────────────────────
 renderCharGrid(1); renderCharGrid(2);
 
-// Restaurar estado guardado
+// Aplica un estado guardado/remoto a todos los controles de la UI (sin disparar pushAll)
+function applyStateToUI(d) {
+  if (!d) return;
+  const textFields = ['p1-sponsor','p1-tag','p1-sponsor-color','p1-country','p1-flag','p1-twitter','p1-seed',
+                      'p2-sponsor','p2-tag','p2-sponsor-color','p2-country','p2-flag','p2-twitter','p2-seed',
+                      'event-round','event-bracket'];
+  textFields.forEach(k => {
+    const el = document.getElementById('c-' + k);
+    if (el && d[k] !== undefined) el.value = d[k];
+  });
+  if ((!d['p1-sponsor'] || !d['p1-tag']) && d['p1-name']) {
+    const parsed = parseSponsorTag(d['p1-name']);
+    const sponsorEl = document.getElementById('c-p1-sponsor');
+    const tagEl = document.getElementById('c-p1-tag');
+    if (sponsorEl) sponsorEl.value = parsed.sponsor;
+    if (tagEl) tagEl.value = parsed.tag;
+  }
+  if ((!d['p2-sponsor'] || !d['p2-tag']) && d['p2-name']) {
+    const parsed = parseSponsorTag(d['p2-name']);
+    const sponsorEl = document.getElementById('c-p2-sponsor');
+    const tagEl = document.getElementById('c-p2-tag');
+    if (sponsorEl) sponsorEl.value = parsed.sponsor;
+    if (tagEl) tagEl.value = parsed.tag;
+  }
+  if (d['event-name']) {
+    const pts = d['event-name'].split('\n');
+    document.getElementById('c-event-name1').value = pts[0]||'';
+    document.getElementById('c-event-name2').value = pts[1]||'';
+  }
+  ['p1','p2'].forEach(px => {
+    const sc = d[`${px}-score`];
+    if (sc !== undefined) {
+      state[`${px}-score`] = sc;
+      document.getElementById(`c-${px}-score`).textContent = sc;
+    }
+    const charVal = d[`${px}-char`];
+    if (charVal) {
+      state[`${px}-char`] = charVal;
+      const pNum = px === 'p1' ? 1 : 2;
+      let folder, altNum;
+      if (charVal.includes('|alt')) {
+        [folder, altNum] = charVal.split('|alt');
+        altNum = parseInt(altNum);
+      } else {
+        folder = charVal;
+        altNum = 2;
+      }
+      selectedChar[pNum] = folder;
+      selectedAlt[pNum]  = altNum;
+      refreshCharUI(pNum);
+      renderCharGrid(pNum);
+      buildAltStrip(pNum, folder);
+    }
+  });
+  updateFlag(1); updateFlag(2);
+}
+
+// Restaurar estado guardado localmente
 try {
   const saved = localStorage.getItem(CHANNEL);
-  if (saved) {
-    const d = JSON.parse(saved);
-    const textFields = ['p1-sponsor','p1-tag','p1-sponsor-color','p1-country','p1-flag','p1-twitter','p1-seed',
-                        'p2-sponsor','p2-tag','p2-sponsor-color','p2-country','p2-flag','p2-twitter','p2-seed',
-                        'event-round','event-bracket'];
-    textFields.forEach(k => {
-      const el = document.getElementById('c-' + k);
-      if (el && d[k] !== undefined) el.value = d[k];
-    });
-    if ((!d['p1-sponsor'] || !d['p1-tag']) && d['p1-name']) {
-      const parsed = parseSponsorTag(d['p1-name']);
-      const sponsorEl = document.getElementById('c-p1-sponsor');
-      const tagEl = document.getElementById('c-p1-tag');
-      if (sponsorEl) sponsorEl.value = parsed.sponsor;
-      if (tagEl) tagEl.value = parsed.tag;
-    }
-    if ((!d['p2-sponsor'] || !d['p2-tag']) && d['p2-name']) {
-      const parsed = parseSponsorTag(d['p2-name']);
-      const sponsorEl = document.getElementById('c-p2-sponsor');
-      const tagEl = document.getElementById('c-p2-tag');
-      if (sponsorEl) sponsorEl.value = parsed.sponsor;
-      if (tagEl) tagEl.value = parsed.tag;
-    }
-    if (d['event-name']) {
-      const pts = d['event-name'].split('\n');
-      document.getElementById('c-event-name1').value = pts[0]||'';
-      document.getElementById('c-event-name2').value = pts[1]||'';
-    }
-    ['p1','p2'].forEach(px => {
-      const sc = d[`${px}-score`];
-      if (sc !== undefined) {
-        state[`${px}-score`] = sc;
-        document.getElementById(`c-${px}-score`).textContent = sc;
-      }
-      const charVal = d[`${px}-char`];
-      if (charVal) {
-        state[`${px}-char`] = charVal;
-        const pNum = px === 'p1' ? 1 : 2;
-        let folder, altNum;
-        if (charVal.includes('|alt')) {
-          [folder, altNum] = charVal.split('|alt');
-          altNum = parseInt(altNum);
-        } else {
-          folder = charVal;
-          altNum = 2;
-        }
-        selectedChar[pNum] = folder;
-        selectedAlt[pNum]  = altNum;
-        refreshCharUI(pNum);
-        renderCharGrid(pNum);
-        buildAltStrip(pNum, folder);
-      }
-    });
-    updateFlag(1); updateFlag(2);
-  }
+  if (saved) applyStateToUI(JSON.parse(saved));
 } catch(e) {}
+
+// Sincronización remota: pollea el servidor para reflejar cambios de otro control
+let lastControlServerAt = '';
+async function pollControlFromServer() {
+  try {
+    const res = await fetch('/api/santa-fe/overlay2-state');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.updatedAt && data.updatedAt !== lastControlServerAt) {
+      lastControlServerAt = data.updatedAt;
+      applyStateToUI(data);
+    }
+  } catch (e) {}
+}
+pollControlFromServer();
+setInterval(pollControlFromServer, 1000);
 
 function attachRealtimePush() {
   const autoFields = ['c-event-name1','c-event-name2','c-event-round','c-event-bracket',
