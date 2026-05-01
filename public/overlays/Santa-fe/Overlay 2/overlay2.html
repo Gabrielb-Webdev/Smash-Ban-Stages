@@ -116,6 +116,26 @@
   }
   .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 
+  .tri-img {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: 50%;
+    top: 64%;
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    z-index: 3;
+    clip-path: polygon(50% 8.3%, 8.3% 91.7%, 91.7% 91.7%);
+  }
+
+  .stock-icon {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+  }
+
   /* ══ FILA 2: pills ══ */
   .row-pills {
     width: 100%;
@@ -134,7 +154,7 @@
   .pills-right { justify-content: flex-start; padding-left: 32px; }
 
   /* gap alineado con score-red + triangle + score-red */
-  .pills-center-gap { width: 760px; flex-shrink: 0; }
+  .pills-center-gap { width: 450px; flex-shrink: 0; }
 
   .pill {
     display: flex;
@@ -164,6 +184,7 @@
   <!-- FILA 1 -->
   <div class="row-bar">
     <div class="bar-left">
+      <img class="stock-icon" id="ov2-p1-stock" src="" alt="" style="display:none">
       <span class="player-name">
         <span class="sponsor" id="ov2-p1-sponsor">RRT4/INC</span>
         <span class="player-tag" id="ov2-p1-tag">Nostradamus</span>
@@ -182,6 +203,7 @@
           <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
             <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
           </svg>
+          <img id="ov2-tri-img" class="tri-img" src="" alt="" style="display:none">
         </div>
       </div>
 
@@ -196,6 +218,7 @@
         <span class="sponsor" id="ov2-p2-sponsor">CBA</span>
         <span class="player-tag" id="ov2-p2-tag">Floripundo</span>
       </span>
+      <img class="stock-icon" id="ov2-p2-stock" src="" alt="" style="display:none">
     </div>
   </div>
 
@@ -217,6 +240,62 @@
 </div>
 
 <script>
+const STOCK_ICON_FOLDER = {
+  'mario':'Mario','donkey_kong':'Donkey Kong','link':'Link',
+  'samus':'Samus','dark_samus':'Dark Samus','yoshi':'Yoshi',
+  'kirby':'Kirby','fox':'Fox','pikachu':'Pikachu','luigi':'Luigi',
+  'ness':'Ness','captain_falcon':'Captain Falcon','jigglypuff':'Jigglypuff',
+  'peach':'Peach','daisy':'Daisy','bowser':'Bowser',
+  'ice_climbers':'Ice Climbers','sheik':'Sheik','zelda':'Zelda',
+  'dr_mario':'Dr Mario','pichu':'Pichu','falco':'Falco',
+  'marth':'Marth','lucina':'Lucina','young_link':'Young Link',
+  'ganondorf':'Ganondorf','mewtwo':'Mewtwo','roy':'Roy','chrom':'Chrom',
+  'mr_game_and_watch':'Mr Game & Watch','game_watch':'Mr Game & Watch',
+  'meta_knight':'Meta Knight','pit':'Pit','dark_pit':'Dark Pit',
+  'zero_suit_samus':'Zero Suit Samus','wario':'Wario','snake':'Snake',
+  'ike':'Ike','pokemon_trainer':'Pokemon Trainer','diddy_kong':'Diddy Kong',
+  'lucas':'Lucas','sonic':'Sonic','king_dedede':'King Dedede',
+  'olimar':'Olimar','lucario':'Lucario','rob':'Rob',
+  'toon_link':'Toon Link','wolf':'Wolf','villager':'Villager',
+  'mega_man':'Mega Man','wii_fit_trainer':'Wii Fit Trainer',
+  'rosalina_and_luma':'Rosalina & Luma','little_mac':'Little Mac',
+  'greninja':'Greninja','mii_brawler':'Mii Brawler',
+  'mii_swordfighter':'Mii Swordfighter','mii_gunner':'Mii Gunner',
+  'palutena':'Palutena','pac_man':'Pac Man','robin':'Robin',
+  'shulk':'Shulk','bowser_jr':'Bowser Jr','duck_hunt':'Duck Hunt',
+  'ryu':'Ryu','ken':'Ken','cloud':'Cloud','corrin':'Corrin',
+  'bayonetta':'Bayonetta','inkling':'Inkling','ridley':'Ridley',
+  'simon':'Simon','richter':'Richter','king_k_rool':'King K Rool',
+  'isabelle':'Isabelle','incineroar':'Incineroar',
+  'piranha_plant':'Piranha Plant','joker':'Joker',
+  'hero':'Hero','dq_hero':'Hero',
+  'banjo_kazooie':'Banjo & Kazooie','banjo_and_kazooie':'Banjo & Kazooie',
+  'terry':'Terry','byleth':'Byleth','min_min':'Min Min','steve':'Steve',
+  'sephiroth':'Sephiroth','pyra':'Pyra & Mythra','pyra_and_mythra':'Pyra & Mythra',
+  'kazuya':'Kazuya','sora':'Sora',
+};
+
+function getStockIconSrc(charValue, skinOverride) {
+  if (!charValue) return '';
+  let folder = charValue, skin = skinOverride || 1;
+  if (charValue.includes('|alt')) {
+    const parts = charValue.split('|alt');
+    folder = parts[0];
+    skin = parseInt(parts[1], 10) || 1;
+  }
+  const name = STOCK_ICON_FOLDER[folder];
+  if (!name) return '';
+  return `./Stock Icons V2/${name}/${skin}.png`;
+}
+
+function applyStockIcon(pid, charValue, skinOverride) {
+  const el = document.getElementById(`ov2-p${pid}-stock`);
+  if (!el) return;
+  const src = getStockIconSrc(charValue, skinOverride);
+  if (src) { el.src = src; el.style.display = ''; }
+  else { el.style.display = 'none'; }
+}
+
 const CHANNEL = 'smash-scoreboard-v2';
 let ch;
 try { ch = new BroadcastChannel(CHANNEL); } catch (e) {}
@@ -294,6 +373,24 @@ function applyOverlay2Data(data) {
   if (data['p2-pronouns'] !== undefined) {
     const el = document.getElementById('ov2-p2-pronouns');
     if (el) { el.textContent = data['p2-pronouns']; el.style.display = data['p2-pronouns'] ? '' : 'none'; }
+  }
+
+  // Stock icons (control.html: p1-char / socket server: char1 + skin1)
+  if (data['p1-char'] !== undefined) {
+    applyStockIcon(1, data['p1-char']);
+  } else if (data['char1'] !== undefined) {
+    applyStockIcon(1, data['char1'], data['skin1']);
+  }
+  if (data['p2-char'] !== undefined) {
+    applyStockIcon(2, data['p2-char']);
+  } else if (data['char2'] !== undefined) {
+    applyStockIcon(2, data['char2'], data['skin2']);
+  }
+
+  // Imagen central del triángulo
+  if (data['tri-img'] !== undefined) {
+    const el = document.getElementById('ov2-tri-img');
+    if (el) { el.src = data['tri-img'] || ''; el.style.display = data['tri-img'] ? '' : 'none'; }
   }
 }
 
