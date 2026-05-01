@@ -1448,6 +1448,19 @@ export default function TestAdminPage() {
       matchToken = metaData.matchToken || '';
     } catch {}
 
+    // Guardar metadata de jugadores (seed, país, bandera, prefix) en Redis vía Vercel
+    // para que control.html pueda leerla independientemente del socket server
+    if (isStreamSetup && community === 'santafe') {
+      fetch('/api/santa-fe/player-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player1Seed, player1Country, player1FlagCode, player1Prefix, player1Pronouns,
+          player2Seed, player2Country, player2FlagCode, player2Prefix, player2Pronouns,
+        }),
+      }).catch(() => {});
+    }
+
     // Agregar matchToken a las URLs para validación de identidad
     const tokenParam = matchToken ? `&mt=${matchToken}` : '';
     const banUrl1WithToken = `${banUrl1}${tokenParam}`;
