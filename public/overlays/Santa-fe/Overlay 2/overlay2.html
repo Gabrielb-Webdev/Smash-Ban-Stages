@@ -29,10 +29,27 @@
     min-height: 300px;
   }
 
-  /* Franja oscura con nombre — reducida para dejar espacio al stock icon */
-  .bar-left, .bar-right {
+  /* Wrapper que agrupa franja + stock icon, posicionado donde estaba la barra */
+  .player-side-left, .player-side-right {
     position: absolute;
     top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  /* P1: su borde DERECHO queda anclado al score box */
+  .player-side-left {
+    right: calc(50% + 260px);
+    flex-direction: row-reverse; /* icon a la izq, barra a la der */
+  }
+  /* P2: su borde IZQUIERDO queda anclado al score box */
+  .player-side-right {
+    left: calc(50% + 260px);
+    flex-direction: row; /* barra a la izq, icon a la der */
+  }
+
+  /* Franja oscura con nombre */
+  .bar-left, .bar-right {
     display: inline-flex;
     align-items: center;
     height: 160px;
@@ -43,21 +60,17 @@
     overflow: hidden;
     white-space: nowrap;
   }
-  .bar-left  { right: calc(50% + 260px); justify-content: flex-end; }
-  .bar-right { left: calc(50% + 260px); justify-content: flex-start; }
+  .bar-left  { justify-content: flex-end; }
+  .bar-right { justify-content: flex-start; }
 
-  /* Stock icons fuera de la franja, en los bordes de la pantalla */
-  .stock-icon-p1, .stock-icon-p2 {
-    position: absolute;
-    top: 15px;
-    width: 130px;
-    height: 130px;
+  /* Stock icons pegados al borde de la franja */
+  .stock-icon {
+    width: 120px;
+    height: 120px;
     object-fit: contain;
+    flex-shrink: 0;
     filter: drop-shadow(0 2px 10px rgba(0,0,0,0.8));
-    z-index: 2;
   }
-  .stock-icon-p1 { left: 20px; }
-  .stock-icon-p2 { right: 20px; }
 
   .center-group {
     position: absolute;
@@ -177,15 +190,15 @@
   <!-- FILA 1 -->
   <div class="row-bar">
 
-    <!-- Stock icons fuera de la franja oscura -->
-    <img class="stock-icon-p1" id="ov2-p1-stock" src="" alt="" style="display:none">
-    <img class="stock-icon-p2" id="ov2-p2-stock" src="" alt="" style="display:none">
-
-    <div class="bar-left">
-      <span class="player-name">
-        <span class="sponsor" id="ov2-p1-sponsor">RRT4/INC</span>
-        <span class="player-tag" id="ov2-p1-tag">Nostradamus</span>
-      </span>
+    <!-- P1: icon pegado a la izquierda de la franja -->
+    <div class="player-side-left">
+      <img class="stock-icon" id="ov2-p1-stock" src="" alt="" style="display:none">
+      <div class="bar-left">
+        <span class="player-name">
+          <span class="sponsor" id="ov2-p1-sponsor">RRT4/INC</span>
+          <span class="player-tag" id="ov2-p1-tag">Nostradamus</span>
+        </span>
+      </div>
     </div>
 
     <div class="center-group">
@@ -203,8 +216,10 @@
                 <polygon points="60,10 10,110 110,110"/>
               </clipPath>
             </defs>
+            <!-- Fondo negro dentro del triángulo -->
+            <polygon points="60,10 10,110 110,110" fill="#000000" clip-path="url(#tri-clip)"/>
             <!-- Logo clipeado al interior del triángulo -->
-            <image id="ov2-tri-img" href="./Logo.png" x="0" y="0" width="120" height="120"
+            <image id="ov2-tri-img" href="./Logo.png" x="32" y="45" width="55" height="55"
                    clip-path="url(#tri-clip)" preserveAspectRatio="xMidYMid meet"/>
             <!-- Borde del triángulo encima -->
             <polygon points="60,10 10,110 110,110" fill="none" stroke="#ad1b45" stroke-width="4"/>
@@ -218,11 +233,15 @@
       </div>
     </div>
 
-    <div class="bar-right">
-      <span class="player-name">
-        <span class="sponsor" id="ov2-p2-sponsor">CBA</span>
-        <span class="player-tag" id="ov2-p2-tag">Floripundo</span>
-      </span>
+    <!-- P2: icon pegado a la derecha de la franja -->
+    <div class="player-side-right">
+      <div class="bar-right">
+        <span class="player-name">
+          <span class="sponsor" id="ov2-p2-sponsor">CBA</span>
+          <span class="player-tag" id="ov2-p2-tag">Floripundo</span>
+        </span>
+      </div>
+      <img class="stock-icon" id="ov2-p2-stock" src="" alt="" style="display:none">
     </div>
   </div>
 
