@@ -129,9 +129,10 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   const tokenIsValid = !matchToken || !session?.matchToken || matchToken === session.matchToken;
   const _rawIdentity = (tokenIsValid ? playerIndex : null) || manualIdentity || (session && playerName
     ? (() => {
-        const uLow = playerName.toLowerCase().trim();
-        const p1Low = (session.player1?.name || '').toLowerCase().trim();
-        const p2Low = (session.player2?.name || '').toLowerCase().trim();
+        const norm = s => (s || '').toLowerCase().trim().replace(/_/g, ' ');
+        const uLow = norm(playerName);
+        const p1Low = norm(session.player1?.name);
+        const p2Low = norm(session.player2?.name);
         if (p1Low && (p1Low === uLow || p1Low.includes(uLow) || uLow.includes(p1Low))) return 'player1';
         if (p2Low && (p2Low === uLow || p2Low.includes(uLow) || uLow.includes(p2Low))) return 'player2';
         return null;
@@ -581,37 +582,29 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
                 </p>
               </div>
             ) : (
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
-                  {[{ key: 'player1', name: session.player1?.name }, { key: 'player2', name: session.player2?.name }].map(({ key, name }) => {
+              <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>⏳</div>
+                <p style={{ margin: 0, fontSize: 17, color: 'rgba(255,255,255,0.65)', fontWeight: 800 }}>
+                  Esperando check-in de los jugadores
+                </p>
+                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 280, margin: '18px auto 0' }}>
+                  {[session.player1?.name, session.player2?.name].map(name => {
                     const checked = (session.checkIns || []).includes(name);
                     return (
-                      <button
-                        key={key}
-                        onClick={() => !checked && playerCheckin(sessionId, name, matchToken || session?.matchToken)}
-                        disabled={checked}
-                        style={{
-                          width: '100%', padding: '18px 20px', borderRadius: 16,
-                          border: checked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.25)',
-                          background: checked ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.08)',
-                          color: checked ? '#4ADE80' : '#fff', fontSize: 18, fontWeight: 900,
-                          cursor: checked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', gap: 12, transition: 'all 0.2s',
-                          boxShadow: checked ? '0 0 20px rgba(34,197,94,0.3)' : '0 4px 16px rgba(0,0,0,0.3)',
-                          fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
-                        }}
-                      >
-                        <span style={{ fontSize: 22 }}>{checked ? '✅' : '⏳'}</span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                        {checked && <span style={{ fontSize: 13, fontWeight: 700, color: '#4ADE80', opacity: 0.8, marginLeft: 'auto' }}>Confirmado</span>}
-                      </button>
+                      <div key={name} style={{
+                        padding: '10px 16px', borderRadius: 12,
+                        border: checked ? '1.5px solid rgba(34,197,94,0.5)' : '1.5px solid rgba(255,255,255,0.12)',
+                        background: checked ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                      }}>
+                        <span>{checked ? '✅' : '⏳'}</span>
+                        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: checked ? '#4ADE80' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                        <span style={{ fontSize: 12, color: checked ? '#4ADE80' : 'rgba(255,255,255,0.3)', fontWeight: 700 }}>{checked ? 'Listo' : 'Pendiente'}</span>
+                      </div>
                     );
                   })}
                 </div>
-                {(session.checkIns || []).length === 1 && (
-                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Esperando que el otro jugador confirme...</p>
-                )}
-              </>
+              </div>
             )}
           </div>
         )}
