@@ -565,11 +565,10 @@ function updateBorder(bestOf) {
 
 //team logo change
 function updateTeamLogo(logoID, pTeam) {
-	//search for an image with the team name
 	const logoEL = document.getElementById(logoID);
+	if (!pTeam) { showNothing(logoEL); return; }
+	logoEL.onerror = () => showNothing(logoEL);
 	logoEL.setAttribute('src', 'Resources/TeamLogos/' + pTeam + '.png');
-	//no image? show nothing
-	if (startup) {logoEL.addEventListener("error", () => {showNothing(logoEL)})}
 }
 
 //the logic behind the twitter/twitch constant change
