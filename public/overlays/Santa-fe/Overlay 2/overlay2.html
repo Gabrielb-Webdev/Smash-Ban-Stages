@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -12,7 +12,7 @@
 
   .everything {
     position: absolute;
-    top: 10%;
+    top: 5%;
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -29,7 +29,7 @@
     min-height: 300px;
   }
 
-  /* Franja oscura con nombre */
+  /* Franja oscura con nombre — reducida para dejar espacio al stock icon */
   .bar-left, .bar-right {
     position: absolute;
     top: 10px;
@@ -39,12 +39,25 @@
     background: #16081f;
     padding: 0 50px;
     width: auto;
-    max-width: calc(50% - 320px);
+    max-width: calc(50% - 420px);
     overflow: hidden;
     white-space: nowrap;
   }
   .bar-left  { right: calc(50% + 260px); justify-content: flex-end; }
   .bar-right { left: calc(50% + 260px); justify-content: flex-start; }
+
+  /* Stock icons fuera de la franja, en los bordes de la pantalla */
+  .stock-icon-p1, .stock-icon-p2 {
+    position: absolute;
+    top: 15px;
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 10px rgba(0,0,0,0.8));
+    z-index: 2;
+  }
+  .stock-icon-p1 { left: 20px; }
+  .stock-icon-p2 { right: 20px; }
 
   .center-group {
     position: absolute;
@@ -116,26 +129,6 @@
   }
   .triangle-svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 
-  .tri-img {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    left: 50%;
-    top: 64%;
-    transform: translate(-50%, -50%);
-    object-fit: contain;
-    z-index: 3;
-    clip-path: polygon(50% 8.3%, 8.3% 91.7%, 91.7% 91.7%);
-  }
-
-  .stock-icon {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    flex-shrink: 0;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
-  }
-
   /* ══ FILA 2: pills ══ */
   .row-pills {
     width: 100%;
@@ -183,8 +176,12 @@
 
   <!-- FILA 1 -->
   <div class="row-bar">
+
+    <!-- Stock icons fuera de la franja oscura -->
+    <img class="stock-icon-p1" id="ov2-p1-stock" src="" alt="" style="display:none">
+    <img class="stock-icon-p2" id="ov2-p2-stock" src="" alt="" style="display:none">
+
     <div class="bar-left">
-      <img class="stock-icon" id="ov2-p1-stock" src="" alt="" style="display:none">
       <span class="player-name">
         <span class="sponsor" id="ov2-p1-sponsor">RRT4/INC</span>
         <span class="player-tag" id="ov2-p1-tag">Nostradamus</span>
@@ -197,13 +194,21 @@
         <div class="score" id="ov2-p1-score">1</div>
       </div>
 
-      <!-- Triángulo -->
+      <!-- Triángulo con Logo.png como fill -->
       <div class="center-tri">
         <div class="triangle-container">
           <svg class="triangle-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="60,10 10,110 110,110" fill="#16081f" stroke="#ad1b45" stroke-width="4"/>
+            <defs>
+              <clipPath id="tri-clip">
+                <polygon points="60,10 10,110 110,110"/>
+              </clipPath>
+            </defs>
+            <!-- Logo clipeado al interior del triángulo -->
+            <image id="ov2-tri-img" href="./Logo.png" x="0" y="0" width="120" height="120"
+                   clip-path="url(#tri-clip)" preserveAspectRatio="xMidYMid meet"/>
+            <!-- Borde del triángulo encima -->
+            <polygon points="60,10 10,110 110,110" fill="none" stroke="#ad1b45" stroke-width="4"/>
           </svg>
-          <img id="ov2-tri-img" class="tri-img" src="" alt="" style="display:none">
         </div>
       </div>
 
@@ -218,7 +223,6 @@
         <span class="sponsor" id="ov2-p2-sponsor">CBA</span>
         <span class="player-tag" id="ov2-p2-tag">Floripundo</span>
       </span>
-      <img class="stock-icon" id="ov2-p2-stock" src="" alt="" style="display:none">
     </div>
   </div>
 
@@ -358,6 +362,7 @@ function applyOverlay2Data(data) {
     const el = document.getElementById('ov2-p2-sponsor');
     if (el) el.style.color = data['p2-sponsor-color'] || '#f8b500';
   }
+
   if (data['p1-score'] !== undefined) setText('ov2-p1-score', data['p1-score']);
   if (data['p2-score'] !== undefined) setText('ov2-p2-score', data['p2-score']);
   if (data['p1-seed'] !== undefined) setText('ov2-p1-seed', data['p1-seed']);
@@ -387,10 +392,10 @@ function applyOverlay2Data(data) {
     applyStockIcon(2, data['char2'], data['skin2']);
   }
 
-  // Imagen central del triángulo
+  // Imagen en el triángulo (opcional, reemplaza Logo.png si se envía una URL)
   if (data['tri-img'] !== undefined) {
     const el = document.getElementById('ov2-tri-img');
-    if (el) { el.src = data['tri-img'] || ''; el.style.display = data['tri-img'] ? '' : 'none'; }
+    if (el) el.setAttribute('href', data['tri-img'] || './Logo.png');
   }
 }
 

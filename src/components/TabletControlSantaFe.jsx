@@ -320,7 +320,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
     if (session.currentTurn) {
       setClickedItemId(characterId);
       const character = CHARACTERS.find(c => c.id === characterId);
-      const skinCount = getSantaFeSkinCount(characterId);
+      const skinCount = getSkinCount(characterId);
       if (skinCount <= 1) {
         setPendingAction({ type: 'character', characterId, characterName: character.name, characterImage: getStockIconPath(characterId, 1), player: session.currentTurn, skin: 1 });
       } else {
