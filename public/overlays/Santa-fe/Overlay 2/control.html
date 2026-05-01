@@ -403,6 +403,11 @@ function pushAll(showToastFlag = true) {
   const payload = buildPayload();
   if (ch) ch.postMessage(payload);
   try { localStorage.setItem(CHANNEL, JSON.stringify(payload)); } catch(e) {}
+  fetch('/api/santa-fe/overlay2-state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
   if (showToastFlag) showToast();
 }
 

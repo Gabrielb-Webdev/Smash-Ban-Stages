@@ -794,6 +794,25 @@ const httpServer = createServer(async (req, res) => {
       }
     });
     return;
+  } else if (req.url === '/overlay2-state' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(overlay2State || {}));
+    return;
+  } else if (req.url === '/overlay2-state' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        overlay2State = data;
+        overlay2StateTs = Date.now();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400); res.end(JSON.stringify({ error: 'Body inválido' }));
+      }
+    });
+    return;
   } else {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not Found' }));
@@ -815,6 +834,10 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling'],
   allowEIO3: true
 });
+
+// Estado en memoria del overlay2 (control → overlay cross-browser)
+let overlay2State = null;
+let overlay2StateTs = 0;
 
 // Almacenamiento en memoria de las sesiones activas (con persistencia en Redis)
 const sessions = new PersistentSessionMap();

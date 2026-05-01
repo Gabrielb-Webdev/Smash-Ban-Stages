@@ -277,6 +277,7 @@ function applyOverlay2Data(data) {
 
 if (ch) ch.onmessage = e => applyOverlay2Data(e.data);
 
+// Polling local (mismo navegador)
 let lastRaw = '';
 setInterval(() => {
   try {
@@ -295,6 +296,23 @@ try {
     applyOverlay2Data(JSON.parse(raw));
   }
 } catch (e) {}
+
+// Polling al servidor para recibir desde otros navegadores / OBS / otras PCs
+let lastServerHash = '';
+async function pollServerState() {
+  try {
+    const res = await fetch('/api/santa-fe/overlay2-state', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !Object.keys(data).length) return;
+    const hash = JSON.stringify(data);
+    if (hash === lastServerHash) return;
+    lastServerHash = hash;
+    applyOverlay2Data(data);
+  } catch (e) {}
+}
+pollServerState();
+setInterval(pollServerState, 500);
 </script>
 
 </body>
