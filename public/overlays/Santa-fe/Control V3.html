@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Control V3 — Santa Fe</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,900&family=Bebas+Neue&display=swap');
+  :root {
+    --bg:#010810; --card:#040f1e; --card2:#061525; --border:#0d3050;
+    --accent:#26cae2; --gold:#f8b500; --red:#c9184a;
+    --text:#d0e8f5; --muted:#6fa8c5; --p1:#fd3232; --p2:#2985f5;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  html,body { background:var(--bg); color:var(--text); font-family:'Lato',sans-serif; font-size:14px; min-height:100vh; }
+
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 20px; background:#020c18; border-bottom:2px solid var(--accent); gap:16px; position:sticky; top:0; z-index:100;
+  }
+  header h1 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px; color:var(--gold); }
+  .status-dots { display:flex; gap:10px; align-items:center; }
+  .sdot { display:flex; align-items:center; gap:5px; font-size:11px; font-weight:700; letter-spacing:1px; color:var(--muted); }
+  .sdot span { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 6px #22c55e; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+  #toast { position:fixed; bottom:24px; right:24px; background:#22c55e; color:#000; font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; padding:10px 22px; border-radius:8px; opacity:0; transform:translateY(8px); transition:all .3s; pointer-events:none; z-index:999; }
+  #toast.show { opacity:1; transform:translateY(0); }
+
+  .wrap { padding:14px 18px 40px; max-width:1400px; margin:0 auto; }
+
+  /* Event row */
+  .event-panel { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:12px; display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; align-items:end; }
+  .event-panel .field { margin:0; }
+
+  /* Main grid */
+  .main-grid { display:grid; grid-template-columns:1fr 200px 1fr; gap:12px; margin-bottom:12px; }
+
+  /* Panels */
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .panel-title { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .p1 .panel-title { color:var(--p1); border-color:var(--p1); }
+  .p2 .panel-title { color:var(--p2); border-color:var(--p2); }
+  .center .panel-title { color:var(--accent); border-color:var(--accent); text-align:center; }
+
+  /* Fields */
+  .field { margin-bottom:10px; }
+  .field:last-child { margin-bottom:0; }
+  .field label { display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:4px; }
+  .field input[type="text"],.field input[type="color"],.field select {
+    width:100%; background:#020c18; border:1px solid var(--border); border-radius:6px;
+    color:var(--text); padding:7px 10px; font-size:13px; font-weight:700; outline:none; transition:border-color .2s;
+  }
+  .field input:focus,.field select:focus { border-color:var(--accent); }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+  /* Section labels */
+  .slabel { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:10px 0 5px; }
+
+  /* Format buttons */
+  .fmt-btns { display:flex; gap:6px; }
+  .fmt-btn { flex:1; padding:8px 6px; border:2px solid var(--border); border-radius:7px; background:#020c18; color:var(--muted); font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:1px; cursor:pointer; transition:all .15s; }
+  .fmt-btn.active { border-color:var(--gold); background:rgba(248,181,0,0.1); color:var(--gold); }
+
+  /* Character grid */
+  .char-search { width:100%; background:#020c18; color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; margin-bottom:6px; outline:none; }
+  .char-search:focus { border-color:var(--accent); }
+  .char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(40px,1fr)); gap:3px; max-height:180px; overflow-y:auto; background:#020c18; border:1px solid var(--border); border-radius:7px; padding:5px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; margin-bottom:6px; }
+  .char-btn { background:transparent; border:2px solid transparent; border-radius:5px; padding:2px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+  .char-btn:hover { background:#0d2540; border-color:#1a4060; }
+  .char-btn.selected { border-color:var(--accent); background:#082030; }
+  .char-btn img { width:34px; height:34px; object-fit:contain; }
+
+  /* Alt strip */
+  .alt-strip { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; min-height:32px; }
+  .alt-btn { width:36px; height:36px; object-fit:contain; border-radius:5px; cursor:pointer; border:2px solid transparent; background:rgba(255,255,255,0.04); transition:all .12s; }
+  .alt-btn:hover { border-color:var(--accent); }
+  .alt-btn.active { border-color:var(--gold); background:rgba(248,181,0,0.1); }
+
+  /* Selected char preview */
+  .char-preview { display:flex; align-items:center; gap:8px; background:#020c18; border:1px solid var(--border); border-radius:7px; padding:7px 10px; margin-bottom:6px; }
+  .char-preview img { width:42px; height:42px; object-fit:contain; }
+  .char-preview .char-info { flex:1; }
+  .char-preview .char-name { font-size:13px; font-weight:700; color:var(--text); }
+  .char-preview .char-skin { font-size:11px; color:var(--muted); }
+
+  /* WL buttons */
+  .wl-row { display:flex; gap:5px; margin-bottom:10px; }
+  .wl-btn { flex:1; padding:7px 4px; border:2px solid transparent; border-radius:6px; font-size:12px; font-weight:800; letter-spacing:2px; cursor:pointer; transition:opacity .15s, border-color .15s; opacity:.4; }
+  .wl-btn.sel { opacity:1; border-color:white; }
+  .wl-w { background:#1a4a25; color:#4cd07d; }
+  .wl-l { background:#4a1a1a; color:#f47; }
+  .wl-n { background:#1a2535; color:#7ab; }
+
+  /* Color picker row */
+  .color-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
+  .col-btn { width:24px; height:24px; border-radius:4px; border:3px solid transparent; cursor:pointer; transition:border-color .15s, transform .1s; }
+  .col-btn:hover { transform:scale(1.15); }
+  .col-btn.sel { border-color:#fff; transform:scale(1.1); }
+
+  /* Center: scores */
+  .score-box { background:#020c18; border:1px solid var(--border); border-radius:8px; overflow:hidden; display:flex; align-items:center; margin-bottom:8px; }
+  .score-adj { background:#0b2540; color:var(--text); border:none; width:36px; height:44px; font-size:20px; cursor:pointer; flex-shrink:0; transition:background .15s; }
+  .score-adj:hover { background:#143050; }
+  .score-val { flex:1; text-align:center; font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--gold); line-height:1; }
+
+  .action-btn { width:100%; padding:10px; border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1.5px; cursor:pointer; transition:all .15s; margin-bottom:6px; }
+  .action-btn:last-child { margin-bottom:0; }
+  .btn-swap { background:#0b2540; color:var(--accent); border:1px solid var(--border); }
+  .btn-swap:hover { background:#143050; }
+  .btn-reset { background:#1a0b0b; color:#f47; border:1px solid #3a1515; }
+  .btn-reset:hover { background:#2a0f0f; }
+  .btn-send { background:linear-gradient(135deg,var(--gold),#e09800); color:#000; box-shadow:0 4px 14px rgba(248,181,0,0.25); }
+  .btn-send:hover { box-shadow:0 6px 18px rgba(248,181,0,0.4); }
+
+  /* Sponsor color */
+  .sponsor-color-wrap { display:flex; align-items:center; gap:8px; }
+  .sponsor-color-wrap input[type="color"] { width:36px; height:32px; padding:2px; border-radius:5px; cursor:pointer; }
+  .sponsor-color-wrap input[type="text"] { flex:1; }
+
+  /* Flag dropdown */
+  .flag-wrap { position:relative; }
+  .flag-btn { display:flex; align-items:center; gap:8px; background:#020c18; border:1px solid var(--border); border-radius:6px; padding:6px 10px; cursor:pointer; transition:border-color .2s; user-select:none; }
+  .flag-btn:hover { border-color:var(--accent); }
+  .flag-preview { width:24px; height:16px; object-fit:cover; border-radius:2px; flex-shrink:0; }
+  .flag-label { font-size:13px; font-weight:700; flex:1; }
+  .flag-caret { color:var(--muted); font-size:10px; }
+  .flag-panel { position:absolute; top:calc(100% + 3px); left:0; right:0; z-index:200; background:var(--card); border:1px solid var(--border); border-radius:7px; box-shadow:0 8px 24px rgba(0,0,0,0.7); overflow:hidden; }
+  .flag-search { width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); padding:8px 10px; font-size:12px; outline:none; }
+  .flag-list { max-height:180px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .flag-opt { display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:pointer; font-size:12px; font-weight:700; }
+  .flag-opt:hover { background:rgba(38,202,226,0.08); }
+  .flag-opt img { width:24px; height:16px; object-fit:cover; border-radius:2px; }
+
+  /* Casters */
+  .casters-panel { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 18px; }
+  .casters-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚔ Control V3 — Santa Fe</h1>
+  <div class="status-dots">
+    <div class="sdot"><span></span>OVERLAY 1</div>
+    <div class="sdot"><span></span>OVERLAY 2</div>
+    <div class="sdot"><span></span>SCOREBOARD</div>
+  </div>
+</header>
+<div id="toast">✓ Enviado</div>
+
+<div class="wrap">
+
+  <!-- EVENT -->
+  <div class="event-panel">
+    <div class="field">
+      <label>Torneo (línea 1)</label>
+      <input type="text" id="v3-ename1" value="Checkmate Showdown:">
+    </div>
+    <div class="field">
+      <label>Torneo (línea 2)</label>
+      <input type="text" id="v3-ename2" value="Knights Knockout">
+    </div>
+    <div class="field">
+      <label>Ronda</label>
+      <input type="text" id="v3-round" value="TOP 8 QUALIFIER">
+    </div>
+    <div class="field">
+      <label>Formato</label>
+      <div class="fmt-btns">
+        <button class="fmt-btn active" id="fmt-Bo3" onclick="setFormat('Bo3')">BO3</button>
+        <button class="fmt-btn" id="fmt-Bo5" onclick="setFormat('Bo5')">BO5</button>
+        <button class="fmt-btn" id="fmt-FreePlays" onclick="setFormat('FreePlays')">FREE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- P1 -->
+    <div class="panel p1">
+      <div class="panel-title">◀ JUGADOR 1</div>
+
+      <div class="field-row">
+        <div class="field"><label>Sponsor</label><input type="text" id="v3-p1-sponsor" value="RRT4/INC"></div>
+        <div class="field"><label>Tag</label><input type="text" id="v3-p1-tag" value="Nostradamus"></div>
+      </div>
+      <div class="field">
+        <label>Color sponsor</label>
+        <div class="sponsor-color-wrap">
+          <input type="color" id="v3-p1-sc" value="#f8b500">
+          <input type="text" id="v3-p1-sc-text" value="#f8b500" style="flex:1">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>País</label>
+          <input type="text" id="v3-p1-country" value="Arg">
+        </div>
+        <div class="field">
+          <label>Bandera</label>
+          <div class="flag-wrap" id="fw-p1">
+            <div class="flag-btn" onclick="toggleFlag(1)">
+              <img class="flag-preview" id="v3-p1-flagprev" src="https://flagcdn.com/w80/ar.png">
+              <span class="flag-label" id="v3-p1-flaglbl">AR</span>
+              <span class="flag-caret">▾</span>
+            </div>
+            <div class="flag-panel" id="fp-p1" style="display:none">
+              <input class="flag-search" placeholder="Buscar..." oninput="filterFlags(1,this.value)" onclick="event.stopPropagation()">
+              <div class="flag-list" id="fl-p1"></div>
+            </div>
+          </div>
+          <input type="hidden" id="v3-p1-flagcode" value="ar">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Twitter / Red</label><input type="text" id="v3-p1-twitter" value=""></div>
+        <div class="field"><label>Seed</label><input type="text" id="v3-p1-seed" value="SEED 1"></div>
+      </div>
+      <div class="field"><label>Pronombres</label><input type="text" id="v3-p1-pron" value=""></div>
+
+      <div class="slabel">W/L (Scoreboard)</div>
+      <div class="wl-row">
+        <button class="wl-btn wl-w" id="wl-p1-W" onclick="setWL(1,'W')">W</button>
+        <button class="wl-btn wl-l" id="wl-p1-L" onclick="setWL(1,'L')">L</button>
+        <button class="wl-btn wl-n sel" id="wl-p1-Nada" onclick="setWL(1,'Nada')">—</button>
+      </div>
+
+      <div class="slabel">Color (Scoreboard)</div>
+      <div class="color-row" id="cr-p1"></div>
+
+      <div class="slabel">Personaje</div>
+      <div class="char-preview" id="cprev-p1">
+        <img id="cprev-p1-img" src="" style="opacity:0.3" onerror="this.style.opacity=0.1" onload="this.style.opacity=1">
+        <div class="char-info"><div class="char-name" id="cprev-p1-name">Ninguno</div><div class="char-skin" id="cprev-p1-skin"></div></div>
+      </div>
+      <input class="char-search" id="cs-p1" placeholder="🔍 Buscar..." oninput="renderGrid(1)">
+      <div class="char-grid" id="cg-p1"></div>
+      <div class="slabel">Alt</div>
+      <div class="alt-strip" id="as-p1"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="panel center">
+      <div class="panel-title">— VS —</div>
+
+      <div class="slabel">Score P1</div>
+      <div class="score-box">
+        <button class="score-adj" onclick="adj(1,-1)">−</button>
+        <div class="score-val" id="sv-p1">0</div>
+        <button class="score-adj" onclick="adj(1,1)">+</button>
+      </div>
+
+      <div class="slabel">Score P2</div>
+      <div class="score-box">
+        <button class="score-adj" onclick="adj(2,-1)">−</button>
+        <div class="score-val" id="sv-p2">0</div>
+        <button class="score-adj" onclick="adj(2,1)">+</button>
+      </div>
+
+      <div style="margin:14px 0 8px">
+        <button class="action-btn btn-reset" onclick="resetScores()">↺ Reset Scores</button>
+        <button class="action-btn btn-swap" onclick="swapPlayers()">⇄ Swap</button>
+        <button class="action-btn btn-send" onclick="pushAll(true)">📡 Enviar</button>
+      </div>
+    </div>
+
+    <!-- P2 -->
+    <div class="panel p2">
+      <div class="panel-title">JUGADOR 2 ▶</div>
+
+      <div class="field-row">
+        <div class="field"><label>Sponsor</label><input type="text" id="v3-p2-sponsor" value=""></div>
+        <div class="field"><label>Tag</label><input type="text" id="v3-p2-tag" value="Floripundo"></div>
+      </div>
+      <div class="field">
+        <label>Color sponsor</label>
+        <div class="sponsor-color-wrap">
+          <input type="color" id="v3-p2-sc" value="#f8b500">
+          <input type="text" id="v3-p2-sc-text" value="#f8b500" style="flex:1">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>País</label>
+          <input type="text" id="v3-p2-country" value="Arg">
+        </div>
+        <div class="field">
+          <label>Bandera</label>
+          <div class="flag-wrap" id="fw-p2">
+            <div class="flag-btn" onclick="toggleFlag(2)">
+              <img class="flag-preview" id="v3-p2-flagprev" src="https://flagcdn.com/w80/ar.png">
+              <span class="flag-label" id="v3-p2-flaglbl">AR</span>
+              <span class="flag-caret">▾</span>
+            </div>
+            <div class="flag-panel" id="fp-p2" style="display:none">
+              <input class="flag-search" placeholder="Buscar..." oninput="filterFlags(2,this.value)" onclick="event.stopPropagation()">
+              <div class="flag-list" id="fl-p2"></div>
+            </div>
+          </div>
+          <input type="hidden" id="v3-p2-flagcode" value="ar">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Twitter / Red</label><input type="text" id="v3-p2-twitter" value=""></div>
+        <div class="field"><label>Seed</label><input type="text" id="v3-p2-seed" value="SEED 2"></div>
+      </div>
+      <div class="field"><label>Pronombres</label><input type="text" id="v3-p2-pron" value=""></div>
+
+      <div class="slabel">W/L (Scoreboard)</div>
+      <div class="wl-row">
+        <button class="wl-btn wl-w" id="wl-p2-W" onclick="setWL(2,'W')">W</button>
+        <button class="wl-btn wl-l" id="wl-p2-L" onclick="setWL(2,'L')">L</button>
+        <button class="wl-btn wl-n sel" id="wl-p2-Nada" onclick="setWL(2,'Nada')">—</button>
+      </div>
+
+      <div class="slabel">Color (Scoreboard)</div>
+      <div class="color-row" id="cr-p2"></div>
+
+      <div class="slabel">Personaje</div>
+      <div class="char-preview" id="cprev-p2">
+        <img id="cprev-p2-img" src="" style="opacity:0.3" onerror="this.style.opacity=0.1" onload="this.style.opacity=1">
+        <div class="char-info"><div class="char-name" id="cprev-p2-name">Ninguno</div><div class="char-skin" id="cprev-p2-skin"></div></div>
+      </div>
+      <input class="char-search" id="cs-p2" placeholder="🔍 Buscar..." oninput="renderGrid(2)">
+      <div class="char-grid" id="cg-p2"></div>
+      <div class="slabel">Alt</div>
+      <div class="alt-strip" id="as-p2"></div>
+    </div>
+
+  </div><!-- /main-grid -->
+
+  <!-- CASTERS -->
+  <div class="casters-panel">
+    <div class="panel-title" style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">🎙 CASTERS (Scoreboard)</div>
+    <div class="casters-grid">
+      <div>
+        <div class="slabel" style="margin-top:0">Caster 1</div>
+        <div class="field-row">
+          <div class="field"><label>Nombre</label><input type="text" id="v3-c1name" value=""></div>
+          <div class="field"><label>Twitter</label><input type="text" id="v3-c1tw" value=""></div>
+        </div>
+        <div class="field"><label>Twitch</label><input type="text" id="v3-c1th" value=""></div>
+      </div>
+      <div>
+        <div class="slabel" style="margin-top:0">Caster 2</div>
+        <div class="field-row">
+          <div class="field"><label>Nombre</label><input type="text" id="v3-c2name" value=""></div>
+          <div class="field"><label>Twitter</label><input type="text" id="v3-c2tw" value=""></div>
+        </div>
+        <div class="field"><label>Twitch</label><input type="text" id="v3-c2th" value=""></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────
+const S = {
+  p1score: 0, p2score: 0,
+  p1char: '', p2char: '',
+  p1wl: 'Nada', p2wl: 'Nada',
+  p1color: 'Red', p2color: 'Blue',
+  format: 'Bo3',
+};
+
+// ── CHARACTERS ────────────────────────────────────────────────
+const CHARS = [
+  {id:'banjo_and_kazooie',label:'Banjo & Kazooie',folder:'Banjo & Kazooie'},
+  {id:'bayonetta',label:'Bayonetta',folder:'Bayonetta'},
+  {id:'bowser',label:'Bowser',folder:'Bowser'},
+  {id:'bowser_jr',label:'Bowser Jr',folder:'Bowser Jr'},
+  {id:'byleth',label:'Byleth',folder:'Byleth'},
+  {id:'captain_falcon',label:'Captain Falcon',folder:'Captain Falcon'},
+  {id:'chrom',label:'Chrom',folder:'Chrom'},
+  {id:'cloud',label:'Cloud',folder:'Cloud'},
+  {id:'corrin',label:'Corrin',folder:'Corrin'},
+  {id:'daisy',label:'Daisy',folder:'Daisy'},
+  {id:'dark_pit',label:'Dark Pit',folder:'Dark Pit'},
+  {id:'dark_samus',label:'Dark Samus',folder:'Dark Samus'},
+  {id:'diddy_kong',label:'Diddy Kong',folder:'Diddy Kong'},
+  {id:'donkey_kong',label:'Donkey Kong',folder:'Donkey Kong'},
+  {id:'dr_mario',label:'Dr Mario',folder:'Dr Mario'},
+  {id:'duck_hunt',label:'Duck Hunt',folder:'Duck Hunt'},
+  {id:'falco',label:'Falco',folder:'Falco'},
+  {id:'fox',label:'Fox',folder:'Fox'},
+  {id:'ganondorf',label:'Ganondorf',folder:'Ganondorf'},
+  {id:'greninja',label:'Greninja',folder:'Greninja'},
+  {id:'dq_hero',label:'Hero',folder:'Hero'},
+  {id:'ice_climbers',label:'Ice Climbers',folder:'Ice Climbers'},
+  {id:'ike',label:'Ike',folder:'Ike'},
+  {id:'incineroar',label:'Incineroar',folder:'Incineroar'},
+  {id:'inkling',label:'Inkling',folder:'Inkling'},
+  {id:'isabelle',label:'Isabelle',folder:'Isabelle'},
+  {id:'jigglypuff',label:'Jigglypuff',folder:'Jigglypuff'},
+  {id:'joker',label:'Joker',folder:'Joker'},
+  {id:'kazuya',label:'Kazuya',folder:'Kazuya'},
+  {id:'ken',label:'Ken',folder:'Ken'},
+  {id:'king_dedede',label:'King Dedede',folder:'King Dedede'},
+  {id:'king_k_rool',label:'King K Rool',folder:'King K Rool'},
+  {id:'kirby',label:'Kirby',folder:'Kirby'},
+  {id:'link',label:'Link',folder:'Link'},
+  {id:'little_mac',label:'Little Mac',folder:'Little Mac'},
+  {id:'lucario',label:'Lucario',folder:'Lucario'},
+  {id:'lucas',label:'Lucas',folder:'Lucas'},
+  {id:'lucina',label:'Lucina',folder:'Lucina'},
+  {id:'luigi',label:'Luigi',folder:'Luigi'},
+  {id:'mario',label:'Mario',folder:'Mario'},
+  {id:'marth',label:'Marth',folder:'Marth'},
+  {id:'mega_man',label:'Mega Man',folder:'Mega Man'},
+  {id:'meta_knight',label:'Meta Knight',folder:'Meta Knight'},
+  {id:'mewtwo',label:'Mewtwo',folder:'Mewtwo'},
+  {id:'mii_brawler',label:'Mii Brawler',folder:'Mii Brawler'},
+  {id:'mii_gunner',label:'Mii Gunner',folder:'Mii Gunner'},
+  {id:'mii_swordfighter',label:'Mii Swordfighter',folder:'Mii Swordfighter'},
+  {id:'min_min',label:'Min Min',folder:'Min Min'},
+  {id:'mr_game_and_watch',label:'Mr Game & Watch',folder:'Mr Game & Watch'},
+  {id:'ness',label:'Ness',folder:'Ness'},
+  {id:'olimar',label:'Olimar',folder:'Olimar'},
+  {id:'pac_man',label:'Pac Man',folder:'Pac Man'},
+  {id:'palutena',label:'Palutena',folder:'Palutena'},
+  {id:'peach',label:'Peach',folder:'Peach'},
+  {id:'pichu',label:'Pichu',folder:'Pichu'},
+  {id:'pikachu',label:'Pikachu',folder:'Pikachu'},
+  {id:'piranha_plant',label:'Piranha Plant',folder:'Piranha Plant'},
+  {id:'pit',label:'Pit',folder:'Pit'},
+  {id:'pokemon_trainer',label:'Pokemon Trainer',folder:'Pokemon Trainer'},
+  {id:'pyra',label:'Pyra & Mythra',folder:'Pyra & Mythra'},
+  {id:'richter',label:'Richter',folder:'Richter'},
+  {id:'ridley',label:'Ridley',folder:'Ridley'},
+  {id:'rob',label:'R.O.B.',folder:'Rob'},
+  {id:'robin',label:'Robin',folder:'Robin'},
+  {id:'rosalina_and_luma',label:'Rosalina & Luma',folder:'Rosalina & Luma'},
+  {id:'roy',label:'Roy',folder:'Roy'},
+  {id:'ryu',label:'Ryu',folder:'Ryu'},
+  {id:'samus',label:'Samus',folder:'Samus'},
+  {id:'sephiroth',label:'Sephiroth',folder:'Sephiroth'},
+  {id:'sheik',label:'Sheik',folder:'Sheik'},
+  {id:'shulk',label:'Shulk',folder:'Shulk'},
+  {id:'simon',label:'Simon',folder:'Simon'},
+  {id:'snake',label:'Snake',folder:'Snake'},
+  {id:'sonic',label:'Sonic',folder:'Sonic'},
+  {id:'sora',label:'Sora',folder:'Sora'},
+  {id:'steve',label:'Steve',folder:'Steve'},
+  {id:'terry',label:'Terry',folder:'Terry'},
+  {id:'toon_link',label:'Toon Link',folder:'Toon Link'},
+  {id:'villager',label:'Villager',folder:'Villager'},
+  {id:'wario',label:'Wario',folder:'Wario'},
+  {id:'wii_fit_trainer',label:'Wii Fit Trainer',folder:'Wii Fit Trainer'},
+  {id:'wolf',label:'Wolf',folder:'Wolf'},
+  {id:'yoshi',label:'Yoshi',folder:'Yoshi'},
+  {id:'young_link',label:'Young Link',folder:'Young Link'},
+  {id:'zelda',label:'Zelda',folder:'Zelda'},
+  {id:'zero_suit_samus',label:'Zero Suit Samus',folder:'Zero Suit Samus'},
+];
+
+const SKIN_COUNT = {
+  'pikachu':8,'pichu':8,'jigglypuff':8,'mewtwo':8,'pokemon_trainer':8,
+  'mario':8,'luigi':8,'peach':8,'daisy':8,'rosalina_and_luma':8,'bowser':8,
+  'bowser_jr':8,'donkey_kong':8,'diddy_kong':8,'link':8,'zelda':8,'sheik':8,
+  'ganondorf':8,'young_link':8,'toon_link':8,'samus':8,'dark_samus':8,
+  'zero_suit_samus':8,'kirby':8,'meta_knight':8,'king_dedede':8,'fox':8,
+  'falco':8,'wolf':8,'captain_falcon':8,'ness':8,'lucas':8,'ice_climbers':8,
+  'marth':8,'lucina':8,'roy':8,'chrom':8,'ike':8,'robin':8,'corrin':8,'byleth':8,
+  'pit':8,'dark_pit':8,'palutena':8,'wii_fit_trainer':8,'shulk':8,'mii_brawler':8,
+  'mii_swordfighter':8,'mii_gunner':8,'villager':8,'isabelle':8,'inkling':8,
+  'olimar':8,'little_mac':8,'duck_hunt':8,'dr_mario':8,'mr_game_and_watch':8,
+  'wario':8,'mega_man':8,'pac_man':8,'cloud':8,'snake':8,'sonic':8,'bayonetta':8,
+  'ryu':8,'ken':8,'simon':8,'richter':8,'greninja':8,'lucario':8,'rob':8,
+  'ridley':8,'king_k_rool':8,'incineroar':8,'piranha_plant':8,'joker':8,
+  'dq_hero':8,'banjo_and_kazooie':8,'terry':8,'min_min':8,'steve':8,
+  'sephiroth':8,'pyra':8,'kazuya':8,'sora':8,'fox':8,
+};
+function getSkins(id) { return SKIN_COUNT[id] || 8; }
+function stockPath(folder, skin) { return `./Overlay 2/Stock Icons V2/${folder}/${skin}.png`; }
+
+// ── FLAG DATA ─────────────────────────────────────────────────
+const FLAGS = [
+  {code:'ar',name:'Argentina',short:'Arg'},{code:'br',name:'Brazil',short:'Bra'},
+  {code:'cl',name:'Chile',short:'Chi'},{code:'uy',name:'Uruguay',short:'Uru'},
+  {code:'py',name:'Paraguay',short:'Par'},{code:'bo',name:'Bolivia',short:'Bol'},
+  {code:'pe',name:'Perú',short:'Per'},{code:'co',name:'Colombia',short:'Col'},
+  {code:'ve',name:'Venezuela',short:'Ven'},{code:'ec',name:'Ecuador',short:'Ecu'},
+  {code:'mx',name:'Mexico',short:'Mex'},{code:'us',name:'United States',short:'USA'},
+  {code:'ca',name:'Canada',short:'Can'},{code:'gt',name:'Guatemala',short:'Gua'},
+  {code:'cr',name:'Costa Rica',short:'CRi'},{code:'pa',name:'Panama',short:'Pan'},
+  {code:'es',name:'Spain',short:'Esp'},{code:'pt',name:'Portugal',short:'Por'},
+  {code:'gb',name:'UK',short:'UK'},{code:'fr',name:'France',short:'Fra'},
+  {code:'de',name:'Germany',short:'Ger'},{code:'it',name:'Italy',short:'Ita'},
+  {code:'jp',name:'Japan',short:'Jpn'},{code:'kr',name:'Korea',short:'Kor'},
+  {code:'cn',name:'China',short:'Chn'},{code:'au',name:'Australia',short:'Aus'},
+  {code:'nz',name:'New Zealand',short:'NZ'},{code:'nl',name:'Netherlands',short:'Ned'},
+  {code:'se',name:'Sweden',short:'Swe'},{code:'no',name:'Norway',short:'Nor'},
+  {code:'fi',name:'Finland',short:'Fin'},{code:'dk',name:'Denmark',short:'Den'},
+  {code:'pl',name:'Poland',short:'Pol'},{code:'ru',name:'Russia',short:'Rus'},
+];
+
+const COLORS = [
+  {name:'Red',hex:'#e53935'},{name:'Blue',hex:'#1e88e5'},{name:'Yellow',hex:'#fdd835'},
+  {name:'Green',hex:'#43a047'},{name:'Orange',hex:'#fb8c00'},{name:'Cyan',hex:'#00acc1'},
+  {name:'Pink',hex:'#e91e8c'},{name:'Purple',hex:'#8e24aa'},
+  {name:'CPU',hex:'#78909c'},{name:'Amiibo',hex:'#f8b500'},
+];
+
+// ── BROADCAST ─────────────────────────────────────────────────
+const CHANNEL = 'smash-scoreboard-v2';
+let ch;
+try { ch = new BroadcastChannel(CHANNEL); } catch(e) {}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  [1,2].forEach(p => {
+    renderGrid(p);
+    renderColorRow(p);
+    renderFlagList(p);
+  });
+  setupAutoInputs();
+  setupColorSync();
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#fw-p1')) closeFlagPanel(1);
+    if (!e.target.closest('#fw-p2')) closeFlagPanel(2);
+  });
+});
+
+// ── CHARACTER GRID ────────────────────────────────────────────
+function renderGrid(p) {
+  const q = document.getElementById(`cs-p${p}`).value.toLowerCase();
+  const grid = document.getElementById(`cg-p${p}`);
+  grid.innerHTML = '';
+  CHARS.filter(c => c.label.toLowerCase().includes(q)).forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'char-btn' + (S[`p${p}char`].startsWith(c.id) ? ' selected' : '');
+    btn.title = c.label;
+    btn.onclick = () => selectChar(p, c.id);
+    const img = document.createElement('img');
+    img.src = stockPath(c.folder, 1);
+    img.alt = c.label;
+    btn.appendChild(img);
+    grid.appendChild(btn);
+  });
+}
+
+function selectChar(p, id) {
+  S[`p${p}char`] = id;
+  renderGrid(p);
+  renderAlts(p);
+  updateCharPreview(p);
+  pushAll(false);
+}
+
+function renderAlts(p) {
+  const id = S[`p${p}char`].split('|alt')[0];
+  const strip = document.getElementById(`as-p${p}`);
+  strip.innerHTML = '';
+  if (!id) return;
+  const ch = CHARS.find(c => c.id === id);
+  if (!ch) return;
+  const n = getSkins(id);
+  const cur = S[`p${p}char`];
+  for (let i = 1; i <= n; i++) {
+    const img = document.createElement('img');
+    img.className = 'alt-btn' + (cur === (i === 1 ? id : `${id}|alt${String(i).padStart(2,'0')}`) ? ' active' : '');
+    img.src = stockPath(ch.folder, i);
+    img.title = `Alt ${i}`;
+    img.onclick = () => {
+      S[`p${p}char`] = i === 1 ? id : `${id}|alt${String(i).padStart(2,'0')}`;
+      renderAlts(p);
+      updateCharPreview(p);
+      pushAll(false);
+    };
+    strip.appendChild(img);
+  }
+}
+
+function updateCharPreview(p) {
+  const val = S[`p${p}char`];
+  const id = val.split('|alt')[0];
+  const ch = CHARS.find(c => c.id === id);
+  const skinNum = val.includes('|alt') ? parseInt(val.split('|alt')[1], 10) : 1;
+  const img = document.getElementById(`cprev-p${p}-img`);
+  const nm = document.getElementById(`cprev-p${p}-name`);
+  const sk = document.getElementById(`cprev-p${p}-skin`);
+  if (ch) {
+    img.src = stockPath(ch.folder, skinNum);
+    nm.textContent = ch.label;
+    sk.textContent = `Alt ${skinNum}`;
+  } else {
+    img.src = ''; nm.textContent = 'Ninguno'; sk.textContent = '';
+  }
+}
+
+// ── WL ────────────────────────────────────────────────────────
+function setWL(p, v) {
+  S[`p${p}wl`] = v;
+  ['W','L','Nada'].forEach(x => {
+    const b = document.getElementById(`wl-p${p}-${x}`);
+    if (b) b.classList.toggle('sel', x === v);
+  });
+  pushAll(false);
+}
+
+// ── COLORS ────────────────────────────────────────────────────
+function renderColorRow(p) {
+  const row = document.getElementById(`cr-p${p}`);
+  row.innerHTML = '';
+  COLORS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'col-btn' + (S[`p${p}color`] === c.name ? ' sel' : '');
+    btn.style.background = c.hex;
+    btn.title = c.name;
+    btn.onclick = () => { S[`p${p}color`] = c.name; renderColorRow(p); pushAll(false); };
+    row.appendChild(btn);
+  });
+}
+
+// ── FORMAT ────────────────────────────────────────────────────
+function setFormat(f) {
+  S.format = f;
+  ['Bo3','Bo5','FreePlays'].forEach(k => {
+    const b = document.getElementById(`fmt-${k}`);
+    if (b) b.classList.toggle('active', k === f);
+  });
+  pushAll(false);
+}
+
+// ── FLAGS ─────────────────────────────────────────────────────
+function renderFlagList(p) {
+  buildFlagList(p, '');
+}
+function buildFlagList(p, q) {
+  const list = document.getElementById(`fl-p${p}`);
+  list.innerHTML = '';
+  FLAGS.filter(f => f.name.toLowerCase().includes(q.toLowerCase()) || f.code.includes(q.toLowerCase()) || f.short.toLowerCase().includes(q.toLowerCase()))
+    .forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'flag-opt';
+      div.innerHTML = `<img src="https://flagcdn.com/w80/${f.code}.png" alt="${f.short}"><span>${f.name}</span><span style="margin-left:auto;font-size:11px;color:var(--muted)">${f.short}</span>`;
+      div.onclick = () => selectFlag(p, f.code, f.short, f.name);
+      list.appendChild(div);
+    });
+}
+function filterFlags(p, q) { buildFlagList(p, q); }
+function toggleFlag(p) {
+  const panel = document.getElementById(`fp-p${p}`);
+  panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+function closeFlagPanel(p) {
+  const panel = document.getElementById(`fp-p${p}`);
+  if (panel) panel.style.display = 'none';
+}
+function selectFlag(p, code, short, name) {
+  document.getElementById(`v3-p${p}-flagcode`).value = code;
+  document.getElementById(`v3-p${p}-flagprev`).src = `https://flagcdn.com/w80/${code}.png`;
+  document.getElementById(`v3-p${p}-flaglbl`).textContent = code.toUpperCase();
+  document.getElementById(`v3-p${p}-country`).value = short;
+  closeFlagPanel(p);
+  pushAll(false);
+}
+
+// ── SCORES ────────────────────────────────────────────────────
+function adj(p, d) {
+  S[`p${p}score`] = Math.max(0, S[`p${p}score`] + d);
+  document.getElementById(`sv-p${p}`).textContent = S[`p${p}score`];
+  pushAll(false);
+}
+function resetScores() {
+  S.p1score = 0; S.p2score = 0;
+  document.getElementById('sv-p1').textContent = 0;
+  document.getElementById('sv-p2').textContent = 0;
+  pushAll(false);
+}
+
+// ── SWAP ──────────────────────────────────────────────────────
+function swapPlayers() {
+  const pairs = [
+    ['v3-p1-sponsor','v3-p2-sponsor'],['v3-p1-tag','v3-p2-tag'],
+    ['v3-p1-sc','v3-p2-sc'],['v3-p1-sc-text','v3-p2-sc-text'],
+    ['v3-p1-country','v3-p2-country'],['v3-p1-twitter','v3-p2-twitter'],
+    ['v3-p1-seed','v3-p2-seed'],['v3-p1-pron','v3-p2-pron'],
+  ];
+  pairs.forEach(([a,b]) => {
+    const va = document.getElementById(a).value;
+    document.getElementById(a).value = document.getElementById(b).value;
+    document.getElementById(b).value = va;
+  });
+  // swap flag — snapshot both before writing
+  const fc1 = document.getElementById('v3-p1-flagcode').value;
+  const fc2 = document.getElementById('v3-p2-flagcode').value;
+  const fs1 = document.getElementById('v3-p1-country').value;
+  const fs2 = document.getElementById('v3-p2-country').value;
+  selectFlag(1, fc2, fs2, '');
+  selectFlag(2, fc1, fs1, '');
+  // swap score
+  [S.p1score, S.p2score] = [S.p2score, S.p1score];
+  document.getElementById('sv-p1').textContent = S.p1score;
+  document.getElementById('sv-p2').textContent = S.p2score;
+  // swap char
+  [S.p1char, S.p2char] = [S.p2char, S.p1char];
+  [S.p1wl, S.p2wl] = [S.p2wl, S.p1wl];
+  [S.p1color, S.p2color] = [S.p2color, S.p1color];
+  [1,2].forEach(p => { renderGrid(p); renderAlts(p); updateCharPreview(p); setWL(p, S[`p${p}wl`]); renderColorRow(p); });
+  pushAll(false);
+}
+
+// ── SPONSOR COLOR SYNC ────────────────────────────────────────
+function setupColorSync() {
+  [1,2].forEach(p => {
+    const picker = document.getElementById(`v3-p${p}-sc`);
+    const text   = document.getElementById(`v3-p${p}-sc-text`);
+    picker.addEventListener('input', () => { text.value = picker.value; pushAll(false); });
+    text.addEventListener('input', () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(text.value)) { picker.value = text.value; }
+      pushAll(false);
+    });
+  });
+}
+
+// ── AUTO-SEND ON INPUT ────────────────────────────────────────
+function setupAutoInputs() {
+  const ids = [
+    'v3-ename1','v3-ename2','v3-round',
+    'v3-p1-sponsor','v3-p1-tag','v3-p1-country','v3-p1-twitter','v3-p1-seed','v3-p1-pron',
+    'v3-p2-sponsor','v3-p2-tag','v3-p2-country','v3-p2-twitter','v3-p2-seed','v3-p2-pron',
+    'v3-c1name','v3-c1tw','v3-c1th','v3-c2name','v3-c2tw','v3-c2th',
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => pushAll(false));
+  });
+}
+
+// ── BUILD PAYLOADS ────────────────────────────────────────────
+function gv(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+function buildOverlayPayload() {
+  const p1Sponsor = gv('v3-p1-sponsor'), p1Tag = gv('v3-p1-tag');
+  const p2Sponsor = gv('v3-p2-sponsor'), p2Tag = gv('v3-p2-tag');
+  const formatLabel = S.format === 'Bo3' ? 'BO3' : S.format === 'Bo5' ? 'BO5' : 'FREE PLAYS';
+  return {
+    'event-name':    gv('v3-ename1') + '\n' + gv('v3-ename2'),
+    'event-round':   gv('v3-round'),
+    'event-bracket': formatLabel,
+    'p1-sponsor': p1Sponsor, 'p1-tag': p1Tag,
+    'p1-sponsor-color': gv('v3-p1-sc-text') || '#f8b500',
+    'p1-name': p1Sponsor && p1Tag ? `${p1Sponsor} | ${p1Tag}` : (p1Sponsor || p1Tag),
+    'p1-country': gv('v3-p1-country'), 'p1-flag': gv('v3-p1-flagcode'),
+    'p1-twitter': gv('v3-p1-twitter'), 'p1-seed': gv('v3-p1-seed'),
+    'p1-pronouns': gv('v3-p1-pron'),
+    'p1-score': S.p1score, 'p1-char': S.p1char,
+    'p2-sponsor': p2Sponsor, 'p2-tag': p2Tag,
+    'p2-sponsor-color': gv('v3-p2-sc-text') || '#f8b500',
+    'p2-name': p2Sponsor && p2Tag ? `${p2Sponsor} | ${p2Tag}` : (p2Sponsor || p2Tag),
+    'p2-country': gv('v3-p2-country'), 'p2-flag': gv('v3-p2-flagcode'),
+    'p2-twitter': gv('v3-p2-twitter'), 'p2-seed': gv('v3-p2-seed'),
+    'p2-pronouns': gv('v3-p2-pron'),
+    'p2-score': S.p2score, 'p2-char': S.p2char,
+  };
+}
+
+function parseChar(val) {
+  if (!val) return { character: '', skin: 1 };
+  if (val.includes('|alt')) {
+    const [f, s] = val.split('|alt');
+    return { character: f, skin: parseInt(s, 10) || 1 };
+  }
+  return { character: val, skin: 1 };
+}
+
+function buildScoreboardPayload() {
+  const p1 = parseChar(S.p1char), p2 = parseChar(S.p2char);
+  return {
+    p1Name: gv('v3-p1-tag'), p1Team: gv('v3-p1-sponsor'),
+    p1Pron: gv('v3-p1-pron'), p1Score: S.p1score, p1NScore: S.p1score,
+    p1Character: p1.character, p1Skin: p1.skin,
+    p1Color: S.p1color, p1WL: S.p1wl,
+    p2Name: gv('v3-p2-tag'), p2Team: gv('v3-p2-sponsor'),
+    p2Pron: gv('v3-p2-pron'), p2Score: S.p2score, p2NScore: S.p2score,
+    p2Character: p2.character, p2Skin: p2.skin,
+    p2Color: S.p2color, p2WL: S.p2wl,
+    round: gv('v3-round'), bestOf: S.format,
+    tournamentName: (gv('v3-ename1') + ' ' + gv('v3-ename2')).trim(),
+    caster1Name: gv('v3-c1name'), caster1Twitter: gv('v3-c1tw'), caster1Twitch: gv('v3-c1th'),
+    caster2Name: gv('v3-c2name'), caster2Twitter: gv('v3-c2tw'), caster2Twitch: gv('v3-c2th'),
+  };
+}
+
+// ── PUSH ──────────────────────────────────────────────────────
+function pushAll(showToast = true) {
+  // → Overlay 1 + Overlay 2 (BroadcastChannel + localStorage + API)
+  const ovPayload = buildOverlayPayload();
+  if (ch) ch.postMessage(ovPayload);
+  try { localStorage.setItem(CHANNEL, JSON.stringify(ovPayload)); } catch(e) {}
+  fetch('/api/santa-fe/overlay2-state', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(ovPayload),
+  }).catch(() => {});
+
+  // → Game Scoreboard (localStorage + API)
+  const sbPayload = buildScoreboardPayload();
+  try { localStorage.setItem('santa-fe-scoreboard', JSON.stringify(sbPayload)); } catch(e) {}
+  fetch('/api/scoreboard-update', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(sbPayload),
+  }).catch(() => {});
+
+  if (showToast) {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+}
+</script>
+</body>
+</html>

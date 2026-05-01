@@ -90,6 +90,12 @@
   #toast { position:fixed; bottom:30px; right:30px; background:#22c55e; color:#000; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; padding:12px 24px; border-radius:8px; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; z-index:999; }
   #toast.show { opacity:1; transform:translateY(0); }
 
+  /* ── Format Selector ── */
+  .format-btns { display:flex; gap:8px; margin-top:4px; }
+  .format-btn { flex:1; padding:10px 8px; border:2px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--muted); font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; cursor:pointer; transition:all 0.15s; }
+  .format-btn:hover { border-color:var(--gold); color:var(--text); }
+  .format-btn.active { border-color:var(--gold); background:rgba(248,181,0,0.15); color:var(--gold); }
+
   /* ── Flag Selector ── */
   .flag-select-wrap { position:relative; }
   .flag-select-btn { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; cursor:pointer; transition:border-color 0.2s; user-select:none; }
@@ -128,6 +134,14 @@
       <div class="field"><label>Nombre Torneo (línea 2)</label><input type="text" id="c-event-name2" value="Knights Knockout"></div>
       <div class="field"><label>Ronda</label><input type="text" id="c-event-round" value="TOP 8 QUALIFIER"></div>
       <div class="field"><label>Bracket</label><input type="text" id="c-event-bracket" value="TOP 16"></div>
+    </div>
+    <div class="field">
+      <label>Formato</label>
+      <div class="format-btns">
+        <button class="format-btn active" id="fmt-Bo3" onclick="setFormat('Bo3')">BO3</button>
+        <button class="format-btn" id="fmt-Bo5" onclick="setFormat('Bo5')">BO5</button>
+        <button class="format-btn" id="fmt-FreePlays" onclick="setFormat('FreePlays')">FREE PLAYS</button>
+      </div>
     </div>
   </div>
 
@@ -374,6 +388,7 @@ const CHARACTERS = [
 const state = {
   'event-name':'Checkmate Showdown:\nKnights Knockout',
   'event-round':'TOP 8 QUALIFIER','event-bracket':'TOP 16',
+  'format':'Bo3',
   'p1-name':'RRT4/INC Nostradamus','p1-country':'Esp','p1-flag':'es',
   'p1-twitter':'FRSNOSTRA','p1-seed':'SEED 2','p1-score':1,
   'p1-char':'', // formato: "banjo_and_kazooie/banjo_and_kazooie_alt01.png"
@@ -440,6 +455,60 @@ function buildPayload() {
   };
 }
 
+function setFormat(f) {
+  state['format'] = f;
+  ['Bo3','Bo5','FreePlays'].forEach(k => {
+    const btn = document.getElementById(`fmt-${k}`);
+    if (btn) btn.classList.toggle('active', k === f);
+  });
+  pushAll(false);
+}
+
+function parseCharState(charVal) {
+  if (!charVal) return { character: '', skin: 1 };
+  if (charVal.includes('|alt')) {
+    const [folder, altStr] = charVal.split('|alt');
+    return { character: folder, skin: parseInt(altStr, 10) || 1 };
+  }
+  return { character: charVal, skin: 1 };
+}
+
+function pushScoreboard() {
+  const p1 = parseCharState(state['p1-char']);
+  const p2 = parseCharState(state['p2-char']);
+  const p1Tag     = document.getElementById('c-p1-tag').value.trim();
+  const p1Sponsor = document.getElementById('c-p1-sponsor').value.trim();
+  const p2Tag     = document.getElementById('c-p2-tag').value.trim();
+  const p2Sponsor = document.getElementById('c-p2-sponsor').value.trim();
+
+  const sbData = {
+    p1Name:      p1Tag,
+    p1Team:      p1Sponsor,
+    p1Pron:      document.getElementById('c-p1-pronouns').value.trim(),
+    p1Score:     state['p1-score'],
+    p1NScore:    state['p1-score'],
+    p1Character: p1.character,
+    p1Skin:      p1.skin,
+    p2Name:      p2Tag,
+    p2Team:      p2Sponsor,
+    p2Pron:      document.getElementById('c-p2-pronouns').value.trim(),
+    p2Score:     state['p2-score'],
+    p2NScore:    state['p2-score'],
+    p2Character: p2.character,
+    p2Skin:      p2.skin,
+    round:       document.getElementById('c-event-round').value.trim(),
+    bestOf:      state['format'],
+    tournamentName: (document.getElementById('c-event-name1').value + ' ' + document.getElementById('c-event-name2').value).trim(),
+  };
+
+  try { localStorage.setItem('santa-fe-scoreboard', JSON.stringify(sbData)); } catch(e) {}
+  fetch('/api/scoreboard-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sbData),
+  }).catch(() => {});
+}
+
 function pushAll(showToastFlag = true) {
   const payload = buildPayload();
   if (ch) ch.postMessage(payload);
@@ -449,6 +518,7 @@ function pushAll(showToastFlag = true) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }).catch(() => {});
+  pushScoreboard();
   if (showToastFlag) showToast();
 }
 

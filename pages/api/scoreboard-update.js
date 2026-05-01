@@ -8,7 +8,7 @@ const REDIS_TTL = 7 * 24 * 60 * 60; // 7 días
 
 const ALLOWED_COLORS = ['Red', 'Blue', 'Yellow', 'Green', 'Orange', 'Cyan', 'Pink', 'Purple', 'CPU', 'Amiibo'];
 const ALLOWED_WL = ['W', 'L', 'Nada'];
-const ALLOWED_BESTOF = ['Bo3', 'Bo5'];
+const ALLOWED_BESTOF = ['Bo3', 'Bo5', 'FreePlays'];
 
 function validate(body) {
   if (typeof body !== 'object' || body === null) return false;
