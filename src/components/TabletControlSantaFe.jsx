@@ -238,8 +238,8 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
   useEffect(() => {
     if (session?.phase !== 'CANCELLED' && session?.phase !== 'POSTPONED') return;
     const t = setTimeout(() => {
-      if (typeof window !== 'undefined') window.location.href = '/tablet/santafe-stream';
-    }, 2000);
+      if (typeof window !== 'undefined') window.location.href = '/home#rankings';
+    }, 1000);
     return () => clearTimeout(t);
   }, [session?.phase]);
 
@@ -624,7 +624,7 @@ export default function TabletControlSantaFe({ sessionId, playerName, playerInde
             <div className="text-7xl mb-4">⚠️</div>
             <h3 className="text-3xl font-bold text-white mb-3">Match cancelado</h3>
             <p className="text-white/60 text-base mb-4">El administrador canceló o pospuso este match.</p>
-            <p className="text-white/40 text-sm animate-pulse">Volviendo al inicio en 2 segundos...</p>
+            <p className="text-white/40 text-sm animate-pulse">Volviendo al inicio...</p>
           </div>
         )}
 
