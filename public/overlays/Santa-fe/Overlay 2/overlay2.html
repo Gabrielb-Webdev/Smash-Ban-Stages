@@ -144,7 +144,7 @@
     border: 3px solid #ad1b45;
     border-radius: 999px;
     padding: 18px 36px;
-    font-size: 20px;
+    font-size: 35px;
     font-weight: 900;
     color: #fff;
     letter-spacing: 0.5px;
@@ -240,7 +240,7 @@ function applyOverlay2Data(data) {
     if (split.length >= 2) {
       return { sponsor: split[0], tag: split.slice(1).join(' | ') };
     }
-    return { sponsor: value.trim(), tag: '' };
+    return { sponsor: '', tag: value.trim() };
   }
 
   function applySponsor(pid, sponsor, tag, color) {

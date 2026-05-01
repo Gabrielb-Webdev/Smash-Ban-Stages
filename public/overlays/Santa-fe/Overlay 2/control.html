@@ -89,6 +89,21 @@
 
   #toast { position:fixed; bottom:30px; right:30px; background:#22c55e; color:#000; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; padding:12px 24px; border-radius:8px; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; z-index:999; }
   #toast.show { opacity:1; transform:translateY(0); }
+
+  /* ── Flag Selector ── */
+  .flag-select-wrap { position:relative; }
+  .flag-select-btn { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; cursor:pointer; transition:border-color 0.2s; user-select:none; }
+  .flag-select-btn:hover { border-color:var(--gold); }
+  .flag-select-label { font-size:14px; font-weight:700; color:var(--text); flex:1; }
+  .flag-select-caret { color:var(--muted); font-size:11px; }
+  .flag-select-panel { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:200; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.6); overflow:hidden; }
+  .flag-search-input { width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); padding:10px 14px; font-size:13px; font-family:'Lato',sans-serif; outline:none; }
+  .flag-search-input::placeholder { color:var(--muted); }
+  .flag-option-list { max-height:220px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .flag-option { display:flex; align-items:center; gap:10px; padding:8px 14px; cursor:pointer; font-size:13px; font-weight:700; color:var(--text); }
+  .flag-option:hover { background:rgba(248,181,0,0.08); }
+  .flag-option img { width:28px; height:19px; object-fit:cover; border-radius:2px; border:1px solid rgba(255,255,255,0.1); flex-shrink:0; }
+  .flag-option-code { margin-left:auto; font-size:11px; color:var(--muted); font-weight:400; }
 </style>
 </head>
 <body>
@@ -129,11 +144,19 @@
     </div>
     <div class="field-row">
       <div class="field"><label>País (ej: Esp)</label><input type="text" id="c-p1-country" value="Esp" oninput="updateFlag(1)"></div>
-      <div class="field"><label>Código bandera (ej: es)</label>
-        <div class="flag-row">
-          <input type="text" id="c-p1-flagcode" value="es" oninput="updateFlag(1)">
-          <img class="flag-preview" id="c-p1-flagpreview" src="https://flagcdn.com/w80/es.png" alt="">
+      <div class="field"><label>Bandera</label>
+        <div class="flag-select-wrap" id="fs-wrap-p1">
+          <div class="flag-select-btn" onclick="toggleFlagSelect(1)">
+            <img class="flag-preview" id="c-p1-flagpreview" src="https://flagcdn.com/w80/ar.png" alt="">
+            <span class="flag-select-label" id="fs-label-p1">AR</span>
+            <span class="flag-select-caret">▾</span>
+          </div>
+          <div class="flag-select-panel" id="fs-panel-p1" style="display:none">
+            <input class="flag-search-input" id="fs-search-p1" placeholder="Buscar país..." oninput="filterFlagOptions(1,this.value)" onclick="event.stopPropagation()">
+            <div class="flag-option-list" id="fs-list-p1"></div>
+          </div>
         </div>
+        <input type="hidden" id="c-p1-flagcode" value="ar">
       </div>
     </div>
     <div class="field-row">
@@ -180,11 +203,19 @@
     </div>
     <div class="field-row">
       <div class="field"><label>País (ej: Arg)</label><input type="text" id="c-p2-country" value="Arg" oninput="updateFlag(2)"></div>
-      <div class="field"><label>Código bandera (ej: ar)</label>
-        <div class="flag-row">
-          <input type="text" id="c-p2-flagcode" value="ar" oninput="updateFlag(2)">
-          <img class="flag-preview" id="c-p2-flagpreview" src="https://flagcdn.com/w80/ar.png" alt="">
+      <div class="field"><label>Bandera</label>
+        <div class="flag-select-wrap" id="fs-wrap-p2">
+          <div class="flag-select-btn" onclick="toggleFlagSelect(2)">
+            <img class="flag-preview" id="c-p2-flagpreview" src="https://flagcdn.com/w80/ar.png" alt="">
+            <span class="flag-select-label" id="fs-label-p2">AR</span>
+            <span class="flag-select-caret">▾</span>
+          </div>
+          <div class="flag-select-panel" id="fs-panel-p2" style="display:none">
+            <input class="flag-search-input" id="fs-search-p2" placeholder="Buscar país..." oninput="filterFlagOptions(2,this.value)" onclick="event.stopPropagation()">
+            <div class="flag-option-list" id="fs-list-p2"></div>
+          </div>
         </div>
+        <input type="hidden" id="c-p2-flagcode" value="ar">
       </div>
     </div>
     <div class="field-row">
@@ -364,7 +395,7 @@ function parseSponsorTag(value) {
   if (split.length >= 2) {
     return { sponsor: split[0], tag: split.slice(1).join(' | ') };
   }
-  return { sponsor: value.trim(), tag: '' };
+  return { sponsor: '', tag: value.trim() };
 }
 
 function buildPayload() {
@@ -461,7 +492,7 @@ function swapPlayers() {
   [selectedChar[1], selectedChar[2]] = [selectedChar[2], selectedChar[1]];
   [selectedAlt[1],  selectedAlt[2]]  = [selectedAlt[2],  selectedAlt[1]];
 
-  updateFlag(1); updateFlag(2);
+  refreshFlagDisplay(1); refreshFlagDisplay(2);
   refreshCharUI(1); refreshCharUI(2);
   renderCharGrid(1); renderCharGrid(2);
   pushAll();
@@ -471,6 +502,13 @@ function swapPlayers() {
 function updateFlag(p) {
   const code = document.getElementById(`c-p${p}-flagcode`).value.trim().toLowerCase();
   document.getElementById(`c-p${p}-flagpreview`).src = code ? `https://flagcdn.com/w80/${code}.png` : '';
+}
+function refreshFlagDisplay(p) {
+  const code = (document.getElementById(`c-p${p}-flagcode`).value || '').trim().toLowerCase();
+  const preview = document.getElementById(`c-p${p}-flagpreview`);
+  const label   = document.getElementById(`fs-label-p${p}`);
+  if (preview) preview.src = code ? `https://flagcdn.com/w80/${code}.png` : '';
+  if (label)   label.textContent = code.toUpperCase();
 }
 
 // ── CHARACTER GRID ────────────────────────
@@ -752,10 +790,7 @@ async function syncFromSession() {
       const el = document.getElementById('c-p1-country');
       if (el) el.value = data.player1Country;
     }
-    if (data.player1FlagCode) {
-      const el = document.getElementById('c-p1-flagcode');
-      if (el) { el.value = data.player1FlagCode; updateFlag(1); }
-    }
+    if (data.player1FlagCode) selectFlagByCode(1, data.player1FlagCode);
     if (data.player1Seed != null) {
       const el = document.getElementById('c-p1-seed');
       if (el) el.value = 'SEED ' + data.player1Seed;
@@ -769,10 +804,7 @@ async function syncFromSession() {
       const el = document.getElementById('c-p2-country');
       if (el) el.value = data.player2Country;
     }
-    if (data.player2FlagCode) {
-      const el = document.getElementById('c-p2-flagcode');
-      if (el) { el.value = data.player2FlagCode; updateFlag(2); }
-    }
+    if (data.player2FlagCode) selectFlagByCode(2, data.player2FlagCode);
     if (data.player2Seed != null) {
       const el = document.getElementById('c-p2-seed');
       if (el) el.value = 'SEED ' + data.player2Seed;
@@ -868,9 +900,133 @@ try {
         buildAltStrip(pNum, folder);
       }
     });
-    updateFlag(1); updateFlag(2);
+    refreshFlagDisplay(1); refreshFlagDisplay(2);
   }
 } catch(e) {}
+
+// ── FLAG DROPDOWN ──────────────────────────
+const FLAG_COUNTRIES = [
+  {code:'af',name:'Afghanistan',short:'AFG'},{code:'al',name:'Albania',short:'ALB'},
+  {code:'dz',name:'Algeria',short:'ALG'},{code:'ar',name:'Argentina',short:'ARG'},
+  {code:'am',name:'Armenia',short:'ARM'},{code:'au',name:'Australia',short:'AUS'},
+  {code:'at',name:'Austria',short:'AUT'},{code:'az',name:'Azerbaijan',short:'AZE'},
+  {code:'bh',name:'Bahrain',short:'BHR'},{code:'bd',name:'Bangladesh',short:'BAN'},
+  {code:'by',name:'Belarus',short:'BLR'},{code:'be',name:'Belgium',short:'BEL'},
+  {code:'bo',name:'Bolivia',short:'BOL'},{code:'ba',name:'Bosnia',short:'BIH'},
+  {code:'br',name:'Brazil',short:'BRA'},{code:'bg',name:'Bulgaria',short:'BUL'},
+  {code:'ca',name:'Canada',short:'CAN'},{code:'cl',name:'Chile',short:'CHI'},
+  {code:'cn',name:'China',short:'CHN'},{code:'co',name:'Colombia',short:'COL'},
+  {code:'cr',name:'Costa Rica',short:'CRC'},{code:'hr',name:'Croatia',short:'CRO'},
+  {code:'cu',name:'Cuba',short:'CUB'},{code:'cz',name:'Czech Republic',short:'CZE'},
+  {code:'dk',name:'Denmark',short:'DEN'},{code:'do',name:'Dominican Republic',short:'DOM'},
+  {code:'ec',name:'Ecuador',short:'ECU'},{code:'eg',name:'Egypt',short:'EGY'},
+  {code:'sv',name:'El Salvador',short:'ESA'},{code:'ee',name:'Estonia',short:'EST'},
+  {code:'et',name:'Ethiopia',short:'ETH'},{code:'fi',name:'Finland',short:'FIN'},
+  {code:'fr',name:'France',short:'FRA'},{code:'ge',name:'Georgia',short:'GEO'},
+  {code:'de',name:'Germany',short:'GER'},{code:'gh',name:'Ghana',short:'GHA'},
+  {code:'gr',name:'Greece',short:'GRE'},{code:'gt',name:'Guatemala',short:'GUA'},
+  {code:'hn',name:'Honduras',short:'HON'},{code:'hk',name:'Hong Kong',short:'HKG'},
+  {code:'hu',name:'Hungary',short:'HUN'},{code:'is',name:'Iceland',short:'ISL'},
+  {code:'in',name:'India',short:'IND'},{code:'id',name:'Indonesia',short:'INA'},
+  {code:'ir',name:'Iran',short:'IRI'},{code:'iq',name:'Iraq',short:'IRQ'},
+  {code:'ie',name:'Ireland',short:'IRL'},{code:'il',name:'Israel',short:'ISR'},
+  {code:'it',name:'Italy',short:'ITA'},{code:'jm',name:'Jamaica',short:'JAM'},
+  {code:'jp',name:'Japan',short:'JPN'},{code:'jo',name:'Jordan',short:'JOR'},
+  {code:'kz',name:'Kazakhstan',short:'KAZ'},{code:'ke',name:'Kenya',short:'KEN'},
+  {code:'kr',name:'South Korea',short:'KOR'},{code:'kw',name:'Kuwait',short:'KUW'},
+  {code:'lv',name:'Latvia',short:'LAT'},{code:'lb',name:'Lebanon',short:'LIB'},
+  {code:'lt',name:'Lithuania',short:'LTU'},{code:'lu',name:'Luxembourg',short:'LUX'},
+  {code:'my',name:'Malaysia',short:'MAS'},{code:'mx',name:'Mexico',short:'MEX'},
+  {code:'md',name:'Moldova',short:'MDA'},{code:'ma',name:'Morocco',short:'MAR'},
+  {code:'nl',name:'Netherlands',short:'NED'},{code:'nz',name:'New Zealand',short:'NZL'},
+  {code:'ni',name:'Nicaragua',short:'NCA'},{code:'ng',name:'Nigeria',short:'NGR'},
+  {code:'mk',name:'North Macedonia',short:'MKD'},{code:'no',name:'Norway',short:'NOR'},
+  {code:'om',name:'Oman',short:'OMA'},{code:'pk',name:'Pakistan',short:'PAK'},
+  {code:'pa',name:'Panama',short:'PAN'},{code:'py',name:'Paraguay',short:'PAR'},
+  {code:'pe',name:'Peru',short:'PER'},{code:'ph',name:'Philippines',short:'PHI'},
+  {code:'pl',name:'Poland',short:'POL'},{code:'pt',name:'Portugal',short:'POR'},
+  {code:'pr',name:'Puerto Rico',short:'PUR'},{code:'qa',name:'Qatar',short:'QAT'},
+  {code:'ro',name:'Romania',short:'ROU'},{code:'ru',name:'Russia',short:'RUS'},
+  {code:'sa',name:'Saudi Arabia',short:'KSA'},{code:'rs',name:'Serbia',short:'SRB'},
+  {code:'sg',name:'Singapore',short:'SGP'},{code:'sk',name:'Slovakia',short:'SVK'},
+  {code:'si',name:'Slovenia',short:'SLO'},{code:'za',name:'South Africa',short:'RSA'},
+  {code:'es',name:'Spain',short:'ESP'},{code:'se',name:'Sweden',short:'SWE'},
+  {code:'ch',name:'Switzerland',short:'SUI'},{code:'tw',name:'Taiwan',short:'TPE'},
+  {code:'th',name:'Thailand',short:'THA'},{code:'tt',name:'Trinidad & Tobago',short:'TTO'},
+  {code:'tn',name:'Tunisia',short:'TUN'},{code:'tr',name:'Turkey',short:'TUR'},
+  {code:'ua',name:'Ukraine',short:'UKR'},{code:'ae',name:'United Arab Emirates',short:'UAE'},
+  {code:'gb',name:'United Kingdom',short:'GBR'},{code:'us',name:'United States',short:'USA'},
+  {code:'uy',name:'Uruguay',short:'URU'},{code:'ve',name:'Venezuela',short:'VEN'},
+  {code:'vn',name:'Vietnam',short:'VIE'},
+];
+FLAG_COUNTRIES.sort((a,b) => a.name.localeCompare(b.name));
+
+function buildFlagOptions(p) {
+  const list = document.getElementById(`fs-list-p${p}`);
+  if (!list) return;
+  list.innerHTML = '';
+  FLAG_COUNTRIES.forEach(c => {
+    const opt = document.createElement('div');
+    opt.className = 'flag-option';
+    opt.dataset.search = (c.name + ' ' + c.code + ' ' + c.short).toLowerCase();
+    opt.innerHTML = `<img src="https://flagcdn.com/w40/${c.code}.png" alt="" onerror="this.style.opacity=0.3"><span>${c.name}</span><span class="flag-option-code">${c.short}</span>`;
+    opt.onclick = () => selectFlag(p, c.code, c.short);
+    list.appendChild(opt);
+  });
+}
+
+function filterFlagOptions(p, query) {
+  const q = query.trim().toLowerCase();
+  document.getElementById(`fs-list-p${p}`).querySelectorAll('.flag-option').forEach(opt => {
+    opt.style.display = (!q || opt.dataset.search.includes(q)) ? '' : 'none';
+  });
+}
+
+function toggleFlagSelect(p) {
+  const panel = document.getElementById(`fs-panel-p${p}`);
+  const isOpen = panel.style.display !== 'none';
+  document.querySelectorAll('.flag-select-panel').forEach(el => el.style.display = 'none');
+  if (!isOpen) {
+    panel.style.display = 'block';
+    const search = document.getElementById(`fs-search-p${p}`);
+    if (search) { search.value = ''; filterFlagOptions(p, ''); search.focus(); }
+  }
+}
+
+function selectFlag(p, code, short) {
+  document.getElementById(`c-p${p}-flagcode`).value = code;
+  const preview = document.getElementById(`c-p${p}-flagpreview`);
+  if (preview) preview.src = `https://flagcdn.com/w80/${code}.png`;
+  const label = document.getElementById(`fs-label-p${p}`);
+  if (label) label.textContent = short || code.toUpperCase();
+  document.getElementById(`fs-panel-p${p}`).style.display = 'none';
+  const countryEl = document.getElementById(`c-p${p}-country`);
+  if (countryEl) countryEl.value = short || code.toUpperCase();
+  pushAll(false);
+}
+
+function selectFlagByCode(p, code) {
+  if (!code) return;
+  const c = FLAG_COUNTRIES.find(x => x.code === code.toLowerCase());
+  const short = c ? c.short : code.toUpperCase();
+  document.getElementById(`c-p${p}-flagcode`).value = code.toLowerCase();
+  const preview = document.getElementById(`c-p${p}-flagpreview`);
+  if (preview) preview.src = `https://flagcdn.com/w80/${code.toLowerCase()}.png`;
+  const label = document.getElementById(`fs-label-p${p}`);
+  if (label) label.textContent = short;
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.flag-select-wrap')) {
+    document.querySelectorAll('.flag-select-panel').forEach(el => el.style.display = 'none');
+  }
+});
+
+buildFlagOptions(1);
+buildFlagOptions(2);
+// Init visual con los valores por defecto
+refreshFlagDisplay(1);
+refreshFlagDisplay(2);
 
 function attachRealtimePush() {
   const autoFields = ['c-event-name1','c-event-name2','c-event-round','c-event-bracket',

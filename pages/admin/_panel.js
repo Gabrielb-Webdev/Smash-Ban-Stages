@@ -1332,13 +1332,13 @@ export default function TestAdminPage() {
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
     const p1Entrant = set.slots?.[0]?.entrant || {};
     const p2Entrant = set.slots?.[1]?.entrant || {};
-    const player1Country  = p1Entrant.country   || null;
-    const player1FlagCode = p1Entrant.flagCode   || null;
+    const player1Country  = p1Entrant.country   || 'Argentina';
+    const player1FlagCode = p1Entrant.flagCode   || 'ar';
     const player1Seed     = p1Entrant.seed       || null;
     const player1Prefix   = p1Entrant.prefix     || null;
     const player1Pronouns = p1Entrant.pronouns   || null;
-    const player2Country  = p2Entrant.country   || null;
-    const player2FlagCode = p2Entrant.flagCode   || null;
+    const player2Country  = p2Entrant.country   || 'Argentina';
+    const player2FlagCode = p2Entrant.flagCode   || 'ar';
     const player2Seed     = p2Entrant.seed       || null;
     const player2Prefix   = p2Entrant.prefix     || null;
     const player2Pronouns = p2Entrant.pronouns   || null;
