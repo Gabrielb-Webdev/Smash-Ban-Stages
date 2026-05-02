@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Miniatura - Mendoza</title>
+  <style>
+    @font-face {
+      font-family: 'Rubik';
+      src: url('Rubik-Bold.ttf') format('truetype');
+      font-weight: 700;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #0c0c0f;
+    }
+
+    .container {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ====== LEFT PANEL ====== */
+    .left-panel {
+      position: relative;
+      z-index: 2;
+      width: 800px;
+      flex-shrink: 0;
+      height: 1080px;
+      background: #121218;
+      /* Diagonal cut on right edge */
+      clip-path: polygon(0 0, 100% 0, 82% 100%, 0 100%);
+      padding: 70px 170px 70px 75px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Logo row */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo-main {
+      height: 72px;
+      object-fit: contain;
+    }
+
+    .logo-sep {
+      width: 2px;
+      height: 54px;
+      background: #3a3a4a;
+      flex-shrink: 0;
+    }
+
+    .logo-league {
+      height: 64px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .red-bar {
+      width: 100%;
+      height: 7px;
+      background: #c93545;
+      border-radius: 2px;
+      margin-top: 20px;
+    }
+
+    /* Players section */
+    .players-section {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .player {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+    }
+
+    .player-tag {
+      font-family: 'Rubik', 'Arial Black', sans-serif;
+      font-weight: 700;
+      font-size: 56px;
+      color: #ffffff;
+      white-space: nowrap;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .char-icon-wrap {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      background: #1e1e2a;
+      border: 3px solid #2e2e3e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .char-icon-small {
+      width: 82px;
+      height: 82px;
+      object-fit: contain;
+    }
+
+    .vs-block {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      flex-shrink: 0;
+      padding-bottom: 20px;
+    }
+
+    .vs-text {
+      font-family: 'Rubik', 'Arial Black', sans-serif;
+      font-weight: 700;
+      font-size: 38px;
+      color: #4a4a5a;
+      line-height: 1;
+    }
+
+    /* RESUMEN / Type text */
+    .type-text {
+      font-family: Impact, 'Arial Narrow', 'Arial Black', sans-serif;
+      font-size: 158px;
+      font-weight: 900;
+      font-style: italic;
+      color: #c93545;
+      line-height: 0.95;
+      letter-spacing: -2px;
+      white-space: nowrap;
+      text-shadow:
+        4px 4px 0px rgba(80, 10, 20, 0.7),
+        0px 0px 40px rgba(200, 50, 70, 0.15);
+    }
+
+    /* Match info */
+    .match-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tournament-name {
+      font-family: 'Rubik', 'Arial Black', sans-serif;
+      font-weight: 700;
+      font-size: 26px;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      line-height: 1.2;
+    }
+
+    .round-name {
+      font-family: 'Rubik', Arial, sans-serif;
+      font-weight: 400;
+      font-size: 20px;
+      color: #999;
+      letter-spacing: 0.5px;
+    }
+
+    /* ====== RIGHT PANEL ====== */
+    .right-panel {
+      flex: 1;
+      height: 1080px;
+      display: flex;
+      background: #0c0c0f;
+      position: relative;
+    }
+
+    .render-slot {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .render-bg {
+      position: absolute;
+      width: 720px;
+      height: 720px;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .render-bg.p1-bg {
+      background: radial-gradient(ellipse at center,
+        rgba(120, 130, 180, 0.45) 0%,
+        rgba(50, 55, 100, 0.30) 45%,
+        transparent 75%);
+    }
+
+    .render-bg.p2-bg {
+      background: radial-gradient(ellipse at center,
+        rgba(180, 70, 70, 0.45) 0%,
+        rgba(100, 30, 30, 0.30) 45%,
+        transparent 75%);
+    }
+
+    .char-render {
+      position: relative;
+      z-index: 2;
+      max-height: 1020px;
+      max-width: 510px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      object-position: bottom center;
+      filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.8));
+    }
+
+    .char-render.fallback {
+      max-height: 460px;
+      max-width: 460px;
+      opacity: 0.55;
+      margin-bottom: 200px;
+      filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ===== LEFT PANEL ===== -->
+    <div class="left-panel">
+
+      <div>
+        <div class="logo-row">
+          <img class="logo-main" src="logo.png" alt="Logo">
+          <div class="logo-sep"></div>
+          <img class="logo-league" id="league-logo" alt="Liga">
+        </div>
+        <div class="red-bar"></div>
+      </div>
+
+      <div class="players-section">
+        <div class="player">
+          <span class="player-tag" id="p1-tag">Jugador 1</span>
+          <div class="char-icon-wrap">
+            <img class="char-icon-small" id="p1-icon" src="" alt="">
+          </div>
+        </div>
+        <div class="vs-block">
+          <span class="vs-text">VS</span>
+        </div>
+        <div class="player">
+          <span class="player-tag" id="p2-tag">Jugador 2</span>
+          <div class="char-icon-wrap">
+            <img class="char-icon-small" id="p2-icon" src="" alt="">
+          </div>
+        </div>
+      </div>
+
+      <div class="type-text" id="type-text">RESUMEN</div>
+
+      <div class="match-info">
+        <div class="tournament-name" id="tournament-name">PREMIER SMASH LEAGUE #1</div>
+        <div class="round-name" id="round-name">Winners Semi-Finals</div>
+      </div>
+
+    </div>
+
+    <!-- ===== RIGHT PANEL ===== -->
+    <div class="right-panel">
+      <div class="render-slot">
+        <div class="render-bg p1-bg"></div>
+        <img class="char-render" id="p1-render" src="" alt="">
+      </div>
+      <div class="render-slot">
+        <div class="render-bg p2-bg"></div>
+        <img class="char-render" id="p2-render" src="" alt="">
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ===== URL PARAMS =====
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('type-text').textContent = params.get('type') || 'RESUMEN';
+    document.getElementById('tournament-name').textContent = params.get('tournament') || 'PREMIER SMASH LEAGUE #1';
+
+    const leagueLogo = params.get('leagueLogo');
+    if (leagueLogo) {
+      const el = document.getElementById('league-logo');
+      el.src = leagueLogo;
+      el.style.display = 'block';
+    }
+
+    // ===== KEBAB → FOLDER NAME (mismo que control.html) =====
+    const CHAR_FOLDER = {
+      'banjo-kazooie':'Banjo & Kazooie','bayonetta':'Bayonetta','bowser':'Bowser',
+      'bowser-jr':'Bowser Jr','byleth':'Byleth','captain-falcon':'Captain Falcon',
+      'chrom':'Chrom','cloud':'Cloud','corrin':'Corrin','daisy':'Daisy',
+      'dark-pit':'Dark Pit','dark-samus':'Dark Samus','diddy-kong':'Diddy Kong',
+      'donkey-kong':'Donkey Kong','dr-mario':'Dr Mario','duck-hunt':'Duck Hunt',
+      'falco':'Falco','fox':'Fox','ganondorf':'Ganondorf','greninja':'Greninja',
+      'hero':'Hero','ice-climbers':'Ice Climbers','ike':'Ike','incineroar':'Incineroar',
+      'inkling':'Inkling','isabelle':'Isabelle','jigglypuff':'Jigglypuff','joker':'Joker',
+      'kazuya':'Kazuya','ken':'Ken','king-dedede':'King Dedede','king-k-rool':'King K Rool',
+      'kirby':'Kirby','link':'Link','little-mac':'Little Mac','lucario':'Lucario',
+      'lucas':'Lucas','lucina':'Lucina','luigi':'Luigi','mario':'Mario','marth':'Marth',
+      'mega-man':'Mega Man','meta-knight':'Meta Knight','mewtwo':'Mewtwo',
+      'mii-brawler':'Mii Brawler','mii-gunner':'Mii Gunner','mii-swordfighter':'Mii Swordfighter',
+      'min-min':'Min Min','mr-game-and-watch':'Mr Game & Watch','ness':'Ness','olimar':'Olimar',
+      'pac-man':'Pac Man','palutena':'Palutena','peach':'Peach','pichu':'Pichu',
+      'pikachu':'Pikachu','piranha-plant':'Piranha Plant','pit':'Pit',
+      'pokemon-trainer':'Pokemon Trainer','pyra-mythra':'Pyra & Mythra','random':'Random','rob':'Rob',
+      'richter':'Richter','ridley':'Ridley','robin':'Robin','rosalina':'Rosalina & Luma',
+      'roy':'Roy','ryu':'Ryu','samus':'Samus','sephiroth':'Sephiroth','sheik':'Sheik',
+      'shulk':'Shulk','simon':'Simon','snake':'Snake','sonic':'Sonic','sora':'Sora',
+      'steve':'Steve','terry':'Terry','toon-link':'Toon Link','villager':'Villager',
+      'wario':'Wario','wii-fit-trainer':'Wii Fit Trainer','wolf':'Wolf','yoshi':'Yoshi',
+      'young-link':'Young Link','zelda':'Zelda','zero-suit-samus':'Zero Suit Samus',
+    };
+    function charToFolder(id) { return CHAR_FOLDER[id] || id; }
+
+    // ===== RENDER: smashbros.com CDN IDs =====
+    const SMASH_CDN_IDS = {
+      'Banjo & Kazooie': 'banjo_kazooie', 'Bayonetta': 'bayonetta', 'Bowser': 'koopa',
+      'Bowser Jr': 'koopa_jr', 'Byleth': 'byleth', 'Captain Falcon': 'captain_falcon',
+      'Chrom': 'chrom', 'Cloud': 'cloud', 'Corrin': 'kamui', 'Daisy': 'daisy',
+      'Dark Pit': 'pitb', 'Dark Samus': 'samusd', 'Diddy Kong': 'diddy_kong',
+      'Donkey Kong': 'donkey_kong', 'Dr Mario': 'mariod', 'Duck Hunt': 'duckhunt',
+      'Falco': 'falco', 'Fox': 'fox', 'Ganondorf': 'ganon', 'Greninja': 'gekkouga',
+      'Hero': 'brave', 'Ice Climbers': 'ice_climber', 'Ike': 'ike', 'Incineroar': 'gaogaen',
+      'Inkling': 'inkling', 'Isabelle': 'shizue', 'Jigglypuff': 'purin', 'Joker': 'joker',
+      'Kazuya': 'kazuya', 'Ken': 'ken', 'King Dedede': 'dedede', 'King K Rool': 'krool',
+      'Kirby': 'kirby', 'Link': 'link', 'Little Mac': 'littlemac', 'Lucario': 'lucario',
+      'Lucas': 'lucas', 'Lucina': 'lucina', 'Luigi': 'luigi', 'Mario': 'mario',
+      'Marth': 'marth', 'Mega Man': 'rockman', 'Meta Knight': 'metaknight', 'Mewtwo': 'mewtwo',
+      'Mii Brawler': 'miifighter', 'Mii Gunner': 'miigunner', 'Mii Swordfighter': 'miiswordsman',
+      'Min Min': 'minmin', 'Mr Game & Watch': 'gamewatch', 'Ness': 'ness', 'Olimar': 'pikmin_olimar',
+      'Pac Man': 'pacman', 'Palutena': 'palutena', 'Peach': 'peach', 'Pichu': 'pichu',
+      'Pikachu': 'pikachu', 'Piranha Plant': 'packun', 'Pit': 'pit',
+      'Pokemon Trainer': 'ptrainer', 'Pyra & Mythra': 'eflame_main', 'Richter': 'richter',
+      'Ridley': 'ridley', 'Rob': 'robot', 'Robin': 'reflet', 'Rosalina & Luma': 'rosetta',
+      'Roy': 'roy', 'Ryu': 'ryu', 'Samus': 'samus', 'Sephiroth': 'sephiroth',
+      'Sheik': 'sheik', 'Shulk': 'shulk', 'Simon': 'simon', 'Snake': 'snake',
+      'Sonic': 'sonic', 'Sora': 'sora', 'Steve': 'steve', 'Terry': 'terry',
+      'Toon Link': 'toonlink', 'Villager': 'murabito', 'Wario': 'wario',
+      'Wii Fit Trainer': 'wiifit', 'Wolf': 'wolf', 'Yoshi': 'yoshi',
+      'Young Link': 'younglink', 'Zelda': 'zelda', 'Zero Suit Samus': 'szerosuit',
+    };
+
+    function loadRender(imgEl, character, skin) {
+      if (!character || character === 'Random') {
+        imgEl.src = '';
+        return;
+      }
+      const folder = charToFolder(character);
+      const localRender = `/overlays/mendoza/renders/${folder}.png`;
+      const cdnId = SMASH_CDN_IDS[folder];
+      const cdnRender = cdnId
+        ? `https://www.smashbros.com/assets_v2/img/fighter/${cdnId}/main.png`
+        : null;
+      const iconFallback = `/overlays/mendoza/Stock Icons V2/${folder}/${skin || 1}.png`;
+
+      imgEl.classList.remove('fallback');
+
+      imgEl.src = localRender;
+      imgEl.onerror = () => {
+        if (cdnRender) {
+          imgEl.src = cdnRender;
+          imgEl.onerror = () => {
+            imgEl.src = iconFallback;
+            imgEl.classList.add('fallback');
+            imgEl.onerror = null;
+          };
+        } else {
+          imgEl.src = iconFallback;
+          imgEl.classList.add('fallback');
+          imgEl.onerror = null;
+        }
+      };
+    }
+
+    // ===== POLLING =====
+    let lastUpdatedAt = null;
+
+    async function fetchState() {
+      try {
+        const res = await fetch('/api/mendoza/scoreboard-state');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.updatedAt === lastUpdatedAt) return;
+        lastUpdatedAt = data.updatedAt;
+        applyState(data);
+      } catch (_) {}
+    }
+
+    function applyState(state) {
+      const p1 = state.player1 || {};
+      const p2 = state.player2 || {};
+
+      const char1 = charToFolder(p1.character || 'Random');
+      const char2 = charToFolder(p2.character || 'Random');
+      const skin1 = p1.skin || 1;
+      const skin2 = p2.skin || 1;
+
+      document.getElementById('p1-tag').textContent = p1.tag || 'Jugador 1';
+      document.getElementById('p2-tag').textContent = p2.tag || 'Jugador 2';
+
+      document.getElementById('p1-icon').src =
+        `/overlays/mendoza/Stock Icons V2/${char1}/${skin1}.png`;
+      document.getElementById('p2-icon').src =
+        `/overlays/mendoza/Stock Icons V2/${char2}/${skin2}.png`;
+
+      loadRender(document.getElementById('p1-render'), char1, skin1);
+      loadRender(document.getElementById('p2-render'), char2, skin2);
+
+      document.getElementById('round-name').textContent = state.round || '';
+    }
+
+    fetchState();
+    setInterval(fetchState, 1500);
+  </script>
+</body>
+</html>
