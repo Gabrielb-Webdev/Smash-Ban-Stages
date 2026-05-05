@@ -150,6 +150,34 @@ Control V3 ← /api/santa-fe/stream-session (polling 1.5s)
 
 ---
 
+---
+
+## Sistema Ranked Offline (5 mayo 2026)
+
+### Flujo completo
+1. **Admin** va a `/?panel=1` → sección "Ranked Offline" → configura N pantallas → activa → se genera código de 6 caracteres
+2. **Jugadores** van a `home#match` → ven el banner verde "Ranked Offline Activo" → ingresan el código + eligen personaje → se unen a la cola
+3. **Admin** ve la cola en tiempo real → click "Asignar partidas" → el sistema empareja por MMR más cercano y asigna a pantallas libres
+4. **Jugadores** ven en su teléfono a qué pantalla ir y contra quién juegan
+5. **Admin** reporta el ganador desde el panel (con stocks restantes) → stats actualizados automáticamente en `ranked:stats:{userId}:switch`
+6. Pantalla queda libre para la próxima pareja
+
+### Reglas del sistema
+- Solo cuentan para **Switch Online** (plataforma `'switch'`)
+- El código dura 24h o hasta que el admin termine la sesión
+- Las partidas usan el mismo `processMatchResult` de ranked online → mismo MMR/RR
+- Resultados quedan en el historial de partidas del jugador con flag `offline: true`
+- Admin puede marcar pantallas individuales como no disponibles (toggle 🟢/⚫)
+- Si una pantalla está ocupada aparece en 🔴, no se puede reasignar hasta reportar resultado
+
+### Redis keys usados
+- `offline:session` — sesión activa (TTL 24h)
+- `offline:queue` — cola de jugadores (TTL 24h)
+- `offline:matches` — partidas activas/terminadas (TTL 24h)
+- `offline:result:{userId}` — resultado para polling del jugador (TTL 600s)
+
+---
+
 ## Notas Importantes
 
 - El **formato en overlay.html** llega como `event-bracket` ("BO3"/"BO5"/"FREE PLAYS") y reemplaza el antiguo "TOP 16" hardcodeado.
