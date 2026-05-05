@@ -28,6 +28,12 @@ export default function Home() {
   const [bcastSending, setBcastSending]           = useState(false);
   const [bcastResult, setBcastResult]             = useState(null); // null | 'ok' | 'error'
   const [bcastOpen, setBcastOpen]                 = useState(false);
+  // Ranked Offline
+  const [offlineAdminOpen, setOfflineAdminOpen]       = useState(false);
+  const [offlineAdminData, setOfflineAdminData]       = useState({ session: null, queue: [], matches: [] });
+  const [offlineAdminScreens, setOfflineAdminScreens] = useState(3);
+  const [offlineAdminLoading, setOfflineAdminLoading] = useState(false);
+  const [offlineAdminMsg, setOfflineAdminMsg]         = useState(null);
 
   useEffect(() => {
     verifySession().then(data => {
@@ -394,6 +400,28 @@ export default function Home() {
     const d = await r.json();
     if (d.communityMap) setCommunityMap(d.communityMap);
   }
+
+  async function loadOfflineFullData() {
+    try {
+      const r = await fetch('/api/offline/session', {
+        headers: { Authorization: 'Bearer afk-admin-2025' },
+      });
+      const d = await r.json();
+      setOfflineAdminData({
+        session: d.session  || null,
+        queue:   d.queue    || [],
+        matches: d.matches  || [],
+      });
+      if (d.session) setOfflineAdminScreens(d.session.totalScreens || 3);
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (!offlineAdminOpen) return;
+    loadOfflineFullData();
+    const iv = setInterval(loadOfflineFullData, 4000);
+    return () => clearInterval(iv);
+  }, [offlineAdminOpen]); // eslint-disable-line
 
   async function notifyFeaturedFromIndex(slug) {
     const allTours = [...featuredTours, ...syncedTours];
@@ -826,6 +854,226 @@ export default function Home() {
                 </button>
                 {bcastResult === 'error' && (
                   <p style={{ margin: 0, fontSize: 12, color: '#f87171', textAlign: 'center' }}>Error al enviar. Intentá de nuevo.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── RANKED OFFLINE ── */}
+        {isAdmin && (
+          <div style={{ marginTop: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden', maxWidth: 640, margin: '16px auto 0' }}>
+            <button
+              onClick={() => setOfflineAdminOpen(p => !p)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                🎮 Ranked Offline
+                {offlineAdminData.session?.active && (
+                  <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 6 }}>Activo</span>
+                )}
+              </span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }}>{offlineAdminOpen ? '▾' : '▸'}</span>
+            </button>
+
+            {offlineAdminOpen && (
+              <div style={{ padding: '0 22px 22px' }}>
+
+                {/* Código activo */}
+                {offlineAdminData.session?.active && (
+                  <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 14, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CÓDIGO DE SESIÓN</p>
+                      <p style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 900, color: '#4ade80', letterSpacing: '0.15em', fontFamily: 'monospace' }}>{offlineAdminData.session.code}</p>
+                    </div>
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(offlineAdminData.session.code)}
+                      style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 10, padding: '8px 14px', color: '#4ade80', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                )}
+
+                {/* Configurar y activar */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
+                  <label style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, flexShrink: 0 }}>Pantallas:</label>
+                  <input
+                    type="number" min={1} max={10}
+                    value={offlineAdminScreens}
+                    onChange={e => setOfflineAdminScreens(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                    style={{ width: 60, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 10px', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
+                  />
+                  <button
+                    onClick={async () => {
+                      setOfflineAdminLoading(true);
+                      setOfflineAdminMsg(null);
+                      try {
+                        const r = await fetch('/api/offline/session', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+                          body: JSON.stringify({ totalScreens: offlineAdminScreens }),
+                        });
+                        if (!r.ok) throw new Error();
+                        await loadOfflineFullData();
+                        setOfflineAdminMsg({ type: 'ok', text: '✅ Sesión activa' });
+                      } catch {
+                        setOfflineAdminMsg({ type: 'err', text: '❌ Error al activar' });
+                      } finally {
+                        setOfflineAdminLoading(false);
+                        setTimeout(() => setOfflineAdminMsg(null), 3000);
+                      }
+                    }}
+                    disabled={offlineAdminLoading}
+                    style={{ flex: 1, background: 'linear-gradient(90deg,#22c55e,#16a34a)', border: 'none', borderRadius: 10, padding: '10px 16px', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', opacity: offlineAdminLoading ? 0.6 : 1 }}
+                  >
+                    {offlineAdminData.session?.active ? 'Actualizar sesión' : 'Activar Ranked Offline'}
+                  </button>
+                  {offlineAdminData.session?.active && (
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm('¿Terminar la sesión? Se limpiará la cola y las partidas activas.')) return;
+                        await fetch('/api/offline/session', { method: 'DELETE', headers: { 'Authorization': 'Bearer afk-admin-2025' } });
+                        await loadOfflineFullData();
+                      }}
+                      style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '10px 14px', color: '#f87171', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                    >
+                      Terminar
+                    </button>
+                  )}
+                </div>
+
+                {offlineAdminMsg && (
+                  <p style={{ margin: '0 0 12px', fontSize: 12, color: offlineAdminMsg.type === 'ok' ? '#4ade80' : '#f87171', textAlign: 'center' }}>{offlineAdminMsg.text}</p>
+                )}
+
+                {/* Pantallas — toggle individual */}
+                {offlineAdminData.session?.screens?.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pantallas</p>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {offlineAdminData.session.screens.map(screen => (
+                        <button
+                          key={screen.id}
+                          onClick={async () => {
+                            await fetch('/api/offline/session', {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+                              body: JSON.stringify({ screenId: screen.id, available: !screen.available }),
+                            });
+                            await loadOfflineFullData();
+                          }}
+                          style={{
+                            padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: 'none',
+                            background: screen.busy ? 'rgba(251,146,60,0.2)' : screen.available ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)',
+                            color: screen.busy ? '#fb923c' : screen.available ? '#4ade80' : 'rgba(255,255,255,0.3)',
+                          }}
+                        >
+                          {screen.label} {screen.busy ? '🔴' : screen.available ? '🟢' : '⚫'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cola de jugadores */}
+                {offlineAdminData.session?.active && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Cola ({offlineAdminData.queue.length} jugadores)
+                      </p>
+                      <button
+                        onClick={async () => {
+                          setOfflineAdminLoading(true);
+                          try {
+                            const r = await fetch('/api/offline/assign', {
+                              method: 'POST',
+                              headers: { 'Authorization': 'Bearer afk-admin-2025' },
+                            });
+                            const d = await r.json();
+                            await loadOfflineFullData();
+                            setOfflineAdminMsg({ type: 'ok', text: `✅ ${d.assigned?.length || 0} partida(s) asignada(s)` });
+                          } catch {
+                            setOfflineAdminMsg({ type: 'err', text: '❌ Error al asignar' });
+                          } finally {
+                            setOfflineAdminLoading(false);
+                            setTimeout(() => setOfflineAdminMsg(null), 3000);
+                          }
+                        }}
+                        disabled={offlineAdminLoading || offlineAdminData.queue.length < 2}
+                        style={{
+                          background: offlineAdminData.queue.length >= 2 ? 'linear-gradient(90deg,#FF8C00,#E85D00)' : 'rgba(255,255,255,0.06)',
+                          border: 'none', borderRadius: 10, padding: '7px 14px',
+                          color: offlineAdminData.queue.length >= 2 ? '#fff' : 'rgba(255,255,255,0.3)',
+                          fontWeight: 800, fontSize: 12,
+                          cursor: offlineAdminData.queue.length >= 2 ? 'pointer' : 'not-allowed',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Asignar partidas →
+                      </button>
+                    </div>
+                    {offlineAdminData.queue.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '8px 0' }}>Nadie en cola todavía</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {offlineAdminData.queue.map((p, i) => (
+                          <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 12px' }}>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 700, width: 20 }}>#{i + 1}</span>
+                            <span style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 700 }}>{p.userName}</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{p.charId}</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>MMR {p.mmr}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Partidas activas */}
+                {offlineAdminData.matches.filter(m => m.status === 'active').length > 0 && (
+                  <div>
+                    <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Partidas en juego</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {offlineAdminData.matches.filter(m => m.status === 'active').map(m => {
+                        const screen = offlineAdminData.session?.screens?.find(s => s.id === m.screenId);
+                        return (
+                          <div key={m.matchId} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                              <span style={{ fontSize: 12, color: '#fb923c', fontWeight: 700 }}>{screen?.label || `Tele ${m.screenId}`}</span>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{m.matchId.slice(0, 22)}…</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                              <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>{m.player1.userName}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>vs</span>
+                              <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>{m.player2.userName}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {[m.player1, m.player2].map(winner => (
+                                <button
+                                  key={winner.userId}
+                                  onClick={async () => {
+                                    const stocks = window.prompt(`¿Cuántos stocks le quedaron a ${winner.userName}? (1-3)`, '1');
+                                    if (!stocks) return;
+                                    await fetch('/api/offline/result', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+                                      body: JSON.stringify({ matchId: m.matchId, winnerId: winner.userId, stocksWon: parseInt(stocks) || 1 }),
+                                    });
+                                    await loadOfflineFullData();
+                                  }}
+                                  style={{ flex: 1, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 9, padding: '8px', color: '#4ade80', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                  Ganó {winner.userName}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
