@@ -19,6 +19,14 @@
 | `pages/api/scoreboard-update.js` | Agregar FreePlays a ALLOWED_BESTOF |
 | `pages/admin/_panel.js` | Push a overlay2-state al llamar match de stream |
 | `src/components/TabletControlSantaFe.jsx` | Fix getSkinCount, bloqueo jugadores, validación matchToken |
+| `lib/redis.js` | Key helpers para Ranked Offline |
+| `pages/api/offline/session.js` | **NUEVO** — CRUD sesión offline (admin) |
+| `pages/api/offline/join.js` | **NUEVO** — Inscripción de jugadores con código |
+| `pages/api/offline/status.js` | **NUEVO** — Polling de estado por jugador |
+| `pages/api/offline/assign.js` | **NUEVO** — Admin asigna partidas por MMR a pantallas libres |
+| `pages/api/offline/result.js` | **NUEVO** — Admin reporta resultado, aplica stats ranked Switch |
+| `pages/index.js` | Sección "Ranked Offline" en panel admin (`/?panel=1`) |
+| `pages/home.js` | Banner Ranked Offline en tab Match (`home#match`) |
 
 ---
 
