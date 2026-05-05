@@ -3,6 +3,7 @@ import redis, {
   rankedStatsKey,
 } from '../../../lib/redis';
 import { MMR_DEFAULT } from '../../../lib/ranks';
+import { tryAutoAssign } from '../../../lib/offlineAutoAssign';
 
 function sanitize(s) {
   return String(s ?? '').replace(/[<>"'`\\]/g, '').trim().slice(0, 100);
@@ -43,19 +44,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Ya está en un match activo
+    // Ya está en un match activo o pendiente de aceptar
     const matches = (await redis.get(offlineMatchesKey())) || [];
     const inMatch = matches.find(m =>
-      m.status === 'active' &&
+      (m.status === 'active' || m.status === 'pending_accept') &&
       (m.player1.userId === cleanUserId || m.player2.userId === cleanUserId)
     );
     if (inMatch) {
       return res.status(200).json({ ok: true, alreadyPlaying: true, matchId: inMatch.matchId });
     }
 
-    // Obtener MMR para emparejamiento
+    // Obtener MMR y último rival (anti-rematch)
     const stats = (await redis.get(rankedStatsKey(cleanUserId, 'switch'))) || {};
-    const mmr = stats.mmr || MMR_DEFAULT;
+    const mmr                = stats.mmr                         || MMR_DEFAULT;
+    const lastOpponentId     = stats.lastOfflineOpponentId       || null;
+    const lastOpponentStreak = stats.lastOfflineOpponentStreak   || 0;
 
     queue.push({
       userId: cleanUserId,
@@ -63,9 +66,15 @@ export default async function handler(req, res) {
       charId: cleanCharId,
       charAlt: parseInt(charAlt) || 0,
       mmr,
+      lastOpponentId,
+      lastOpponentStreak,
       joinedAt: Date.now(),
     });
     await redis.set(offlineQueueKey(), queue, { ex: 24 * 60 * 60 });
+
+    // Auto-emparejar si hay pantallas libres
+    await tryAutoAssign();
+
     return res.status(200).json({ ok: true, position: queue.length });
   }
 

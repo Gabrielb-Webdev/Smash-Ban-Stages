@@ -4,6 +4,7 @@ import redis, {
   charStatsKey, charBoardKey, rankHistoryKey,
   smasherBoardKey, smasherPoolKey,
 } from '../../../lib/redis';
+import { tryAutoAssign } from '../../../lib/offlineAutoAssign';
 import {
   processMatchResult, leaderboardScore, getRankIndex,
   MMR_DEFAULT, RANKS,
@@ -90,6 +91,20 @@ export default async function handler(req, res) {
 
   // Procesar resultado — muta wStats y lStats in-place
   const result = processMatchResult(wStats, lStats, { stocksWon: finalStocks });
+
+  // Actualizar último rival offline (anti-rematch)
+  if (wStats.lastOfflineOpponentId === loserId) {
+    wStats.lastOfflineOpponentStreak = (wStats.lastOfflineOpponentStreak || 1) + 1;
+  } else {
+    wStats.lastOfflineOpponentId     = loserId;
+    wStats.lastOfflineOpponentStreak = 1;
+  }
+  if (lStats.lastOfflineOpponentId === cleanWinnerId) {
+    lStats.lastOfflineOpponentStreak = (lStats.lastOfflineOpponentStreak || 1) + 1;
+  } else {
+    lStats.lastOfflineOpponentId     = cleanWinnerId;
+    lStats.lastOfflineOpponentStreak = 1;
+  }
 
   // Guardar stats actualizados
   await redis.set(wKey, wStats);
@@ -195,6 +210,9 @@ export default async function handler(req, res) {
     if (screen) screen.busy = false;
     await redis.set(offlineSessionKey(), session, { ex: 24 * 60 * 60 });
   }
+
+  // Auto-emparejar próxima pareja si hay jugadores en cola
+  await tryAutoAssign();
 
   return res.status(200).json({
     ok: true,

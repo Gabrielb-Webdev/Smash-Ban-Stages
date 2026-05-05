@@ -7662,6 +7662,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const offlineStatusRef                              = useRef(null);
   const [offlineCharPickOpen, setOfflineCharPickOpen] = useState(false);
   const [offlineCharSearch, setOfflineCharSearch]     = useState('');
+  const [offlineCountdown, setOfflineCountdown]       = useState(null);
+  const [offlineResponding, setOfflineResponding]     = useState(false);
 
   // Poll sesión offline cada 12s
   useEffect(() => {
@@ -7705,6 +7707,38 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
     const iv = setInterval(check, 3000);
     return () => { mounted = false; clearInterval(iv); clearTimeout(offlineStatusRef.current); };
   }, [offlineJoined, uid]); // eslint-disable-line
+
+  // Countdown para aceptar match
+  useEffect(() => {
+    if (offlinePlayerStatus?.status !== 'pending_accept' || !offlinePlayerStatus.expiresAt) {
+      setOfflineCountdown(null);
+      return;
+    }
+    const update = () => {
+      const left = Math.max(0, Math.ceil((offlinePlayerStatus.expiresAt - Date.now()) / 1000));
+      setOfflineCountdown(left);
+    };
+    update();
+    const iv = setInterval(update, 500);
+    return () => clearInterval(iv);
+  }, [offlinePlayerStatus?.status, offlinePlayerStatus?.expiresAt]); // eslint-disable-line
+
+  async function respondOfflineMatch(accept) {
+    if (!offlinePlayerStatus?.matchId || !uid) return;
+    setOfflineResponding(true);
+    try {
+      await fetch('/api/offline/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, matchId: offlinePlayerStatus.matchId, accept }),
+      });
+      if (!accept) {
+        // Vuelve a la cola, el próximo poll actualizará el estado
+        setOfflinePlayerStatus({ status: 'waiting', position: 1, total: 1 });
+      }
+    } catch {}
+    finally { setOfflineResponding(false); }
+  }
 
   async function joinOfflineRanked() {
     if (!uid || !offlineChar || !offlineCode.trim()) return;
@@ -9703,6 +9737,66 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                 </>
               )}
 
+              {/* ── Estado: match encontrado — aceptar/rechazar ── */}
+              {offlinePlayerStatus?.status === 'pending_accept' && (
+                <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                  {/* Countdown ring */}
+                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                    <div style={{
+                      width: 72, height: 72, borderRadius: '50%',
+                      background: offlineCountdown > 10
+                        ? 'conic-gradient(#4ade80 0%, rgba(255,255,255,0.06) 0%)'
+                        : 'conic-gradient(#f87171 0%, rgba(255,255,255,0.06) 0%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: `3px solid ${offlineCountdown > 10 ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}`,
+                    }}>
+                      <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#0F0F1A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 20, fontWeight: 900, color: offlineCountdown > 10 ? '#4ade80' : '#f87171', fontFamily: 'monospace' }}>{offlineCountdown ?? '…'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>¡Match encontrado!</p>
+                  <p style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 900, color: '#fff' }}>
+                    vs <span style={{ color: '#4ade80' }}>{offlinePlayerStatus.opponent?.userName}</span>
+                  </p>
+
+                  {/* Stage */}
+                  {offlinePlayerStatus.stage && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '8px 16px', marginBottom: 16 }}>
+                      <span style={{ fontSize: 16 }}>🗺️</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase' }}>Escenario</p>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#fff' }}>{offlinePlayerStatus.stage.name}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {offlinePlayerStatus.iAccepted ? (
+                    <div style={{ padding: '10px 16px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 12, marginBottom: 10 }}>
+                      <p style={{ margin: 0, fontSize: 13, color: '#4ade80', fontWeight: 700 }}>✅ Aceptaste — esperando al rival…</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        onClick={() => respondOfflineMatch(false)}
+                        disabled={offlineResponding}
+                        style={{ flex: 1, padding: '13px', borderRadius: 14, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: '#f87171', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        ✕ Rechazar
+                      </button>
+                      <button
+                        onClick={() => respondOfflineMatch(true)}
+                        disabled={offlineResponding}
+                        style={{ flex: 2, padding: '13px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', fontWeight: 900, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(34,197,94,0.3)' }}
+                      >
+                        ✓ Aceptar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ── Estado: en cola ── */}
               {offlineJoined && offlinePlayerStatus?.status === 'waiting' && (
                 <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
@@ -9739,6 +9833,15 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
                     </p>
                     <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Dirigite a esta pantalla</p>
                   </div>
+                  {offlinePlayerStatus.stage && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '8px 16px', marginBottom: 12 }}>
+                      <span style={{ fontSize: 16 }}>🗺️</span>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase' }}>Escenario · BO3</p>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#fff' }}>{offlinePlayerStatus.stage.name}</p>
+                      </div>
+                    </div>
+                  )}
                   {offlinePlayerStatus.opponent && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px' }}>
                       {(() => { const c = CHARACTERS.find(x => x.id === offlineChar); return c ? (

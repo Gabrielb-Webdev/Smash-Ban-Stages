@@ -997,36 +997,10 @@ export default function Home() {
                       <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         Cola ({offlineAdminData.queue.length} jugadores)
                       </p>
-                      <button
-                        onClick={async () => {
-                          setOfflineAdminLoading(true);
-                          try {
-                            const r = await fetch('/api/offline/assign', {
-                              method: 'POST',
-                              headers: { 'Authorization': 'Bearer afk-admin-2025' },
-                            });
-                            const d = await r.json();
-                            await loadOfflineFullData();
-                            setOfflineAdminMsg({ type: 'ok', text: `✅ ${d.assigned?.length || 0} partida(s) asignada(s)` });
-                          } catch {
-                            setOfflineAdminMsg({ type: 'err', text: '❌ Error al asignar' });
-                          } finally {
-                            setOfflineAdminLoading(false);
-                            setTimeout(() => setOfflineAdminMsg(null), 3000);
-                          }
-                        }}
-                        disabled={offlineAdminLoading || offlineAdminData.queue.length < 2}
-                        style={{
-                          background: offlineAdminData.queue.length >= 2 ? 'linear-gradient(90deg,#FF8C00,#E85D00)' : 'rgba(255,255,255,0.06)',
-                          border: 'none', borderRadius: 10, padding: '7px 14px',
-                          color: offlineAdminData.queue.length >= 2 ? '#fff' : 'rgba(255,255,255,0.3)',
-                          fontWeight: 800, fontSize: 12,
-                          cursor: offlineAdminData.queue.length >= 2 ? 'pointer' : 'not-allowed',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        Asignar partidas →
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '4px 10px' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80' }}>Auto</span>
+                      </div>
                     </div>
                     {offlineAdminData.queue.length === 0 ? (
                       <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '8px 0' }}>Nadie en cola todavía</p>
@@ -1045,44 +1019,51 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Partidas activas */}
-                {offlineAdminData.matches.filter(m => m.status === 'active').length > 0 && (
+                {/* Partidas activas y pendientes de aceptar */}
+                {offlineAdminData.matches.filter(m => m.status === 'active' || m.status === 'pending_accept').length > 0 && (
                   <div>
-                    <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Partidas en juego</p>
+                    <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Partidas</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {offlineAdminData.matches.filter(m => m.status === 'active').map(m => {
-                        const screen = offlineAdminData.session?.screens?.find(s => s.id === m.screenId);
+                      {offlineAdminData.matches.filter(m => m.status === 'active' || m.status === 'pending_accept').map(m => {
+                        const screen  = offlineAdminData.session?.screens?.find(s => s.id === m.screenId);
+                        const isPending = m.status === 'pending_accept';
                         return (
-                          <div key={m.matchId} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                              <span style={{ fontSize: 12, color: '#fb923c', fontWeight: 700 }}>{screen?.label || `Tele ${m.screenId}`}</span>
-                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{m.matchId.slice(0, 22)}…</span>
+                          <div key={m.matchId} style={{ background: isPending ? 'rgba(250,204,21,0.05)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isPending ? 'rgba(250,204,21,0.2)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 12, padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                              <span style={{ fontSize: 12, color: isPending ? '#facc15' : '#fb923c', fontWeight: 700 }}>
+                                {isPending ? '⏳ Aceptando…' : (screen?.label || `Tele ${m.screenId}`)}
+                              </span>
+                              {m.stage && (
+                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>🗺️ {m.stage.name}</span>
+                              )}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isPending ? 0 : 12 }}>
                               <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>{m.player1.userName}</span>
                               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>vs</span>
                               <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>{m.player2.userName}</span>
                             </div>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {[m.player1, m.player2].map(winner => (
-                                <button
-                                  key={winner.userId}
-                                  onClick={async () => {
-                                    const stocks = window.prompt(`¿Cuántos stocks le quedaron a ${winner.userName}? (1-3)`, '1');
-                                    if (!stocks) return;
-                                    await fetch('/api/offline/result', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
-                                      body: JSON.stringify({ matchId: m.matchId, winnerId: winner.userId, stocksWon: parseInt(stocks) || 1 }),
-                                    });
-                                    await loadOfflineFullData();
-                                  }}
-                                  style={{ flex: 1, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 9, padding: '8px', color: '#4ade80', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                                >
-                                  Ganó {winner.userName}
-                                </button>
-                              ))}
-                            </div>
+                            {!isPending && (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {[m.player1, m.player2].map(winner => (
+                                  <button
+                                    key={winner.userId}
+                                    onClick={async () => {
+                                      const stocks = window.prompt(`¿Cuántos stocks le quedaron a ${winner.userName}? (1-3)`, '1');
+                                      if (!stocks) return;
+                                      await fetch('/api/offline/result', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+                                        body: JSON.stringify({ matchId: m.matchId, winnerId: winner.userId, stocksWon: parseInt(stocks) || 1 }),
+                                      });
+                                      await loadOfflineFullData();
+                                    }}
+                                    style={{ flex: 1, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 9, padding: '8px', color: '#4ade80', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                                  >
+                                    Ganó {winner.userName}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
