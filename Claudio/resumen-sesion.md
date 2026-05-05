@@ -1,6 +1,8 @@
 # Resumen de Sesión — Santa Fe Smash Overlays
 
-**Fecha:** 1 de mayo de 2026  
+> **INSTRUCCIÓN PARA EL ASISTENTE:** Este archivo debe mantenerse actualizado en todo momento. Ante cada petición o modificación realizada en el proyecto, actualizar este documento agregando los cambios correspondientes en las secciones pertinentes (Archivos Modificados, Cambios por Tema, Arquitectura de Datos, Notas Importantes). También actualizar la fecha al inicio.
+
+**Fecha:** 5 de mayo de 2026  
 **Proyecto:** smash-ban-stages (Vercel + Next.js + Socket Server en Render)
 
 ---
