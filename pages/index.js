@@ -80,6 +80,27 @@ export default function Home() {
     .finally(() => setFeaturedLoading(false));
   }, [showPanel]);
 
+  useEffect(() => {
+    if (!offlineAdminOpen) return;
+    async function load() {
+      try {
+        const r = await fetch('/api/offline/session', {
+          headers: { Authorization: 'Bearer afk-admin-2025' },
+        });
+        const d = await r.json();
+        setOfflineAdminData({
+          session: d.session  || null,
+          queue:   d.queue    || [],
+          matches: d.matches  || [],
+        });
+        if (d.session) setOfflineAdminScreens(d.session.totalScreens || 3);
+      } catch {}
+    }
+    load();
+    const iv = setInterval(load, 4000);
+    return () => clearInterval(iv);
+  }, [offlineAdminOpen]); // eslint-disable-line
+
   if (checking) {
     return (
       <div style={{ minHeight: '100vh', background: '#090910', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -415,13 +436,6 @@ export default function Home() {
       if (d.session) setOfflineAdminScreens(d.session.totalScreens || 3);
     } catch {}
   }
-
-  useEffect(() => {
-    if (!offlineAdminOpen) return;
-    loadOfflineFullData();
-    const iv = setInterval(loadOfflineFullData, 4000);
-    return () => clearInterval(iv);
-  }, [offlineAdminOpen]); // eslint-disable-line
 
   async function notifyFeaturedFromIndex(slug) {
     const allTours = [...featuredTours, ...syncedTours];
