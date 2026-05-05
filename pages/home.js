@@ -7660,6 +7660,8 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
   const [offlineChar, setOfflineChar]                 = useState('');
   const [offlineCharAlt, setOfflineCharAlt]           = useState(0);
   const offlineStatusRef                              = useRef(null);
+  const [offlineCharPickOpen, setOfflineCharPickOpen] = useState(false);
+  const [offlineCharSearch, setOfflineCharSearch]     = useState('');
 
   // Poll sesión offline cada 12s
   useEffect(() => {
@@ -9541,111 +9543,249 @@ function TabMatch({ bgMM, setBgMM, userId, userName, user }) {
           </div>
         );
       })()}
-      {/* ── RANKED OFFLINE BANNER ── */}
+      {/* ── RANKED OFFLINE ── */}
       {offlineSession?.active && (
-        <div style={{ marginBottom: 20, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 18, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <span style={{ fontSize: 20 }}>🏟️</span>
-            <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: '#4ade80' }}>Ranked Offline Activo</p>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Cuenta para el ranking de Switch Online</p>
-            </div>
-          </div>
-
-          {/* Sin inscribir todavía */}
-          {!offlineJoined && offlinePlayerStatus?.status !== 'assigned' && (
-            <>
-              <div style={{ marginBottom: 12 }}>
-                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>TU PERSONAJE</p>
-                <select
-                  value={offlineChar}
-                  onChange={e => setOfflineChar(e.target.value)}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '9px 12px', color: offlineChar ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-                >
-                  <option value="">Elegí tu personaje...</option>
-                  {CHARACTERS.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: offlineMsg ? 10 : 0 }}>
-                <input
-                  value={offlineCode}
-                  onChange={e => setOfflineCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-                  placeholder="Código (ej: K7MX2A)"
-                  maxLength={6}
-                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px', color: '#fff', fontSize: 14, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.1em', outline: 'none', textTransform: 'uppercase' }}
-                />
-                <button
-                  onClick={joinOfflineRanked}
-                  disabled={offlineJoining || !offlineChar || offlineCode.length < 6}
-                  style={{
-                    background: offlineJoining || !offlineChar || offlineCode.length < 6 ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,#22c55e,#16a34a)',
-                    border: 'none', borderRadius: 10, padding: '10px 18px',
-                    color: offlineJoining || !offlineChar || offlineCode.length < 6 ? 'rgba(255,255,255,0.3)' : '#fff',
-                    fontWeight: 800, fontSize: 13,
-                    cursor: offlineJoining || !offlineChar || offlineCode.length < 6 ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit', flexShrink: 0,
-                  }}
-                >
-                  {offlineJoining ? '...' : 'Unirse'}
-                </button>
-              </div>
-              {offlineMsg && (
-                <p style={{ margin: '8px 0 0', fontSize: 12, color: offlineMsg.type === 'ok' ? '#4ade80' : '#f87171' }}>{offlineMsg.text}</p>
-              )}
-            </>
-          )}
-
-          {/* Esperando en cola */}
-          {offlineJoined && offlinePlayerStatus?.status === 'waiting' && (
-            <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#fff' }}>Esperando asignación...</p>
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                Posición en cola: #{offlinePlayerStatus.position} de {offlinePlayerStatus.total}
-              </p>
-              <button
-                onClick={async () => {
-                  await fetch(`/api/offline/join?userId=${encodeURIComponent(uid)}`, { method: 'DELETE' });
-                  setOfflineJoined(false); setOfflinePlayerStatus(null); setOfflineMsg(null);
-                }}
-                style={{ marginTop: 10, background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+        <>
+          {/* Modal picker de personaje */}
+          {offlineCharPickOpen && (
+            <div
+              onClick={() => setOfflineCharPickOpen(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', maxWidth: 480, background: '#0F0F1A', borderRadius: '24px 24px 0 0', padding: '0 0 env(safe-area-inset-bottom,24px)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
               >
-                Salir de la cola
-              </button>
-            </div>
-          )}
-
-          {/* Match asignado */}
-          {offlinePlayerStatus?.status === 'assigned' && (
-            <div style={{ textAlign: 'center', padding: '4px 0' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.3)', borderRadius: 12, padding: '10px 18px', marginBottom: 10 }}>
-                <span style={{ fontSize: 24 }}>📺</span>
-                <div style={{ textAlign: 'left' }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#fb923c' }}>{offlinePlayerStatus.screenLabel}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>¡Dirigite a esta pantalla!</p>
+                <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fff' }}>Elegí tu personaje</p>
+                  <button onClick={() => setOfflineCharPickOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 24, cursor: 'pointer', lineHeight: 1, padding: 0 }}>×</button>
+                </div>
+                <div style={{ padding: '12px 16px 4px', flexShrink: 0 }}>
+                  <input
+                    placeholder="🔍 Buscar personaje…"
+                    value={offlineCharSearch}
+                    onChange={e => setOfflineCharSearch(e.target.value)}
+                    autoFocus
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ overflowY: 'auto', padding: '8px 16px 16px' }}>
+                  <div className="char-grid-5">
+                    {CHARACTERS.filter(c => c.name.toLowerCase().includes(offlineCharSearch.toLowerCase())).map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => { setOfflineChar(c.id); setOfflineCharPickOpen(false); setOfflineCharSearch(''); }}
+                        style={{
+                          background: offlineChar === c.id ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.03)',
+                          border: offlineChar === c.id ? '1px solid rgba(74,222,128,0.5)' : '1px solid rgba(255,255,255,0.07)',
+                          borderRadius: 12, padding: 4, cursor: 'pointer',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                          boxSizing: 'border-box', width: '100%', minWidth: 0,
+                        }}
+                      >
+                        <div style={{ width: '100%', aspectRatio: '1', overflow: 'hidden', borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src={charImgPath(c.img)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                        </div>
+                        <p style={{ margin: 0, fontSize: 8, color: offlineChar === c.id ? '#4ade80' : 'rgba(255,255,255,0.45)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{c.name}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: 14, color: '#fff' }}>
-                Rival: <strong>{offlinePlayerStatus.opponent?.userName}</strong>
-              </p>
             </div>
           )}
 
-          {/* Resultado */}
-          {offlinePlayerStatus?.status === 'finished' && offlinePlayerStatus.result && (
-            <div style={{ textAlign: 'center', padding: '4px 0' }}>
-              <p style={{ margin: '0 0 6px', fontSize: 24 }}>{offlinePlayerStatus.result.won ? '🏆' : '💀'}</p>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: offlinePlayerStatus.result.won ? '#4ade80' : '#f87171' }}>
-                {offlinePlayerStatus.result.won ? '¡Victoria!' : 'Derrota'}
-              </p>
-              <p style={{ margin: '6px 0 0', fontSize: 13, color: offlinePlayerStatus.result.rpDelta >= 0 ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-                {offlinePlayerStatus.result.rpDelta >= 0 ? '+' : ''}{offlinePlayerStatus.result.rpDelta} RR
-              </p>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{offlinePlayerStatus.result.newRank}</p>
+          <div style={{ marginBottom: 20, borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(74,222,128,0.22)' }}>
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg,rgba(34,197,94,0.18),rgba(16,163,74,0.08))', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(74,222,128,0.12)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#4ade80', letterSpacing: '-0.01em' }}>Ranked Offline Activo</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Los resultados cuentan para Switch Online</p>
+              </div>
+              <div style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '3px 8px' }}>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#4ade80', letterSpacing: '0.05em' }}>SWITCH</p>
+              </div>
             </div>
-          )}
-        </div>
+
+            <div style={{ padding: '16px 18px', background: 'rgba(74,222,128,0.03)' }}>
+
+              {/* ── Estado: formulario de inscripción ── */}
+              {!offlineJoined && offlinePlayerStatus?.status !== 'assigned' && offlinePlayerStatus?.status !== 'finished' && (
+                <>
+                  {/* Selector de personaje */}
+                  <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tu personaje</p>
+                  <button
+                    onClick={() => setOfflineCharPickOpen(true)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                      background: offlineChar ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.04)',
+                      border: offlineChar ? '1px solid rgba(74,222,128,0.25)' : '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 14, padding: '10px 14px',
+                      cursor: 'pointer', textAlign: 'left', boxSizing: 'border-box', marginBottom: 12,
+                    }}
+                  >
+                    {offlineChar ? (() => {
+                      const c = CHARACTERS.find(x => x.id === offlineChar);
+                      return c ? (
+                        <>
+                          <img src={charImgPath(c.img)} alt={c.name} style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 10, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{c.name}</p>
+                            <p style={{ margin: 0, fontSize: 11, color: 'rgba(74,222,128,0.8)' }}>Personaje seleccionado · Tocá para cambiar</p>
+                          </div>
+                          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>›</span>
+                        </>
+                      ) : null;
+                    })() : (
+                      <>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: 20 }}>🎮</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Elegí tu personaje</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Tocá para abrir el selector</p>
+                        </div>
+                        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>›</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Input código */}
+                  <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Código del torneo</p>
+                  <div style={{ position: 'relative', marginBottom: 14 }}>
+                    <input
+                      value={offlineCode}
+                      onChange={e => setOfflineCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                      placeholder="· · · · · ·"
+                      maxLength={6}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 14, padding: '14px 48px 14px 16px',
+                        color: '#fff', fontSize: 22, fontFamily: 'monospace', fontWeight: 900,
+                        letterSpacing: '0.35em', outline: 'none', textTransform: 'uppercase',
+                        textAlign: 'center', transition: 'border-color 0.15s',
+                      }}
+                      onFocus={e => { e.target.style.borderColor = 'rgba(74,222,128,0.4)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                    />
+                    {offlineCode.length === 6 && (
+                      <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18 }}>✅</span>
+                    )}
+                  </div>
+
+                  {/* Botón unirse */}
+                  <button
+                    onClick={joinOfflineRanked}
+                    disabled={offlineJoining || !offlineChar || offlineCode.length < 6}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: 14, border: 'none',
+                      background: offlineJoining || !offlineChar || offlineCode.length < 6
+                        ? 'rgba(255,255,255,0.05)'
+                        : 'linear-gradient(135deg,#22c55e,#16a34a)',
+                      color: offlineJoining || !offlineChar || offlineCode.length < 6 ? 'rgba(255,255,255,0.25)' : '#fff',
+                      fontWeight: 900, fontSize: 15,
+                      cursor: offlineJoining || !offlineChar || offlineCode.length < 6 ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', letterSpacing: '0.01em',
+                      boxShadow: offlineJoining || !offlineChar || offlineCode.length < 6 ? 'none' : '0 4px 20px rgba(34,197,94,0.3)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {offlineJoining ? 'Uniéndose…' : '⚔️  Unirse al torneo'}
+                  </button>
+
+                  {offlineMsg && (
+                    <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 12, background: offlineMsg.type === 'ok' ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', border: `1px solid ${offlineMsg.type === 'ok' ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'}` }}>
+                      <p style={{ margin: 0, fontSize: 13, color: offlineMsg.type === 'ok' ? '#4ade80' : '#f87171', fontWeight: 600 }}>{offlineMsg.text}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Estado: en cola ── */}
+              {offlineJoined && offlinePlayerStatus?.status === 'waiting' && (
+                <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+                  {(() => { const c = CHARACTERS.find(x => x.id === offlineChar); return c ? (
+                    <img src={charImgPath(c.img)} alt={c.name} style={{ width: 64, height: 64, objectFit: 'contain', marginBottom: 12, filter: 'drop-shadow(0 4px 12px rgba(74,222,128,0.3))' }} />
+                  ) : null; })()}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: '6px 14px', marginBottom: 14 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#facc15', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.8)' }}>Esperando asignación…</p>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 18px', marginBottom: 14 }}>
+                    <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff' }}>#{offlinePlayerStatus.position}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>de {offlinePlayerStatus.total} en cola</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/offline/join?userId=${encodeURIComponent(uid)}`, { method: 'DELETE' });
+                      setOfflineJoined(false); setOfflinePlayerStatus(null); setOfflineMsg(null);
+                    }}
+                    style={{ background: 'none', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 10, padding: '8px 18px', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Salir de la cola
+                  </button>
+                </div>
+              )}
+
+              {/* ── Estado: match asignado ── */}
+              {offlinePlayerStatus?.status === 'assigned' && (
+                <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                  <div style={{ background: 'linear-gradient(135deg,rgba(251,146,60,0.15),rgba(234,88,12,0.08))', border: '1px solid rgba(251,146,60,0.35)', borderRadius: 18, padding: '20px 18px', marginBottom: 14 }}>
+                    <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: 'rgba(251,146,60,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>¡Tu partida está lista!</p>
+                    <p style={{ margin: '0 0 16px', fontSize: 36, fontWeight: 900, color: '#fb923c', letterSpacing: '-0.02em' }}>
+                      📺 {offlinePlayerStatus.screenLabel}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Dirigite a esta pantalla</p>
+                  </div>
+                  {offlinePlayerStatus.opponent && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 16px' }}>
+                      {(() => { const c = CHARACTERS.find(x => x.id === offlineChar); return c ? (
+                        <img src={charImgPath(c.img)} alt={c.name} style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
+                      ) : <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />; })()}
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>TU RIVAL</p>
+                        <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#fff' }}>{offlinePlayerStatus.opponent.userName}</p>
+                      </div>
+                      <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.15)', fontWeight: 900 }}>VS</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Estado: resultado ── */}
+              {offlinePlayerStatus?.status === 'finished' && offlinePlayerStatus.result && (() => {
+                const { won, rpDelta, newRank } = offlinePlayerStatus.result;
+                return (
+                  <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                    <div style={{
+                      background: won ? 'linear-gradient(135deg,rgba(74,222,128,0.15),rgba(34,197,94,0.06))' : 'linear-gradient(135deg,rgba(248,113,113,0.15),rgba(239,68,68,0.06))',
+                      border: `1px solid ${won ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}`,
+                      borderRadius: 18, padding: '22px 18px', marginBottom: 14,
+                    }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 40 }}>{won ? '🏆' : '😤'}</p>
+                      <p style={{ margin: '0 0 12px', fontSize: 26, fontWeight: 900, color: won ? '#4ade80' : '#f87171', letterSpacing: '-0.02em' }}>
+                        {won ? '¡Victoria!' : 'Derrota'}
+                      </p>
+                      <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, background: 'rgba(0,0,0,0.25)', borderRadius: 12, padding: '8px 18px' }}>
+                        <span style={{ fontSize: 22, fontWeight: 900, color: rpDelta >= 0 ? '#4ade80' : '#f87171', fontFamily: 'monospace' }}>
+                          {rpDelta >= 0 ? '+' : ''}{rpDelta}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>RP</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Nuevo rango:</p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>{newRank}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+            </div>
+          </div>
+        </>
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
