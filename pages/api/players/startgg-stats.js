@@ -3,7 +3,7 @@
 // Header: Authorization: Bearer <startgg_access_token>
 // Cachea resultados en Redis por 1 hora
 
-import redis from '../../../lib/redis';
+import redis, { playerKey } from '../../../lib/redis';
 import { findLocalCharId } from '../../../lib/characters';
 
 const STARTGG_API = 'https://api.start.gg/gql/alpha';
@@ -76,6 +76,74 @@ async function fetchStartggCharMap(authHeader) {
   try { await redis.set(cacheKey, JSON.stringify(charMap), { ex: CHAR_CACHE_TTL }); } catch { /* silent */ }
   return charMap;
 }
+
+// Query completa por ID numérico (fallback cuando no hay slug)
+const SETS_QUERY_BY_ID = `
+query PlayerSetsById($userId: ID!, $page: Int!, $perPage: Int!) {
+  user(id: $userId) {
+    id
+    slug
+    name
+    bio
+    birthday
+    genderPronoun
+    location {
+      city
+      state
+      country
+      countryId
+    }
+    images {
+      url
+      type
+    }
+    authorizations {
+      type
+      externalUsername
+      url
+    }
+    player {
+      id
+      gamerTag
+      prefix
+      rankings(videogameId: 1386) {
+        rank
+        title
+      }
+      sets(page: $page, perPage: $perPage) {
+        pageInfo { total totalPages }
+        nodes {
+          id
+          winnerId
+          fullRoundText
+          displayScore
+          completedAt
+          slots {
+            entrant {
+              id
+              name
+              participants { player { id } }
+            }
+          }
+          games {
+            winnerId
+            selections {
+              entrant { id }
+              selectionType
+              selectionValue
+            }
+          }
+          event {
+            videogame { id }
+            slug
+            tournament { name }
+          }
+        }
+      }
+    }
+  }
+}
+`;
 
 // Query completa (primera página): incluye perfil del jugador
 const SETS_QUERY = `
@@ -456,17 +524,21 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const slug = sanitize(req.query.slug);
-  if (!slug) return res.status(400).json({ error: 'slug required' });
+  const userId = req.query.userId ? sanitize(req.query.userId) : null;
 
-  // Slugs puramente numéricos no son válidos en Start.GG
-  if (/^\d+$/.test(slug)) {
+  if (!slug && !userId) return res.status(400).json({ error: 'slug or userId required' });
+
+  // Slugs puramente numéricos no son válidos como slug — usar userId en su lugar
+  if (slug && /^\d+$/.test(slug)) {
     return res.status(200).json({});
   }
+
+  const useIdLookup = !slug && userId && /^\d+$/.test(userId);
 
   const auth = req.headers.authorization ||
     (process.env.STARTGG_TOKEN ? `Bearer ${process.env.STARTGG_TOKEN}` : null);
 
-  const cacheKey = `startgg:stats:v16:${slug}`;
+  const cacheKey = useIdLookup ? `startgg:stats:v16:id:${userId}` : `startgg:stats:v16:${slug}`;
   const forceRefresh = req.query.refresh === 'true';
 
   // Intentar devolver datos cacheados (skip si refresh=true)
@@ -488,8 +560,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': auth },
       body: JSON.stringify({
-        query: SETS_QUERY,
-        variables: { slug, page: 1, perPage: 38 },
+        query: useIdLookup ? SETS_QUERY_BY_ID : SETS_QUERY,
+        variables: useIdLookup ? { userId, page: 1, perPage: 38 } : { slug, page: 1, perPage: 38 },
       }),
     });
 
@@ -531,6 +603,8 @@ export default async function handler(req, res) {
     const totalPages = player.sets?.pageInfo?.totalPages || 1;
     const playerId = player.id;
     const gamerTag = player.gamerTag || null;
+    // Slug normalizado para queries siguientes (páginas extra, eventos)
+    const effectiveSlug = slug || user.slug?.replace(/^user\//, '') || '';
 
     // Info del perfil de Start.GG
     const profile = {
@@ -558,7 +632,7 @@ export default async function handler(req, res) {
             headers: { 'Content-Type': 'application/json', 'Authorization': auth },
             body: JSON.stringify({
               query: SETS_ONLY_QUERY,
-              variables: { slug, page, perPage: 38 },
+              variables: { slug: effectiveSlug, page, perPage: 38 },
             }),
           });
           if (!r.ok) return [];
@@ -596,7 +670,7 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'Authorization': auth },
         body: JSON.stringify({
           query: EVENTS_QUERY,
-          variables: { slug, evPage: 1, evPerPage: 16 },
+          variables: { slug: effectiveSlug, evPage: 1, evPerPage: 16 },
         }),
       });
       if (evResp.ok) {
@@ -626,6 +700,16 @@ export default async function handler(req, res) {
     result.playerId = playerId;
     result.profile = profile;
     result.highlights = highlights;
+
+    // Si se buscó por userId, guardar slug en el perfil Redis para futuros lookups
+    if (useIdLookup && effectiveSlug && userId) {
+      try {
+        const existing = (await redis.get(playerKey(userId))) || {};
+        if (!existing.slug) {
+          await redis.set(playerKey(userId), { ...existing, slug: effectiveSlug });
+        }
+      } catch { /* silent */ }
+    }
 
     // Cachear resultado
     try {

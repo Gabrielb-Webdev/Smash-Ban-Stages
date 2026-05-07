@@ -3729,12 +3729,13 @@ function TabAmigos({ user, setNotifs }) {
         setProfileData(d);
         setProfileLoading(false);
         const slug = d?.profile?.slug;
-        if (slug) {
+        const sgParam = slug ? 'slug=' + encodeURIComponent(slug) : (playerId ? 'userId=' + encodeURIComponent(playerId) : null);
+        if (sgParam) {
           try {
             const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
             const token = stored.access_token;
             const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-            fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers })
+            fetch('/api/players/startgg-stats?' + sgParam, { headers })
               .then(r => r.ok ? r.json() : null)
               .then(sg => { if (sg && Object.keys(sg).length > 0) setProfileStartggStats(sg); })
               .catch(() => {});
@@ -4613,9 +4614,11 @@ function TabPerfil({ user }) {
         setProfileData(d);
         setProfileLoading(false);
         // Fetch Start.GG stats for this profile player
-        if (d?.profile?.slug) {
+        const _slug = d?.profile?.slug;
+        const _sgParam = _slug ? 'slug=' + encodeURIComponent(_slug) : (playerId ? 'userId=' + encodeURIComponent(playerId) : null);
+        if (_sgParam) {
           const _sgToken = (() => { try { return JSON.parse(localStorage.getItem('afk_user') || '{}').access_token; } catch { return null; } })();
-          fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(d.profile.slug),
+          fetch('/api/players/startgg-stats?' + _sgParam,
             _sgToken ? { headers: { 'Authorization': 'Bearer ' + _sgToken } } : {}
           )
             .then(r => r.ok ? r.json() : null)
@@ -5932,12 +5935,13 @@ function TabRankings({ user, setTab }) {
         setProfileData(d);
         setProfileLoading(false);
         const slug = d?.profile?.slug;
-        if (slug) {
+        const sgParam = slug ? 'slug=' + encodeURIComponent(slug) : (playerId ? 'userId=' + encodeURIComponent(playerId) : null);
+        if (sgParam) {
           try {
             const stored = JSON.parse(localStorage.getItem('afk_user') || '{}');
             const token = stored.access_token;
             const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-            fetch('/api/players/startgg-stats?slug=' + encodeURIComponent(slug), { headers })
+            fetch('/api/players/startgg-stats?' + sgParam, { headers })
               .then(r => r.ok ? r.json() : null)
               .then(sg => { if (sg && Object.keys(sg).length > 0) setProfileStartggStats(sg); })
               .catch(() => {});
