@@ -22,4 +22,3 @@ export default function Stream() {
   if (s === 'warui' || s.startsWith('warui-'))       return <StreamOverlay          sessionId={resolvedId} />;
   return <StreamOverlay sessionId={resolvedId} />;
 }
-
