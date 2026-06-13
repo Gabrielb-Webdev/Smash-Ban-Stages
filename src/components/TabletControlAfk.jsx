@@ -193,6 +193,13 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
     }).catch(() => {});
   }, [session?.selectedStage, sessionId]);
 
+  // Activar automáticamente modo 1 dispositivo para afk-tablet
+  useEffect(() => {
+    if (sessionId === 'afk-tablet' && session && session.phase === 'CHECKIN' && !session.singleDeviceMode) {
+      enableSingleDevice(sessionId);
+    }
+  }, [sessionId, session?.phase, session?.singleDeviceMode, enableSingleDevice]);
+
   // Guardar personajes cuando ambos seleccionaron
   useEffect(() => {
     if (!session) return;
@@ -554,53 +561,7 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
               <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.6)', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>Hacé check-in para confirmar</p>
             </div>
 
-            {/* Tablet compartida AFK: botón único que hace check-in para ambos */}
-            {sessionId === 'afk-tablet' ? (
-              (() => {
-                const p1Name = session.player1?.name;
-                const p2Name = session.player2?.name;
-                const p1Checked = (session.checkIns || []).includes(p1Name);
-                const p2Checked = (session.checkIns || []).includes(p2Name);
-                const bothChecked = p1Checked && p2Checked;
-                const handleBothCheckin = () => {
-                  if (!p1Checked) playerCheckin(sessionId, p1Name, matchToken || session?.matchToken);
-                  if (!p2Checked) playerCheckin(sessionId, p2Name, matchToken || session?.matchToken);
-                };
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', maxWidth: 400, alignItems: 'center' }}>
-                    <button
-                      onClick={handleBothCheckin}
-                      disabled={bothChecked}
-                      style={{
-                        width: '100%', padding: '32px 24px', borderRadius: 20,
-                        border: bothChecked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.35)',
-                        background: bothChecked ? 'rgba(34,197,94,0.18)' : 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(99,102,241,0.2))',
-                        color: bothChecked ? '#4ADE80' : '#fff', fontSize: 28, fontWeight: 900,
-                        cursor: bothChecked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', gap: 16, transition: 'all 0.3s',
-                        boxShadow: bothChecked ? '0 0 32px rgba(34,197,94,0.4)' : '0 8px 32px rgba(0,0,0,0.5)',
-                        fontFamily: 'inherit', textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                      }}
-                    >
-                      <span style={{ fontSize: 40 }}>{bothChecked ? '✅' : '👥'}</span>
-                      <span>{bothChecked ? 'Listos' : 'CHECK-IN'}</span>
-                    </button>
-                    <div style={{ display: 'flex', gap: 12, width: '100%', justifyContent: 'space-around' }}>
-                      <div style={{ flex: 1, padding: '16px 12px', borderRadius: 14, border: '1.5px solid rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.08)', textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>JUGADOR 1</p>
-                        <p style={{ margin: 0, fontSize: 13, color: p1Checked ? '#4ADE80' : '#fff', fontWeight: 700 }}>{p1Name}</p>
-                        <p style={{ margin: '4px 0 0', fontSize: 12, color: p1Checked ? '#4ADE80' : 'rgba(255,255,255,0.4)' }}>{p1Checked ? '✅ Listo' : '⏳'}</p>
-                      </div>
-                      <div style={{ flex: 1, padding: '16px 12px', borderRadius: 14, border: '1.5px solid rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.08)', textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>JUGADOR 2</p>
-                        <p style={{ margin: 0, fontSize: 13, color: p2Checked ? '#4ADE80' : '#fff', fontWeight: 700 }}>{p2Name}</p>
-                        <p style={{ margin: '4px 0 0', fontSize: 12, color: p2Checked ? '#4ADE80' : 'rgba(255,255,255,0.4)' }}>{p2Checked ? '✅ Listo' : '⏳'}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : myPlayer ? (
+            {myPlayer ? (
               (() => {
                 const myName = session[myPlayer]?.name;
                 const otherPlayer = myPlayer === 'player1' ? 'player2' : 'player1';
