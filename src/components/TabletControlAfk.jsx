@@ -553,7 +553,60 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
               <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.6)', textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>Hacé check-in para confirmar</p>
             </div>
 
-            {myPlayer ? (
+            {/* Tablet compartida: ambos jugadores hacen check-in sin pre-identificación */}
+            {sessionId === 'afk-tablet' && !myPlayer ? (
+              (() => {
+                const p1Name = session.player1?.name;
+                const p2Name = session.player2?.name;
+                const p1Checked = (session.checkIns || []).includes(p1Name);
+                const p2Checked = (session.checkIns || []).includes(p2Name);
+                return (
+                  <div style={{ display: 'flex', gap: 16, width: '100%', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => !p1Checked && playerCheckin(sessionId, p1Name, matchToken || session?.matchToken)}
+                      disabled={p1Checked}
+                      style={{
+                        flex: 1, minWidth: 160, padding: '24px 16px', borderRadius: 18,
+                        border: p1Checked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.35)',
+                        background: p1Checked ? 'rgba(34,197,94,0.18)' : 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.15))',
+                        color: p1Checked ? '#4ADE80' : '#fff', fontSize: 20, fontWeight: 900,
+                        cursor: p1Checked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', flexDirection: 'column', gap: 12, transition: 'all 0.2s',
+                        boxShadow: p1Checked ? '0 0 24px rgba(34,197,94,0.35)' : '0 6px 24px rgba(0,0,0,0.4)',
+                        fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      <span style={{ fontSize: 28 }}>{p1Checked ? '✅' : '👤'}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.65 }}>JUGADOR 1</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700 }}>{p1Name}</span>
+                      </div>
+                    </button>
+                    <div style={{ fontSize: 24, color: 'rgba(255,255,255,0.3)' }}>VS</div>
+                    <button
+                      onClick={() => !p2Checked && playerCheckin(sessionId, p2Name, matchToken || session?.matchToken)}
+                      disabled={p2Checked}
+                      style={{
+                        flex: 1, minWidth: 160, padding: '24px 16px', borderRadius: 18,
+                        border: p2Checked ? '2px solid rgba(34,197,94,0.6)' : '2px solid rgba(255,255,255,0.35)',
+                        background: p2Checked ? 'rgba(34,197,94,0.18)' : 'linear-gradient(135deg, rgba(96,165,250,0.25), rgba(59,130,246,0.15))',
+                        color: p2Checked ? '#4ADE80' : '#fff', fontSize: 20, fontWeight: 900,
+                        cursor: p2Checked ? 'default' : 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', flexDirection: 'column', gap: 12, transition: 'all 0.2s',
+                        boxShadow: p2Checked ? '0 0 24px rgba(34,197,94,0.35)' : '0 6px 24px rgba(0,0,0,0.4)',
+                        fontFamily: 'inherit', textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      <span style={{ fontSize: 28 }}>{p2Checked ? '✅' : '👤'}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.65 }}>JUGADOR 2</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700 }}>{p2Name}</span>
+                      </div>
+                    </button>
+                  </div>
+                );
+              })()
+            ) : myPlayer ? (
               (() => {
                 const myName = session[myPlayer]?.name;
                 const otherPlayer = myPlayer === 'player1' ? 'player2' : 'player1';
