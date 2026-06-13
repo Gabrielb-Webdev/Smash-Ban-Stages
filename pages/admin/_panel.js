@@ -1,3 +1,7 @@
+// ============================================================
+// ADMIN PANEL - v2.3.0
+// v2.3.0 - Agregar tablet AFK a getCommunitySetups, actualizar link de stream dinámico
+// ============================================================
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';

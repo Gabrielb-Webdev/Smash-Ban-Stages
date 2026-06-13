@@ -1,3 +1,7 @@
+// ============================================================
+// WEBSOCKET SERVER - v2.3.0
+// v2.3.0 - Agregar syncAfkScoreboard, mirror afk-stream→afk-tablet, handlers para afk-tablet
+// ============================================================
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');

@@ -1,3 +1,7 @@
+// ============================================================
+// HOME PAGE - v2.3.0
+// v2.3.0 - Agregar botón Tablet para Gabriel Sin H que lleva a /tablet/afk-tablet
+// ============================================================
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';

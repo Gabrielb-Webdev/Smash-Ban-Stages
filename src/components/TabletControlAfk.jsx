@@ -1,7 +1,8 @@
 // ============================================================
-// TABLET CONTROL - AFK (Buenos Aires)
+// TABLET CONTROL - AFK (Buenos Aires) - v2.3.0
 // Archivo exclusivo para AFK. No tocar para Córdoba ni Mendoza.
 // Stages Game 1: Battlefield, Smashville, Town and City, Small Battlefield, Pokemon Stadium 2
+// v2.3.0 - Agregar check-in compartido para tablet, ocultar botones innecesarios en afk-tablet
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';

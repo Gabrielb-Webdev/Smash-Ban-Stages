@@ -1,6 +1,7 @@
 // ============================================================
-// STREAM OVERLAY - AFK (Buenos Aires)
+// STREAM OVERLAY - AFK (Buenos Aires) - v2.3.0
 // Archivo exclusivo para AFK. No tocar para Córdoba ni Mendoza.
+// v2.3.0 - Footer colapsible: se oculta después de STAGE_BAN, muestra en game-winner, oculta en FINISHED
 // ============================================================
 import { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
