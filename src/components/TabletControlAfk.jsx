@@ -161,11 +161,11 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
   const prevTurnRef = useRef(null);
 
   // Sincronizar scores y tournamentName con Redis cuando el WebSocket los actualiza
-  // Solo el setup de stream (afk-stream) envía datos al overlay True Combo
+  // Solo el setup de stream (afk-stream) y tablet (afk-tablet) envían datos al overlay True Combo
   const prevScoreRef = useRef({ p1: null, p2: null, tournament: null });
   useEffect(() => {
     if (!session || session.phase === 'IDLE' || session.phase === 'CHECKIN') return;
-    if (sessionId !== 'afk-stream') return;
+    if (sessionId !== 'afk-stream' && sessionId !== 'afk-tablet') return;
     const p1s = session.player1?.score ?? 0;
     const p2s = session.player2?.score ?? 0;
     const tName = session.tournamentName || '';
@@ -179,9 +179,9 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
     }).catch(() => {});
   }, [session?.player1?.score, session?.player2?.score, session?.tournamentName, session?.phase]);
 
-  // Sincronizar stage seleccionado con overlay player-intro (solo afk-stream)
+  // Sincronizar stage seleccionado con overlay player-intro (solo afk-stream y afk-tablet)
   useEffect(() => {
-    if (!session || sessionId !== 'afk-stream') return;
+    if (!session || (sessionId !== 'afk-stream' && sessionId !== 'afk-tablet')) return;
     if (!session.selectedStage) return;
     const stageInfo = getStageData(session.selectedStage);
     if (!stageInfo?.name) return;
@@ -441,8 +441,8 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
       case 'select':    selectStage(sessionId, pendingAction.stageId, pendingAction.player, session?.matchToken); break;
       case 'character':
         selectCharacter(sessionId, pendingAction.characterId, pendingAction.player, pendingAction.skin || null, session?.matchToken);
-        // Sincronizar con overlay control.html via Redis (solo setup de stream)
-        if (sessionId === 'afk-stream' && pendingAction.characterId && pendingAction.characterId !== 'random' && !pendingAction.isRandom) {
+        // Sincronizar con overlay control.html via Redis (solo setup de stream y tablet)
+        if ((sessionId === 'afk-stream' || sessionId === 'afk-tablet') && pendingAction.characterId && pendingAction.characterId !== 'random' && !pendingAction.isRandom) {
           const pKey = pendingAction.player === 'player1' ? 'p1' : 'p2';
           const _charName = CHARACTERS.find(c => c.id === pendingAction.characterId)?.name || '';
           const _iconPath = getStockIconPath(pendingAction.characterId, pendingAction.skin || 1) || '';

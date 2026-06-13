@@ -36,9 +36,11 @@ function getCommunitySetups(comunidad) {
     { id: `${p}-7`,     label: 'Setup 7', icon: '🎮', color: '#65A30D' },
     { id: `${p}-8`,     label: 'Setup 8', icon: '🎮', color: '#9333EA' },
   ];
-  // Setup tablet exclusivo para Mendoza (envía datos al overlay igual que stream)
-  if (p === 'mendoza') {
-    base.splice(1, 0, { id: `${p}-tablet`, label: 'Tablet', icon: '📱', color: '#8B5CF6' });
+  // Setup tablet exclusivo para Mendoza y AFK (envía datos al overlay igual que stream)
+  if (p === 'mendoza' || p === 'afk-multi') {
+    const color = p === 'mendoza' ? '#8B5CF6' : '#6366F1';
+    const tabletId = p === 'afk-multi' ? 'afk-tablet' : `${p}-tablet`;
+    base.splice(1, 0, { id: tabletId, label: 'Tablet', icon: '📱', color });
   }
   return base;
 }
@@ -1346,7 +1348,7 @@ export default function TestAdminPage() {
     // Para el setup de stream/tablet se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
     const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream', 'santafe': 'santafe-stream' };
-    const COMMUNITY_TABLET_IDS = { 'mendoza': 'mendoza-tablet' };
+    const COMMUNITY_TABLET_IDS = { 'mendoza': 'mendoza-tablet', 'afk-multi': 'afk-tablet' };
     const isStreamSetup = setupId.endsWith('-stream');
     const isTabletSetup = setupId.endsWith('-tablet');
     const sessionId = isStreamSetup

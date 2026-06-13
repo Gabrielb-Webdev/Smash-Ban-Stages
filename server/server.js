@@ -105,6 +105,28 @@ function syncMendozaScoreboard(session) {
   }
 }
 
+function syncAfkScoreboard(session) {
+  if (!session) return;
+  try {
+    const vercelUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smash-ban-stages.vercel.app';
+    const adminSecret = process.env.ADMIN_SECRET || 'afk-admin-2025';
+    fetch(`${vercelUrl}/api/afk/score-state`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminSecret}` },
+      body: JSON.stringify({
+        p1tag:    session.player1?.name      ?? '',
+        p2tag:    session.player2?.name      ?? '',
+        p1score:  session.player1?.score     ?? 0,
+        p2score:  session.player2?.score     ?? 0,
+        p1char:   session.player1?.character ?? '',
+        p2char:   session.player2?.character ?? '',
+      }),
+    }).catch(e => console.error('⚠️ Error sync AFK scoreboard:', e.message));
+  } catch (e) {
+    console.error('⚠️ Error sincronizando scoreboard AFK:', e.message);
+  }
+}
+
 function isSantaFe(sessionId) {
   if (!sessionId) return false;
   const s = sessionId.toLowerCase();
@@ -587,6 +609,10 @@ const httpServer = createServer(async (req, res) => {
             io.to('mendoza-stream').emit('session-updated', { session });
             syncMendozaScoreboard(session);
           }
+          if (sessionId === 'afk-tablet') {
+            io.to('afk-stream').emit('session-updated', { session });
+            syncAfkScoreboard(session);
+          }
         } else if (session) {
           // Si la sesión ya tiene progreso y no viene forceReset, solo actualizar metadata
           const hasProgress = session.phase !== 'CHECKIN' || (session.player1?.score || 0) > 0 || (session.player2?.score || 0) > 0 || session.currentGame > 1;
@@ -644,6 +670,10 @@ const httpServer = createServer(async (req, res) => {
           if (sessionId === 'mendoza-tablet') {
             io.to('mendoza-stream').emit('session-updated', { session: freshSession });
             syncMendozaScoreboard(freshSession);
+          }
+          if (sessionId === 'afk-tablet') {
+            io.to('afk-stream').emit('session-updated', { session: freshSession });
+            syncAfkScoreboard(freshSession);
           }
         }
 
@@ -1027,6 +1057,16 @@ io.on('connection', (socket) => {
         if (tabletSession && tabletSession.phase && tabletSession.phase !== 'IDLE') {
           socket.emit('session-joined', { session: tabletSession });
           console.log('Cliente unido a mendoza-stream → recibiendo estado de mendoza-tablet');
+          return;
+        }
+      }
+      // MIRROR: afk-stream también se suscribe al room afk-tablet
+      if (sessionId === 'afk-stream') {
+        socket.join('afk-tablet');
+        const tabletSession = sessions.get('afk-tablet');
+        if (tabletSession && tabletSession.phase && tabletSession.phase !== 'IDLE') {
+          socket.emit('session-joined', { session: tabletSession });
+          console.log('Cliente unido a afk-stream → recibiendo estado de afk-tablet');
           return;
         }
       }
@@ -1519,12 +1559,14 @@ io.on('connection', (socket) => {
         io.to(sessionId).emit('session-updated', { session });
         if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
+        if (sessionId === 'afk-tablet') syncAfkScoreboard(session);
       } else {
         // Ambos han seleccionado, cambiar a STAGE_BAN (delay para animación VS)
         sessions.set(sessionId, session);
         io.to(sessionId).emit('session-updated', { session });
         if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
+        if (sessionId === 'afk-tablet') syncAfkScoreboard(session);
         
         const phaseDelay = 2500;
         setTimeout(() => {
@@ -1605,6 +1647,16 @@ io.on('connection', (socket) => {
         };
         setTimeout(() => io.to('mendoza-stream').emit('session-updated', { session: idleStream }), 8000);
       }
+      // Cuando termina un tablet de afk: limpiar afk-stream a IDLE
+      if (sessionId === 'afk-tablet') {
+        const idleStream = {
+          sessionId: 'afk-stream', phase: 'IDLE',
+          player1: { name: '', score: 0, character: null, wonStages: [] },
+          player2: { name: '', score: 0, character: null, wonStages: [] },
+        };
+        sessions.set('afk-stream', idleStream);
+        io.to('afk-stream').emit('session-updated', { session: idleStream });
+      }
     } else {
       // Guardar datos del stage actual para ofrecer repetir en el próximo game
       session.previousStageData = {
@@ -1631,6 +1683,7 @@ io.on('connection', (socket) => {
     io.to(sessionId).emit('session-updated', { session });
     if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
     if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
+    if (sessionId === 'afk-tablet') syncAfkScoreboard(session);
 
     console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
     if (session.startggSetId && seriesFinished) {
