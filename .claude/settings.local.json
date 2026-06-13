@@ -4,7 +4,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(node -c server/server.js)"
+      "Bash(node -c server/server.js)",
+      "Bash(node -c src/components/StreamOverlayAfk.jsx)"
     ]
   }
 }

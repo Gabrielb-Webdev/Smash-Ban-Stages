@@ -22,6 +22,24 @@ export default function StreamOverlayAfk({ sessionId }) {
   const [showBanOnCard, setShowBanOnCard] = useState(false);
   const [showSelectOnCard, setShowSelectOnCard] = useState(false);
   const [showStageBansText, setShowStageBansText] = useState(false);
+  const [showFooter, setShowFooter] = useState(true); // Footer colapsible
+
+  // Controlar visibilidad del footer basado en fase del match
+  useEffect(() => {
+    if (!session) return;
+    // Mostrar footer cuando hay propuesta de ganador (para poder verlo)
+    if (session.gameWinnerProposal) {
+      setShowFooter(true);
+      return;
+    }
+    // Ocultar footer cuando la serie termina
+    if (session.phase === 'FINISHED') {
+      setShowFooter(false);
+      return;
+    }
+    // Mostrar footer por defecto (RPS, inicial de CHARACTER_SELECT)
+    setShowFooter(true);
+  }, [session?.gameWinnerProposal, session?.phase]);
 
   // Mostrar "STAGE BANS" solo al inicio, ocultarlo antes de que aparezcan los stages
   useEffect(() => {
@@ -166,17 +184,23 @@ export default function StreamOverlayAfk({ sessionId }) {
       <style>{`html, body { background: transparent !important; }`}</style>
       <div className="min-h-screen bg-transparent relative">
 
-      {/* ── FOOTER - Fondo negro AFK ── */}
-      <footer
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between"
-        style={{
-          height: '9.9vw',
-          paddingLeft: '2.7vw',
-          paddingRight: '2.7vw',
-          background: '#000000',
-          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
-        }}
-      >
+      {/* ── FOOTER - Fondo negro AFK (Colapsible) ── */}
+      <AnimatePresence>
+        {showFooter && (
+          <motion.footer
+            initial={{ y: 200, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 200, opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between"
+            style={{
+              height: '9.9vw',
+              paddingLeft: '2.7vw',
+              paddingRight: '2.7vw',
+              background: '#000000',
+              boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
+            }}
+          >
         {/* Logo AFK de fondo */}
         <div className="absolute inset-0 flex items-center justify-center overflow-hidden" style={{ zIndex: 0 }}>
           <img
@@ -347,7 +371,9 @@ export default function StreamOverlayAfk({ sessionId }) {
             })}
           </div>
         )}
-      </footer>
+      </motion.footer>
+        )}
+      </AnimatePresence>
 
       {/* ── Animación de Stage BANEADO ── */}
       <AnimatePresence>

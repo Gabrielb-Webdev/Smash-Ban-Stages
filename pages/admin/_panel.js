@@ -2022,7 +2022,7 @@ export default function TestAdminPage() {
                             >
                               ✕ Cancelar
                             </button>
-                            {/* Links públicos del setup tablet (Mendoza) */}
+                            {/* Links públicos del setup tablet (Mendoza, AFK) */}
                             {setup.id.endsWith('-tablet') && assigned?.banUrl1 && (
                               <div style={{ marginTop: 7, display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 <a href={assigned.banUrl1} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
@@ -2031,7 +2031,7 @@ export default function TestAdminPage() {
                                 <a href={assigned.banUrl2} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
                                   📱 Player 2 →
                                 </a>
-                                <a href={`/stream/mendoza/${assigned.sessionId}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
+                                <a href={community === 'mendoza' ? `/stream/mendoza/${assigned.sessionId}` : `/stream/${assigned.sessionId}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 7, padding: '5px 0', textDecoration: 'none' }}>
                                   📺 Overlay OBS →
                                 </a>
                               </div>
