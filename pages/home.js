@@ -2288,6 +2288,29 @@ function DesktopSidebar({ tab, setTab, bgMMStatus, user, unreadCount, collapsed,
         </button>
       </div>
 
+      {/* Tablet button — solo para Gabriel Sin H */}
+      {user?.name === 'Gabriel Sin H' && (
+        <div style={{ padding: '4px 8px' }}>
+          <a href="/tablet/afk-tablet" style={{ textDecoration: 'none' }}>
+            <button style={{
+              width: '100%', padding: collapsed ? '14px 0' : '14px 18px',
+              background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)',
+              border: 'none', borderRadius: 14, cursor: 'pointer', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              fontWeight: 900, fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase',
+              boxShadow: '0 2px 12px rgba(139,92,246,0.3)',
+              transition: 'box-shadow 0.2s, background 0.2s, transform 0.15s', position: 'relative',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(139,92,246,0.6)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(139,92,246,0.3)'; }}
+            >
+              <span style={{ fontSize: 20 }}>📱</span>
+              <span style={{ maxWidth: collapsed ? 0 : 80, overflow: 'hidden', opacity: collapsed ? 0 : 1, transition: 'max-width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s ease', whiteSpace: 'nowrap', display: 'block', letterSpacing: '0.08em' }}>TABLET</span>
+            </button>
+          </a>
+        </div>
+      )}
+
       {/* Divider */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: collapsed ? '10px 12px' : '10px 14px' }} />
 

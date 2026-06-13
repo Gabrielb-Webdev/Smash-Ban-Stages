@@ -598,55 +598,59 @@ export default function TabletControlAfk({ sessionId, playerName, playerIndex, m
                         {otherChecked ? 'Listo' : 'Esperando...'}
                       </span>
                     </div>
-                    {!session.singleDeviceMode ? (
-                      <button
-                        onClick={() => enableSingleDevice(sessionId)}
-                        style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 14,
-                          border: '1.5px solid rgba(96,165,250,0.4)', background: 'rgba(96,165,250,0.09)',
-                          color: '#93C5FD', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        <span>📱</span> Mi rival no tiene dispositivo — usar este
-                      </button>
-                    ) : (
-                      <div style={{
-                        width: '100%', padding: '10px 14px', borderRadius: 12,
-                        border: '1.5px solid rgba(96,165,250,0.35)', background: 'rgba(96,165,250,0.08)',
-                        color: '#60A5FA', fontSize: 13, fontWeight: 700, textAlign: 'center',
-                      }}>
-                        📱 Modo 1 dispositivo activo
-                      </div>
-                    )}
-                    {!myChecked && !(session.delayRequests || []).includes(myName) && (
-                      <button
-                        onClick={() => requestMatchDelay(sessionId, myName)}
-                        style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 14,
-                          border: '1.5px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.09)',
-                          color: '#FCD34D', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        <span>⏱️</span> Necesito más tiempo
-                      </button>
-                    )}
-                    {!myChecked && !(session.unavailableUsedBy || []).includes(myName) && (
-                      <button
-                        onClick={() => playerUnavailable(sessionId, myName)}
-                        style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 14,
-                          border: '1.5px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.09)',
-                          color: '#F87171', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        <span>🚫</span> No estoy disponible ahora
-                      </button>
+                    {sessionId !== 'afk-tablet' && (
+                      <>
+                        {!session.singleDeviceMode ? (
+                          <button
+                            onClick={() => enableSingleDevice(sessionId)}
+                            style={{
+                              width: '100%', padding: '12px 16px', borderRadius: 14,
+                              border: '1.5px solid rgba(96,165,250,0.4)', background: 'rgba(96,165,250,0.09)',
+                              color: '#93C5FD', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            <span>📱</span> Mi rival no tiene dispositivo — usar este
+                          </button>
+                        ) : (
+                          <div style={{
+                            width: '100%', padding: '10px 14px', borderRadius: 12,
+                            border: '1.5px solid rgba(96,165,250,0.35)', background: 'rgba(96,165,250,0.08)',
+                            color: '#60A5FA', fontSize: 13, fontWeight: 700, textAlign: 'center',
+                          }}>
+                            📱 Modo 1 dispositivo activo
+                          </div>
+                        )}
+                        {!myChecked && !(session.delayRequests || []).includes(myName) && (
+                          <button
+                            onClick={() => requestMatchDelay(sessionId, myName)}
+                            style={{
+                              width: '100%', padding: '12px 16px', borderRadius: 14,
+                              border: '1.5px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.09)',
+                              color: '#FCD34D', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            <span>⏱️</span> Necesito más tiempo
+                          </button>
+                        )}
+                        {!myChecked && !(session.unavailableUsedBy || []).includes(myName) && (
+                          <button
+                            onClick={() => playerUnavailable(sessionId, myName)}
+                            style={{
+                              width: '100%', padding: '12px 16px', borderRadius: 14,
+                              border: '1.5px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.09)',
+                              color: '#F87171', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            <span>🚫</span> No estoy disponible ahora
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 );
