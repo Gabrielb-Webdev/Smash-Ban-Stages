@@ -1954,6 +1954,7 @@ io.on('connection', (socket) => {
   // ── COLA DE MATCHES ──────────────────────────────────────────────────────
   // Encolar un nuevo match
   socket.on('queue-match', async ({ setupId, community, player1, player2, format, round, tournamentName, startggSetId, startggEntrant1Id, startggEntrant2Id }) => {
+    console.log(`[QUEUE] Servidor recibió queue-match:`, { setupId, community, player1: player1?.name, player2: player2?.name });
     try {
       const queueItem = {
         id: uuidv4(),
