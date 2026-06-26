@@ -1267,9 +1267,11 @@ export default function TestAdminPage() {
 
         console.log(`✅ Match encolado: ${p1Name} vs ${p2Name}`);
 
-        // Mostrar notificación
+        // Mostrar notificación con setup identificado
+        const setupLabel = SETUPS.find(s => s.id === setupId)?.label || setupId;
         setQueuedNotification({
           message: `${p1Name} vs ${p2Name}`,
+          setupLabel,
           setupId,
           timestamp: Date.now()
         });
@@ -2053,7 +2055,10 @@ export default function TestAdminPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13, fontWeight: 700 }}>
               <span style={{ fontSize: 18 }}>📋</span>
-              <span>✅ Encolado: {queuedNotification.message}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span>✅ Encolado en <span style={{ color: '#60A5FA', fontWeight: 900 }}>{queuedNotification.setupLabel}</span></span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{queuedNotification.message}</span>
+              </div>
             </div>
           </div>
         )}
@@ -2090,7 +2095,14 @@ export default function TestAdminPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                       <div style={{ width: 30, height: 30, borderRadius: 9, background: setup.color + '1E', border: `1px solid ${setup.color}3A`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{setup.icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{setup.label}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>{setup.label}</p>
+                          {setupQueues[setup.id]?.count > 0 && (
+                            <span style={{ fontSize: 10, fontWeight: 900, color: '#fff', background: '#EF4444', border: '1px solid #DC2626', borderRadius: 99, padding: '2px 8px', minWidth: 20, textAlign: 'center' }}>
+                              📋 {setupQueues[setup.id].count}
+                            </span>
+                          )}
+                        </div>
                         {(() => { const st = sessionStatuses[setup.id]; if (!st || !st.currentGame) return null; return <span style={{ fontSize: 8, fontWeight: 900, color: setup.color, background: setup.color + '1E', border: `1px solid ${setup.color}44`, borderRadius: 4, padding: '1px 6px', letterSpacing: '0.08em' }}>Game {st.currentGame} · {st.format || 'BO3'}</span>; })()}
                       </div>
                       {assigned && <button onClick={() => removeAssignment(setup.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>}
