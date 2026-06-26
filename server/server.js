@@ -1,5 +1,6 @@
 // ============================================================
-// WEBSOCKET SERVER - v2.4.0
+// WEBSOCKET SERVER - v2.5.0
+// v2.5.0 - Auto-activación de siguiente match en cola cuando termina uno
 // v2.4.0 - Auto-confirmación de resultados (10s por cada set) y sistema de cola de matches
 // v2.3.0 - Agregar syncAfkScoreboard, mirror afk-stream→afk-tablet, handlers para afk-tablet
 // ============================================================
@@ -1715,6 +1716,98 @@ io.on('connection', (socket) => {
         sessions.set('afk-stream', idleStream);
         io.to('afk-stream').emit('session-updated', { session: idleStream });
       }
+
+      // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA (después de 5 segundos de cleanup)
+      setTimeout(async () => {
+        try {
+          // Extraer comunidad y setupId de sessionId
+          const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
+          if (!setupMatch) return;
+
+          const community = setupMatch[1];
+          const setupId = sessionId;
+          const queueKey = `${community}:${setupId}`;
+
+          // Obtener siguiente match de la cola
+          const nextQueueItem = await redisQueuePop(queueKey);
+          if (!nextQueueItem) {
+            console.log(`[QUEUE] No hay más matches en cola para ${setupId}`);
+            return;
+          }
+
+          console.log(`[QUEUE] Auto-activando siguiente match en ${setupId}: ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
+
+          // Crear nueva sesión con el match encolado
+          const newSession = {
+            sessionId,
+            phase: 'CHECKIN',
+            player1: {
+              name: nextQueueItem.player1?.name || 'Player 1',
+              score: 0,
+              character: null,
+              wonStages: [],
+              country: nextQueueItem.player1?.country,
+              flagCode: nextQueueItem.player1?.flagCode,
+              seed: nextQueueItem.player1?.seed,
+            },
+            player2: {
+              name: nextQueueItem.player2?.name || 'Player 2',
+              score: 0,
+              character: null,
+              wonStages: [],
+              country: nextQueueItem.player2?.country,
+              flagCode: nextQueueItem.player2?.flagCode,
+              seed: nextQueueItem.player2?.seed,
+            },
+            format: nextQueueItem.format || 'BO3',
+            currentGame: 1,
+            currentTurn: null,
+            games: [],
+            checkIns: [],
+            delayRequests: [],
+            startggSetId: nextQueueItem.startggSetId || null,
+            startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
+            startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
+            startggReported: false,
+            community,
+          };
+
+          sessions.set(setupId, newSession);
+          io.to(setupId).emit('session-updated', { session: newSession });
+
+          // Notificar al admin panel que la cola se actualizo
+          const remainingQueue = await redisQueuePeek(queueKey, 5);
+          const queueLength = await redisQueueLength(queueKey);
+          io.to('admin-panel').emit('queue:updated', {
+            setupId,
+            community,
+            queue: remainingQueue,
+            queueLength,
+            message: `✅ Siguiente match activado en ${setupId}`
+          });
+
+          // Emitir actualización de assignedSets para que el admin panel lo vea inmediatamente
+          const assignedSetObj = {
+            [setupId]: {
+              id: nextQueueItem.startggSetId,
+              slots: [
+                { entrant: { name: nextQueueItem.player1?.name || 'Player 1', id: nextQueueItem.startggEntrant1Id } },
+                { entrant: { name: nextQueueItem.player2?.name || 'Player 2', id: nextQueueItem.startggEntrant2Id } }
+              ],
+              fullRoundText: nextQueueItem.round || '',
+              sessionId: setupId,
+              startggSetId: nextQueueItem.startggSetId,
+              startggEntrant1Id: nextQueueItem.startggEntrant1Id,
+              startggEntrant2Id: nextQueueItem.startggEntrant2Id,
+            }
+          };
+          io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj });
+
+          console.log(`✅ Nuevo match activado en ${setupId}. Cola restante: ${queueLength}`);
+        } catch (e) {
+          console.error('⚠️ Error auto-activando siguiente match:', e.message);
+        }
+      }, 5000);
     } else {
       // Guardar datos del stage actual para ofrecer repetir en el próximo game
       session.previousStageData = {

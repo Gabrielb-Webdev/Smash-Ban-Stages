@@ -684,6 +684,13 @@ export default function TestAdminPage() {
         ...prev,
         [setupId]: { items: queue || [], count: queueLength || 0, nextItem: queue?.[0] || null }
       }));
+
+      // Si el mensaje indica que se activó un nuevo match, actualizar assignedSets
+      if (message?.includes('Siguiente match activado')) {
+        console.log(`🎮 Auto-activando match en ${setupId}`);
+        // Forzar sincronización del setup para obtener el nuevo match
+        socket.emit('get-setup-assignment', { setupId, community });
+      }
     });
 
     return () => {
