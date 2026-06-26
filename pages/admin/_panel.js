@@ -105,8 +105,9 @@ export default function TestAdminPage() {
   // Colas de matches: { [setupId]: { items: [], count: 0, nextItem: {} } }
   const [setupQueues, setSetupQueues] = useState({});
 
-  // Toast de notificaciones de auto-activación
+  // Toast de notificaciones de auto-activación y encolamiento
   const [queueNotification, setQueueNotification] = useState(null);
+  const [queuedNotification, setQueuedNotification] = useState(null);
 
   // Selección dinámica de torneo
   const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
@@ -1245,7 +1246,12 @@ export default function TestAdminPage() {
     if (setupAlreadyHasMatch) {
       // Si el setup ya tiene un match, ENCOLAR en lugar de reemplazar
       const { community } = parseSetupId(setupId);
+      console.log(`[QUEUE] Intentando encolar match en ${setupId}, socket connected:`, panelSocketRef.current?.connected);
+
       if (panelSocketRef.current?.connected) {
+        const p1Name = cleanSet.slots[0]?.entrant?.name || '?';
+        const p2Name = cleanSet.slots[1]?.entrant?.name || '?';
+
         panelSocketRef.current.emit('queue-match', {
           setupId,
           community,
@@ -1258,6 +1264,19 @@ export default function TestAdminPage() {
           startggEntrant1Id: cleanSet.slots[0]?.id,
           startggEntrant2Id: cleanSet.slots[1]?.id,
         });
+
+        console.log(`✅ Match encolado: ${p1Name} vs ${p2Name}`);
+
+        // Mostrar notificación
+        setQueuedNotification({
+          message: `${p1Name} vs ${p2Name}`,
+          setupId,
+          timestamp: Date.now()
+        });
+        setTimeout(() => setQueuedNotification(null), 4000);
+      } else {
+        console.error('❌ Socket no conectado, no se puede encolar');
+        alert('Error: No está conectado al servidor. Intenta refrescar la página.');
       }
     } else {
       // Si el setup está vacío, asignar normalmente
@@ -2012,6 +2031,29 @@ export default function TestAdminPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13, fontWeight: 700 }}>
               <span style={{ fontSize: 18 }}>🎮</span>
               <span>Match activado: {queueNotification.message}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 📋 TOAST DE ENCOLAMIENTO */}
+        {queuedNotification && (
+          <div style={{
+            position: 'fixed',
+            top: 120,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 999,
+            animation: 'slideDown 0.3s ease-out',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(37,99,235,0.15))',
+            border: '2px solid rgba(59,130,246,0.6)',
+            borderRadius: 14,
+            padding: '12px 20px',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(96,165,250,0.25)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13, fontWeight: 700 }}>
+              <span style={{ fontSize: 18 }}>📋</span>
+              <span>✅ Encolado: {queuedNotification.message}</span>
             </div>
           </div>
         )}
