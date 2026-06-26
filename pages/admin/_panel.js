@@ -102,6 +102,9 @@ export default function TestAdminPage() {
   const [lockedSets, setLockedSets] = useState({});
   const [lockTick, setLockTick] = useState(0); // ticker para forzar re-render del countdown
 
+  // Colas de matches: { [setupId]: { items: [], count: 0, nextItem: {} } }
+  const [setupQueues, setSetupQueues] = useState({});
+
   // Selección dinámica de torneo
   const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
   const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
@@ -674,6 +677,15 @@ export default function TestAdminPage() {
       }
     });
 
+    // Escuchar actualizaciones de cola de matches
+    socket.on('queue:updated', ({ setupId, community, queue, queueLength, message }) => {
+      console.log(`📋 Cola actualizada para ${setupId}:`, queue);
+      setSetupQueues(prev => ({
+        ...prev,
+        [setupId]: { items: queue || [], count: queueLength || 0, nextItem: queue?.[0] || null }
+      }));
+    });
+
     return () => {
       socket.disconnect();
       panelSocketRef.current = null;
@@ -1068,6 +1080,18 @@ export default function TestAdminPage() {
     return s;
   }
 
+  function parseSetupId(setupId) {
+    // Extrae la comunidad del setupId: 'warui-1' → 'warui', 'afk-tablet' → 'afk-multi', etc.
+    if (!setupId) return { community: '', setupId: '' };
+    const COMMUNITIES = ['santafe', 'santa-fe', 'cordoba', 'mendoza', 'afk-multi', 'afk', 'warui', 'inc', 'test'];
+    for (const c of COMMUNITIES) {
+      if (setupId.startsWith(c + '-') || setupId === c) {
+        return { community: c, setupId };
+      }
+    }
+    return { community: setupId.split('-')[0], setupId };
+  }
+
   function previewSlugTournament(rawInput) {
     const slug = parseStartGgSlug(rawInput);
     if (!slug) return;
@@ -1198,13 +1222,37 @@ export default function TestAdminPage() {
     if (!draggedSet || !tournamentStarted) return;
     // Bloquear si el match ya está asignado a otro setup
     if (Object.values(assignedSets).some(s => s?.id === draggedSet.id)) { setDraggedSet(null); setDragOverSetup(null); return; }
+
     const cleanSet = { ...draggedSet };
-    setAssignedSets(prev => {
-      const next = { ...prev };
-      for (const k of Object.keys(next)) { if (next[k]?.id === cleanSet.id) delete next[k]; }
-      next[setupId] = cleanSet;
-      return next;
-    });
+    const setupAlreadyHasMatch = assignedSets[setupId];
+
+    if (setupAlreadyHasMatch) {
+      // Si el setup ya tiene un match, ENCOLAR en lugar de reemplazar
+      const { community } = parseSetupId(setupId);
+      if (panelSocketRef.current?.connected) {
+        panelSocketRef.current.emit('queue-match', {
+          setupId,
+          community,
+          player1: cleanSet.slots[0]?.entrant || {},
+          player2: cleanSet.slots[1]?.entrant || {},
+          format: 'BO3',
+          round: cleanSet.fullRoundText || '',
+          tournamentName: tournament?.name || '',
+          startggSetId: cleanSet.id,
+          startggEntrant1Id: cleanSet.slots[0]?.id,
+          startggEntrant2Id: cleanSet.slots[1]?.id,
+        });
+      }
+    } else {
+      // Si el setup está vacío, asignar normalmente
+      setAssignedSets(prev => {
+        const next = { ...prev };
+        for (const k of Object.keys(next)) { if (next[k]?.id === cleanSet.id) delete next[k]; }
+        next[setupId] = cleanSet;
+        return next;
+      });
+    }
+
     setDraggedSet(null); setDragOverSetup(null);
   }
   function removeAssignment(setupId) {
@@ -2090,11 +2138,71 @@ export default function TestAdminPage() {
                             </button>
                           </div>
                         )}
+
+                        {/* 📋 COLA DE MATCHES */}
+                        {setupQueues[setup.id]?.items && setupQueues[setup.id].items.length > 0 && (
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${setup.color}20` }}>
+                            <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                              📋 EN COLA ({setupQueues[setup.id].count})
+                            </p>
+                            {setupQueues[setup.id].items.slice(0, 3).map((item, idx) => (
+                              <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, background: 'rgba(255,255,255,0.02)', border: `1px solid ${setup.color}18`, borderRadius: 8, padding: 8, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+                                <span style={{ fontWeight: 800, color: setup.color, background: setup.color + '22', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>#{idx + 1}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10 }}>
+                                  {item.player1?.name || '?'} vs {item.player2?.name || '?'}
+                                </span>
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{item.format}</span>
+                                <button
+                                  onClick={() => {
+                                    const { community } = parseSetupId(setup.id);
+                                    if (panelSocketRef.current?.connected) {
+                                      panelSocketRef.current.emit('dequeue-match', { setupId: setup.id, community, queueItemId: item.id });
+                                    }
+                                  }}
+                                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 4, padding: '1px 4px', fontSize: 8, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+                                >✕</button>
+                              </div>
+                            ))}
+                            {setupQueues[setup.id].count > 3 && (
+                              <p style={{ margin: '6px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>+{setupQueues[setup.id].count - 3} más...</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div style={{ textAlign: 'center', padding: '20px 0' }}>
                         <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.18)' }}>Sin match activo</p>
                         <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>↓ Arrastrá un match</p>
+
+                        {/* 📋 COLA INCLUSO SIN MATCH ACTIVO */}
+                        {setupQueues[setup.id]?.items && setupQueues[setup.id].items.length > 0 && (
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${setup.color}20` }}>
+                            <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                              📋 EN ESPERA ({setupQueues[setup.id].count})
+                            </p>
+                            {setupQueues[setup.id].items.slice(0, 3).map((item, idx) => (
+                              <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, background: 'rgba(255,255,255,0.02)', border: `1px solid ${setup.color}18`, borderRadius: 8, padding: 8, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+                                <span style={{ fontWeight: 800, color: setup.color, background: setup.color + '22', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>#{idx + 1}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10 }}>
+                                  {item.player1?.name || '?'} vs {item.player2?.name || '?'}
+                                </span>
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{item.format}</span>
+                                <button
+                                  onClick={() => {
+                                    const { community } = parseSetupId(setup.id);
+                                    if (panelSocketRef.current?.connected) {
+                                      panelSocketRef.current.emit('dequeue-match', { setupId: setup.id, community, queueItemId: item.id });
+                                    }
+                                  }}
+                                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 4, padding: '1px 4px', fontSize: 8, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+                                >✕</button>
+                              </div>
+                            ))}
+                            {setupQueues[setup.id].count > 3 && (
+                              <p style={{ margin: '6px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>+{setupQueues[setup.id].count - 3} más...</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
