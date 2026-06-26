@@ -1229,6 +1229,8 @@ export default function TestAdminPage() {
     if (!tournamentStarted || lockedSets[set.id]) { e.preventDefault(); return; }
     // Bloquear si ya está asignado a un setup
     if (Object.values(assignedSets).some(s => s?.id === set.id)) { e.preventDefault(); return; }
+    // Bloquear si ya está encolado en otro setup
+    if (queuedMatches[set.id]) { e.preventDefault(); return; }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -1838,15 +1840,16 @@ export default function TestAdminPage() {
             const isBye   = set.stateLabel === 'BYE';
             const aSetup  = SETUPS.find(s => assignedSets[s.id]?.id === set.id);
             const isLocked = !isDone && !isBye && !!lockedSets[set.id];
+            const isQueued = !isDone && !isBye && !!queuedMatches[set.id];
             const lockRemaining = isLocked ? Math.max(0, Math.ceil((lockedSets[set.id] - Date.now()) / 1000)) : 0;
             return (
               <div
                 key={set.id}
                 className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                draggable={!isDone && !isBye && !isLocked && !aSetup}
-                onDragStart={!isDone && !isBye && !isLocked && !aSetup ? e => onDragStart(set, e) : undefined}
+                draggable={!isDone && !isBye && !isLocked && !aSetup && !isQueued}
+                onDragStart={!isDone && !isBye && !isLocked && !aSetup && !isQueued ? e => onDragStart(set, e) : undefined}
                 onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : isLocked ? 'not-allowed' : aSetup ? 'not-allowed' : 'grab', position: 'relative' }}
+                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : isQueued ? 'rgba(96,165,250,0.08)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : isQueued ? 'rgba(96,165,250,0.4)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : isQueued || isLocked ? 'not-allowed' : aSetup ? 'not-allowed' : 'grab', position: 'relative' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
