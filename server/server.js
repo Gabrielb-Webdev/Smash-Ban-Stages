@@ -766,6 +766,77 @@ const httpServer = createServer(async (req, res) => {
       io.to(sessionId).emit('match-cancelled', { sessionId });
       io.to(sessionId).emit('session-updated', { session });
       console.log(`❌ Sesión cancelada por admin: ${sessionId}`);
+
+      // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA CUANDO SE CANCELA (igual que seriesFinished)
+      setTimeout(async () => {
+        try {
+          const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
+          if (!setupMatch) return;
+
+          const community = setupMatch[1];
+          const setupId = sessionId;
+          const queueKey = `${community}:${setupId}`;
+
+          const nextQueueItem = await redisQueuePop(queueKey);
+          if (!nextQueueItem) {
+            console.log(`[QUEUE] No hay más matches en cola para ${setupId} (cancelado)`);
+            return;
+          }
+
+          console.log(`[QUEUE] Auto-activando siguiente match en ${setupId} (anterior cancelado): ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
+
+          const newSession = {
+            sessionId,
+            phase: 'CHECKIN',
+            player1: {
+              name: nextQueueItem.player1?.name || 'Player 1',
+              score: 0,
+              character: null,
+              wonStages: [],
+              country: nextQueueItem.player1?.country,
+              flagCode: nextQueueItem.player1?.flagCode,
+              seed: nextQueueItem.player1?.seed,
+            },
+            player2: {
+              name: nextQueueItem.player2?.name || 'Player 2',
+              score: 0,
+              character: null,
+              wonStages: [],
+              country: nextQueueItem.player2?.country,
+              flagCode: nextQueueItem.player2?.flagCode,
+              seed: nextQueueItem.player2?.seed,
+            },
+            format: nextQueueItem.format || 'BO3',
+            currentGame: 1,
+            currentTurn: null,
+            games: [],
+            checkIns: [],
+            delayRequests: [],
+            startggSetId: nextQueueItem.startggSetId || null,
+            startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
+            startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
+            startggReported: false,
+            community,
+          };
+
+          sessions.set(setupId, newSession);
+          io.to(setupId).emit('session-updated', { session: newSession });
+
+          const remainingQueue = await redisQueuePeek(queueKey, 5);
+          const queueLength = await redisQueueLength(queueKey);
+          io.to('admin-panel').emit('queue:updated', {
+            setupId,
+            community,
+            queue: remainingQueue,
+            queueLength,
+            message: `✅ Siguiente match activado en ${setupId} (anterior cancelado)`
+          });
+
+          console.log(`✅ Nuevo match activado en ${setupId}. Cola restante: ${queueLength}`);
+        } catch (e) {
+          console.error('⚠️ Error auto-activando siguiente match al cancelar:', e.message);
+        }
+      }, 2000);
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));

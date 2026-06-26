@@ -692,6 +692,19 @@ export default function TestAdminPage() {
         [setupId]: { items: queue || [], count: queueLength || 0, nextItem: queue?.[0] || null }
       }));
 
+      // Actualizar queuedMatches para reflejar lo que está en cola
+      setQueuedMatches(prev => {
+        const next = { ...prev };
+        // Remover matches que ya no están en la cola
+        Object.keys(next).forEach(setId => {
+          if (next[setId] === setupId) {
+            const isStillQueued = queue?.some(item => item.startggSetId === parseInt(setId));
+            if (!isStillQueued) delete next[setId];
+          }
+        });
+        return next;
+      });
+
       // Si el mensaje indica que se activó un nuevo match, mostrar notificación
       if (message?.includes('Siguiente match activado')) {
         console.log(`🎮 Auto-activando match en ${setupId}`);
