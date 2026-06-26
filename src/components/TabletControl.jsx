@@ -85,6 +85,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   const [wrongMatch, setWrongMatch] = useState(false);
   const [wrongMatchCountdown, setWrongMatchCountdown] = useState(3);
   const [endPhaseCountdown, setEndPhaseCountdown] = useState(null);
+  const [autoConfirmCountdown, setAutoConfirmCountdown] = useState(10);
 
   // Identidad manual: guardada en sessionStorage para persistir en la pestaña sin login
   const [manualIdentity, setManualIdentity] = useState(() => {
@@ -330,6 +331,24 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
     return () => clearInterval(iv);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.phase, manualIdentity]);
+
+  // Auto-confirmación: countdown de 10 segundos para cada set
+  useEffect(() => {
+    if (!session?.winnerProposal || session?.phase !== 'PLAYING') {
+      setAutoConfirmCountdown(10);
+      return;
+    }
+    const iv = setInterval(() => {
+      setAutoConfirmCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(iv);
+          return 10;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [session?.winnerProposal, session?.phase]);
 
   const handleRepeatCharacter = (player, repeat) => {
     console.log(`Player ${player} ${repeat ? 'repitió' : 'no repitió'} personaje`);
@@ -2451,6 +2470,18 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
                       <span style={{ color: '#E8A000', fontWeight: 800 }}>{session[session.winnerProposal.proposedBy]?.name}</span>{' '}dice que{' '}
                       <span style={{ color: '#fff', fontWeight: 800 }}>{session[session.winnerProposal.winner]?.name}</span>{' '}ganó
                     </p>
+
+                    {/* Auto-confirmación countdown */}
+                    <div style={{ margin: '10px 0', padding: '8px', background: 'rgba(100,200,255,0.2)', borderRadius: 8, border: '1px solid rgba(100,200,255,0.4)' }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 10, color: 'rgba(100,200,255,0.8)', textTransform: 'uppercase', fontWeight: 700 }}>Se auto-confirmará en:</p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: '#00d4ff', fontFamily: 'Anton' }}>{autoConfirmCountdown}s</div>
+                        <div style={{ width: 60, height: 6, background: 'rgba(100,200,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${(autoConfirmCountdown / 10) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #0099ff)', transition: 'width 0.3s ease' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <button
                         onClick={() => setGameWinner(sessionId, session.winnerProposal.winner, session?.matchToken)}
@@ -2469,6 +2500,18 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
                       Propusiste que <span style={{ color: '#E8A000', fontWeight: 800 }}>{session[session.winnerProposal.winner]?.name}</span> ganó
                     </p>
                     <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Esperando confirmación del rival...</p>
+
+                    {/* Auto-confirmación countdown */}
+                    <div style={{ margin: '8px 0 10px', padding: '8px', background: 'rgba(100,200,255,0.2)', borderRadius: 8, border: '1px solid rgba(100,200,255,0.4)' }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 10, color: 'rgba(100,200,255,0.8)', textTransform: 'uppercase', fontWeight: 700 }}>Auto-confirma en:</p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: '#00d4ff', fontFamily: 'Anton' }}>{autoConfirmCountdown}s</div>
+                        <div style={{ width: 60, height: 6, background: 'rgba(100,200,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${(autoConfirmCountdown / 10) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #0099ff)', transition: 'width 0.3s ease' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
                     <button
                       onClick={() => rejectGameWinner(sessionId)}
                       style={{ padding: '8px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}

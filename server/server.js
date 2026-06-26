@@ -1,5 +1,6 @@
 // ============================================================
-// WEBSOCKET SERVER - v2.3.0
+// WEBSOCKET SERVER - v2.4.0
+// v2.4.0 - Auto-confirmación de resultados (10s por cada set) y sistema de cola de matches
 // v2.3.0 - Agregar syncAfkScoreboard, mirror afk-stream→afk-tablet, handlers para afk-tablet
 // ============================================================
 const { createServer } = require('http');
@@ -147,6 +148,59 @@ function communityFromSessionId(sessionId, sessionCommunity) {
     if (s.startsWith(prefix + '-') || s === prefix) return prefix;
   }
   return s.split('-')[0] || '';
+}
+
+// ── COLA DE MATCHES ──────────────────────────────────────────────────────────
+// Helpers para manejar cola de matches en Redis
+async function redisQueuePush(setupKey, queueItem) {
+  try {
+    const key = `queue:setup:${setupKey}`;
+    await redis.rpush(key, JSON.stringify(queueItem));
+    await redis.expire(key, 604800); // 7 days TTL
+  } catch (e) { console.error('⚠️ Error en redisQueuePush:', e.message); }
+}
+
+async function redisQueuePop(setupKey) {
+  try {
+    const key = `queue:setup:${setupKey}`;
+    const item = await redis.lpop(key);
+    return item ? JSON.parse(item) : null;
+  } catch (e) { console.error('⚠️ Error en redisQueuePop:', e.message); return null; }
+}
+
+async function redisQueuePeek(setupKey, limit = 3) {
+  try {
+    const key = `queue:setup:${setupKey}`;
+    const items = await redis.lrange(key, 0, limit - 1);
+    return items.map(i => JSON.parse(i));
+  } catch (e) { console.error('⚠️ Error en redisQueuePeek:', e.message); return []; }
+}
+
+async function redisQueueLength(setupKey) {
+  try {
+    const key = `queue:setup:${setupKey}`;
+    return await redis.llen(key);
+  } catch (e) { console.error('⚠️ Error en redisQueueLength:', e.message); return 0; }
+}
+
+// Auto-confirmación de resultados (10 segundos por cada set)
+function startAutoConfirmTimer(sessionId, socket, io) {
+  const session = sessions.get(sessionId);
+  if (!session || !session.resultProposal) return;
+
+  const timeoutId = setTimeout(() => {
+    const s = sessions.get(sessionId);
+    if (!s || s.phase !== 'FINISHED' || !s.resultProposal) return;
+
+    const winner = s.resultProposal.winner;
+    io.to(sessionId).emit('result-auto-confirmed', { winner });
+    console.log(`⏱️ Auto-confirmó resultado en ${sessionId}: ${winner} gana`);
+
+    // Aplicar resultado como si lo hubiera confirmado manualmente
+    applyGameWinner(sessionId, winner, socket, io, true);
+  }, 10000);
+
+  session.resultProposal.autoConfirmTimeoutId = timeoutId;
 }
 
 // Guardar historial de torneo en Vercel (Redis) cuando una serie termina
@@ -1720,7 +1774,18 @@ io.on('connection', (socket) => {
       }
       // Ignorar si ya existe una propuesta pendiente (evita race condition)
       if (session.winnerProposal) return;
-      session.winnerProposal = { winner, proposedBy: proposedBy || null };
+
+      session.winnerProposal = { winner, proposedBy: proposedBy || null, autoConfirmTimeoutId: null };
+
+      // NUEVA FEATURE: Auto-confirmación de resultados (10 segundos por cada set)
+      const autoConfirmTimeout = setTimeout(() => {
+        const s = sessions.get(sessionId);
+        if (!s || s.phase !== 'PLAYING' || !s.winnerProposal) return;
+        console.log(`⏱️ Auto-confirmó resultado en ${sessionId} después de 10s: ${winner} gana`);
+        applyGameWinner(sessionId, winner);
+      }, 10000);
+
+      session.winnerProposal.autoConfirmTimeoutId = autoConfirmTimeout;
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
     }
@@ -1740,6 +1805,12 @@ io.on('connection', (socket) => {
   socket.on('game-winner', ({ sessionId, winner, matchToken }) => {
     const session = sessions.get(sessionId);
     if (matchToken && session?.matchToken && matchToken !== session.matchToken) return;
+
+    // Limpiar timeout de auto-confirmación si existe
+    if (session?.winnerProposal?.autoConfirmTimeoutId) {
+      clearTimeout(session.winnerProposal.autoConfirmTimeoutId);
+    }
+
     applyGameWinner(sessionId, winner);
   });
 
@@ -1786,7 +1857,90 @@ io.on('connection', (socket) => {
       io.to(sessionId).emit('session-updated', { session });
     }
   });
-  
+
+  // ── COLA DE MATCHES ──────────────────────────────────────────────────────
+  // Encolar un nuevo match
+  socket.on('queue-match', async ({ setupId, community, player1, player2, format, round, tournamentName, startggSetId, startggEntrant1Id, startggEntrant2Id }) => {
+    try {
+      const queueItem = {
+        id: uuidv4(),
+        player1,
+        player2,
+        format: format || 'BO3',
+        round: round || '',
+        tournamentName: tournamentName || '',
+        startggSetId: startggSetId || null,
+        startggEntrant1Id: startggEntrant1Id || null,
+        startggEntrant2Id: startggEntrant2Id || null,
+        createdAt: Date.now(),
+        status: 'pending'
+      };
+
+      // Guardar en Redis
+      await redisQueuePush(`${community}:${setupId}`, queueItem);
+
+      // Obtener lista actualizada de cola
+      const queueLength = await redisQueueLength(`${community}:${setupId}`);
+      const queue = await redisQueuePeek(`${community}:${setupId}`, 5);
+
+      // Emitir actualización a panel admin
+      io.to(`admin-panel`).emit('queue:updated', {
+        setupId,
+        community,
+        queue,
+        queueLength,
+        message: `✅ Match encolado para ${setupId} (${queueLength} en cola)`
+      });
+
+      console.log(`[QUEUE] Match encolado en ${setupId}: ${player1.name} vs ${player2.name} (${queueLength} total)`);
+    } catch (e) {
+      console.error('⚠️ Error encolando match:', e.message);
+    }
+  });
+
+  // Desencolar un match
+  socket.on('dequeue-match', async ({ setupId, community, queueItemId }) => {
+    try {
+      const queue = await redisQueuePeek(`${community}:${setupId}`, 100);
+      const filteredQueue = queue.filter(item => item.id !== queueItemId);
+
+      // Reconstruir la cola sin el item
+      const key = `queue:setup:${community}:${setupId}`;
+      await redis.del(key);
+      for (const item of filteredQueue) {
+        await redis.rpush(key, JSON.stringify(item));
+      }
+      await redis.expire(key, 604800);
+
+      const queueLength = await redisQueueLength(`${community}:${setupId}`);
+      const updatedQueue = await redisQueuePeek(`${community}:${setupId}`, 5);
+
+      // Emitir actualización
+      io.to(`admin-panel`).emit('queue:updated', {
+        setupId,
+        community,
+        queue: updatedQueue,
+        queueLength,
+        message: `🗑️ Match removido de cola de ${setupId} (${queueLength} restantes)`
+      });
+
+      console.log(`[QUEUE] Match removido de cola en ${setupId} (${queueLength} total)`);
+    } catch (e) {
+      console.error('⚠️ Error removiendo de cola:', e.message);
+    }
+  });
+
+  // Obtener estado de cola
+  socket.on('get-queue-status', async ({ setupId, community }) => {
+    try {
+      const queueLength = await redisQueueLength(`${community}:${setupId}`);
+      const queue = await redisQueuePeek(`${community}:${setupId}`, 5);
+      socket.emit('queue:status', { setupId, community, queue, queueLength });
+    } catch (e) {
+      console.error('⚠️ Error obteniendo estado de cola:', e.message);
+    }
+  });
+
   // Terminar match (marcar como FINISHED)
   socket.on('end-match', ({ sessionId, winner }) => {
     const session = sessions.get(sessionId);
