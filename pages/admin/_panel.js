@@ -697,9 +697,13 @@ export default function TestAdminPage() {
         const next = { ...prev };
         // Remover matches que ya no están en la cola
         Object.keys(next).forEach(setId => {
-          if (next[setId] === setupId) {
+          const qItem = next[setId];
+          if (qItem?.setupId === setupId) {
             const isStillQueued = queue?.some(item => item.startggSetId === parseInt(setId));
-            if (!isStillQueued) delete next[setId];
+            if (!isStillQueued) {
+              delete next[setId];
+              console.log(`[BRACKET] Removiendo ${setId} de queuedMatches (ya no en cola)`);
+            }
           }
         });
         return next;
@@ -1242,7 +1246,7 @@ export default function TestAdminPage() {
     if (!tournamentStarted || lockedSets[set.id]) { e.preventDefault(); return; }
     // Bloquear si ya está asignado a un setup
     if (Object.values(assignedSets).some(s => s?.id === set.id)) { e.preventDefault(); return; }
-    // Bloquear si ya está encolado en otro setup
+    // Bloquear si ya está encolado en otro setup (usar set.id que es startggSetId)
     if (queuedMatches[set.id]) { e.preventDefault(); return; }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
@@ -1295,10 +1299,12 @@ export default function TestAdminPage() {
         });
 
         // Marcar el match como encolado (para mostrarlo en bracket)
+        // Usar cleanSet.id (startggSetId) como clave principal
         setQueuedMatches(prev => ({
           ...prev,
-          [cleanSet.id]: setupId
+          [cleanSet.id]: { setupId, bracketId: draggedSet.id }
         }));
+        console.log(`[BRACKET] Marcando set ${cleanSet.id} como encolado en ${setupId}`);
 
         setTimeout(() => setQueuedNotification(null), 4000);
       } else {
@@ -1869,7 +1875,9 @@ export default function TestAdminPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
                     {!aSetup && queuedMatches[set.id] && (() => {
-                      const queuedSetup = SETUPS.find(s => s.id === queuedMatches[set.id]);
+                      const qItem = queuedMatches[set.id];
+                      const queuedSetup = SETUPS.find(s => s.id === qItem.setupId);
+                      console.log(`[BRACKET] Mostrando badge para set ${set.id}: En cola ${queuedSetup?.label}`);
                       return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
                     })()}
                     {!isDone && !isBye && !aSetup && (
