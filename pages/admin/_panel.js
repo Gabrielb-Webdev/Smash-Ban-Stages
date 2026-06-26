@@ -105,6 +105,9 @@ export default function TestAdminPage() {
   // Colas de matches: { [setupId]: { items: [], count: 0, nextItem: {} } }
   const [setupQueues, setSetupQueues] = useState({});
 
+  // Track de matches encolados: { [setId]: setupId } para mostrar en bracket
+  const [queuedMatches, setQueuedMatches] = useState({});
+
   // Toast de notificaciones de auto-activación y encolamiento
   const [queueNotification, setQueueNotification] = useState(null);
   const [queuedNotification, setQueuedNotification] = useState(null);
@@ -1275,6 +1278,13 @@ export default function TestAdminPage() {
           setupId,
           timestamp: Date.now()
         });
+
+        // Marcar el match como encolado (para mostrarlo en bracket)
+        setQueuedMatches(prev => ({
+          ...prev,
+          [cleanSet.id]: setupId
+        }));
+
         setTimeout(() => setQueuedNotification(null), 4000);
       } else {
         console.error('❌ Socket no conectado, no se puede encolar');
@@ -1842,6 +1852,10 @@ export default function TestAdminPage() {
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
+                    {!aSetup && queuedMatches[set.id] && (() => {
+                      const queuedSetup = SETUPS.find(s => s.id === queuedMatches[set.id]);
+                      return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
+                    })()}
                     {!isDone && !isBye && !aSetup && (
                       <button
                         onClick={e => toggleLock(set.id, e)}
