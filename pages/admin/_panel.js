@@ -105,6 +105,9 @@ export default function TestAdminPage() {
   // Colas de matches: { [setupId]: { items: [], count: 0, nextItem: {} } }
   const [setupQueues, setSetupQueues] = useState({});
 
+  // Toast de notificaciones de auto-activación
+  const [queueNotification, setQueueNotification] = useState(null);
+
   // Selección dinámica de torneo
   const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
   const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
@@ -685,11 +688,17 @@ export default function TestAdminPage() {
         [setupId]: { items: queue || [], count: queueLength || 0, nextItem: queue?.[0] || null }
       }));
 
-      // Si el mensaje indica que se activó un nuevo match, actualizar assignedSets
+      // Si el mensaje indica que se activó un nuevo match, mostrar notificación
       if (message?.includes('Siguiente match activado')) {
         console.log(`🎮 Auto-activando match en ${setupId}`);
-        // Forzar sincronización del setup para obtener el nuevo match
-        socket.emit('get-setup-assignment', { setupId, community });
+        const nextMatch = queue?.[0];
+        setQueueNotification({
+          setupId,
+          message: `✅ ${nextMatch?.player1?.name || '?'} vs ${nextMatch?.player2?.name || '?'} - ${nextMatch?.format || 'BO3'}`,
+          timestamp: Date.now()
+        });
+        // Auto-limpiar notificación después de 5 segundos
+        setTimeout(() => setQueueNotification(null), 5000);
       }
     });
 
@@ -1977,6 +1986,35 @@ export default function TestAdminPage() {
             </div>
           </div>
         </div>
+
+        {/* 📋 TOAST DE AUTO-ACTIVACIÓN */}
+        {queueNotification && (
+          <div style={{
+            position: 'fixed',
+            top: 70,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 999,
+            animation: 'slideDown 0.3s ease-out',
+            background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.15))',
+            border: '2px solid rgba(34,197,94,0.6)',
+            borderRadius: 14,
+            padding: '12px 20px',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(52,211,153,0.25)'
+          }}>
+            <style>{`
+              @keyframes slideDown {
+                from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                to { opacity: 1; transform: translateX(-50%) translateY(0); }
+              }
+            `}</style>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13, fontWeight: 700 }}>
+              <span style={{ fontSize: 18 }}>🎮</span>
+              <span>Match activado: {queueNotification.message}</span>
+            </div>
+          </div>
+        )}
 
         {/* ── MAIN BODY: izquierda setups + derecha bracket ── */}
         <div className="panel-body" style={{ display: 'flex', gap: 16, padding: '16px 20px 24px', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
