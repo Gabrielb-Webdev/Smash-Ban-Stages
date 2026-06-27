@@ -10,7 +10,8 @@
       "Bash(git commit -m 'fix: afk-tablet activar automáticamente modo 1 dispositivo \\(turnos compartidos\\) *)",
       "Bash(awk 'NR>=1845 && NR<=1945 {print NR\": \"$0}' \"e:\\\\Users\\\\gabri\\\\Documents\\\\Clientes\\\\Smash-Ban-Stages\\\\pages\\\\admin\\\\_panel.js\")",
       "Bash(node --check server/server.js)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(awk 'NR==727,NR==735' pages/admin/_panel.js)"
     ]
   }
 }
