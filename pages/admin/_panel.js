@@ -1260,56 +1260,60 @@ export default function TestAdminPage() {
 
   // Red de seguridad (100% client-side): si un setup queda libre (sin match activo) pero tiene algo
   // esperando en cola, montar y activar ese match automáticamente — cubre CUALQUIER camino que libere
-  // el setup (cancelar, fin de serie, no-disponible, etc.) sin depender de la auto-activación del server.
+  // el setup (cancelar, fin de serie, no-disponible, etc.) sin depender de la auto-activación del server
+  // ni de setupQueues (que requiere recibir eventos del room admin-panel, que pueden no llegar).
+  // Fuente de verdad: queuedMatches (seteado sincrónicamente al encolar) + bracketSets (datos del match).
   useEffect(() => {
     if (!tournamentStarted) return;
     SETUPS.forEach(s => {
-      const item = setupQueues[s.id]?.items?.[0];
       const isFree = !assignedSets[s.id];
-      if (isFree && item) {
-        if (autoPromoteRequestedRef.current[s.id]) return;
-        autoPromoteRequestedRef.current[s.id] = true;
-        const { community: comm } = parseSetupId(s.id);
+      if (!isFree) { delete autoPromoteRequestedRef.current[s.id]; return; }
 
-        // Construir el "set" desde el item encolado (mismo shape que un set del bracket)
-        const promotedSet = {
-          id: item.startggSetId,
-          slots: [
-            { entrant: item.player1 || {} },
-            { entrant: item.player2 || {} },
-          ],
-          fullRoundText: item.round || '',
+      // ¿Hay un match marcado como "en cola" para este setup?
+      const queuedKey = Object.keys(queuedMatches).find(k => queuedMatches[k] === s.id);
+      if (!queuedKey) return;
+      if (autoPromoteRequestedRef.current[s.id]) return;
+
+      // Obtener los datos completos del match: preferir el item real de la cola (tiene id para dequeue),
+      // si no, reconstruir desde el set del bracket que coincide con la queueKey.
+      const qItem = (setupQueues[s.id]?.items || []).find(
+        it => `${it.player1?.name || 'P1'}_vs_${it.player2?.name || 'P2'}` === queuedKey
+      );
+      let promotedSet, dequeueId;
+      if (qItem) {
+        promotedSet = {
+          id: qItem.startggSetId,
+          slots: [{ entrant: qItem.player1 || {} }, { entrant: qItem.player2 || {} }],
+          fullRoundText: qItem.round || '',
         };
-
-        console.log(`[QUEUE] 🚀 Promoviendo match encolado a ${s.id}:`, item.player1?.name, 'vs', item.player2?.name);
-
-        // 1) Montar en el setup
-        setAssignedSets(prev => ({ ...prev, [s.id]: promotedSet }));
-
-        // 2) Sacar el item de la cola en Redis (endpoint existente y estable)
-        if (item.id) panelSocketRef.current?.emit('dequeue-match', { setupId: s.id, community: comm, queueItemId: item.id });
-
-        // 3) Limpiar estado local de cola de inmediato (no esperar al server)
-        setSetupQueues(prev => {
-          const cur = prev[s.id];
-          if (!cur) return prev;
-          const rest = (cur.items || []).slice(1);
-          return { ...prev, [s.id]: { items: rest, count: Math.max(0, (cur.count || 1) - 1), nextItem: rest[0] || null } };
-        });
-        setQueuedMatches(prev => {
-          const next = { ...prev };
-          const qk = `${item.player1?.name || 'P1'}_vs_${item.player2?.name || 'P2'}`;
-          if (next[qk] === s.id) delete next[qk];
-          return next;
-        });
-
-        // 4) Activar (check-in / start.gg / sesión) igual que un call manual
-        callMatch(s.id, promotedSet);
-      } else if (!isFree) {
-        delete autoPromoteRequestedRef.current[s.id];
+        dequeueId = qItem.id;
+      } else {
+        const bset = (bracketSets || []).find(bs => getQueueKey(bs) === queuedKey);
+        if (!bset) return; // todavía no tenemos datos del match: esperar próximo render
+        promotedSet = { ...bset };
       }
+
+      autoPromoteRequestedRef.current[s.id] = true;
+      const { community: comm } = parseSetupId(s.id);
+      console.log(`[QUEUE] 🚀 Promoviendo match encolado a ${s.id}:`, promotedSet.slots?.[0]?.entrant?.name, 'vs', promotedSet.slots?.[1]?.entrant?.name);
+
+      // 1) Montar en el setup
+      setAssignedSets(prev => ({ ...prev, [s.id]: promotedSet }));
+
+      // 2) Sacar de la cola: del badge local (inmediato) y de Redis (si tenemos id)
+      setQueuedMatches(prev => { const n = { ...prev }; delete n[queuedKey]; return n; });
+      if (dequeueId) panelSocketRef.current?.emit('dequeue-match', { setupId: s.id, community: comm, queueItemId: dequeueId });
+      setSetupQueues(prev => {
+        const cur = prev[s.id];
+        if (!cur) return prev;
+        const rest = (cur.items || []).filter(it => `${it.player1?.name || 'P1'}_vs_${it.player2?.name || 'P2'}` !== queuedKey);
+        return { ...prev, [s.id]: { items: rest, count: rest.length, nextItem: rest[0] || null } };
+      });
+
+      // 3) Activar (check-in / start.gg / sesión) igual que un call manual
+      callMatch(s.id, promotedSet);
     });
-  }, [assignedSets, setupQueues, tournamentStarted]);
+  }, [assignedSets, queuedMatches, setupQueues, bracketSets, tournamentStarted]);
 
   function getQueueKey(set) {
     return `${set?.slots?.[0]?.entrant?.name || 'P1'}_vs_${set?.slots?.[1]?.entrant?.name || 'P2'}`;

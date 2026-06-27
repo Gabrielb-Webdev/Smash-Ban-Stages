@@ -2264,8 +2264,13 @@ io.on('connection', (socket) => {
     if (!community) return;
     const room = `panel:${community}`;
     socket.join(room);
+    // Los handlers de cola (queue:updated/queue:status/panel:assign-update) emiten a 'admin-panel'.
+    // Sin este join, el panel nunca recibía esos eventos → setupQueues no se hidrataba y la
+    // auto-activación del server jamás llegaba al cliente. Los eventos traen setupId/community,
+    // así que el cliente filtra por setup (no hay colisión entre comunidades).
+    socket.join('admin-panel');
     socket._panelCommunity = community;
-    console.log(`🎮 Panel admin unido: ${socket.id} → ${room}`);
+    console.log(`🎮 Panel admin unido: ${socket.id} → ${room} (+admin-panel)`);
 
     // Emitir estado actual SOLO al socket que se acaba de unir
     let currentState = panelStates.get(community);
