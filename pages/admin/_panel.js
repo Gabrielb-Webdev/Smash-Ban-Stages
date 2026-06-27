@@ -1273,7 +1273,7 @@ export default function TestAdminPage() {
         // Throttle: empujar al server como mucho cada 4s. Si el primer nudge se perdió o no tomó,
         // reintenta solo hasta que el setup se ocupe. Multi-device-safe (LPOP atómico en el server).
         const last = autoPromoteRequestedRef.current[s.id] || 0;
-        if (Date.now() - last < 4000) return;
+        if (Date.now() - last < 2000) return;
         autoPromoteRequestedRef.current[s.id] = Date.now();
         const { community: comm } = parseSetupId(s.id);
         console.log(`[QUEUE] ⏫ Setup ${s.id} libre con cola → activate-queued-match`);

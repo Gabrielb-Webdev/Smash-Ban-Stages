@@ -203,6 +203,12 @@ async function upstashCmd(command) {
 const queueMem = new Map();
 function _memArr(setupKey) { return queueMem.get(setupKey) || []; }
 
+// Lock de activación por setup: garantiza que se active UN solo match por setup hasta que ese
+// setup se libere (cancelar/finalizar). Se setea al auto-activar y se limpia cuando el match
+// de ese setup termina. Clave: setupId (ej. 'warui-4'). Evita que se drene toda la cola de golpe.
+const setupActivationLock = new Map();
+function clearSetupLock(setupId) { if (setupId) setupActivationLock.delete(setupId); }
+
 async function _hydrateFromUpstash(setupKey) {
   // Si memoria no conoce esta key, intentar recuperar de Upstash (ej: tras reinicio del server).
   // Se marca como hidratada SIEMPRE (aunque venga vacía) para no repetir la consulta en cada peek.
@@ -846,93 +852,10 @@ const httpServer = createServer(async (req, res) => {
       io.to(sessionId).emit('session-updated', { session });
       console.log(`❌ Sesión cancelada por admin: ${sessionId}`);
 
-      // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA CUANDO SE CANCELA (igual que seriesFinished)
-      setTimeout(async () => {
-        try {
-          const { community, setupId } = resolveSetupKey(session, sessionId);
-          if (!community || !setupId) return;
-          const queueKey = `${community}:${setupId}`;
-          console.log(`[QUEUE] (cancelado) resolviendo cola para sessionId=${sessionId} → queueKey=${queueKey}`);
-
-          const nextQueueItem = await redisQueuePop(queueKey);
-          if (!nextQueueItem) {
-            console.log(`[QUEUE] No hay más matches en cola para ${setupId} (cancelado)`);
-            return;
-          }
-
-          console.log(`[QUEUE] Auto-activando siguiente match en ${setupId} (anterior cancelado): ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
-
-          const newSession = {
-            sessionId: setupId,
-            setupId,
-            community,
-            phase: 'CHECKIN',
-            player1: {
-              name: nextQueueItem.player1?.name || 'Player 1',
-              score: 0,
-              character: null,
-              wonStages: [],
-              country: nextQueueItem.player1?.country,
-              flagCode: nextQueueItem.player1?.flagCode,
-              seed: nextQueueItem.player1?.seed,
-            },
-            player2: {
-              name: nextQueueItem.player2?.name || 'Player 2',
-              score: 0,
-              character: null,
-              wonStages: [],
-              country: nextQueueItem.player2?.country,
-              flagCode: nextQueueItem.player2?.flagCode,
-              seed: nextQueueItem.player2?.seed,
-            },
-            format: nextQueueItem.format || 'BO3',
-            currentGame: 1,
-            currentTurn: null,
-            games: [],
-            checkIns: [],
-            delayRequests: [],
-            startggSetId: nextQueueItem.startggSetId || null,
-            startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
-            startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
-            startggReported: false,
-          };
-
-          sessions.set(setupId, newSession);
-          io.to(setupId).emit('session-updated', { session: newSession });
-          if (newSession.startggSetId) markSetInProgress(newSession.startggSetId);
-
-          const remainingQueue = await redisQueuePeek(queueKey, 5);
-          const queueLength = await redisQueueLength(queueKey);
-          io.to('admin-panel').emit('queue:updated', {
-            setupId,
-            community,
-            queue: remainingQueue,
-            queueLength,
-            message: `✅ Siguiente match activado en ${setupId} (anterior cancelado)`
-          });
-
-          // Emitir actualización de assignedSets para que el admin panel lo vea inmediatamente
-          const assignedSetObj = {
-            [setupId]: {
-              id: nextQueueItem.startggSetId,
-              slots: [
-                { entrant: { name: nextQueueItem.player1?.name || 'Player 1', id: nextQueueItem.startggEntrant1Id } },
-                { entrant: { name: nextQueueItem.player2?.name || 'Player 2', id: nextQueueItem.startggEntrant2Id } }
-              ],
-              fullRoundText: nextQueueItem.round || '',
-              sessionId: setupId,
-              startggSetId: nextQueueItem.startggSetId,
-              startggEntrant1Id: nextQueueItem.startggEntrant1Id,
-              startggEntrant2Id: nextQueueItem.startggEntrant2Id,
-            }
-          };
-          io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
-
-          console.log(`✅ Nuevo match activado en ${setupId}. Cola restante: ${queueLength}`);
-        } catch (e) {
-          console.error('⚠️ Error auto-activando siguiente match al cancelar:', e.message);
-        }
-      }, 2000);
+      // Liberar el setup: limpiar el lock de activación para que el panel pueda auto-activar
+      // el siguiente match de la cola (vía activate-queued-match — único camino de promoción).
+      const { setupId: freedSetupId } = resolveSetupKey(session, sessionId);
+      clearSetupLock(freedSetupId);
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
@@ -1884,97 +1807,10 @@ io.on('connection', (socket) => {
         io.to('afk-stream').emit('session-updated', { session: idleStream });
       }
 
-      // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA (después de 5 segundos de cleanup)
-      setTimeout(async () => {
-        try {
-          // Extraer comunidad y setupId: preferir los guardados en la sesión (sessionId puede tener sufijo único)
-          const { community, setupId } = resolveSetupKey(session, sessionId);
-          if (!community || !setupId) return;
-          const queueKey = `${community}:${setupId}`;
-          console.log(`[QUEUE] (fin de serie) resolviendo cola para sessionId=${sessionId} → queueKey=${queueKey}`);
-
-          // Obtener siguiente match de la cola
-          const nextQueueItem = await redisQueuePop(queueKey);
-          if (!nextQueueItem) {
-            console.log(`[QUEUE] No hay más matches en cola para ${setupId}`);
-            return;
-          }
-
-          console.log(`[QUEUE] Auto-activando siguiente match en ${setupId}: ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
-
-          // Crear nueva sesión con el match encolado
-          const newSession = {
-            sessionId: setupId,
-            setupId,
-            community,
-            phase: 'CHECKIN',
-            player1: {
-              name: nextQueueItem.player1?.name || 'Player 1',
-              score: 0,
-              character: null,
-              wonStages: [],
-              country: nextQueueItem.player1?.country,
-              flagCode: nextQueueItem.player1?.flagCode,
-              seed: nextQueueItem.player1?.seed,
-            },
-            player2: {
-              name: nextQueueItem.player2?.name || 'Player 2',
-              score: 0,
-              character: null,
-              wonStages: [],
-              country: nextQueueItem.player2?.country,
-              flagCode: nextQueueItem.player2?.flagCode,
-              seed: nextQueueItem.player2?.seed,
-            },
-            format: nextQueueItem.format || 'BO3',
-            currentGame: 1,
-            currentTurn: null,
-            games: [],
-            checkIns: [],
-            delayRequests: [],
-            startggSetId: nextQueueItem.startggSetId || null,
-            startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
-            startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
-            startggReported: false,
-          };
-
-          sessions.set(setupId, newSession);
-          io.to(setupId).emit('session-updated', { session: newSession });
-          if (newSession.startggSetId) markSetInProgress(newSession.startggSetId);
-
-          // Notificar al admin panel que la cola se actualizo
-          const remainingQueue = await redisQueuePeek(queueKey, 5);
-          const queueLength = await redisQueueLength(queueKey);
-          io.to('admin-panel').emit('queue:updated', {
-            setupId,
-            community,
-            queue: remainingQueue,
-            queueLength,
-            message: `✅ Siguiente match activado en ${setupId}`
-          });
-
-          // Emitir actualización de assignedSets para que el admin panel lo vea inmediatamente
-          const assignedSetObj = {
-            [setupId]: {
-              id: nextQueueItem.startggSetId,
-              slots: [
-                { entrant: { name: nextQueueItem.player1?.name || 'Player 1', id: nextQueueItem.startggEntrant1Id } },
-                { entrant: { name: nextQueueItem.player2?.name || 'Player 2', id: nextQueueItem.startggEntrant2Id } }
-              ],
-              fullRoundText: nextQueueItem.round || '',
-              sessionId: setupId,
-              startggSetId: nextQueueItem.startggSetId,
-              startggEntrant1Id: nextQueueItem.startggEntrant1Id,
-              startggEntrant2Id: nextQueueItem.startggEntrant2Id,
-            }
-          };
-          io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
-
-          console.log(`✅ Nuevo match activado en ${setupId}. Cola restante: ${queueLength}`);
-        } catch (e) {
-          console.error('⚠️ Error auto-activando siguiente match:', e.message);
-        }
-      }, 5000);
+      // Liberar el setup: limpiar el lock para que el panel pueda auto-activar el siguiente
+      // match de la cola (vía activate-queued-match — único camino de promoción).
+      const { setupId: freedSetupId } = resolveSetupKey(session, sessionId);
+      clearSetupLock(freedSetupId);
     } else {
       // Guardar datos del stage actual para ofrecer repetir en el próximo game
       session.previousStageData = {
@@ -2199,12 +2035,15 @@ io.on('connection', (socket) => {
   socket.on('activate-queued-match', async ({ setupId, community }) => {
     try {
       if (!setupId || !community) return;
-      // El cliente es la autoridad sobre "setup libre" (solo empuja cuando no hay match asignado).
-      // No hace falta guard de sesión: el LPOP atómico garantiza que aunque lleguen N nudges
-      // (multi-device), solo UNO saca el match. Si la cola está vacía, no pasa nada.
+      // LOCK por setup: si ya activamos un match en este setup y todavía no se liberó, NO activar otro.
+      // Esto asegura que se active UN solo match por cola de setup (no se drena toda la cola). El lock
+      // se limpia cuando el match de ese setup se cancela/finaliza. Como esto corre en el server (único),
+      // tambien es seguro para multi-device: aunque N paneles empujen, solo el primero pasa el lock.
+      if (setupActivationLock.has(setupId)) { console.log(`[QUEUE] activate-queued-match: ${setupId} ya tiene match activo (lock) — ignorado`); return; }
       const queueKey = `${community}:${setupId}`;
       const nextQueueItem = await redisQueuePop(queueKey);
       if (!nextQueueItem) { console.log(`[QUEUE] activate-queued-match: cola vacía para ${queueKey}`); return; }
+      setupActivationLock.set(setupId, Date.now());
 
       console.log(`[QUEUE] Auto-activando siguiente match en ${setupId} (setup detectado libre): ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
 
