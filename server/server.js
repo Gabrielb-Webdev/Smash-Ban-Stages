@@ -691,6 +691,34 @@ async function markSetInProgress(setId) {
     console.warn('⚠️ Error en markSetInProgress:', e.message);
   }
 }
+
+// Notifica (push web) a los dos jugadores que les toca jugar, con su URL de tablet específica.
+// Replica lo que hace callMatch() en el panel, para que la AUTO-activación de cola también avise.
+async function notifyPlayersMatchReady(setupId, community, p1Name, p2Name, matchToken) {
+  try {
+    // Los setups tablet no notifican (jugadores presentes físicamente)
+    if (setupId.endsWith('-tablet')) return;
+    const vercelUrl = process.env.NEXTJS_URL || 'https://smash-ban-stages.vercel.app';
+    const suffix = setupId.split('-').pop();
+    const setupLabel = suffix === 'stream' ? 'Stream' : `Setup ${suffix}`;
+    const tokenParam = matchToken ? `&mt=${matchToken}` : '';
+    const tabletBase = `${vercelUrl}/tablet/${setupId}`;
+    const title = `📢 ¡Te toca match!`;
+    const body  = `${p1Name || 'Jugador 1'} vs ${p2Name || 'Jugador 2'} — ${setupLabel} — ¡Tienen 5 min para hacer check-in!`;
+    const send = (name, p) => fetch(`${vercelUrl}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer afk-admin-2025' },
+      body: JSON.stringify({ title, body, targetUserNames: [name], data: { url: `${tabletBase}?p=${p}${tokenParam}` } }),
+    }).catch(e => console.warn('⚠️ notif error:', e.message));
+    const proms = [];
+    if (p1Name) proms.push(send(p1Name, 'player1'));
+    if (p2Name) proms.push(send(p2Name, 'player2'));
+    await Promise.allSettled(proms);
+    console.log(`📢 Notificado a jugadores de ${setupId}: ${p1Name} / ${p2Name}`);
+  } catch (e) {
+    console.warn('⚠️ Error notificando jugadores (auto-activación):', e.message);
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 const httpServer = createServer(async (req, res) => {
@@ -2092,12 +2120,17 @@ io.on('connection', (socket) => {
         startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
         startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
         startggReported: false,
+        matchToken: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        round: nextQueueItem.round || '',
         community,
       };
 
       sessions.set(setupId, newSession);
       io.to(setupId).emit('session-updated', { session: newSession });
       if (newSession.startggSetId) markSetInProgress(newSession.startggSetId);
+
+      // Notificar a los jugadores que les toca jugar (igual que callMatch en el panel)
+      notifyPlayersMatchReady(setupId, community, newSession.player1?.name, newSession.player2?.name, newSession.matchToken);
 
       const remainingQueue = await redisQueuePeek(queueKey, 5);
       const queueLength = await redisQueueLength(queueKey);
