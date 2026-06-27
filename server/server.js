@@ -175,10 +175,11 @@ function resolveSetupKey(session, sessionId) {
 // IMPORTANTE: antes esto usaba un cliente `redis` que NUNCA estaba definido, así que
 // todas las operaciones lanzaban "redis is not defined", el catch lo tragaba y la cola
 // jamás persistía (siempre volvía vacía). Ahora usa Upstash REST igual que las sesiones.
+let _upstashWarned = false;
 async function upstashCmd(command) {
   // command: array tipo ['RPUSH', key, value]. Devuelve el .result del comando.
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    console.error('⚠️ Upstash no configurado (UPSTASH_REDIS_REST_URL/TOKEN) — cola no persistirá');
+    if (!_upstashWarned) { console.error('⚠️ Upstash no configurado — la cola vive solo en memoria del server (no sobrevive reinicios)'); _upstashWarned = true; }
     return null;
   }
   try {
@@ -195,30 +196,65 @@ async function upstashCmd(command) {
   }
 }
 
-async function redisQueuePush(setupKey, queueItem) {
+// FUENTE DE VERDAD: cola en memoria del server (Map setupKey -> [items]). Funciona SIEMPRE,
+// sin importar si Upstash está configurado, y se comparte entre todos los dispositivos (todos
+// pegan al mismo server) y sobrevive el F5 del cliente (es estado del server, no del navegador).
+// Upstash es solo un espejo best-effort para sobrevivir reinicios del propio server.
+const queueMem = new Map();
+function _memArr(setupKey) { return queueMem.get(setupKey) || []; }
+
+async function _hydrateFromUpstash(setupKey) {
+  // Si memoria no conoce esta key, intentar recuperar de Upstash (ej: tras reinicio del server).
+  // Se marca como hidratada SIEMPRE (aunque venga vacía) para no repetir la consulta en cada peek.
+  if (queueMem.has(setupKey)) return;
   const key = `queue:setup:${setupKey}`;
-  await upstashCmd(['RPUSH', key, JSON.stringify(queueItem)]);
-  await upstashCmd(['EXPIRE', key, '604800']); // 7 días TTL
+  const items = await upstashCmd(['LRANGE', key, '0', '-1']);
+  const parsed = Array.isArray(items)
+    ? items.map(i => { try { return JSON.parse(i); } catch { return null; } }).filter(Boolean)
+    : [];
+  queueMem.set(setupKey, parsed);
+}
+
+async function redisQueuePush(setupKey, queueItem) {
+  const arr = _memArr(setupKey);
+  arr.push(queueItem);
+  queueMem.set(setupKey, arr);
+  // Espejo en Upstash (no bloqueante para la lógica; si falla, la memoria sigue siendo la verdad)
+  const key = `queue:setup:${setupKey}`;
+  upstashCmd(['RPUSH', key, JSON.stringify(queueItem)]).then(() => upstashCmd(['EXPIRE', key, '604800']));
 }
 
 async function redisQueuePop(setupKey) {
-  const key = `queue:setup:${setupKey}`;
-  const item = await upstashCmd(['LPOP', key]);
-  if (!item) return null;
-  try { return JSON.parse(item); } catch { return null; }
+  await _hydrateFromUpstash(setupKey);
+  const arr = _memArr(setupKey);
+  if (!arr.length) return null;
+  const item = arr.shift();
+  queueMem.set(setupKey, arr);
+  upstashCmd(['LPOP', `queue:setup:${setupKey}`]); // mantener espejo en sync
+  return item;
 }
 
 async function redisQueuePeek(setupKey, limit = 3) {
-  const key = `queue:setup:${setupKey}`;
-  const items = await upstashCmd(['LRANGE', key, '0', String(limit - 1)]);
-  if (!Array.isArray(items)) return [];
-  return items.map(i => { try { return JSON.parse(i); } catch { return null; } }).filter(Boolean);
+  await _hydrateFromUpstash(setupKey);
+  return _memArr(setupKey).slice(0, limit);
 }
 
 async function redisQueueLength(setupKey) {
+  await _hydrateFromUpstash(setupKey);
+  return _memArr(setupKey).length;
+}
+
+function queueRemoveById(setupKey, queueItemId) {
+  const arr = _memArr(setupKey).filter(it => it.id !== queueItemId);
+  queueMem.set(setupKey, arr);
+  // Reconstruir espejo en Upstash
   const key = `queue:setup:${setupKey}`;
-  const len = await upstashCmd(['LLEN', key]);
-  return Number(len) || 0;
+  (async () => {
+    await upstashCmd(['DEL', key]);
+    for (const it of arr) await upstashCmd(['RPUSH', key, JSON.stringify(it)]);
+    if (arr.length) await upstashCmd(['EXPIRE', key, '604800']);
+  })();
+  return arr;
 }
 
 // Auto-confirmación de resultados (10 segundos por cada set)
@@ -2126,16 +2162,8 @@ io.on('connection', (socket) => {
   // Desencolar un match
   socket.on('dequeue-match', async ({ setupId, community, queueItemId }) => {
     try {
-      const queue = await redisQueuePeek(`${community}:${setupId}`, 100);
-      const filteredQueue = queue.filter(item => item.id !== queueItemId);
-
-      // Reconstruir la cola sin el item
-      const key = `queue:setup:${community}:${setupId}`;
-      await upstashCmd(['DEL', key]);
-      for (const item of filteredQueue) {
-        await upstashCmd(['RPUSH', key, JSON.stringify(item)]);
-      }
-      await upstashCmd(['EXPIRE', key, '604800']);
+      await _hydrateFromUpstash(`${community}:${setupId}`);
+      queueRemoveById(`${community}:${setupId}`, queueItemId);
 
       const queueLength = await redisQueueLength(`${community}:${setupId}`);
       const updatedQueue = await redisQueuePeek(`${community}:${setupId}`, 5);
