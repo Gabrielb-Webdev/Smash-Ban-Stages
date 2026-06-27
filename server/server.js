@@ -171,36 +171,54 @@ function resolveSetupKey(session, sessionId) {
 }
 
 // ── COLA DE MATCHES ──────────────────────────────────────────────────────────
-// Helpers para manejar cola de matches en Redis
-async function redisQueuePush(setupKey, queueItem) {
+// Helpers para manejar cola de matches en Redis (Upstash REST).
+// IMPORTANTE: antes esto usaba un cliente `redis` que NUNCA estaba definido, así que
+// todas las operaciones lanzaban "redis is not defined", el catch lo tragaba y la cola
+// jamás persistía (siempre volvía vacía). Ahora usa Upstash REST igual que las sesiones.
+async function upstashCmd(command) {
+  // command: array tipo ['RPUSH', key, value]. Devuelve el .result del comando.
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    console.error('⚠️ Upstash no configurado (UPSTASH_REDIS_REST_URL/TOKEN) — cola no persistirá');
+    return null;
+  }
   try {
-    const key = `queue:setup:${setupKey}`;
-    await redis.rpush(key, JSON.stringify(queueItem));
-    await redis.expire(key, 604800); // 7 days TTL
-  } catch (e) { console.error('⚠️ Error en redisQueuePush:', e.message); }
+    const r = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([command]),
+    });
+    const data = await r.json();
+    return Array.isArray(data) ? data[0]?.result : data?.result;
+  } catch (e) {
+    console.error('⚠️ Upstash error', command?.[0], e.message);
+    return null;
+  }
+}
+
+async function redisQueuePush(setupKey, queueItem) {
+  const key = `queue:setup:${setupKey}`;
+  await upstashCmd(['RPUSH', key, JSON.stringify(queueItem)]);
+  await upstashCmd(['EXPIRE', key, '604800']); // 7 días TTL
 }
 
 async function redisQueuePop(setupKey) {
-  try {
-    const key = `queue:setup:${setupKey}`;
-    const item = await redis.lpop(key);
-    return item ? JSON.parse(item) : null;
-  } catch (e) { console.error('⚠️ Error en redisQueuePop:', e.message); return null; }
+  const key = `queue:setup:${setupKey}`;
+  const item = await upstashCmd(['LPOP', key]);
+  if (!item) return null;
+  try { return JSON.parse(item); } catch { return null; }
 }
 
 async function redisQueuePeek(setupKey, limit = 3) {
-  try {
-    const key = `queue:setup:${setupKey}`;
-    const items = await redis.lrange(key, 0, limit - 1);
-    return items.map(i => JSON.parse(i));
-  } catch (e) { console.error('⚠️ Error en redisQueuePeek:', e.message); return []; }
+  const key = `queue:setup:${setupKey}`;
+  const items = await upstashCmd(['LRANGE', key, '0', String(limit - 1)]);
+  if (!Array.isArray(items)) return [];
+  return items.map(i => { try { return JSON.parse(i); } catch { return null; } }).filter(Boolean);
 }
 
 async function redisQueueLength(setupKey) {
-  try {
-    const key = `queue:setup:${setupKey}`;
-    return await redis.llen(key);
-  } catch (e) { console.error('⚠️ Error en redisQueueLength:', e.message); return 0; }
+  const key = `queue:setup:${setupKey}`;
+  const len = await upstashCmd(['LLEN', key]);
+  return Number(len) || 0;
 }
 
 // Auto-confirmación de resultados (10 segundos por cada set)
@@ -845,6 +863,7 @@ const httpServer = createServer(async (req, res) => {
 
           sessions.set(setupId, newSession);
           io.to(setupId).emit('session-updated', { session: newSession });
+          if (newSession.startggSetId) markSetInProgress(newSession.startggSetId);
 
           const remainingQueue = await redisQueuePeek(queueKey, 5);
           const queueLength = await redisQueueLength(queueKey);
@@ -1885,6 +1904,7 @@ io.on('connection', (socket) => {
 
           sessions.set(setupId, newSession);
           io.to(setupId).emit('session-updated', { session: newSession });
+          if (newSession.startggSetId) markSetInProgress(newSession.startggSetId);
 
           // Notificar al admin panel que la cola se actualizo
           const remainingQueue = await redisQueuePeek(queueKey, 5);
@@ -2111,11 +2131,11 @@ io.on('connection', (socket) => {
 
       // Reconstruir la cola sin el item
       const key = `queue:setup:${community}:${setupId}`;
-      await redis.del(key);
+      await upstashCmd(['DEL', key]);
       for (const item of filteredQueue) {
-        await redis.rpush(key, JSON.stringify(item));
+        await upstashCmd(['RPUSH', key, JSON.stringify(item)]);
       }
-      await redis.expire(key, 604800);
+      await upstashCmd(['EXPIRE', key, '604800']);
 
       const queueLength = await redisQueueLength(`${community}:${setupId}`);
       const updatedQueue = await redisQueuePeek(`${community}:${setupId}`, 5);
@@ -2196,6 +2216,7 @@ io.on('connection', (socket) => {
 
       sessions.set(setupId, newSession);
       io.to(setupId).emit('session-updated', { session: newSession });
+      if (newSession.startggSetId) markSetInProgress(newSession.startggSetId);
 
       const remainingQueue = await redisQueuePeek(queueKey, 5);
       const queueLength = await redisQueueLength(queueKey);
