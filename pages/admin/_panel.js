@@ -1258,20 +1258,54 @@ export default function TestAdminPage() {
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
 
-  // Red de seguridad: si un setup queda libre (sin match activo) pero tiene algo esperando en cola,
-  // pedirle al servidor que active ese match — cubre cualquier camino que libere el setup sin pasar
-  // por el flujo normal de cancelación/fin de serie.
+  // Red de seguridad (100% client-side): si un setup queda libre (sin match activo) pero tiene algo
+  // esperando en cola, montar y activar ese match automáticamente — cubre CUALQUIER camino que libere
+  // el setup (cancelar, fin de serie, no-disponible, etc.) sin depender de la auto-activación del server.
   useEffect(() => {
     if (!tournamentStarted) return;
     SETUPS.forEach(s => {
-      const hasQueueWaiting = (setupQueues[s.id]?.items?.length || 0) > 0;
+      const item = setupQueues[s.id]?.items?.[0];
       const isFree = !assignedSets[s.id];
-      if (isFree && hasQueueWaiting) {
+      if (isFree && item) {
         if (autoPromoteRequestedRef.current[s.id]) return;
         autoPromoteRequestedRef.current[s.id] = true;
         const { community: comm } = parseSetupId(s.id);
-        panelSocketRef.current?.emit('activate-queued-match', { setupId: s.id, community: comm });
-      } else {
+
+        // Construir el "set" desde el item encolado (mismo shape que un set del bracket)
+        const promotedSet = {
+          id: item.startggSetId,
+          slots: [
+            { entrant: item.player1 || {} },
+            { entrant: item.player2 || {} },
+          ],
+          fullRoundText: item.round || '',
+        };
+
+        console.log(`[QUEUE] 🚀 Promoviendo match encolado a ${s.id}:`, item.player1?.name, 'vs', item.player2?.name);
+
+        // 1) Montar en el setup
+        setAssignedSets(prev => ({ ...prev, [s.id]: promotedSet }));
+
+        // 2) Sacar el item de la cola en Redis (endpoint existente y estable)
+        if (item.id) panelSocketRef.current?.emit('dequeue-match', { setupId: s.id, community: comm, queueItemId: item.id });
+
+        // 3) Limpiar estado local de cola de inmediato (no esperar al server)
+        setSetupQueues(prev => {
+          const cur = prev[s.id];
+          if (!cur) return prev;
+          const rest = (cur.items || []).slice(1);
+          return { ...prev, [s.id]: { items: rest, count: Math.max(0, (cur.count || 1) - 1), nextItem: rest[0] || null } };
+        });
+        setQueuedMatches(prev => {
+          const next = { ...prev };
+          const qk = `${item.player1?.name || 'P1'}_vs_${item.player2?.name || 'P2'}`;
+          if (next[qk] === s.id) delete next[qk];
+          return next;
+        });
+
+        // 4) Activar (check-in / start.gg / sesión) igual que un call manual
+        callMatch(s.id, promotedSet);
+      } else if (!isFree) {
         delete autoPromoteRequestedRef.current[s.id];
       }
     });
@@ -1486,8 +1520,8 @@ export default function TestAdminPage() {
     }
   }
 
-  async function callMatch(setupId) {
-    const set = assignedSets[setupId];
+  async function callMatch(setupId, overrideSet) {
+    const set = overrideSet || assignedSets[setupId];
     if (!set) return;
     const players = (set.slots || []).map(s => s?.entrant?.name).filter(Boolean);
     const p1Entrant = set.slots?.[0]?.entrant || {};
