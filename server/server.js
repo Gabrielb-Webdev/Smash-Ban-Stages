@@ -151,6 +151,25 @@ function communityFromSessionId(sessionId, sessionCommunity) {
   return s.split('-')[0] || '';
 }
 
+// Reconstruye { community, setupId } de una sesión para ubicar su cola en Redis.
+// Prefiere los campos guardados explícitamente en la sesión (vía /session-meta).
+// Fallback: parsea el sessionId. OJO: para setups numerados el sessionId lleva un
+// sufijo de timestamp único (ej. `warui-1-mabc123`), por eso NO sirve usarlo crudo
+// como setupId — hay que quitarle ese último segmento. Para stream/tablet el
+// sessionId YA es el id canónico (`warui-stream`, `afk-tablet`) y se usa tal cual.
+function resolveSetupKey(session, sessionId) {
+  const community = session?.community || communityFromSessionId(sessionId);
+  let setupId = session?.setupId;
+  if (!setupId && sessionId) {
+    if (/-(stream|tablet)$/.test(sessionId)) {
+      setupId = sessionId;
+    } else {
+      setupId = sessionId.replace(/-[^-]+$/, ''); // quita el sufijo de timestamp
+    }
+  }
+  return { community, setupId };
+}
+
 // ── COLA DE MATCHES ──────────────────────────────────────────────────────────
 // Helpers para manejar cola de matches en Redis
 async function redisQueuePush(setupKey, queueItem) {
@@ -776,15 +795,10 @@ const httpServer = createServer(async (req, res) => {
       // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA CUANDO SE CANCELA (igual que seriesFinished)
       setTimeout(async () => {
         try {
-          let community = session.community;
-          let setupId = session.setupId;
-          if (!community || !setupId) {
-            const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
-            if (!setupMatch) return;
-            community = community || setupMatch[1];
-            setupId = setupId || sessionId;
-          }
+          const { community, setupId } = resolveSetupKey(session, sessionId);
+          if (!community || !setupId) return;
           const queueKey = `${community}:${setupId}`;
+          console.log(`[QUEUE] (cancelado) resolviendo cola para sessionId=${sessionId} → queueKey=${queueKey}`);
 
           const nextQueueItem = await redisQueuePop(queueKey);
           if (!nextQueueItem) {
@@ -1819,15 +1833,10 @@ io.on('connection', (socket) => {
       setTimeout(async () => {
         try {
           // Extraer comunidad y setupId: preferir los guardados en la sesión (sessionId puede tener sufijo único)
-          let community = session.community;
-          let setupId = session.setupId;
-          if (!community || !setupId) {
-            const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
-            if (!setupMatch) return;
-            community = community || setupMatch[1];
-            setupId = setupId || sessionId;
-          }
+          const { community, setupId } = resolveSetupKey(session, sessionId);
+          if (!community || !setupId) return;
           const queueKey = `${community}:${setupId}`;
+          console.log(`[QUEUE] (fin de serie) resolviendo cola para sessionId=${sessionId} → queueKey=${queueKey}`);
 
           // Obtener siguiente match de la cola
           const nextQueueItem = await redisQueuePop(queueKey);
