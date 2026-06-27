@@ -1593,7 +1593,7 @@ export default function TestAdminPage() {
       const metaRes = await fetch(`${socketUrl}/session-meta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id,
+        body: JSON.stringify({ sessionId, setupId, community, startggSetId, startggEntrant1Id, startggEntrant2Id,
           player1: players[0] || 'Jugador 1',
           player2: players[1] || 'Jugador 2',
           format,

@@ -617,7 +617,7 @@ const httpServer = createServer(async (req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const { sessionId, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName, forceReset, player1Country, player1FlagCode, player1Seed, player2Country, player2FlagCode, player2Seed } = JSON.parse(body);
+        const { sessionId, setupId, community: communityFromBody, startggSetId, startggEntrant1Id, startggEntrant2Id, player1, player2, format, round, tournamentName, forceReset, player1Country, player1FlagCode, player1Seed, player2Country, player2FlagCode, player2Seed } = JSON.parse(body);
         if (!sessionId) { res.writeHead(400); res.end(JSON.stringify({ error: 'sessionId requerido' })); return; }
 
         // Guardar en pending (por si la sesión WebSocket todavía no se creó)
@@ -629,7 +629,8 @@ const httpServer = createServer(async (req, res) => {
         if (!session && (player1 || player2)) {
           session = {
             sessionId,
-            community: null,
+            setupId: setupId || null,
+            community: communityFromBody || null,
             createdAt: Date.now(),
             matchToken: newMatchToken,
             player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [], country: player1Country || null, flagCode: player1FlagCode || null, seed: player1Seed || null },
@@ -689,7 +690,8 @@ const httpServer = createServer(async (req, res) => {
           // Sesión ya existe (ej: Stream con sessionId fijo) → resetear completa
           const freshSession = {
             sessionId,
-            community: session.community || null,
+            setupId: setupId || session.setupId || null,
+            community: communityFromBody || session.community || null,
             createdAt: Date.now(),
             matchToken: newMatchToken,
             player1: { name: player1 || 'Jugador 1', score: 0, character: null, wonStages: [], country: player1Country || null, flagCode: player1FlagCode || null, seed: player1Seed || null },
@@ -774,11 +776,14 @@ const httpServer = createServer(async (req, res) => {
       // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA CUANDO SE CANCELA (igual que seriesFinished)
       setTimeout(async () => {
         try {
-          const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
-          if (!setupMatch) return;
-
-          const community = setupMatch[1];
-          const setupId = sessionId;
+          let community = session.community;
+          let setupId = session.setupId;
+          if (!community || !setupId) {
+            const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
+            if (!setupMatch) return;
+            community = community || setupMatch[1];
+            setupId = setupId || sessionId;
+          }
           const queueKey = `${community}:${setupId}`;
 
           const nextQueueItem = await redisQueuePop(queueKey);
@@ -790,7 +795,9 @@ const httpServer = createServer(async (req, res) => {
           console.log(`[QUEUE] Auto-activando siguiente match en ${setupId} (anterior cancelado): ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
 
           const newSession = {
-            sessionId,
+            sessionId: setupId,
+            setupId,
+            community,
             phase: 'CHECKIN',
             player1: {
               name: nextQueueItem.player1?.name || 'Player 1',
@@ -820,7 +827,6 @@ const httpServer = createServer(async (req, res) => {
             startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
             startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
             startggReported: false,
-            community,
           };
 
           sessions.set(setupId, newSession);
@@ -1812,12 +1818,15 @@ io.on('connection', (socket) => {
       // AUTO-ACTIVAR SIGUIENTE MATCH DE LA COLA (después de 5 segundos de cleanup)
       setTimeout(async () => {
         try {
-          // Extraer comunidad y setupId de sessionId
-          const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
-          if (!setupMatch) return;
-
-          const community = setupMatch[1];
-          const setupId = sessionId;
+          // Extraer comunidad y setupId: preferir los guardados en la sesión (sessionId puede tener sufijo único)
+          let community = session.community;
+          let setupId = session.setupId;
+          if (!community || !setupId) {
+            const setupMatch = sessionId.match(/^([\w-]+?)(-\d+|-(tablet|stream))$/);
+            if (!setupMatch) return;
+            community = community || setupMatch[1];
+            setupId = setupId || sessionId;
+          }
           const queueKey = `${community}:${setupId}`;
 
           // Obtener siguiente match de la cola
@@ -1831,7 +1840,9 @@ io.on('connection', (socket) => {
 
           // Crear nueva sesión con el match encolado
           const newSession = {
-            sessionId,
+            sessionId: setupId,
+            setupId,
+            community,
             phase: 'CHECKIN',
             player1: {
               name: nextQueueItem.player1?.name || 'Player 1',
@@ -1861,7 +1872,6 @@ io.on('connection', (socket) => {
             startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
             startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
             startggReported: false,
-            community,
           };
 
           sessions.set(setupId, newSession);
@@ -2145,6 +2155,8 @@ io.on('connection', (socket) => {
 
       const newSession = {
         sessionId: setupId,
+        setupId,
+        community,
         phase: 'CHECKIN',
         player1: {
           name: nextQueueItem.player1?.name || 'Player 1',
