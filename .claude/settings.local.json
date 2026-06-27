@@ -7,7 +7,10 @@
       "Bash(node -c server/server.js)",
       "Bash(node -c src/components/StreamOverlayAfk.jsx)",
       "Bash(git commit -m 'fix: simplificar check-in tablet AFK - un botón para ambos jugadores *)",
-      "Bash(git commit -m 'fix: afk-tablet activar automáticamente modo 1 dispositivo \\(turnos compartidos\\) *)"
+      "Bash(git commit -m 'fix: afk-tablet activar automáticamente modo 1 dispositivo \\(turnos compartidos\\) *)",
+      "Bash(awk 'NR>=1845 && NR<=1945 {print NR\": \"$0}' \"e:\\\\Users\\\\gabri\\\\Documents\\\\Clientes\\\\Smash-Ban-Stages\\\\pages\\\\admin\\\\_panel.js\")",
+      "Bash(node --check server/server.js)",
+      "Bash(npx next *)"
     ]
   }
 }
