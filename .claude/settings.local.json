@@ -12,7 +12,8 @@
       "Bash(node --check server/server.js)",
       "Bash(npx next *)",
       "Bash(awk 'NR==727,NR==735' pages/admin/_panel.js)",
-      "Bash(awk 'NR>=1700 && NR<=1822' server/server.js)"
+      "Bash(awk 'NR>=1700 && NR<=1822' server/server.js)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\); console.log\\('main:',p.main\\)\")"
     ]
   }
 }
