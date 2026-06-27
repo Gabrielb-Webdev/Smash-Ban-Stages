@@ -655,10 +655,10 @@ export default function TestAdminPage() {
       });
     }
 
-    socket.on('panel:assign-update', ({ assignedSets: remote }) => {
+    socket.on('panel:assign-update', ({ assignedSets: remote, partial }) => {
       if (!remote) return;
       isRemoteAssignRef.current = true;
-      setAssignedSets(remote);
+      setAssignedSets(prev => (partial ? { ...prev, ...remote } : remote));
       syncTimersFromRemote(remote);
     });
 
@@ -695,13 +695,13 @@ export default function TestAdminPage() {
       // Actualizar queuedMatches para reflejar lo que está en cola
       setQueuedMatches(prev => {
         const next = { ...prev };
-        // Remover matches que ya no están en la cola (buscar por setupId)
-        Object.keys(next).forEach(setId => {
-          if (next[setId] === setupId) {
-            // Si un match estaba en cola pero ya no está, removerlo
-            if (!queue?.some(item => item.startggSetId == setId)) {
-              delete next[setId];
-              console.log(`[BRACKET] Removiendo set ${setId} de queuedMatches (ya no en cola de ${setupId})`);
+        // Remover matches que ya no están en la cola de este setup (comparar por nombres de jugadores)
+        Object.keys(next).forEach(queueKey => {
+          if (next[queueKey] === setupId) {
+            const stillQueued = queue?.some(item => `${item.player1?.name || 'P1'}_vs_${item.player2?.name || 'P2'}` === queueKey);
+            if (!stillQueued) {
+              delete next[queueKey];
+              console.log(`[BRACKET] Removiendo ${queueKey} de queuedMatches (ya no en cola de ${setupId})`);
             }
           }
         });
@@ -1241,12 +1241,15 @@ export default function TestAdminPage() {
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
 
+  function getQueueKey(set) {
+    return `${set?.slots?.[0]?.entrant?.name || 'P1'}_vs_${set?.slots?.[1]?.entrant?.name || 'P2'}`;
+  }
   function onDragStart(set, e) {
     if (!tournamentStarted || lockedSets[set.id]) { e.preventDefault(); return; }
     // Bloquear si ya está asignado a un setup
     if (Object.values(assignedSets).some(s => s?.id === set.id)) { e.preventDefault(); return; }
-    // Bloquear si ya está encolado en otro setup (usar set.id que es startggSetId)
-    if (queuedMatches[set.id]) { e.preventDefault(); return; }
+    // Bloquear si ya está encolado en otro setup
+    if (queuedMatches[getQueueKey(set)]) { e.preventDefault(); return; }
     setDraggedSet(set); e.dataTransfer.effectAllowed = 'move';
   }
   function onDragEnd() { setDraggedSet(null); setDragOverSetup(null); }
@@ -1260,6 +1263,8 @@ export default function TestAdminPage() {
     if (!draggedSet || !tournamentStarted) return;
     // Bloquear si el match ya está asignado a otro setup
     if (Object.values(assignedSets).some(s => s?.id === draggedSet.id)) { setDraggedSet(null); setDragOverSetup(null); return; }
+    // Bloquear si el match ya está encolado en algún setup
+    if (queuedMatches[getQueueKey(draggedSet)]) { setDraggedSet(null); setDragOverSetup(null); return; }
 
     const cleanSet = { ...draggedSet };
     const setupAlreadyHasMatch = assignedSets[setupId];
@@ -1298,12 +1303,9 @@ export default function TestAdminPage() {
         });
 
         // Marcar el match como encolado (para mostrarlo en bracket)
-        // Usar un identificador consistente: nombres de los jugadores
-        const queueKey = `${cleanSet.slots[0]?.entrant?.name || 'P1'}_vs_${cleanSet.slots[1]?.entrant?.name || 'P2'}`;
-        console.log(`[QUEUE-BRACKET] Encolando con clave: ${queueKey} en ${setupId}`);
         setQueuedMatches(prev => ({
           ...prev,
-          [queueKey]: setupId
+          [getQueueKey(cleanSet)]: setupId
         }));
 
         setTimeout(() => setQueuedNotification(null), 4000);
@@ -1839,95 +1841,6 @@ export default function TestAdminPage() {
   const allFinals = [...finalGroups, ...otherGroups];
   const maxWL = Math.max(winnersGroups.length, losersGroups.length, 1);
   const totalBracketCols = maxWL + allFinals.length;
-
-  function renderBracketCol(roundName, roundSets, ac) {
-    const allDone  = roundSets.every(s => s.stateLabel === 'COMPLETED' || s.stateLabel === 'BYE');
-    const anyActive = roundSets.some(s => s.stateLabel === 'ACTIVE' || s.stateLabel === 'CALLED');
-    const pending  = roundSets.filter(s => s.stateLabel !== 'COMPLETED' && s.stateLabel !== 'BYE').length;
-    const dotColor = allDone ? '#4B5563' : anyActive ? '#22C55E' : ac;
-    return (
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: '6px 10px', background: ac + '12', border: `1px solid ${ac}28`, borderRadius: 9 }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0, boxShadow: anyActive ? `0 0 7px ${dotColor}` : 'none' }} />
-          <p style={{ margin: 0, flex: 1, fontSize: 10, fontWeight: 900, color: allDone ? 'rgba(255,255,255,0.25)' : ac, textTransform: 'uppercase', letterSpacing: '0.07em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roundName}</p>
-          {pending > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: ac, background: ac + '18', border: `1px solid ${ac}30`, borderRadius: 99, padding: '1px 6px', flexShrink: 0 }}>{pending}</span>}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          {roundSets.map(set => {
-            const sc = SET_STATE_STYLE[set.stateLabel] || SET_STATE_STYLE.CREATED;
-            const isDone  = set.stateLabel === 'COMPLETED';
-            const isBye   = set.stateLabel === 'BYE';
-            const aSetup  = SETUPS.find(s => assignedSets[s.id]?.id === set.id);
-            const isLocked = !isDone && !isBye && !!lockedSets[set.id];
-            const isQueued = !isDone && !isBye && !!queuedMatches[set.id];
-            const lockRemaining = isLocked ? Math.max(0, Math.ceil((lockedSets[set.id] - Date.now()) / 1000)) : 0;
-            return (
-              <div
-                key={set.id}
-                className={`bset${draggedSet?.id === set.id ? ' dragging' : ''}`}
-                draggable={!isDone && !isBye && !isLocked && !aSetup && !isQueued}
-                onDragStart={!isDone && !isBye && !isLocked && !aSetup && !isQueued ? e => onDragStart(set, e) : undefined}
-                onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
-                style={{ background: isDone ? 'rgba(255,255,255,0.02)' : isQueued ? 'rgba(96,165,250,0.08)' : 'rgba(255,255,255,0.045)', border: `1px solid ${aSetup ? aSetup.color + '55' : isDone ? 'rgba(255,255,255,0.05)' : isQueued ? 'rgba(96,165,250,0.4)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`, borderRadius: 12, overflow: 'hidden', opacity: isDone ? 0.55 : 1, cursor: isDone || isBye ? 'default' : isQueued || isLocked ? 'not-allowed' : aSetup ? 'not-allowed' : 'grab', position: 'relative' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 9px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
-                    {!aSetup && (() => {
-                      // Usar nombres de jugadores como clave (consistente con onDrop)
-                      const queueKey = `${set.slots?.[0]?.entrant?.name || 'P1'}_vs_${set.slots?.[1]?.entrant?.name || 'P2'}`;
-                      const setupId = queuedMatches[queueKey];
-                      if (setupId) {
-                        const queuedSetup = SETUPS.find(s => s.id === setupId);
-                        return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
-                      }
-                      return null;
-                    })()}
-                    {!isDone && !isBye && !aSetup && (
-                      <button
-                        onClick={e => toggleLock(set.id, e)}
-                        title={isLocked ? 'Clic para desbloquear' : 'Clic para bloquear 1 minuto'}
-                        style={{ background: isLocked ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isLocked ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 6, padding: '2px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, color: isLocked ? '#F87171' : 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Outfit',sans-serif", flexShrink: 0, lineHeight: 1 }}
-                      >
-                        {isLocked ? '🔒' : '🔓'}
-                        {isLocked && <span style={{ fontSize: 9, fontWeight: 800 }}>{lockRemaining}s</span>}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div style={{ padding: '7px 9px' }}>
-                  {(set.slots || []).map((slot, i) => {
-                    const isWinner = isDone && slot?.placement === 1;
-                    const isLoser  = isDone && slot?.placement === 2;
-                    return (
-                      <div key={i}>
-                        {i === 1 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '5px 0' }}>
-                            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                            <span style={{ fontSize: 8, fontWeight: 900, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.14em' }}>VS</span>
-                            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ width: 15, height: 15, borderRadius: 4, background: isWinner ? ac + '25' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: isWinner ? ac : 'rgba(255,255,255,0.28)', flexShrink: 0 }}>{i + 1}</div>
-                          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: isWinner ? '#fff' : isLoser ? 'rgba(255,255,255,0.28)' : (slot?.entrant ? '#E5E7EB' : 'rgba(255,255,255,0.22)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isLoser ? 'line-through' : 'none' }}>
-                            {slot?.entrant?.name || 'TBD'}
-                          </span>
-                          {slot?.score != null && <span style={{ fontSize: 13, fontWeight: 900, color: isWinner ? '#4ADE80' : 'rgba(255,255,255,0.28)', flexShrink: 0, minWidth: 14, textAlign: 'right' }}>{slot.score}</span>}
-                          {isWinner && <span style={{ fontSize: 10, flexShrink: 0 }}>🏆</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -2630,6 +2543,8 @@ export default function TestAdminPage() {
                 onAssignToSetup={assignToSetupDirectly}
                 tournamentStarted={tournamentStarted}
                 onResultSaved={() => refreshBracket(true)}
+                queuedMatches={queuedMatches}
+                getQueueKey={getQueueKey}
               />
             )}
           </div>{/* bracket content */}

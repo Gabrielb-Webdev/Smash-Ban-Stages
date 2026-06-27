@@ -832,6 +832,23 @@ const httpServer = createServer(async (req, res) => {
             message: `✅ Siguiente match activado en ${setupId} (anterior cancelado)`
           });
 
+          // Emitir actualización de assignedSets para que el admin panel lo vea inmediatamente
+          const assignedSetObj = {
+            [setupId]: {
+              id: nextQueueItem.startggSetId,
+              slots: [
+                { entrant: { name: nextQueueItem.player1?.name || 'Player 1', id: nextQueueItem.startggEntrant1Id } },
+                { entrant: { name: nextQueueItem.player2?.name || 'Player 2', id: nextQueueItem.startggEntrant2Id } }
+              ],
+              fullRoundText: nextQueueItem.round || '',
+              sessionId: setupId,
+              startggSetId: nextQueueItem.startggSetId,
+              startggEntrant1Id: nextQueueItem.startggEntrant1Id,
+              startggEntrant2Id: nextQueueItem.startggEntrant2Id,
+            }
+          };
+          io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
+
           console.log(`✅ Nuevo match activado en ${setupId}. Cola restante: ${queueLength}`);
         } catch (e) {
           console.error('⚠️ Error auto-activando siguiente match al cancelar:', e.message);
@@ -1872,7 +1889,7 @@ io.on('connection', (socket) => {
               startggEntrant2Id: nextQueueItem.startggEntrant2Id,
             }
           };
-          io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj });
+          io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
 
           console.log(`✅ Nuevo match activado en ${setupId}. Cola restante: ${queueLength}`);
         } catch (e) {

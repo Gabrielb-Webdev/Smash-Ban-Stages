@@ -735,12 +735,16 @@ function MatchManageModal({ set, onClose, onResultSaved }) {
 }
 
 
-function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal, onManageClick }) {
+function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal, onManageClick, queuedMatches, getQueueKey }) {
   const isDone     = set.stateLabel === 'COMPLETED';
   const isBye      = set.stateLabel === 'BYE';
   const isActive   = set.stateLabel === 'ACTIVE' || set.stateLabel === 'CALLED';
   const isDragging = draggedSet?.id === set.id;
   const aSetup     = TEST_SETUPS?.find(s => assignedSets?.[s.id]?.id === set.id);
+  const queueKey   = getQueueKey ? getQueueKey(set) : `${set?.slots?.[0]?.entrant?.name || 'P1'}_vs_${set?.slots?.[1]?.entrant?.name || 'P2'}`;
+  const queuedSetupId = queuedMatches?.[queueKey];
+  const qSetup     = queuedSetupId ? TEST_SETUPS?.find(s => s.id === queuedSetupId) : null;
+  const isQueued   = !!qSetup;
   const sc         = sStyle[set.stateLabel] || sStyle.CREATED || SET_STATE_STYLE_DEFAULT.CREATED;
   const slots      = set.slots || [];
   const p1Won      = isDone && slots[0]?.placement === 1;
@@ -751,8 +755,8 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
   return (
     <div
       className="bset"
-      draggable={!isDone && !isBye && !isLocked}
-      onDragStart={!isDone && !isBye && !isLocked ? e => onDragStart(set, e) : undefined}
+      draggable={!isDone && !isBye && !isLocked && !isQueued}
+      onDragStart={!isDone && !isBye && !isLocked && !isQueued ? e => onDragStart(set, e) : undefined}
       onDragEnd={!isDone && !isBye ? onDragEnd : undefined}
       onClick={!isBye && onManageClick ? (e) => {
         if (!e.target.closest('button') && !e.target.closest('.assign-dropdown-wrap')) {
@@ -761,7 +765,7 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
       } : undefined}
       style={{
         background: isActive ? 'rgba(255,140,0,0.06)' : isDone ? 'rgba(255,255,255,0.025)' : '#13131E',
-        border: `1px solid ${aSetup ? aSetup.color + '66' : isActive ? 'rgba(255,140,0,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`,
+        border: `1px solid ${aSetup ? aSetup.color + '66' : qSetup ? qSetup.color + '44' : isActive ? 'rgba(255,140,0,0.4)' : isDone ? 'rgba(255,255,255,0.05)' : isLocked ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.09)'}`,
         borderRadius: 10,
         opacity: isDragging ? 0.35 : 1,
         cursor: isBye ? 'default' : isLocked ? 'not-allowed' : 'pointer',
@@ -780,7 +784,12 @@ function MatchCard({ set, assignedSets, draggedSet, onDragStart, onDragEnd, TEST
               {aSetup.icon} {aSetup.label}
             </span>
           )}
-          {!isDone && !isBye && !aSetup && toggleLock && (
+          {!aSetup && qSetup && (
+            <span style={{ fontSize: 8, fontWeight: 800, color: qSetup.color, background: qSetup.color + '14', border: `1px solid ${qSetup.color}33`, borderRadius: 99, padding: '1px 5px', fontFamily: 'Outfit, sans-serif' }}>
+              📋 En cola {qSetup.label}
+            </span>
+          )}
+          {!isDone && !isBye && !aSetup && !qSetup && toggleLock && (
             <button
               onClick={e => toggleLock(set.id, e)}
               title={isLocked ? 'Clic para desbloquear' : 'Clic para bloquear 1 minuto'}
@@ -834,7 +843,7 @@ function RoundCol({ roundName, sets, accentColor, lockedSets, toggleLock, ...mat
   );
 }
 
-function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onResultSaved }) {
+function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, SET_STATE_STYLE: extStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onResultSaved, queuedMatches, getQueueKey }) {
   if (!Array.isArray(bracketSets) || bracketSets.length === 0) return null;
 
   const [modalSet, setModalSet] = useState(null);   // set que se va a asignar
@@ -857,7 +866,7 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
   }, [modalSet, onAssignToSetup, handleCloseModal]);
 
   const sStyle = extStyle || SET_STATE_STYLE_DEFAULT;
-  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal: handleOpenModal, onManageClick: setManageSet };
+  const matchProps = { assignedSets, draggedSet, onDragStart, onDragEnd, TEST_SETUPS, sStyle, lockedSets, toggleLock, onAssignToSetup, tournamentStarted, onOpenAssignModal: handleOpenModal, onManageClick: setManageSet, queuedMatches, getQueueKey };
 
   // Agrupar por ronda y ordenar
   const roundsMap = {};
