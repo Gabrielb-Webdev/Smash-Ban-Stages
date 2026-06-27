@@ -391,6 +391,22 @@ async function redisPanelStateGet(community) {
   } catch { return null; }
 }
 
+// Merge/borra un único setup en el assignedSets persistido del panel (memoria + Redis) y
+// reenvía el estado completo a TODOS los paneles de la comunidad. Lo usa la auto-activación
+// (server-driven), cuyo panel:assign-update el cliente no re-emite → sin esto no se persistiría.
+function persistAssignedSetToPanelState(community, setupId, assignedSet) {
+  if (!community || !setupId) return;
+  const cur = panelStates.get(community) || {};
+  const assignedSets = { ...(cur.assignedSets || {}) };
+  if (assignedSet) assignedSets[setupId] = assignedSet;
+  else delete assignedSets[setupId];
+  const next = { ...cur, assignedSets };
+  panelStates.set(community, next);
+  redisPanelStateSet(community, next);
+  // Reenviar a todos los paneles para que el estado quede consistente (incluye el que ya lo tiene)
+  io.to(`panel:${community}`).emit('panel:assign-update', { assignedSets: { [setupId]: assignedSet || undefined }, partial: true });
+}
+
 // ── Historial de picks por jugador (persistido en Redis) ──────────────
 
 async function redisHistorySet(playerKey, chars) {
@@ -2108,6 +2124,12 @@ io.on('connection', (socket) => {
         }
       };
       io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
+
+      // PERSISTIR en panelStates: el cliente recibe el partial pero NO lo re-emite (lo bloquea
+      // isRemoteAssignRef para evitar eco), así que si no persistimos acá, el panelStates del server
+      // queda SIN este match → cualquier panel:state-update o F5 lo borraría del setup. Por eso el
+      // server (autoridad) lo guarda directamente en panelStates + Redis.
+      persistAssignedSetToPanelState(community, setupId, assignedSetObj[setupId]);
     } catch (e) {
       console.error('⚠️ Error activando match en cola (setup libre):', e.message);
     }
