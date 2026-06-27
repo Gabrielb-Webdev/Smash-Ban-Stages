@@ -695,14 +695,13 @@ export default function TestAdminPage() {
       // Actualizar queuedMatches para reflejar lo que está en cola
       setQueuedMatches(prev => {
         const next = { ...prev };
-        // Remover matches que ya no están en la cola
+        // Remover matches que ya no están en la cola (buscar por setupId)
         Object.keys(next).forEach(setId => {
-          const qItem = next[setId];
-          if (qItem?.setupId === setupId) {
-            const isStillQueued = queue?.some(item => item.startggSetId === parseInt(setId));
-            if (!isStillQueued) {
+          if (next[setId] === setupId) {
+            // Si un match estaba en cola pero ya no está, removerlo
+            if (!queue?.some(item => item.startggSetId == setId)) {
               delete next[setId];
-              console.log(`[BRACKET] Removiendo ${setId} de queuedMatches (ya no en cola)`);
+              console.log(`[BRACKET] Removiendo set ${setId} de queuedMatches (ya no en cola de ${setupId})`);
             }
           }
         });
@@ -1299,12 +1298,16 @@ export default function TestAdminPage() {
         });
 
         // Marcar el match como encolado (para mostrarlo en bracket)
-        // Usar cleanSet.id (startggSetId) como clave principal
-        setQueuedMatches(prev => ({
-          ...prev,
-          [cleanSet.id]: { setupId, bracketId: draggedSet.id }
-        }));
-        console.log(`[BRACKET] Marcando set ${cleanSet.id} como encolado en ${setupId}`);
+        // Usar draggedSet.id como clave (es el set.id del bracket)
+        console.log(`[QUEUE-BRACKET] draggedSet.id=${draggedSet.id}, cleanSet.id=${cleanSet.id}, setupId=${setupId}`);
+        setQueuedMatches(prev => {
+          const next = {
+            ...prev,
+            [draggedSet.id]: setupId
+          };
+          console.log(`[BRACKET] Marcando set ${draggedSet.id} en queuedMatches. Estructura:`, next);
+          return next;
+        });
 
         setTimeout(() => setQueuedNotification(null), 4000);
       } else {
@@ -1875,9 +1878,8 @@ export default function TestAdminPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
                     {!aSetup && queuedMatches[set.id] && (() => {
-                      const qItem = queuedMatches[set.id];
-                      const queuedSetup = SETUPS.find(s => s.id === qItem.setupId);
-                      console.log(`[BRACKET] Mostrando badge para set ${set.id}: En cola ${queuedSetup?.label}`);
+                      const setupId = queuedMatches[set.id];
+                      const queuedSetup = SETUPS.find(s => s.id === setupId);
                       return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
                     })()}
                     {!isDone && !isBye && !aSetup && (
