@@ -2127,6 +2127,85 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Activar el siguiente match en cola para un setup que quedó libre (red de seguridad:
+  // cubre cualquier camino que libere un setup sin pasar por cancelación/series-finished)
+  socket.on('activate-queued-match', async ({ setupId, community }) => {
+    try {
+      if (!setupId || !community) return;
+      let current = sessions.get(setupId);
+      if (!current) current = await redisSessionGet(setupId);
+      // No pisar un match que ya está activo en ese setup
+      if (current && current.phase && !['CANCELLED', 'FINISHED'].includes(current.phase)) return;
+
+      const queueKey = `${community}:${setupId}`;
+      const nextQueueItem = await redisQueuePop(queueKey);
+      if (!nextQueueItem) return;
+
+      console.log(`[QUEUE] Auto-activando siguiente match en ${setupId} (setup detectado libre): ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
+
+      const newSession = {
+        sessionId: setupId,
+        phase: 'CHECKIN',
+        player1: {
+          name: nextQueueItem.player1?.name || 'Player 1',
+          score: 0, character: null, wonStages: [],
+          country: nextQueueItem.player1?.country,
+          flagCode: nextQueueItem.player1?.flagCode,
+          seed: nextQueueItem.player1?.seed,
+        },
+        player2: {
+          name: nextQueueItem.player2?.name || 'Player 2',
+          score: 0, character: null, wonStages: [],
+          country: nextQueueItem.player2?.country,
+          flagCode: nextQueueItem.player2?.flagCode,
+          seed: nextQueueItem.player2?.seed,
+        },
+        format: nextQueueItem.format || 'BO3',
+        currentGame: 1,
+        currentTurn: null,
+        games: [],
+        checkIns: [],
+        delayRequests: [],
+        startggSetId: nextQueueItem.startggSetId || null,
+        startggEntrant1Id: nextQueueItem.startggEntrant1Id || null,
+        startggEntrant2Id: nextQueueItem.startggEntrant2Id || null,
+        startggReported: false,
+        community,
+      };
+
+      sessions.set(setupId, newSession);
+      io.to(setupId).emit('session-updated', { session: newSession });
+
+      const remainingQueue = await redisQueuePeek(queueKey, 5);
+      const queueLength = await redisQueueLength(queueKey);
+      io.to('admin-panel').emit('queue:updated', {
+        setupId,
+        community,
+        queue: remainingQueue,
+        queueLength,
+        message: `✅ Siguiente match activado en ${setupId} (setup detectado libre)`
+      });
+
+      const assignedSetObj = {
+        [setupId]: {
+          id: nextQueueItem.startggSetId,
+          slots: [
+            { entrant: { name: nextQueueItem.player1?.name || 'Player 1', id: nextQueueItem.startggEntrant1Id } },
+            { entrant: { name: nextQueueItem.player2?.name || 'Player 2', id: nextQueueItem.startggEntrant2Id } }
+          ],
+          fullRoundText: nextQueueItem.round || '',
+          sessionId: setupId,
+          startggSetId: nextQueueItem.startggSetId,
+          startggEntrant1Id: nextQueueItem.startggEntrant1Id,
+          startggEntrant2Id: nextQueueItem.startggEntrant2Id,
+        }
+      };
+      io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
+    } catch (e) {
+      console.error('⚠️ Error activando match en cola (setup libre):', e.message);
+    }
+  });
+
   // Terminar match (marcar como FINISHED)
   socket.on('end-match', ({ sessionId, winner }) => {
     const session = sessions.get(sessionId);
