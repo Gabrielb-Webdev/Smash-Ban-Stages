@@ -616,7 +616,7 @@ export default function TestAdminPage() {
     // Reconstruye/sincroniza los timers locales cuando llegan assignedSets por WS.
     // Arranca countdown para sets con timerStartedAt que no tengan timer local,
     // y limpia timers de sets que ya no están asignados.
-    function syncTimersFromRemote(remote) {
+    function syncTimersFromRemote(remote, isPartial = false) {
       // Arrancar timers para matches recién iniciados en otro cliente
       Object.entries(remote).forEach(([setupId, set]) => {
         if (!set?.timerStartedAt) return;
@@ -642,6 +642,9 @@ export default function TestAdminPage() {
         }, 1000);
         matchTimersRef.current[setupId].intervalId = iv;
       });
+      // En updates PARCIALES (un solo setup, ej: auto-activación) NO limpiar timers de otros setups,
+      // porque `remote` solo trae ese setup → borraría los timers de todos los demás por error.
+      if (isPartial) return;
       // Limpiar timers de setups que ya no están asignados (ej: Admin A canceló)
       Object.keys(matchTimersRef.current).forEach(setupId => {
         if (!remote[setupId]) {
@@ -666,7 +669,7 @@ export default function TestAdminPage() {
       if (!remote) return;
       isRemoteAssignRef.current = true;
       setAssignedSets(prev => (partial ? { ...prev, ...remote } : remote));
-      syncTimersFromRemote(remote);
+      syncTimersFromRemote(remote, partial);
     });
 
     socket.on('panel:state-update', ({ state }) => {

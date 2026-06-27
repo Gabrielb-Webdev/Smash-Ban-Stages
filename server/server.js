@@ -2121,6 +2121,9 @@ io.on('connection', (socket) => {
           startggSetId: nextQueueItem.startggSetId,
           startggEntrant1Id: nextQueueItem.startggEntrant1Id,
           startggEntrant2Id: nextQueueItem.startggEntrant2Id,
+          // timerStartedAt hace que el panel arranque el countdown de check-in y muestre el match
+          // como ACTIVO (CHECK-IN + timer + Cancelar), no como "Iniciar match" sin arrancar.
+          timerStartedAt: Date.now(),
         }
       };
       io.to('admin-panel').emit('panel:assign-update', { assignedSets: assignedSetObj, partial: true });
