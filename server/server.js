@@ -2199,14 +2199,12 @@ io.on('connection', (socket) => {
   socket.on('activate-queued-match', async ({ setupId, community }) => {
     try {
       if (!setupId || !community) return;
-      let current = sessions.get(setupId);
-      if (!current) current = await redisSessionGet(setupId);
-      // No pisar un match que ya está activo en ese setup
-      if (current && current.phase && !['CANCELLED', 'FINISHED'].includes(current.phase)) return;
-
+      // El cliente es la autoridad sobre "setup libre" (solo empuja cuando no hay match asignado).
+      // No hace falta guard de sesión: el LPOP atómico garantiza que aunque lleguen N nudges
+      // (multi-device), solo UNO saca el match. Si la cola está vacía, no pasa nada.
       const queueKey = `${community}:${setupId}`;
       const nextQueueItem = await redisQueuePop(queueKey);
-      if (!nextQueueItem) return;
+      if (!nextQueueItem) { console.log(`[QUEUE] activate-queued-match: cola vacía para ${queueKey}`); return; }
 
       console.log(`[QUEUE] Auto-activando siguiente match en ${setupId} (setup detectado libre): ${nextQueueItem.player1?.name} vs ${nextQueueItem.player2?.name}`);
 

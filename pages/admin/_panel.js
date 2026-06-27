@@ -1262,6 +1262,7 @@ export default function TestAdminPage() {
   // SERVER que lo active. El server es la autoridad única (su LPOP de Redis es atómico), así que aunque
   // haya varios paneles abiertos y todos "empujen", solo UNO promueve el match → seguro para multi-device.
   // El server responde con session-updated + panel:assign-update a TODOS los paneles (room admin-panel).
+  // lockTick avanza cada 1s → re-evalúa este efecto periódicamente para poder reintentar el nudge.
   useEffect(() => {
     if (!tournamentStarted) return;
     SETUPS.forEach(s => {
@@ -1269,16 +1270,19 @@ export default function TestAdminPage() {
       // ¿Hay algo en cola para este setup? (queuedMatches es confiable client-side; setupQueues es respaldo)
       const hasQueued = Object.values(queuedMatches).includes(s.id) || (setupQueues[s.id]?.items?.length || 0) > 0;
       if (isFree && hasQueued) {
-        if (autoPromoteRequestedRef.current[s.id]) return;
-        autoPromoteRequestedRef.current[s.id] = true;
+        // Throttle: empujar al server como mucho cada 4s. Si el primer nudge se perdió o no tomó,
+        // reintenta solo hasta que el setup se ocupe. Multi-device-safe (LPOP atómico en el server).
+        const last = autoPromoteRequestedRef.current[s.id] || 0;
+        if (Date.now() - last < 4000) return;
+        autoPromoteRequestedRef.current[s.id] = Date.now();
         const { community: comm } = parseSetupId(s.id);
-        console.log(`[QUEUE] ⏫ Setup ${s.id} libre con cola → pidiendo activación al server`);
+        console.log(`[QUEUE] ⏫ Setup ${s.id} libre con cola → activate-queued-match`);
         panelSocketRef.current?.emit('activate-queued-match', { setupId: s.id, community: comm });
       } else if (!isFree) {
-        delete autoPromoteRequestedRef.current[s.id];
+        autoPromoteRequestedRef.current[s.id] = 0;
       }
     });
-  }, [assignedSets, queuedMatches, setupQueues, tournamentStarted]);
+  }, [assignedSets, queuedMatches, setupQueues, tournamentStarted, lockTick]);
 
   function getQueueKey(set) {
     return `${set?.slots?.[0]?.entrant?.name || 'P1'}_vs_${set?.slots?.[1]?.entrant?.name || 'P2'}`;
