@@ -602,6 +602,10 @@ export default function TestAdminPage() {
     socket.on('connect', () => {
       console.log('🎮 Panel admin conectado al WS');
       socket.emit('panel:join', { community: comm });
+      // Hidratar el estado real de la cola de cada setup (evita que se "pierda" visualmente al recargar/reconectar)
+      getCommunitySetups(comm).forEach(s => {
+        socket.emit('get-queue-status', { setupId: s.id, community: comm });
+      });
       // Si el servidor no tiene estado guardado, habilitar broadcast después de 5s como fallback
       setTimeout(() => { hasReceivedInitialPanelState.current = true; }, 5000);
     });
@@ -684,29 +688,34 @@ export default function TestAdminPage() {
       }
     });
 
-    // Escuchar actualizaciones de cola de matches
-    socket.on('queue:updated', ({ setupId, community, queue, queueLength, message }) => {
-      console.log(`📋 Cola actualizada para ${setupId}:`, queue);
+    // Reconstruye setupQueues + queuedMatches para un setup a partir de la cola real (server/Redis)
+    function applyQueueState(setupId, queue, queueLength) {
       setSetupQueues(prev => ({
         ...prev,
         [setupId]: { items: queue || [], count: queueLength || 0, nextItem: queue?.[0] || null }
       }));
-
-      // Actualizar queuedMatches para reflejar lo que está en cola
       setQueuedMatches(prev => {
         const next = { ...prev };
-        // Remover matches que ya no están en la cola de este setup (comparar por nombres de jugadores)
+        // Remover matches que ya no están en la cola de este setup
         Object.keys(next).forEach(queueKey => {
           if (next[queueKey] === setupId) {
             const stillQueued = queue?.some(item => `${item.player1?.name || 'P1'}_vs_${item.player2?.name || 'P2'}` === queueKey);
-            if (!stillQueued) {
-              delete next[queueKey];
-              console.log(`[BRACKET] Removiendo ${queueKey} de queuedMatches (ya no en cola de ${setupId})`);
-            }
+            if (!stillQueued) delete next[queueKey];
           }
+        });
+        // Agregar/actualizar matches que sí están en la cola (cubre hydration al reconectar/recargar)
+        (queue || []).forEach(item => {
+          const queueKey = `${item.player1?.name || 'P1'}_vs_${item.player2?.name || 'P2'}`;
+          next[queueKey] = setupId;
         });
         return next;
       });
+    }
+
+    // Escuchar actualizaciones de cola de matches
+    socket.on('queue:updated', ({ setupId, community, queue, queueLength, message }) => {
+      console.log(`📋 Cola actualizada para ${setupId}:`, queue);
+      applyQueueState(setupId, queue, queueLength);
 
       // Si el mensaje indica que se activó un nuevo match, mostrar notificación
       if (message?.includes('Siguiente match activado')) {
@@ -720,6 +729,11 @@ export default function TestAdminPage() {
         // Auto-limpiar notificación después de 5 segundos
         setTimeout(() => setQueueNotification(null), 5000);
       }
+    });
+
+    // Respuesta a get-queue-status: hidrata la cola real al conectar/reconectar (evita que se "pierda" visualmente al recargar)
+    socket.on('queue:status', ({ setupId, queue, queueLength }) => {
+      applyQueueState(setupId, queue, queueLength);
     });
 
     return () => {

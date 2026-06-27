@@ -758,7 +758,11 @@ const httpServer = createServer(async (req, res) => {
   } else if (req.method === 'DELETE' && req.url.startsWith('/session/')) {
     // DELETE /session/:sessionId — cancela una sesión (admin la cancela desde el panel)
     const sessionId = decodeURIComponent(req.url.slice('/session/'.length));
-    const session = sessions.get(sessionId);
+    let session = sessions.get(sessionId);
+    if (!session) {
+      session = await redisSessionGet(sessionId);
+      if (session) sessions._map.set(sessionId, session);
+    }
     if (session) {
       session.phase = 'CANCELLED';
       sessions.set(sessionId, session);
