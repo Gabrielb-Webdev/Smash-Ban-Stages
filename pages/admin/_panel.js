@@ -1877,10 +1877,15 @@ export default function TestAdminPage() {
                   <span style={{ fontSize: 9, fontWeight: 800, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 99, padding: '2px 7px', letterSpacing: '0.04em' }}>{set.stateLabel}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
-                    {!aSetup && queuedMatches[set.id] && (() => {
-                      const setupId = queuedMatches[set.id];
-                      const queuedSetup = SETUPS.find(s => s.id === setupId);
-                      return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
+                    {!aSetup && (() => {
+                      console.log(`[BRACKET-CHECK] set.id=${set.id}, queuedMatches keys=${Object.keys(queuedMatches).join(', ')}, match=${queuedMatches[set.id]}`);
+                      if (queuedMatches[set.id]) {
+                        const setupId = queuedMatches[set.id];
+                        const queuedSetup = SETUPS.find(s => s.id === setupId);
+                        console.log(`[BRACKET-SHOW] ✅ Mostrando badge para ${set.id} en ${setupId}`);
+                        return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
+                      }
+                      return null;
                     })()}
                     {!isDone && !isBye && !aSetup && (
                       <button
