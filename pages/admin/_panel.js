@@ -115,25 +115,6 @@ export default function TestAdminPage() {
   // Evita pedir activate-queued-match repetidamente para el mismo setup mientras esperamos la respuesta del server
   const autoPromoteRequestedRef = useRef({});
 
-  // Red de seguridad: si un setup queda libre (sin match activo) pero tiene algo esperando en cola,
-  // pedirle al servidor que active ese match — cubre cualquier camino que libere el setup sin pasar
-  // por el flujo normal de cancelación/fin de serie.
-  useEffect(() => {
-    if (!tournamentStarted) return;
-    SETUPS.forEach(s => {
-      const hasQueueWaiting = (setupQueues[s.id]?.items?.length || 0) > 0;
-      const isFree = !assignedSets[s.id];
-      if (isFree && hasQueueWaiting) {
-        if (autoPromoteRequestedRef.current[s.id]) return;
-        autoPromoteRequestedRef.current[s.id] = true;
-        const { community: comm } = parseSetupId(s.id);
-        panelSocketRef.current?.emit('activate-queued-match', { setupId: s.id, community: comm });
-      } else {
-        delete autoPromoteRequestedRef.current[s.id];
-      }
-    });
-  }, [assignedSets, setupQueues, tournamentStarted]);
-
   // Selección dinámica de torneo
   const [selectedSlug, setSelectedSlug]                     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedSlug', c))) || ''; } catch { return ''; } });
   const [selectedPhaseGroupId, setSelectedPhaseGroupId]     = useState(() => { try { const c = _communitySync(); return (typeof window !== 'undefined' && localStorage.getItem(lsk('selectedPhaseGroupId', c))) || ''; } catch { return ''; } });
@@ -1276,6 +1257,25 @@ export default function TestAdminPage() {
   }
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
+
+  // Red de seguridad: si un setup queda libre (sin match activo) pero tiene algo esperando en cola,
+  // pedirle al servidor que active ese match — cubre cualquier camino que libere el setup sin pasar
+  // por el flujo normal de cancelación/fin de serie.
+  useEffect(() => {
+    if (!tournamentStarted) return;
+    SETUPS.forEach(s => {
+      const hasQueueWaiting = (setupQueues[s.id]?.items?.length || 0) > 0;
+      const isFree = !assignedSets[s.id];
+      if (isFree && hasQueueWaiting) {
+        if (autoPromoteRequestedRef.current[s.id]) return;
+        autoPromoteRequestedRef.current[s.id] = true;
+        const { community: comm } = parseSetupId(s.id);
+        panelSocketRef.current?.emit('activate-queued-match', { setupId: s.id, community: comm });
+      } else {
+        delete autoPromoteRequestedRef.current[s.id];
+      }
+    });
+  }, [assignedSets, setupQueues, tournamentStarted]);
 
   function getQueueKey(set) {
     return `${set?.slots?.[0]?.entrant?.name || 'P1'}_vs_${set?.slots?.[1]?.entrant?.name || 'P2'}`;
