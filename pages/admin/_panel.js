@@ -1298,16 +1298,13 @@ export default function TestAdminPage() {
         });
 
         // Marcar el match como encolado (para mostrarlo en bracket)
-        // Usar draggedSet.id como clave (es el set.id del bracket)
-        console.log(`[QUEUE-BRACKET] draggedSet.id=${draggedSet.id}, cleanSet.id=${cleanSet.id}, setupId=${setupId}`);
-        setQueuedMatches(prev => {
-          const next = {
-            ...prev,
-            [draggedSet.id]: setupId
-          };
-          console.log(`[BRACKET] Marcando set ${draggedSet.id} en queuedMatches. Estructura:`, next);
-          return next;
-        });
+        // Usar un identificador consistente: nombres de los jugadores
+        const queueKey = `${cleanSet.slots[0]?.entrant?.name || 'P1'}_vs_${cleanSet.slots[1]?.entrant?.name || 'P2'}`;
+        console.log(`[QUEUE-BRACKET] Encolando con clave: ${queueKey} en ${setupId}`);
+        setQueuedMatches(prev => ({
+          ...prev,
+          [queueKey]: setupId
+        }));
 
         setTimeout(() => setQueuedNotification(null), 4000);
       } else {
@@ -1878,11 +1875,11 @@ export default function TestAdminPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {aSetup && <span style={{ fontSize: 9, fontWeight: 800, color: aSetup.color, background: aSetup.color + '18', border: `1px solid ${aSetup.color}44`, borderRadius: 99, padding: '2px 7px' }}>{aSetup.icon} {aSetup.label}</span>}
                     {!aSetup && (() => {
-                      console.log(`[BRACKET-CHECK] set.id=${set.id}, queuedMatches keys=${Object.keys(queuedMatches).join(', ')}, match=${queuedMatches[set.id]}`);
-                      if (queuedMatches[set.id]) {
-                        const setupId = queuedMatches[set.id];
+                      // Usar nombres de jugadores como clave (consistente con onDrop)
+                      const queueKey = `${set.slots?.[0]?.entrant?.name || 'P1'}_vs_${set.slots?.[1]?.entrant?.name || 'P2'}`;
+                      const setupId = queuedMatches[queueKey];
+                      if (setupId) {
                         const queuedSetup = SETUPS.find(s => s.id === setupId);
-                        console.log(`[BRACKET-SHOW] ✅ Mostrando badge para ${set.id} en ${setupId}`);
                         return <span style={{ fontSize: 9, fontWeight: 800, color: '#60A5FA', background: 'rgba(96,165,250,0.18)', border: '1px solid rgba(96,165,250,0.44)', borderRadius: 99, padding: '2px 7px' }}>📋 En cola {queuedSetup?.label}</span>;
                       }
                       return null;
