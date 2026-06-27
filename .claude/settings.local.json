@@ -11,7 +11,8 @@
       "Bash(awk 'NR>=1845 && NR<=1945 {print NR\": \"$0}' \"e:\\\\Users\\\\gabri\\\\Documents\\\\Clientes\\\\Smash-Ban-Stages\\\\pages\\\\admin\\\\_panel.js\")",
       "Bash(node --check server/server.js)",
       "Bash(npx next *)",
-      "Bash(awk 'NR==727,NR==735' pages/admin/_panel.js)"
+      "Bash(awk 'NR==727,NR==735' pages/admin/_panel.js)",
+      "Bash(awk 'NR>=1700 && NR<=1822' server/server.js)"
     ]
   }
 }
