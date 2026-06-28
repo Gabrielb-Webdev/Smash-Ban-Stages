@@ -14,7 +14,12 @@
       "Bash(awk 'NR==727,NR==735' pages/admin/_panel.js)",
       "Bash(awk 'NR>=1700 && NR<=1822' server/server.js)",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\); console.log\\('main:',p.main\\)\")",
-      "Bash(grep -n \"io.to\\(setupId\\).emit\\('session-updated', { session: newSession }\\);\" server/server.js)"
+      "Bash(grep -n \"io.to\\(setupId\\).emit\\('session-updated', { session: newSession }\\);\" server/server.js)",
+      "Bash(PORT=3099 timeout 12 node server/server.js)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} en %{time_total}s\\\\n\" --max-time 30 https://smash-ban-stages.onrender.com/health)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} en %{time_total}s\\\\n\" --max-time 30 https://web-production-80c11.up.railway.app/health)",
+      "Bash(PORT=3098 SELF_PING_URL=http://localhost:3098 timeout 6 node server/server.js)"
     ]
   }
 }
