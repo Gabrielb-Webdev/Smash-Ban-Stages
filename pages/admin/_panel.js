@@ -1250,13 +1250,44 @@ export default function TestAdminPage() {
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
 
-  // Activación MANUAL del siguiente match en cola de un setup (el admin decide cuándo).
-  // Antes esto se auto-disparaba al liberarse el setup; ahora se hace solo con el botón "Activar".
+  // Pasar el siguiente match de la cola AL SETUP, como match pendiente (muestra "Iniciar match").
+  // NO lo arranca: el admin pulsa "Iniciar match" y ahí corre callMatch (que notifica a los jugadores,
+  // crea la sesión de tablet, etc.). Así el flujo y las notificaciones son idénticos a un call normal.
   function activateNextQueued(setupId) {
+    const item = setupQueues[setupId]?.items?.[0];
+    if (!item) return;
     const { community: comm } = parseSetupId(setupId);
-    if (!panelSocketRef.current?.connected) { alert('No conectado al servidor. Refrescá la página.'); return; }
-    console.log(`[QUEUE] ▶ Activación manual del siguiente en ${setupId}`);
-    panelSocketRef.current.emit('activate-queued-match', { setupId, community: comm });
+
+    // Reconstruir el set desde el item de la cola (mismo shape que un set del bracket)
+    const promotedSet = {
+      id: item.startggSetId,
+      slots: [
+        { id: item.startggEntrant1Id, entrant: item.player1 || {} },
+        { id: item.startggEntrant2Id, entrant: item.player2 || {} },
+      ],
+      fullRoundText: item.round || '',
+    };
+
+    // Montar en el setup (sin sessionId/timer → el card muestra "Iniciar match (BO3)")
+    setAssignedSets(prev => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) { if (next[k]?.id === promotedSet.id) delete next[k]; }
+      next[setupId] = promotedSet;
+      return next;
+    });
+
+    // Sacar de la cola: badge local + Redis (server)
+    const qk = `${item.player1?.name || 'P1'}_vs_${item.player2?.name || 'P2'}`;
+    setQueuedMatches(prev => { const n = { ...prev }; if (n[qk] === setupId) delete n[qk]; return n; });
+    if (panelSocketRef.current?.connected && item.id) {
+      panelSocketRef.current.emit('dequeue-match', { setupId, community: comm, queueItemId: item.id });
+    }
+    setSetupQueues(prev => {
+      const cur = prev[setupId];
+      if (!cur) return prev;
+      const rest = (cur.items || []).slice(1);
+      return { ...prev, [setupId]: { items: rest, count: rest.length, nextItem: rest[0] || null } };
+    });
   }
 
   function getQueueKey(set) {
@@ -2337,7 +2368,7 @@ export default function TestAdminPage() {
                               onClick={() => activateNextQueued(setup.id)}
                               style={{ width: '100%', marginTop: 4, background: setup.color + '22', border: `1px solid ${setup.color}66`, color: setup.color, borderRadius: 8, padding: '9px 0', fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", letterSpacing: '0.04em' }}
                             >
-                              ▶ Activar siguiente
+                              ▶ Pasar al setup
                             </button>
                           </div>
                         ) : (

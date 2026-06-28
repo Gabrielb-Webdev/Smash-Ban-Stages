@@ -218,19 +218,24 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
     const prevTurn = prevTurnRef.current;
     const turn = session.currentTurn;
     const name = turn ? session[turn]?.name : '';
-    if (prevPhase !== session.phase) {
-      if (session.phase === 'STAGE_BAN' && turn) {
-        setTurnModal({ icon: '🚫', subtitle: 'Le toca BANEAR stage a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
-      } else if (session.phase === 'STAGE_SELECT' && turn) {
-        setTurnModal({ icon: '🎯', subtitle: 'Le toca ELEGIR stage a', playerName: name, gradient: 'linear-gradient(160deg,#020d1a 0%,#0c2340 50%,#1d4ed8 100%)', accent: '#60a5fa' });
-      } else if (session.phase === 'CHARACTER_SELECT' && turn) {
-        setTurnModal({ icon: '🎮', subtitle: 'Elige tu personaje', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
-      }
-    } else if (prevTurn !== turn && turn && session.phase !== 'RPS') {
-      if (session.phase === 'STAGE_BAN') {
-        setTurnModal({ icon: '🚫', subtitle: 'Ahora le toca BANEAR a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
-      } else if (session.phase === 'CHARACTER_SELECT') {
-        setTurnModal({ icon: '🎮', subtitle: 'Ahora te toca elegir a vos', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+    // El cartel de turno ("Le toca a X") solo tiene sentido en modo 1 dispositivo (para saber a quién
+    // pasarle el aparato). En modo 2 dispositivos cada jugador ya está en su pantalla → es redundante
+    // y molesto, así que NO se muestra. (Igual se actualizan las refs de fase/turno abajo.)
+    if (session.singleDeviceMode) {
+      if (prevPhase !== session.phase) {
+        if (session.phase === 'STAGE_BAN' && turn) {
+          setTurnModal({ icon: '🚫', subtitle: 'Le toca BANEAR stage a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
+        } else if (session.phase === 'STAGE_SELECT' && turn) {
+          setTurnModal({ icon: '🎯', subtitle: 'Le toca ELEGIR stage a', playerName: name, gradient: 'linear-gradient(160deg,#020d1a 0%,#0c2340 50%,#1d4ed8 100%)', accent: '#60a5fa' });
+        } else if (session.phase === 'CHARACTER_SELECT' && turn) {
+          setTurnModal({ icon: '🎮', subtitle: 'Elige tu personaje', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+        }
+      } else if (prevTurn !== turn && turn && session.phase !== 'RPS') {
+        if (session.phase === 'STAGE_BAN') {
+          setTurnModal({ icon: '🚫', subtitle: 'Ahora le toca BANEAR a', playerName: name, gradient: 'linear-gradient(160deg,#1a0505 0%,#450a0a 50%,#7f1d1d 100%)', accent: '#ef4444' });
+        } else if (session.phase === 'CHARACTER_SELECT') {
+          setTurnModal({ icon: '🎮', subtitle: 'Ahora te toca elegir a vos', playerName: name, gradient: 'linear-gradient(160deg,#0d0520 0%,#1e1040 50%,#4c1d95 100%)', accent: '#a78bfa' });
+        }
       }
     }
     prevPhaseRef.current = session.phase;
