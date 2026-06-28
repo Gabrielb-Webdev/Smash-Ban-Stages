@@ -85,7 +85,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   const [wrongMatch, setWrongMatch] = useState(false);
   const [wrongMatchCountdown, setWrongMatchCountdown] = useState(3);
   const [endPhaseCountdown, setEndPhaseCountdown] = useState(null);
-  const [autoConfirmCountdown, setAutoConfirmCountdown] = useState(10);
+  const [autoConfirmCountdown, setAutoConfirmCountdown] = useState(30);
 
   // Identidad manual: guardada en sessionStorage para persistir en la pestaña sin login
   const [manualIdentity, setManualIdentity] = useState(() => {
@@ -332,17 +332,17 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.phase, manualIdentity]);
 
-  // Auto-confirmación: countdown de 10 segundos para cada set
+  // Auto-confirmación: countdown de 30 segundos para cada set
   useEffect(() => {
     if (!session?.winnerProposal || session?.phase !== 'PLAYING') {
-      setAutoConfirmCountdown(10);
+      setAutoConfirmCountdown(30);
       return;
     }
     const iv = setInterval(() => {
       setAutoConfirmCountdown(prev => {
         if (prev <= 1) {
           clearInterval(iv);
-          return 10;
+          return 30;
         }
         return prev - 1;
       });
@@ -2477,7 +2477,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#00d4ff', fontFamily: 'Anton' }}>{autoConfirmCountdown}s</div>
                         <div style={{ width: 60, height: 6, background: 'rgba(100,200,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${(autoConfirmCountdown / 10) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #0099ff)', transition: 'width 0.3s ease' }}></div>
+                          <div style={{ width: `${(autoConfirmCountdown / 30) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #0099ff)', transition: 'width 0.3s ease' }}></div>
                         </div>
                       </div>
                     </div>
@@ -2507,7 +2507,7 @@ export default function TabletControl({ sessionId, playerName, playerIndex, matc
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#00d4ff', fontFamily: 'Anton' }}>{autoConfirmCountdown}s</div>
                         <div style={{ width: 60, height: 6, background: 'rgba(100,200,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${(autoConfirmCountdown / 10) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #0099ff)', transition: 'width 0.3s ease' }}></div>
+                          <div style={{ width: `${(autoConfirmCountdown / 30) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #00d4ff, #0099ff)', transition: 'width 0.3s ease' }}></div>
                         </div>
                       </div>
                     </div>

@@ -722,19 +722,8 @@ export default function TestAdminPage() {
     socket.on('queue:updated', ({ setupId, community, queue, queueLength, message }) => {
       console.log(`📋 Cola actualizada para ${setupId}:`, queue);
       applyQueueState(setupId, queue, queueLength);
-
-      // Si el mensaje indica que se activó un nuevo match, mostrar notificación
-      if (message?.includes('Siguiente match activado')) {
-        console.log(`🎮 Auto-activando match en ${setupId}`);
-        const nextMatch = queue?.[0];
-        setQueueNotification({
-          setupId,
-          message: `✅ ${nextMatch?.player1?.name || '?'} vs ${nextMatch?.player2?.name || '?'} - ${nextMatch?.format || 'BO3'}`,
-          timestamp: Date.now()
-        });
-        // Auto-limpiar notificación después de 5 segundos
-        setTimeout(() => setQueueNotification(null), 5000);
-      }
+      // (Se quitó el cartel "Match activado": aparecía en todos los paneles por el broadcast
+      //  → molesto con dos dispositivos. La cola ya se refleja en el setup correspondiente.)
     });
 
     // Respuesta a get-queue-status: hidrata la cola real al conectar/reconectar (evita que se "pierda" visualmente al recargar)
@@ -1261,31 +1250,14 @@ export default function TestAdminPage() {
 
   const tournamentStarted = tournament?.state === 2 || phaseStarted;
 
-  // Red de seguridad: si un setup queda libre (sin match activo) pero tiene algo en cola, pedirle al
-  // SERVER que lo active. El server es la autoridad única (su LPOP de Redis es atómico), así que aunque
-  // haya varios paneles abiertos y todos "empujen", solo UNO promueve el match → seguro para multi-device.
-  // El server responde con session-updated + panel:assign-update a TODOS los paneles (room admin-panel).
-  // lockTick avanza cada 1s → re-evalúa este efecto periódicamente para poder reintentar el nudge.
-  useEffect(() => {
-    if (!tournamentStarted) return;
-    SETUPS.forEach(s => {
-      const isFree = !assignedSets[s.id];
-      // ¿Hay algo en cola para este setup? (queuedMatches es confiable client-side; setupQueues es respaldo)
-      const hasQueued = Object.values(queuedMatches).includes(s.id) || (setupQueues[s.id]?.items?.length || 0) > 0;
-      if (isFree && hasQueued) {
-        // Throttle: empujar al server como mucho cada 4s. Si el primer nudge se perdió o no tomó,
-        // reintenta solo hasta que el setup se ocupe. Multi-device-safe (LPOP atómico en el server).
-        const last = autoPromoteRequestedRef.current[s.id] || 0;
-        if (Date.now() - last < 2000) return;
-        autoPromoteRequestedRef.current[s.id] = Date.now();
-        const { community: comm } = parseSetupId(s.id);
-        console.log(`[QUEUE] ⏫ Setup ${s.id} libre con cola → activate-queued-match`);
-        panelSocketRef.current?.emit('activate-queued-match', { setupId: s.id, community: comm });
-      } else if (!isFree) {
-        autoPromoteRequestedRef.current[s.id] = 0;
-      }
-    });
-  }, [assignedSets, queuedMatches, setupQueues, tournamentStarted, lockTick]);
+  // Activación MANUAL del siguiente match en cola de un setup (el admin decide cuándo).
+  // Antes esto se auto-disparaba al liberarse el setup; ahora se hace solo con el botón "Activar".
+  function activateNextQueued(setupId) {
+    const { community: comm } = parseSetupId(setupId);
+    if (!panelSocketRef.current?.connected) { alert('No conectado al servidor. Refrescá la página.'); return; }
+    console.log(`[QUEUE] ▶ Activación manual del siguiente en ${setupId}`);
+    panelSocketRef.current.emit('activate-queued-match', { setupId, community: comm });
+  }
 
   function getQueueKey(set) {
     return `${set?.slots?.[0]?.entrant?.name || 'P1'}_vs_${set?.slots?.[1]?.entrant?.name || 'P2'}`;
@@ -2300,9 +2272,35 @@ export default function TestAdminPage() {
                         )}
                       </div>
                     ) : (
-                      <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                        <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.18)' }}>Sin match activo</p>
-                        <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>↓ Arrastrá un match</p>
+                      <div style={{ padding: '12px 0' }}>
+                        {setupQueues[setup.id]?.items && setupQueues[setup.id].items.length > 0 ? (
+                          <div>
+                            <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 900, color: setup.color, textTransform: 'uppercase', letterSpacing: '0.12em', textAlign: 'center' }}>
+                              📋 En cola ({setupQueues[setup.id].count})
+                            </p>
+                            {setupQueues[setup.id].items.slice(0, 2).map((item, idx) => (
+                              <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, background: 'rgba(255,255,255,0.02)', border: `1px solid ${setup.color}18`, borderRadius: 8, padding: 8, fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>
+                                <span style={{ fontWeight: 800, color: setup.color, background: setup.color + '22', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>#{idx + 1}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.player1?.name || '?'} vs {item.player2?.name || '?'}</span>
+                                <button
+                                  onClick={() => { const { community } = parseSetupId(setup.id); if (panelSocketRef.current?.connected) panelSocketRef.current.emit('dequeue-match', { setupId: setup.id, community, queueItemId: item.id }); }}
+                                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', borderRadius: 4, padding: '1px 4px', fontSize: 8, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+                                >✕</button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => activateNextQueued(setup.id)}
+                              style={{ width: '100%', marginTop: 4, background: setup.color + '22', border: `1px solid ${setup.color}66`, color: setup.color, borderRadius: 8, padding: '9px 0', fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", letterSpacing: '0.04em' }}
+                            >
+                              ▶ Activar siguiente
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.18)' }}>Sin match activo</p>
+                            <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.1)' }}>↓ Arrastrá un match</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

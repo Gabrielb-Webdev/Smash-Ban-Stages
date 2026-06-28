@@ -1917,13 +1917,13 @@ io.on('connection', (socket) => {
 
       session.winnerProposal = { winner, proposedBy: proposedBy || null, autoConfirmTimeoutId: null };
 
-      // NUEVA FEATURE: Auto-confirmación de resultados (10 segundos por cada set)
+      // Auto-confirmación: si el rival no confirma en 30s, se aplica el resultado propuesto.
       const autoConfirmTimeout = setTimeout(() => {
         const s = sessions.get(sessionId);
         if (!s || s.phase !== 'PLAYING' || !s.winnerProposal) return;
-        console.log(`⏱️ Auto-confirmó resultado en ${sessionId} después de 10s: ${winner} gana`);
+        console.log(`⏱️ Auto-confirmó resultado en ${sessionId} después de 30s: ${winner} gana`);
         applyGameWinner(sessionId, winner);
-      }, 10000);
+      }, 30000);
 
       session.winnerProposal.autoConfirmTimeoutId = autoConfirmTimeout;
       sessions.set(sessionId, session);
