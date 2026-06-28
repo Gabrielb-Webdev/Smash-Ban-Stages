@@ -1362,6 +1362,47 @@ export default function TestAdminPage() {
     });
   }
 
+  // Enviar un match a un setup desde el modal (celu/tablet): si el setup está LIBRE lo asigna directo,
+  // si está OCUPADO lo ENCOLA (mismo comportamiento que arrastrar). Usado por onAssignToSetup.
+  function sendMatchToSetup(set, setupId) {
+    if (!tournamentStarted || lockedSets[set.id]) return;
+    // Bloquear si el match ya está jugándose en algún setup, o ya está en alguna cola
+    if (Object.values(assignedSets).some(s => s?.id === set.id)) return;
+    if (queuedMatches[getQueueKey(set)]) return;
+
+    const cleanSet = { ...set };
+    if (assignedSets[setupId]) {
+      // Setup ocupado → ENCOLAR
+      const { community } = parseSetupId(setupId);
+      if (!panelSocketRef.current?.connected) { alert('No conectado al servidor. Refrescá la página.'); return; }
+      const p1Name = cleanSet.slots?.[0]?.entrant?.name || '?';
+      const p2Name = cleanSet.slots?.[1]?.entrant?.name || '?';
+      panelSocketRef.current.emit('queue-match', {
+        setupId, community,
+        player1: cleanSet.slots?.[0]?.entrant || {},
+        player2: cleanSet.slots?.[1]?.entrant || {},
+        format: 'BO3',
+        round: cleanSet.fullRoundText || '',
+        tournamentName: tournament?.name || '',
+        startggSetId: cleanSet.id,
+        startggEntrant1Id: cleanSet.slots?.[0]?.id,
+        startggEntrant2Id: cleanSet.slots?.[1]?.id,
+      });
+      const setupLabel = SETUPS.find(s => s.id === setupId)?.label || setupId;
+      setQueuedNotification({ message: `${p1Name} vs ${p2Name}`, setupLabel, setupId, timestamp: Date.now() });
+      setQueuedMatches(prev => ({ ...prev, [getQueueKey(cleanSet)]: setupId }));
+      setTimeout(() => setQueuedNotification(null), 4000);
+    } else {
+      // Setup libre → asignar directo
+      setAssignedSets(prev => {
+        const next = { ...prev };
+        for (const k of Object.keys(next)) { if (next[k]?.id === cleanSet.id) delete next[k]; }
+        next[setupId] = cleanSet;
+        return next;
+      });
+    }
+  }
+
   function stopMatchTimer(setupId) {
     const t = matchTimersRef.current[setupId];
     if (t?.intervalId) clearInterval(t.intervalId);
@@ -1891,8 +1932,12 @@ export default function TestAdminPage() {
           .btn-text-collapse{display:none!important}
           .assign-dropdown-wrap{display:block!important}
         }
-        @media(min-width:769px){
+        /* El botón "Enviar a setup" se muestra en celu Y tablet/iPad (touch). Solo se oculta en
+           desktop real (≥1367px), donde se usa drag & drop. */
+        @media(min-width:1367px){
           .assign-dropdown-wrap{display:none!important}
+        }
+        @media(min-width:769px){
           .panel-outer{height:100vh!important;overflow:hidden!important}
           .panel-body{min-height:0!important;overflow:hidden!important}
           .panel-right{min-height:0!important;overflow:hidden!important}
@@ -2584,7 +2629,7 @@ export default function TestAdminPage() {
                 SET_STATE_STYLE={SET_STATE_STYLE}
                 lockedSets={lockedSets}
                 toggleLock={toggleLock}
-                onAssignToSetup={assignToSetupDirectly}
+                onAssignToSetup={sendMatchToSetup}
                 tournamentStarted={tournamentStarted}
                 onResultSaved={() => refreshBracket(true)}
                 queuedMatches={queuedMatches}

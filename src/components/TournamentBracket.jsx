@@ -964,29 +964,28 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
               return (
                 <button
                   key={s.id}
-                  disabled={isOccupied}
-                  onClick={() => !isOccupied && handleAssign(s.id)}
+                  onClick={() => handleAssign(s.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
-                    background: isCurrent ? s.color + '22' : isOccupied ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${isCurrent ? s.color + '88' : isOccupied ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'}`,
+                    background: isCurrent ? s.color + '22' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${isCurrent ? s.color + '88' : isOccupied ? s.color + '33' : 'rgba(255,255,255,0.09)'}`,
                     borderRadius: 14, padding: '13px 16px',
-                    cursor: isOccupied ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     fontFamily: 'Outfit, sans-serif', width: '100%', textAlign: 'left',
                     transition: 'background .12s',
-                    opacity: isOccupied ? 0.5 : 1,
+                    opacity: 1,
                   }}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: s.color + (isOccupied ? '10' : '20'), border: `1px solid ${s.color}${isOccupied ? '22' : '44'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                    {isOccupied ? '🔒' : s.icon}
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: s.color + '20', border: `1px solid ${s.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                    {s.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: isCurrent ? s.color : isOccupied ? 'rgba(255,255,255,0.3)' : '#E5E7EB' }}>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: isCurrent ? s.color : '#E5E7EB' }}>
                       {s.label}
                     </span>
                     {isOccupied && (
-                      <span style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {occupantName}
+                      <span style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Ocupado: {occupantName} → se pone en cola
                       </span>
                     )}
                   </div>
@@ -995,9 +994,9 @@ function BracketInner({ bracketSets, assignedSets, draggedSet, onDragStart, onDr
                       actual
                     </span>
                   )}
-                  {isOccupied && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, padding: '3px 10px', flexShrink: 0 }}>
-                      ocupado
+                  {isOccupied && !isCurrent && (
+                    <span style={{ fontSize: 11, fontWeight: 800, color: s.color, background: s.color + '18', border: `1px solid ${s.color}44`, borderRadius: 99, padding: '3px 10px', flexShrink: 0 }}>
+                      📋 a cola
                     </span>
                   )}
                 </button>
