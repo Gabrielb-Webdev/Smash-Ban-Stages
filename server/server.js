@@ -2345,6 +2345,23 @@ hydrateSessionsFromRedis().then(() => {
     console.log(`✅ Servidor WebSocket corriendo en ${HOST}:${PORT}`);
     console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check disponible en http://${HOST}:${PORT}/health`);
+
+    // KEEP-ALIVE: Render free tier duerme tras ~15 min sin tráfico entrante (y tarda ~1 min en
+    // despertar → 502/503 transitorios justo cuando se necesita). Mientras el server esté vivo,
+    // se auto-pinguea su URL pública cada 10 min para generar tráfico entrante y NO dormirse.
+    // Render expone RENDER_EXTERNAL_URL automáticamente; SELF_PING_URL permite override manual.
+    const SELF_URL = process.env.SELF_PING_URL || process.env.RENDER_EXTERNAL_URL;
+    if (SELF_URL) {
+      const pingUrl = `${SELF_URL.replace(/\/$/, '')}/health`;
+      setInterval(() => {
+        fetch(pingUrl)
+          .then(() => console.log(`🏓 keep-alive ok → ${pingUrl}`))
+          .catch(e => console.warn('⚠️ keep-alive falló:', e.message));
+      }, 10 * 60 * 1000); // cada 10 min (< 15 min de inactividad que duerme a Render)
+      console.log(`🏓 Keep-alive activado contra ${pingUrl} (cada 10 min)`);
+    } else {
+      console.log('ℹ️ Keep-alive desactivado (sin RENDER_EXTERNAL_URL/SELF_PING_URL)');
+    }
   });
 });
 
