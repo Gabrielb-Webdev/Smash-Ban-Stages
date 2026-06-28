@@ -209,6 +209,17 @@ function _memArr(setupKey) { return queueMem.get(setupKey) || []; }
 const setupActivationLock = new Map();
 function clearSetupLock(setupId) { if (setupId) setupActivationLock.delete(setupId); }
 
+// Timers de auto-confirmación, FUERA de la sesión. CRÍTICO: nunca guardar un handle de
+// setTimeout/setInterval dentro de un objeto `session` que se emite por socket.io —
+// el Timer tiene referencias circulares (TimersList) y socket.io-parser entra en
+// recursión infinita al serializarlo → "RangeError: Maximum call stack size exceeded"
+// → el proceso CRASHEA (502 en Render). Por eso van en este Map keyed por sessionId.
+const pendingAutoConfirm = new Map();
+function clearAutoConfirm(sessionId) {
+  const t = pendingAutoConfirm.get(sessionId);
+  if (t) { clearTimeout(t); pendingAutoConfirm.delete(sessionId); }
+}
+
 async function _hydrateFromUpstash(setupKey) {
   // Si memoria no conoce esta key, intentar recuperar de Upstash (ej: tras reinicio del server).
   // Se marca como hidratada SIEMPRE (aunque venga vacía) para no repetir la consulta en cada peek.
@@ -263,12 +274,15 @@ function queueRemoveById(setupKey, queueItemId) {
   return arr;
 }
 
-// Auto-confirmación de resultados (10 segundos por cada set)
+// Auto-confirmación de resultados. El handle del timer va en pendingAutoConfirm (Map), NUNCA
+// dentro de la sesión (se emite por socket → un Timer rompería la serialización y crashea el server).
 function startAutoConfirmTimer(sessionId, socket, io) {
   const session = sessions.get(sessionId);
   if (!session || !session.resultProposal) return;
 
-  const timeoutId = setTimeout(() => {
+  clearAutoConfirm(sessionId);
+  pendingAutoConfirm.set(sessionId, setTimeout(() => {
+    pendingAutoConfirm.delete(sessionId);
     const s = sessions.get(sessionId);
     if (!s || s.phase !== 'FINISHED' || !s.resultProposal) return;
 
@@ -278,9 +292,7 @@ function startAutoConfirmTimer(sessionId, socket, io) {
 
     // Aplicar resultado como si lo hubiera confirmado manualmente
     applyGameWinner(sessionId, winner, socket, io, true);
-  }, 10000);
-
-  session.resultProposal.autoConfirmTimeoutId = timeoutId;
+  }, 30000));
 }
 
 // Guardar historial de torneo en Vercel (Redis) cuando una serie termina
@@ -1915,17 +1927,20 @@ io.on('connection', (socket) => {
       // Ignorar si ya existe una propuesta pendiente (evita race condition)
       if (session.winnerProposal) return;
 
-      session.winnerProposal = { winner, proposedBy: proposedBy || null, autoConfirmTimeoutId: null };
+      // OJO: winnerProposal SOLO datos serializables (sin handles de timer) — se emite por socket.
+      session.winnerProposal = { winner, proposedBy: proposedBy || null };
 
       // Auto-confirmación: si el rival no confirma en 30s, se aplica el resultado propuesto.
-      const autoConfirmTimeout = setTimeout(() => {
+      // El handle del timer va en pendingAutoConfirm (Map), NO dentro de la sesión.
+      clearAutoConfirm(sessionId);
+      pendingAutoConfirm.set(sessionId, setTimeout(() => {
+        pendingAutoConfirm.delete(sessionId);
         const s = sessions.get(sessionId);
         if (!s || s.phase !== 'PLAYING' || !s.winnerProposal) return;
         console.log(`⏱️ Auto-confirmó resultado en ${sessionId} después de 30s: ${winner} gana`);
         applyGameWinner(sessionId, winner);
-      }, 30000);
+      }, 30000));
 
-      session.winnerProposal.autoConfirmTimeoutId = autoConfirmTimeout;
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
     }
@@ -1935,6 +1950,7 @@ io.on('connection', (socket) => {
   socket.on('reject-game-winner', ({ sessionId }) => {
     const session = sessions.get(sessionId);
     if (session && session.winnerProposal) {
+      clearAutoConfirm(sessionId);
       session.winnerProposal = null;
       sessions.set(sessionId, session);
       io.to(sessionId).emit('session-updated', { session });
@@ -1946,11 +1962,7 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (matchToken && session?.matchToken && matchToken !== session.matchToken) return;
 
-    // Limpiar timeout de auto-confirmación si existe
-    if (session?.winnerProposal?.autoConfirmTimeoutId) {
-      clearTimeout(session.winnerProposal.autoConfirmTimeoutId);
-    }
-
+    clearAutoConfirm(sessionId); // limpiar timeout de auto-confirmación si existe
     applyGameWinner(sessionId, winner);
   });
 

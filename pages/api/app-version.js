@@ -1,7 +1,7 @@
 // Actualizar latestVersion cuando haya una nueva release
 export default function handler(req, res) {
   res.status(200).json({
-    latestVersion: '1.12.1',
+    latestVersion: '1.12.2',
     downloadUrl: 'https://github.com/Gabrielb-Webdev/Smash-Ban-Stages/releases/download/v1.7.0/afk-smash.apk',
   });
 }
