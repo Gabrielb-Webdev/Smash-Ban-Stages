@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>OSU · Player Intro</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { overflow:hidden; background:#120a1e; }
+body {
+  width:1280px; height:720px;
+  overflow:hidden; background:#120a1e;
+  position:relative; font-family:'DM Sans',sans-serif;
+}
+
+/* Stage full-screen background */
+#stage-bg {
+  position:absolute; inset:0; z-index:0;
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  transition:background-image 0.4s;
+}
+#stage-overlay {
+  position:absolute; inset:0; z-index:1;
+  background:rgba(12,7,22,0.55);
+  pointer-events:none;
+}
+
+/* diagonal lines bg */
+.bg-texture {
+  position:absolute; inset:0; z-index:2;
+  background:repeating-linear-gradient(
+    -52deg,
+    transparent 0, transparent 26px,
+    rgba(201,166,232,0.03) 26px, rgba(201,166,232,0.03) 28px
+  );
+  pointer-events:none;
+}
+
+/* corner brackets */
+.corner {
+  position:absolute; width:60px; height:60px;
+  border-color:rgba(201,166,232,0.45); border-style:solid;
+  z-index:10;
+}
+.tl { top:18px; left:18px; border-width:2px 0 0 2px; }
+.tr { top:18px; right:18px; border-width:2px 2px 0 0; }
+.bl { bottom:18px; left:18px; border-width:0 0 2px 2px; }
+.br { bottom:18px; right:18px; border-width:0 2px 2px 0; }
+
+/* top match info */
+.match-info {
+  position:absolute; top:22px; left:50%; transform:translateX(-50%);
+  text-align:center; display:flex; flex-direction:column; gap:3px;
+  z-index:10; white-space:nowrap;
+}
+.match-round {
+  font-family:'Anton',sans-serif; font-size:15px; letter-spacing:5px;
+  color:rgba(201,166,232,0.85); text-transform:uppercase;
+}
+.match-format {
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  color:rgba(201,166,232,0.4);
+}
+
+/* players area */
+.players-row {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%, -52%);
+  display:flex; align-items:center;
+  width:1140px; gap:0;
+  z-index:10;
+}
+.player-section {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  gap:10px; padding:0 24px; position:relative; overflow:visible;
+}
+
+/* Render del personaje detrás del nombre */
+.char-render {
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  height:560px;
+  object-fit:contain;
+  opacity:0.92;
+  pointer-events:none;
+  display:none;
+  filter:drop-shadow(0 0 30px rgba(0,0,0,0.65));
+  z-index:0;
+}
+.char-render.show { display:block; }
+.p2-section .char-render { transform:translateY(-50%) scaleX(-1); }
+
+/* Texto encima del render */
+.player-seed, .player-name { position:relative; z-index:2; }
+
+/* Logo del torneo bajo la info del match */
+.tc-logo {
+  height:300px; width:auto; margin-top:-75px; opacity:0.92; object-fit:contain;
+}
+
+.player-name {
+  font-family:'Anton',sans-serif; font-size:44px; letter-spacing:3px;
+  color:#F0DFFA; text-transform:uppercase; text-align:center;
+  line-height:1.05;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  width:100%;
+  text-shadow:
+    -2px -2px 0 #241030, 2px -2px 0 #241030,
+    -2px  2px 0 #241030, 2px  2px 0 #241030;
+}
+.player-char {
+  font-size:12px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(201,166,232,0.7); min-height:16px;
+}
+.player-seed {
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(201,166,232,0.4); min-height:12px;
+}
+
+/* VS badge */
+.vs-badge {
+  width:100px; height:100px; flex-shrink:0;
+  border-radius:50%;
+  background:radial-gradient(ellipse at center, #8f5fc7 0%, #4E3A78 55%, #1E1435 100%);
+  border:3px solid #C9A6E8;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 40px rgba(201,166,232,0.55), inset 0 0 20px rgba(0,0,0,0.5);
+  animation:vspulse 2.2s ease-in-out infinite;
+  z-index:5;
+}
+.vs-txt {
+  font-family:'Anton',sans-serif; font-size:36px; letter-spacing:4px;
+  color:#fff; text-shadow:0 0 18px rgba(224,179,255,0.9);
+}
+@keyframes vspulse {
+  0%,100% { box-shadow:0 0 40px rgba(201,166,232,0.55), inset 0 0 20px rgba(0,0,0,0.5); }
+  50%      { box-shadow:0 0 70px rgba(201,166,232,0.9), inset 0 0 10px rgba(0,0,0,0.3); }
+}
+
+/* divider lines */
+.divider {
+  position:absolute; top:50%; width:320px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(201,166,232,0.4), transparent);
+  z-index:5;
+}
+.divider.left  { right:calc(50% + 60px); }
+.divider.right { left:calc(50% + 60px); }
+
+/* TC banner at bottom */
+.tc-banner {
+  position:absolute; bottom:0; left:0; right:0;
+  height:180px; overflow:hidden;
+  background-image:url('./img/banner.png'); background-size:cover; background-position:center 38%;
+}
+.tc-banner::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(12,7,22,0.95) 0%, transparent 30%);
+  pointer-events:none; z-index:1;
+}
+</style>
+</head>
+<body>
+
+<div id="stage-bg"></div>
+<div id="stage-overlay"></div>
+<div class="bg-texture"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="match-info">
+  <div class="match-round" id="round-el">Winners Finals</div>
+  <div class="match-format" id="format-el">Best of 5</div>
+  <img class="tc-logo" src="../Logo.png" alt="OSU">
+</div>
+
+<div class="divider left"></div>
+<div class="divider right"></div>
+
+<div class="players-row">
+  <div class="player-section p1-section">
+    <img class="char-render" id="p1-render" src="" alt="">
+    <div class="player-seed" id="p1-seed"></div>
+    <div class="player-name" id="p1-name">PLAYER 1</div>
+  </div>
+
+  <div class="vs-badge"><div class="vs-txt">VS</div></div>
+
+  <div class="player-section p2-section">
+    <img class="char-render" id="p2-render" src="" alt="">
+    <div class="player-seed" id="p2-seed"></div>
+    <div class="player-name" id="p2-name">PLAYER 2</div>
+  </div>
+</div>
+
+<script>
+!function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+
+const API = 'https://smash-ban-stages.vercel.app/api/osu/score-state';
+
+// Stage ID / nombre → archivo en /images/stages/
+const STAGE_BG = {
+  'battlefield':          'Battlefield.png',
+  'final-destination':    'Final Destination.png',
+  'final destination':    'Final Destination.png',
+  'hollow-bastion':       'Hollow Bastion.png',
+  'hollow bastion':       'Hollow Bastion.png',
+  'kalos':                'Kalos.png',
+  'kalos-pokemon-league': 'Kalos.png',
+  'kalos pokemon league': 'Kalos.png',
+  'pokemon-stadium-2':    'Pokemon Stadium 2.png',
+  'pokemon stadium 2':    'Pokemon Stadium 2.png',
+  'small-battlefield':    'Small Battlefield.png',
+  'small battlefield':    'Small Battlefield.png',
+  'smashville':           'Smashville.png',
+  'town-and-city':        'Town and City.png',
+  'town and city':        'Town and City.png',
+};
+
+// Render base (skin 1) por nombre de personaje
+const RENDERS = {
+  'Banjo & Kazooie':'Banjo Render SSBU.png','Bayonetta':'Bayonetta.png',
+  'Bowser':'Bowser.png','Bowser Jr.':'Bowser Jr..png','Byleth':'Byleth.png',
+  'Captain Falcon':'Captain Falcon.png','Chrom':'Chrom.png','Cloud':'Cloud.png',
+  'Corrin':'Corrin.png','Daisy':'Daisy.png','Dark Pit':'Dark Pit.png',
+  'Dark Samus':'Dark Samus.png','Diddy Kong':'Diddy Kong.png','Donkey Kong':'Donkey Kong.png',
+  'Dr. Mario':'Dr. Mario.png','Duck Hunt':'Duck Hunt.png','Falco':'Falco.png','Fox':'Fox.png',
+  'Ganondorf':'Ganondorf.png','Greninja':'Greninja.png','Hero':'Hero.png',
+  'Ice Climbers':'Ice Climbers.png','Ike':'Ike.png','Incineroar':'Incineroar.png',
+  'Inkling':'Inkling.png','Isabelle':'Isabelle.png','Jigglypuff':'Jiggly.png',
+  'Joker':'Joker.png','Kazuya':'Kazuya.png','Ken':'Ken.png',
+  'King Dedede':'King Dedede.png','King K. Rool':'King K. Rool.png','Kirby':'Kirby.png',
+  'Link':'Link.png','Little Mac':'Little Mac.png','Lucario':'Lucario.png',
+  'Lucas':'Lucas.png','Lucina':'Lucina.png','Luigi':'Luigi.png','Mario':'Mario.png',
+  'Marth':'Marth.png','Mega Man':'Megaman.png','Meta Knight':'Meta Knight.png',
+  'Mewtwo':'Mewtoo.png','Mii Brawler':'Mii Brawler.png','Mii Gunner':'Mii Gunner.png',
+  'Mii Swordfighter':'Mii Swordfighter.png','Min Min':'Min Min.png',
+  'Mr. Game & Watch':'Mr. Game & Watch.png','Ness':'Ness.png','Olimar':'Olimar.png',
+  'Pac-Man':'Pacman.png','Palutena':'Palutena.png','Peach':'Peach.png',
+  'Pichu':'Pichu.png','Pikachu':'Pikachu.png','Piranha Plant':'Piranha Plant.png',
+  'Pit':'Pit.png','Pokémon Trainer':'Pokemon Trainer.png','Pyra/Mythra':'Pyra & Mythra.png',
+  'Richter':'Richter.png','Ridley':'Ridley.png','R.O.B.':'R.O.B..png',
+  'Robin':'Robin.png','Rosalina & Luma':'Rosalina.png','Roy':'Roy.png','Ryu':'Ryu.png',
+  'Samus':'Samus.png','Sephiroth':'Sephiroth.png','Sheik':'Sheik.png','Shulk':'Shulk.png',
+  'Simon':'Simon Belmont.png','Snake':'Snake.png','Sonic':'Sonic.png','Sora':'Sora.png',
+  'Steve':'Steve.png','Terry':'Terry.png','Toon Link':'Toon Link.png',
+  'Villager':'Villager.png','Wario':'Wario.png','Wii Fit Trainer':'Wii fit trainer.png',
+  'Wolf':'Wolf.png','Yoshi':'Yoshi.png','Young Link':'Link ni\u00f1o.png',
+  'Zelda':'Zelda.png','Zero Suit Samus':'Zero Suit Samus.png',
+};
+
+// Carpeta de alts por nombre de personaje (para skins 2-8)
+const RENDER_ALT_FOLDERS = {
+  'Banjo & Kazooie':'banjo_and_kazooie','Bayonetta':'bayonetta',
+  'Bowser':'bowser','Bowser Jr.':'bowser_jr','Byleth':'byleth',
+  'Captain Falcon':'captain_falcon','Chrom':'chrom','Cloud':'cloud',
+  'Corrin':'corrin','Daisy':'daisy','Dark Pit':'dark_pit','Dark Samus':'dark_samus',
+  'Diddy Kong':'diddy_kong','Donkey Kong':'donkey_kong','Dr. Mario':'dr_mario',
+  'Duck Hunt':'duck_hunt','Falco':'falco','Fox':'fox','Ganondorf':'ganondorf',
+  'Greninja':'greninja','Hero':'dq_hero','Ice Climbers':'ice_climbers','Ike':'ike',
+  'Incineroar':'incineroar','Inkling':'inkling','Isabelle':'isabelle',
+  'Jigglypuff':'jigglypuff','Joker':'joker','Kazuya':'kazuya','Ken':'ken',
+  'King Dedede':'king_dedede','King K. Rool':'king_k_rool','Kirby':'kirby',
+  'Link':'link','Little Mac':'little_mac','Lucario':'lucario','Lucas':'lucas',
+  'Lucina':'lucina','Luigi':'luigi','Mario':'mario','Marth':'marth',
+  'Mega Man':'mega_man','Meta Knight':'meta_knight','Mewtwo':'mewtwo',
+  'Min Min':'minmin','Mr. Game & Watch':'mr_game_and_watch','Ness':'ness',
+  'Olimar':'olimar','Pac-Man':'pac_man','Palutena':'palutena','Peach':'peach',
+  'Pichu':'pichu','Pikachu':'pikachu','Piranha Plant':'piranha_plant','Pit':'pit',
+  'Pok\u00e9mon Trainer':'pokemon_trainer','Pyra/Mythra':'pyra',
+  'Richter':'richter','Ridley':'ridley','R.O.B.':'rob','Robin':'robin',
+  'Rosalina & Luma':'rosalina_and_luma','Roy':'roy','Ryu':'ryu','Samus':'samus',
+  'Sephiroth':'sephiroth','Sheik':'sheik','Shulk':'shulk','Simon':'simon',
+  'Snake':'snake','Sonic':'sonic','Sora':'sora','Steve':'steve','Terry':'terry',
+  'Toon Link':'toon_link','Villager':'villager','Wario':'wario',
+  'Wii Fit Trainer':'wii_fit_trainer','Wolf':'wolf','Yoshi':'yoshi',
+  'Young Link':'young_link','Zelda':'zelda','Zero Suit Samus':'zero_suit_samus',
+};
+
+// Construye la URL del render con la skin correcta
+// charIconUrl es como "/images/Stock Icons V2/Pikachu/3.png" → skin 3
+function getRenderUrl(charName, charIconUrl, pfx) {
+  if (!charName) return null;
+  const baseFile = RENDERS[charName];
+  if (!baseFile) return null;
+  let skin = 1;
+  if (charIconUrl) {
+    const m = charIconUrl.match(/\/([1-8])\.png/);
+    if (m) skin = parseInt(m[1]) || 1;
+  }
+  if (skin <= 1) {
+    return pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
+  }
+  const folder = RENDER_ALT_FOLDERS[charName];
+  if (!folder) return pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
+  const altFile = folder+'_alt0'+skin+'.png';
+  return pfx+'/images/Render%20SSBU/alts/'+folder+'/'+encodeURIComponent(altFile);
+}
+
+async function load() {
+  let d = {};
+  try {
+    const r = await fetch(API);
+    if (r.ok) { const j = await r.json(); if (j && (j.p1tag !== undefined || j.p2tag !== undefined)) d = j; }
+  } catch {}
+  if (!d.p1tag && !d.p2tag) {
+    try { d = JSON.parse(localStorage.getItem('smashosu_score')||'{}'); } catch {}
+  }
+  try {
+    document.getElementById('p1-name').textContent = (d.p1tag||'PLAYER 1').toUpperCase();
+    document.getElementById('p2-name').textContent = (d.p2tag||'PLAYER 2').toUpperCase();
+    document.getElementById('round-el').textContent = d.round||'Winners Finals';
+    const fmtMap = {3:'Best of 3',5:'Best of 5',7:'Best of 7'};
+    document.getElementById('format-el').textContent = fmtMap[d.format] || ('Best of '+(d.format||5));
+    const pfx = location.pathname.startsWith('/public/') ? '/public' : '';
+
+    // Stage como fondo
+    const stageBgEl = document.getElementById('stage-bg');
+    const stageKey  = (d.stage || '').toLowerCase().trim();
+    const stageFile = STAGE_BG[stageKey] || null;
+    const newBg = stageFile
+      ? `url('${pfx}/images/stages/${encodeURIComponent(stageFile)}')`
+      : '';
+    if (stageBgEl.getAttribute('data-bg') !== newBg) {
+      stageBgEl.setAttribute('data-bg', newBg);
+      stageBgEl.style.backgroundImage = newBg;
+    }
+
+    ['p1','p2'].forEach(p => {
+      const charName  = p === 'p1' ? d.p1char    : d.p2char;
+      const iconUrl   = p === 'p1' ? d.p1charIcon : d.p2charIcon;
+      const renderUrl = getRenderUrl(charName, iconUrl, pfx);
+      const renderEl  = document.getElementById(p+'-render');
+      if (renderUrl && renderEl) {
+        // Fallback a la skin 1 (render base) si el alt no existe
+        renderEl.onerror = () => {
+          const baseFile = RENDERS[charName];
+          if (baseFile) renderEl.src = pfx+'/images/Render%20SSBU/'+encodeURIComponent(baseFile);
+          renderEl.onerror = null;
+        };
+        if (renderEl.getAttribute('data-src') !== renderUrl) {
+          renderEl.setAttribute('data-src', renderUrl);
+          renderEl.src = renderUrl;
+        }
+        renderEl.className = 'char-render show';
+      } else if (renderEl) {
+        renderEl.removeAttribute('data-src');
+        renderEl.src = ''; renderEl.className = 'char-render';
+      }
+      const seed = d[p+'seed']||'';
+      document.getElementById(p+'-seed').textContent = seed ? 'Seed '+seed : '';
+    });
+  } catch(e) {}
+}
+load(); setInterval(load, 500); window.addEventListener('storage', load);
+</script>
+</body>
+</html>

@@ -3265,9 +3265,9 @@ function MatchDetail({ match: m, viewingId, onClose, onBack, onViewOpponent }) {
 }
 
 // -- Helpers de historial (compartidos entre tabs) -----------------------------
-const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
-const HIST_COMM_SHORT  = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
-const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '/images/SCC.webp', 'mendoza': '/images/Team_Anexo/team_anexo_logo_nwe.png', 'afk-multi': '/images/AFK.webp', 'afk': '/images/AFK.webp', 'warui': '/images/warui/logo.png', 'inc': '/images/inc.png' };
+const HIST_COMM_LABELS = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'osu': 'OSU', 'test': 'Test' };
+const HIST_COMM_SHORT  = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'osu': 'OSU', 'test': 'TST' };
+const HIST_COMM_LOGOS  = { 'santafe': '/images/Smash_Santa_Fe.png', 'cordoba': '/images/SCC.webp', 'mendoza': '/images/Team_Anexo/team_anexo_logo_nwe.png', 'afk-multi': '/images/AFK.webp', 'afk': '/images/AFK.webp', 'warui': '/images/warui/logo.png', 'inc': '/images/inc.png', 'osu': '/images/OSU.png' };
 // Canonical community id: lowercase, trim, afk-multi → afk
 function canonComm(raw) {
   const c = String(raw || '').toLowerCase().trim();
@@ -5437,7 +5437,7 @@ function TabPerfil({ user }) {
             const hasCasual = history.some(m => m.type === 'casual');
             const AFK_COMMUNITIES = ['afk', 'afk-multi'];
             const communityIds = [...new Set(history.filter(m => m.type === 'tournament' && m.community).map(m => AFK_COMMUNITIES.includes(m.community) ? 'afk' : m.community))];
-            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'test': 'Test' };
+            const COMMUNITY_LABELS_MAP = { 'santafe': 'Santa Fe', 'cordoba': 'Córdoba', 'mendoza': 'Mendoza', 'afk': 'AFK', 'warui': 'Warui', 'inc': 'INC', 'osu': 'OSU', 'test': 'Test' };
             const filterTabs = [
               ['all', 'Todos'],
               ['ranked', 'Ranked'],
@@ -5492,7 +5492,7 @@ function TabPerfil({ user }) {
                 const isCasual = m.type === 'casual';
                 const isTournament = m.type === 'tournament';
                 const is2v2 = m.mode === '2v2';
-                const COMMUNITY_SHORT = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
+                const COMMUNITY_SHORT = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'osu': 'OSU', 'test': 'TST' };
                 // Para 2v2 y torneo usamos el campo isWin guardado por servidor
                 const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === String(user.id || user.slug);
                 const opponent = is2v2
@@ -5649,7 +5649,7 @@ function TabPerfil({ user }) {
                         const isCasual = m.type === 'casual';
                         const isTournament = m.type === 'tournament';
                         const is2v2 = m.mode === '2v2';
-                        const COMMUNITY_SHORT = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'test': 'TST' };
+                        const COMMUNITY_SHORT = { 'santafe': 'SFE', 'cordoba': 'CBA', 'mendoza': 'MDZ', 'afk-multi': 'AFK', 'afk': 'AFK', 'warui': 'WAR', 'inc': 'INC', 'osu': 'OSU', 'test': 'TST' };
                         const isWin = (is2v2 || isTournament) ? !!m.isWin : String(m.winnerId) === selfId;
                         const opponent = is2v2 ? (isWin ? `${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p1 || '?'} & ${m[m.winnerTeam === 'team1' ? 'team2' : 'team1']?.p2 || '?'}` : `${m[m.winnerTeam]?.p1 || '?'} & ${m[m.winnerTeam]?.p2 || '?'}`) : (isWin ? m.loserName : m.winnerName);
                         const myCharId = is2v2 ? null : (isWin ? m.winnerCharId : m.loserCharId);
@@ -6749,6 +6749,7 @@ function ElapsedTimer({ startAt }) {
 
 const COMMUNITY_LOGOS = {
   'afk-multi': '/images/AFK.webp',
+  'osu-multi': '/images/OSU.png',
   'cordoba':   '/images/SCC.webp',
   'mendoza':   '/images/Team_Anexo/team_anexo_logo_nwe.png',
   'inc':       '/images/inc.png',

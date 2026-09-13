@@ -10,6 +10,7 @@ const COMMUNITIES = [
   { id: 'inc',      label: 'INC',             color: '#EF4444', icon: '🎮' },
   { id: 'warui',    label: 'Warui Team',       color: '#8B5CF6', icon: '🎮' },
   { id: 'santafe',  label: 'Smash Santa Fe',   color: '#0EA5E9', icon: '🎮' },
+  { id: 'osu',      label: 'OSU',              color: '#6B4FA0', icon: '🎮' },
 ];
 
 export default function ManageAdmins() {

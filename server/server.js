@@ -133,6 +133,28 @@ function syncAfkScoreboard(session) {
   }
 }
 
+function syncOsuScoreboard(session) {
+  if (!session) return;
+  try {
+    const vercelUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smash-ban-stages.vercel.app';
+    const adminSecret = process.env.ADMIN_SECRET || 'afk-admin-2025';
+    fetch(`${vercelUrl}/api/osu/score-state`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminSecret}` },
+      body: JSON.stringify({
+        p1tag:    session.player1?.name      ?? '',
+        p2tag:    session.player2?.name      ?? '',
+        p1score:  session.player1?.score     ?? 0,
+        p2score:  session.player2?.score     ?? 0,
+        p1char:   session.player1?.character ?? '',
+        p2char:   session.player2?.character ?? '',
+      }),
+    }).catch(e => console.error('⚠️ Error sync OSU scoreboard:', e.message));
+  } catch (e) {
+    console.error('⚠️ Error sincronizando scoreboard OSU:', e.message);
+  }
+}
+
 function isSantaFe(sessionId) {
   if (!sessionId) return false;
   const s = sessionId.toLowerCase();
@@ -144,7 +166,7 @@ function communityFromSessionId(sessionId, sessionCommunity) {
   if (sessionCommunity) return sessionCommunity;
   if (!sessionId) return '';
   const s = sessionId.toLowerCase();
-  const COMMUNITY_PREFIXES = ['santafe', 'santa-fe', 'cordoba', 'mendoza', 'afk-multi', 'afk', 'warui', 'inc', 'test'];
+  const COMMUNITY_PREFIXES = ['santafe', 'santa-fe', 'cordoba', 'mendoza', 'afk-multi', 'afk', 'warui', 'inc', 'osu-multi', 'osu', 'test'];
   for (const prefix of COMMUNITY_PREFIXES) {
     if (s.startsWith(prefix + '-') || s === prefix) return prefix;
   }
@@ -493,6 +515,10 @@ const INC_STAGES_GAME2_PLUS = ['battlefield', 'small-battlefield', 'town-and-cit
 const WARUI_STAGES_GAME1      = ['town-and-city', 'smashville', 'battlefield', 'small-battlefield', 'pokemon-stadium-2'];
 const WARUI_STAGES_GAME2_PLUS = ['town-and-city', 'smashville', 'battlefield', 'small-battlefield', 'pokemon-stadium-2', 'hollow-bastion', 'final-destination', 'kalos'];
 
+// Constantes para stages - OSU (clon de AFK)
+const OSU_STAGES_GAME1      = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'battlefield', 'smashville'];
+const OSU_STAGES_GAME2_PLUS = ['small-battlefield', 'town-and-city', 'pokemon-stadium-2', 'hollow-bastion', 'battlefield', 'final-destination', 'kalos', 'smashville'];
+
 // Función para detectar el torneo basado en sessionId
 function detectTournament(sessionId) {
   console.log('🔍 SERVER detectTournament input:', sessionId);
@@ -508,6 +534,12 @@ function detectTournament(sessionId) {
   if (s === 'afk' || s.startsWith('afk-') || s.includes('/afk')) {
     console.log('✅ AFK detected');
     return 'afk';
+  }
+
+  // Detectar OSU
+  if (s === 'osu' || s.startsWith('osu-') || s.includes('/osu')) {
+    console.log('✅ OSU detected');
+    return 'osu';
   }
 
   // Caso 1: sessionId directo o con prefijo (ej: "mendoza", "mendoza-1-abc123")
@@ -567,6 +599,12 @@ function getStagesForTournament(sessionId, currentGame) {
   if (tournament === 'afk') {
     const stages = currentGame === 1 ? AFK_STAGES_GAME1 : AFK_STAGES_GAME2_PLUS;
     console.log('✅ AFK ruleset selected:', stages);
+    return stages;
+  }
+
+  if (tournament === 'osu') {
+    const stages = currentGame === 1 ? OSU_STAGES_GAME1 : OSU_STAGES_GAME2_PLUS;
+    console.log('✅ OSU ruleset selected:', stages);
     return stages;
   }
 
@@ -808,6 +846,10 @@ const httpServer = createServer(async (req, res) => {
             io.to('afk-stream').emit('session-updated', { session });
             syncAfkScoreboard(session);
           }
+          if (sessionId === 'osu-tablet') {
+            io.to('osu-stream').emit('session-updated', { session });
+            syncOsuScoreboard(session);
+          }
         } else if (session) {
           // Si la sesión ya tiene progreso y no viene forceReset, solo actualizar metadata
           const hasProgress = session.phase !== 'CHECKIN' || (session.player1?.score || 0) > 0 || (session.player2?.score || 0) > 0 || session.currentGame > 1;
@@ -870,6 +912,10 @@ const httpServer = createServer(async (req, res) => {
           if (sessionId === 'afk-tablet') {
             io.to('afk-stream').emit('session-updated', { session: freshSession });
             syncAfkScoreboard(freshSession);
+          }
+          if (sessionId === 'osu-tablet') {
+            io.to('osu-stream').emit('session-updated', { session: freshSession });
+            syncOsuScoreboard(freshSession);
           }
         }
 
@@ -1272,6 +1318,16 @@ io.on('connection', (socket) => {
         if (tabletSession && tabletSession.phase && tabletSession.phase !== 'IDLE') {
           socket.emit('session-joined', { session: tabletSession });
           console.log('Cliente unido a afk-stream → recibiendo estado de afk-tablet');
+          return;
+        }
+      }
+      // MIRROR: osu-stream también se suscribe al room osu-tablet
+      if (sessionId === 'osu-stream') {
+        socket.join('osu-tablet');
+        const tabletSession = sessions.get('osu-tablet');
+        if (tabletSession && tabletSession.phase && tabletSession.phase !== 'IDLE') {
+          socket.emit('session-joined', { session: tabletSession });
+          console.log('Cliente unido a osu-stream → recibiendo estado de osu-tablet');
           return;
         }
       }
@@ -1765,6 +1821,7 @@ io.on('connection', (socket) => {
         if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
         if (sessionId === 'afk-tablet') syncAfkScoreboard(session);
+        if (sessionId === 'osu-tablet') syncOsuScoreboard(session);
       } else {
         // Ambos han seleccionado, cambiar a STAGE_BAN (delay para animación VS)
         sessions.set(sessionId, session);
@@ -1772,6 +1829,7 @@ io.on('connection', (socket) => {
         if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
         if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
         if (sessionId === 'afk-tablet') syncAfkScoreboard(session);
+        if (sessionId === 'osu-tablet') syncOsuScoreboard(session);
         
         const phaseDelay = 2500;
         setTimeout(() => {
@@ -1862,6 +1920,16 @@ io.on('connection', (socket) => {
         sessions.set('afk-stream', idleStream);
         io.to('afk-stream').emit('session-updated', { session: idleStream });
       }
+      // Cuando termina un tablet de osu: limpiar osu-stream a IDLE
+      if (sessionId === 'osu-tablet') {
+        const idleStream = {
+          sessionId: 'osu-stream', phase: 'IDLE',
+          player1: { name: '', score: 0, character: null, wonStages: [] },
+          player2: { name: '', score: 0, character: null, wonStages: [] },
+        };
+        sessions.set('osu-stream', idleStream);
+        io.to('osu-stream').emit('session-updated', { session: idleStream });
+      }
 
       // Liberar el setup: limpiar el lock para que el panel pueda auto-activar el siguiente
       // match de la cola (vía activate-queued-match — único camino de promoción).
@@ -1894,6 +1962,7 @@ io.on('connection', (socket) => {
     if (isSantaFe(sessionId)) syncSantaFeScoreboard(session);
     if (sessionId === 'mendoza-tablet') syncMendozaScoreboard(session);
     if (sessionId === 'afk-tablet') syncAfkScoreboard(session);
+    if (sessionId === 'osu-tablet') syncOsuScoreboard(session);
 
     console.log(`[start.gg] game-winner → setId=${session.startggSetId || 'NULL'} seriesFinished=${seriesFinished} winnerEntrantId=${winnerEntrantId || 'NULL'} gamesCount=${(session.games || []).length}`);
     if (session.startggSetId && seriesFinished) {

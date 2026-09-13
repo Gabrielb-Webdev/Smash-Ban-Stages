@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>OSU · Scoreboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { overflow:hidden; background:transparent; }
+body {
+  width:1280px; height:720px;
+  overflow:hidden; background:transparent;
+  position:relative; font-family:'DM Sans',sans-serif;
+}
+
+/* ═══════════════════════════════════════════════
+   SCOREBOARD — OSU · CSS-only banner
+   ═══════════════════════════════════════════════ */
+
+.scoreboard {
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  width:1160px; height:120px;
+}
+
+/* ── Franja oscura (background layer) ── */
+.black-band {
+  position:absolute; top:30px; left:0; right:0; height:90px;
+  background:linear-gradient(180deg, #241a3d 0%, #1a1430 40%, #150f28 100%);
+  border-radius:4px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.9), 0 0 0 1px rgba(80,60,140,0.35);
+}
+
+/* ── Franjas violetas sobre la franja oscura ── */
+.gold-bar {
+  position:absolute; top:30px; height:52px;
+  background:linear-gradient(180deg, #D9BFFF 0%, #B98FE0 35%, #6B4FA0 70%, #4E3A78 100%);
+  border-radius:3px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(232,213,255,0.5), inset 0 -1px 0 rgba(40,20,70,0.4);
+}
+.gold-bar.left  { left:0;    right:calc(50% + 145px); }
+.gold-bar.right { right:0;   left:calc(50% + 145px); }
+
+/* Borde interior decorativo de la franja violeta */
+.gold-bar::before {
+  content:'';
+  position:absolute; inset:3px;
+  border:1px solid rgba(20,10,40,0.15);
+  border-radius:2px;
+}
+
+/* ── Character icons (extremos) ── */
+.char-ico {
+  position:absolute; top:20px;
+  width:62px; height:62px;
+  border-radius:50%; object-fit:cover;
+  border:3px solid #6B4FA0;
+  background:rgba(10,8,20,0.9);
+  box-shadow:0 0 16px rgba(107,79,160,0.35), inset 0 0 8px rgba(0,0,0,0.5);
+  z-index:12; display:none;
+  transition:opacity .3s;
+}
+.char-ico.left  { left:0; }
+.char-ico.right { right:0; }
+
+/* ── Score badges (cuadrados con score grande) ── */
+.score-badge {
+  position:absolute; top:16px; width:72px; height:72px;
+  display:flex; align-items:center; justify-content:center;
+  z-index:10;
+  background:linear-gradient(135deg, #2A1D4A 0%, #1a1430 100%);
+  border:3px solid #6B4FA0;
+  border-radius:8px;
+  box-shadow:0 0 18px rgba(107,79,160,0.4), inset 0 0 12px rgba(0,0,0,0.6);
+  transition:left .3s, right .3s;
+}
+.score-badge.left  { left:18px; }
+.score-badge.right { right:18px; }
+/* When char icon is visible, shift badges inward */
+.score-badge.left.has-char  { left:70px; }
+.score-badge.right.has-char { right:70px; }
+.score-badge .snum {
+  font-family:'Anton', sans-serif;
+  font-size:52px; line-height:1;
+  color:#C9A6E8;
+  text-shadow:
+    0 0 20px rgba(201,166,232,0.55),
+    -1px -1px 0 #241645, 1px -1px 0 #241645,
+    -1px  1px 0 #241645, 1px  1px 0 #241645;
+  transition:color .25s, text-shadow .25s;
+}
+.score-badge .snum.lead {
+  color:#E0B3FF;
+  text-shadow:
+    0 0 30px rgba(224,179,255,0.85),
+    -1px -1px 0 #2A1650, 1px -1px 0 #2A1650,
+    -1px  1px 0 #2A1650, 1px  1px 0 #2A1650;
+}
+
+/* ── Player areas (sobre las franjas violetas) ── */
+.p-area {
+  position:absolute; top:30px; height:52px;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  z-index:5; padding:0 12px;
+  overflow:hidden;
+  transition:left .3s, right .3s;
+}
+.p-area.left  { left:100px; right:calc(50% + 150px); }
+.p-area.right { right:100px; left:calc(50% + 150px); flex-direction:row-reverse; }
+.p-area.left.has-char  { left:150px; }
+.p-area.right.has-char { right:150px; }
+
+.player-info { min-width:0; overflow:hidden; flex:1; }
+.player-info.r { text-align:right; }
+.ptag {
+  font-family:'Anton', sans-serif;
+  font-size:28px; letter-spacing:1.5px;
+  color:#1E1435; text-transform:uppercase; line-height:1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  text-shadow:0 1px 0 rgba(232,213,255,0.35);
+}
+
+/* ── Centro: Logo OSU con starburst ── */
+.center-logo {
+  position:absolute;
+  top:-4px; left:50%; transform:translateX(-50%);
+  width:290px; height:128px;
+  z-index:20;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+}
+/* Starburst (polygon oscuro) */
+.starburst {
+  position:absolute; inset:-6px;
+  background:#1a1430;
+  clip-path:polygon(
+    50% 0%, 61% 8%, 72% 1%, 78% 12%, 90% 8%, 92% 22%,
+    100% 24%, 97% 37%, 100% 50%, 97% 63%, 100% 76%,
+    92% 78%, 90% 92%, 78% 88%, 72% 99%, 61% 92%, 50% 100%,
+    39% 92%, 28% 99%, 22% 88%, 10% 92%, 8% 78%, 0% 76%,
+    3% 63%, 0% 50%, 3% 37%, 0% 24%, 8% 22%, 10% 8%,
+    22% 12%, 28% 1%, 39% 8%
+  );
+  box-shadow:0 0 20px rgba(0,0,0,0.9);
+}
+/* Glow around starburst */
+.starburst::before {
+  content:'';
+  position:absolute; inset:-3px;
+  background:rgba(107,79,160,0.25);
+  clip-path:inherit;
+  z-index:-1;
+  filter:blur(4px);
+}
+.logo-text {
+  position:relative; z-index:2;
+  text-align:center; line-height:1;
+}
+.logo-text .line1 {
+  font-family:'Anton', sans-serif;
+  font-size:42px; letter-spacing:3px;
+  color:#C9A6E8;
+  text-shadow:
+    -2px -2px 0 #2A1650, 2px -2px 0 #2A1650,
+    -2px  2px 0 #2A1650, 2px  2px 0 #2A1650,
+    0 3px 0 #1E1040,
+    0 0 20px rgba(201,166,232,0.45);
+}
+.logo-text .line2 {
+  font-family:'Anton', sans-serif;
+  font-size:42px; letter-spacing:3px;
+  color:#C9A6E8;
+  text-shadow:
+    -2px -2px 0 #2A1650, 2px -2px 0 #2A1650,
+    -2px  2px 0 #2A1650, 2px  2px 0 #2A1650,
+    0 3px 0 #1E1040,
+    0 0 20px rgba(201,166,232,0.45);
+  margin-top:-4px;
+}
+
+/* ── Info strip (franja oscura inferior) ── */
+.info-strip {
+  position:absolute; top:82px; left:0; right:0;
+  height:38px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 28px;
+  z-index:3;
+}
+.info-left {
+  font-family:'Anton', sans-serif;
+  font-size:13px; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(201,166,232,0.85);
+  white-space:nowrap;
+}
+.info-right {
+  font-family:'Anton', sans-serif;
+  font-size:14px; letter-spacing:2.5px; text-transform:uppercase;
+  color:rgba(201,166,232,0.9);
+  white-space:nowrap;
+  display:flex; gap:16px; align-items:center;
+}
+</style>
+</head>
+<body>
+
+<div class="scoreboard">
+  <!-- Background: franja oscura -->
+  <div class="black-band"></div>
+
+  <!-- Franjas violetas -->
+  <div class="gold-bar left"></div>
+  <div class="gold-bar right"></div>
+
+  <!-- P1 Character icon -->
+  <img class="char-ico left" id="p1-ico" src="" alt="">
+
+  <!-- Score P1 -->
+  <div class="score-badge left" id="sb1">
+    <div class="snum" id="s1">0</div>
+  </div>
+
+  <!-- Área jugador 1 -->
+  <div class="p-area left" id="pa1">
+    <div class="player-info">
+      <div class="ptag" id="p1-tag">PLAYER 1</div>
+    </div>
+  </div>
+
+  <!-- Centro: OSU logo -->
+  <div class="center-logo">
+    <div class="starburst"></div>
+    <div class="logo-text">
+      <div class="line1">OSU</div>
+      <div class="line2">BANS</div>
+    </div>
+  </div>
+
+  <!-- Área jugador 2 -->
+  <div class="p-area right" id="pa2">
+    <div class="player-info r">
+      <div class="ptag" id="p2-tag">PLAYER 2</div>
+    </div>
+  </div>
+
+  <!-- Score P2 -->
+  <div class="score-badge right" id="sb2">
+    <div class="snum" id="s2">0</div>
+  </div>
+
+  <!-- P2 Character icon -->
+  <img class="char-ico right" id="p2-ico" src="" alt="">
+
+  <!-- Info strip (dentro de la franja oscura) -->
+  <div class="info-strip">
+    <div class="info-left" id="tournament-el"></div>
+    <div class="info-right">
+      <span id="round-el"></span>
+      <span id="game-lbl">GAME 1 · Bo3</span>
+    </div>
+  </div>
+</div>
+
+<script>
+!function(){function s(){var r=Math.min(window.innerWidth/1280,window.innerHeight/720);document.body.style.transform='scale('+r+')';document.body.style.transformOrigin='top left';}s();window.addEventListener('resize',s);}();
+
+const API = 'https://smash-ban-stages.vercel.app/api/osu/score-state';
+
+async function load() {
+  let d = {};
+  try {
+    const r = await fetch(API);
+    if (r.ok) { const j = await r.json(); if (j && (j.p1tag !== undefined || j.p2tag !== undefined)) d = j; }
+  } catch {}
+  if (!d.p1tag && !d.p2tag) {
+    try { d = JSON.parse(localStorage.getItem('smashosu_score')||'{}'); } catch {}
+  }
+  try {
+    const p1s = d.p1score||0, p2s = d.p2score||0, needed = d.needed||3;
+
+    document.getElementById('p1-tag').textContent = (d.p1tag||'PLAYER 1').toUpperCase();
+    document.getElementById('p2-tag').textContent = (d.p2tag||'PLAYER 2').toUpperCase();
+
+    const s1 = document.getElementById('s1'), s2 = document.getElementById('s2');
+    s1.textContent = p1s; s2.textContent = p2s;
+    s1.className = 'snum'+(p1s > p2s ? ' lead' : '');
+    s2.className = 'snum'+(p2s > p1s ? ' lead' : '');
+
+    document.getElementById('tournament-el').textContent = d.tournamentName||'';
+    document.getElementById('round-el').textContent = d.round||'';
+    const fmt = d.format||3;
+    const g = Math.min(p1s + p2s + 1, fmt);
+    document.getElementById('game-lbl').textContent = 'GAME\u00a0'+g+'\u00a0\u00b7\u00a0Bo'+fmt;
+
+    // Character icons
+    ['p1','p2'].forEach(p => {
+      const ico = document.getElementById(p+'-ico');
+      const url = p === 'p1' ? d.p1charIcon : d.p2charIcon;
+      const hasChar = !!url;
+      ico.src = url||''; ico.style.display = hasChar ? 'block' : 'none';
+      // Shift score badge and name area when char visible
+      const side = p === 'p1' ? 'left' : 'right';
+      document.getElementById(p === 'p1' ? 'sb1' : 'sb2').classList.toggle('has-char', hasChar);
+      document.getElementById(p === 'p1' ? 'pa1' : 'pa2').classList.toggle('has-char', hasChar);
+    });
+  } catch(e) {}
+}
+load(); setInterval(load, 500); window.addEventListener('storage', load);
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import TabletControl from '../../src/components/TabletControl';
 import TabletControlAfk from '../../src/components/TabletControlAfk';
+import TabletControlOsu from '../../src/components/TabletControlOsu';
 import TabletControlCordoba from '../../src/components/TabletControlCordoba';
 import TabletControlMendoza from '../../src/components/TabletControlMendoza';
 import TabletControlInc from '../../src/components/TabletControlInc';
@@ -36,6 +37,7 @@ export default function Tablet() {
   const s = (sessionId || '').toLowerCase();
   const props = { sessionId, playerName, playerIndex, matchToken };
   if (s === 'afk' || s.startsWith('afk-'))        return <TabletControlAfk     {...props} />;
+  if (s === 'osu' || s.startsWith('osu-'))        return <TabletControlOsu     {...props} />;
   if (s === 'cordoba' || s.startsWith('cordoba-')) return <TabletControlCordoba  {...props} />;
   if (s === 'mendoza' || s.startsWith('mendoza-')) return <TabletControlMendoza  {...props} />;
   if (s === 'inc' || s.startsWith('inc-'))              return <TabletControlInc      {...props} />;

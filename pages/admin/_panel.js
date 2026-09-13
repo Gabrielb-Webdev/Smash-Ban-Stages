@@ -21,6 +21,7 @@ const COMMUNITY_META = {
   'test':      { name: 'Test',           logo: null },
   'cordoba':   { name: 'Smash Córdoba',  logo: '/images/SCC.webp' },
   'afk-multi': { name: 'Smash AFK',      logo: '/images/AFK.webp' },
+  'osu-multi': { name: 'OSU',            logo: '/images/OSU.png' },
   'mendoza':   { name: 'Smash Mendoza',  logo: '/images/Team_Anexo/team_anexo_logo_nwe.png' },
   'inc':       { name: 'INC',            logo: '/images/inc.png' },
   'warui':     { name: 'Warui Team',     logo: '/images/warui/logo.png' },
@@ -40,10 +41,10 @@ function getCommunitySetups(comunidad) {
     { id: `${p}-7`,     label: 'Setup 7', icon: '🎮', color: '#65A30D' },
     { id: `${p}-8`,     label: 'Setup 8', icon: '🎮', color: '#9333EA' },
   ];
-  // Setup tablet exclusivo para Mendoza y AFK (envía datos al overlay igual que stream)
-  if (p === 'mendoza' || p === 'afk-multi') {
-    const color = p === 'mendoza' ? '#8B5CF6' : '#6366F1';
-    const tabletId = p === 'afk-multi' ? 'afk-tablet' : `${p}-tablet`;
+  // Setup tablet exclusivo para Mendoza, AFK y OSU (envía datos al overlay igual que stream)
+  if (p === 'mendoza' || p === 'afk-multi' || p === 'osu-multi') {
+    const color = p === 'mendoza' ? '#8B5CF6' : p === 'osu-multi' ? '#A855F7' : '#6366F1';
+    const tabletId = p === 'afk-multi' ? 'afk-tablet' : p === 'osu-multi' ? 'osu-tablet' : `${p}-tablet`;
     base.splice(1, 0, { id: tabletId, label: 'Tablet', icon: '📱', color });
   }
   return base;
@@ -551,7 +552,7 @@ export default function TestAdminPage() {
       const comm = _communitySync();
       // Las comunidades en Redis usan claves cortas (ej: 'afk'), pero la URL puede
       // usar nombres distintos (ej: 'afk-multi'). Mapear para la verificación de acceso.
-      const COMMUNITY_KEY_MAP = { 'afk-multi': 'afk' };
+      const COMMUNITY_KEY_MAP = { 'afk-multi': 'afk', 'osu-multi': 'osu' };
       const authComm = COMMUNITY_KEY_MAP[comm] || comm;
       const hasAccess = data.isAdmin || data.adminCommunities?.includes(authComm);
       if (!hasAccess) { router.replace('/'); return; }
@@ -1128,7 +1129,7 @@ export default function TestAdminPage() {
   function parseSetupId(setupId) {
     // Extrae la comunidad del setupId: 'warui-1' → 'warui', 'afk-tablet' → 'afk-multi', etc.
     if (!setupId) return { community: '', setupId: '' };
-    const COMMUNITIES = ['santafe', 'santa-fe', 'cordoba', 'mendoza', 'afk-multi', 'afk', 'warui', 'inc', 'test'];
+    const COMMUNITIES = ['santafe', 'santa-fe', 'cordoba', 'mendoza', 'afk-multi', 'afk', 'osu-multi', 'osu', 'warui', 'inc', 'test'];
     for (const c of COMMUNITIES) {
       if (setupId.startsWith(c + '-') || setupId === c) {
         return { community: c, setupId };
@@ -1559,8 +1560,8 @@ export default function TestAdminPage() {
     const format = setupFormats[setupId] || 'BO3';
     // Para el setup de stream/tablet se usa el ID canónico fijo (el overlay de OBS se suscribe a ese ID siempre).
     // Mapeo comunidad → sessionId de stream (afk-multi usa 'afk-stream' para que coincida con /stream/afk-stream)
-    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream', 'santafe': 'santafe-stream' };
-    const COMMUNITY_TABLET_IDS = { 'mendoza': 'mendoza-tablet', 'afk-multi': 'afk-tablet' };
+    const COMMUNITY_STREAM_IDS = { 'afk-multi': 'afk-stream', 'osu-multi': 'osu-stream', 'cordoba': 'cordoba-stream', 'mendoza': 'mendoza-stream', 'warui': 'warui-stream', 'inc': 'inc-stream', 'santafe': 'santafe-stream' };
+    const COMMUNITY_TABLET_IDS = { 'mendoza': 'mendoza-tablet', 'afk-multi': 'afk-tablet', 'osu-multi': 'osu-tablet' };
     const isStreamSetup = setupId.endsWith('-stream');
     const isTabletSetup = setupId.endsWith('-tablet');
     const sessionId = isStreamSetup
@@ -1800,6 +1801,28 @@ export default function TestAdminPage() {
     // Para torneos AFk Multi: sincronizar con overlay control
     if (community === 'afk-multi' && isStreamSetup) {
       fetch('/api/afk/score-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p1tag: players[0] || 'Jugador 1',
+          p2tag: players[1] || 'Jugador 2',
+          p1score: 0,
+          p2score: 0,
+          p1char: '',
+          p2char: '',
+          p1charIcon: '',
+          p2charIcon: '',
+          round: set.fullRoundText || set.round || '',
+          format: parseInt(format) || 3,
+          needed: Math.ceil((parseInt(format) || 3) / 2),
+          tournamentName: tournament?.name || '',
+        }),
+      }).catch(() => {});
+    }
+
+    // Para torneos OSU Multi: sincronizar con overlay control
+    if (community === 'osu-multi' && isStreamSetup) {
+      fetch('/api/osu/score-state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

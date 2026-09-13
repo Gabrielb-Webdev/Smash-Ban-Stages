@@ -307,6 +307,15 @@ export default function Home() {
       color: 'from-blue-950 via-blue-900 to-cyan-950',
       borderColor: 'border-cyan-600',
       hoverColor: 'hover:border-cyan-400'
+    },
+    {
+      id: 'osu-multi',
+      name: 'OSU',
+      logo: '/images/OSU.png',
+      description: 'Panel de administración de OSU',
+      color: 'from-purple-950 via-violet-800 to-fuchsia-900',
+      borderColor: 'border-fuchsia-400',
+      hoverColor: 'hover:border-fuchsia-300'
     }
   ];
 
@@ -314,7 +323,7 @@ export default function Home() {
   const visibleCommunities = isAdmin
     ? communities
     : communities.filter(c => {
-        const cId = c.id === 'afk-multi' ? 'afk' : c.id;
+        const cId = c.id === 'afk-multi' ? 'afk' : c.id === 'osu-multi' ? 'osu' : c.id;
         return session?.adminCommunities?.includes(cId);
       });
 
